@@ -31,7 +31,7 @@ noticeFile = rootProject.file("NOTICE.txt")
 esplugin {
     name 'elastiknn'
     description 'Ingest processor and queries for exact and approximate nearest neighbors search'
-    classname 'org.elasticsearch.plugin.ElastiKnnPlugin'
+    classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }

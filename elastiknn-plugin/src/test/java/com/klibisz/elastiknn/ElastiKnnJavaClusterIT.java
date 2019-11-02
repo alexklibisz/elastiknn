@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin;
+package com.klibisz.elastiknn;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.test.ESIntegTestCase;

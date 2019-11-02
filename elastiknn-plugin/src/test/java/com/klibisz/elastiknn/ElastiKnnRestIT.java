@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin;
+package com.klibisz.elastiknn;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;

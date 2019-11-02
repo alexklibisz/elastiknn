@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin
+package com.klibisz.elastiknn
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.http.JavaClient

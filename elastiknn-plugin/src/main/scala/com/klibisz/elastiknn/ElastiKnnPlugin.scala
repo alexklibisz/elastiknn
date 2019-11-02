@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin
+package com.klibisz.elastiknn
 
 import org.elasticsearch.ingest.Processor
 import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, Plugin}
