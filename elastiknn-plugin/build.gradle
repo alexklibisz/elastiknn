@@ -42,23 +42,8 @@ configurations.all {
 
 dependencies {
     implementation 'org.scala-lang:scala-library:2.12.9'
-//    testImplementation('com.sksamuel.elastic4s:elastic4s-core_2.12:7.3.1') {
-//        exclude group: 'org.slf4j', module: 'slf4j-api'
-//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-//        exclude group: 'org.scala-lang', module: 'scala-library'
-//    }
-    testImplementation('com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1') {
-//        exclude group: 'org.slf4j', module: 'slf4j-api'
-//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-//        exclude group: 'org.scala-lang', module: 'scala-library'
-//        exclude group: 'org.elasticsearch.client', module: 'elasticsearch-rest-client'
-    }
-//    testImplementation('org.scalatest:scalatest_2.12:3.0.8') {
-//        exclude group: 'org.scala-lang', module: 'scala-library'
-//        exclude group: 'org.scala-lang', module: 'scala-reflect'
-//    }
+    testImplementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
+    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
 
 test {

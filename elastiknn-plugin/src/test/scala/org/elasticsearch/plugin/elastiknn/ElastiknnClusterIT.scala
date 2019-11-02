@@ -3,16 +3,19 @@ package org.elasticsearch.plugin.elastiknn
 import java.util
 import java.util.Collections
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.http.JavaClient
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope
+import org.junit.Assert._
 import org.junit.Before
 
-@ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numClientNodes = 1)
-class ElastiknnClusterIT extends ESIntegTestCase {
+import scala.concurrent.ExecutionContext.Implicits.global
+
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE) // https://discuss.elastic.co/t/integration-testing-in-java-carrotsearch-thread-leaks-severe-errors/26831/4
+class ElastiknnClusterIT extends ESIntegTestCase with AsyncTesting {
 
   @Before
   override def setUp(): Unit = {
@@ -21,22 +24,20 @@ class ElastiknnClusterIT extends ESIntegTestCase {
   }
 
   private lazy val client: ElasticClient = {
-    val javaClient = new JavaClient(ESIntegTestCase.getRestClient)
+    val javaClient = JavaClient.fromRestClient(ESIntegTestCase.getRestClient)
     ElasticClient(javaClient)
   }
 
   override def nodePlugins(): util.Collection[Class[_ <: Plugin]] =
     Collections.singletonList(classOf[ElastiKnnPlugin])
 
-  def testDummy(): Unit = assert(true)
-
-  def testPluginsInstalled(): Unit = {
-    val res = client.execute(catPlugins)
-    while (!res.isCompleted) {
-      println("Checking...")
-      Thread.sleep(1000)
+  def testPluginsInstalled(): Unit = await {
+    for {
+      res <- client.execute(catPlugins())
+    } yield {
+      assertEquals(res.result.length, 1)
+      assertEquals(res.result.head.component, "elastiknn")
     }
-    assert(true)
   }
 
 }
