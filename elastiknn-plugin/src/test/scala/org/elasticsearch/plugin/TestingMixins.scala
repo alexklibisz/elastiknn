@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin.elastiknn
+package org.elasticsearch.plugin
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.http.JavaClient

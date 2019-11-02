@@ -1,5 +1,7 @@
-package org.elasticsearch.plugin.elastiknn
+package org.elasticsearch.plugin
 
+import org.elasticsearch.ingest.Processor
+import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, Plugin}
 import java.util
 import java.util.function.Supplier
 
@@ -11,13 +13,12 @@ import org.elasticsearch.common.settings.{
   Settings,
   SettingsFilter
 }
-import org.elasticsearch.ingest.Processor
-import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, Plugin}
 import org.elasticsearch.rest.{RestController, RestHandler}
 
-import scala.collection.JavaConverters._
-
-class ElastiKnnPlugin extends Plugin with ActionPlugin with IngestPlugin {
+class ElastiKnnPlugin extends Plugin with IngestPlugin with ActionPlugin {
+  override def getProcessors(
+      parameters: Processor.Parameters): util.Map[String, Processor.Factory] =
+    util.Collections.emptyMap()
 
   override def getRestHandlers(
       settings: Settings,
@@ -26,13 +27,7 @@ class ElastiKnnPlugin extends Plugin with ActionPlugin with IngestPlugin {
       indexScopedSettings: IndexScopedSettings,
       settingsFilter: SettingsFilter,
       indexNameExpressionResolver: IndexNameExpressionResolver,
-      nodesInCluster: Supplier[DiscoveryNodes]): util.List[RestHandler] = {
-    List.empty[RestHandler].asJava
-  }
-
-  override def getProcessors(
-      parameters: Processor.Parameters): util.Map[String, Processor.Factory] = {
-    Map.empty[String, Processor.Factory].asJava
-  }
+      nodesInCluster: Supplier[DiscoveryNodes]): util.List[RestHandler] =
+    util.Collections.emptyList()
 
 }

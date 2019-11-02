@@ -1,13 +1,13 @@
-package org.elasticsearch.plugin.elastiknn;
+package org.elasticsearch.plugin;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.elasticsearch.test.rest.yaml.ClientYamlTestCandidate;
 import org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase;
 
-public class ElastiknnRestIT extends ESClientYamlSuiteTestCase {
+public class ElastiKnnRestIT extends ESClientYamlSuiteTestCase {
 
-    public ElastiknnRestIT(@Name("yaml")ClientYamlTestCandidate testCandidate) {
+    public ElastiKnnRestIT(@Name("yaml")ClientYamlTestCandidate testCandidate) {
         super(testCandidate);
     }
 

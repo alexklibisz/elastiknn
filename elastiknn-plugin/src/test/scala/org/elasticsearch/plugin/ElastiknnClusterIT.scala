@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin.elastiknn
+package org.elasticsearch.plugin
 
 import java.util
 import java.util.Collections

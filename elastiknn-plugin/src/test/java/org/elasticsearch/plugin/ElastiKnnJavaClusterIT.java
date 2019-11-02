@@ -1,4 +1,4 @@
-package org.elasticsearch.plugin.elastiknn;
+package org.elasticsearch.plugin;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -6,7 +6,7 @@ import org.junit.Before;
 
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numClientNodes = 1)
-public class ElastiknnJavaClusterIT extends ESIntegTestCase {
+public class ElastiKnnJavaClusterIT extends ESIntegTestCase {
 
     @Before
     public void setup() {
