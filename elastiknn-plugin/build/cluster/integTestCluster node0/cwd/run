@@ -1,1 +1,0 @@
-"/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/build/cluster/integTestCluster node0/elasticsearch-7.4.0/bin/elasticsearch" "$@" > run.log 2>&1 ; if [ $? != 0 ]; then touch run.failed; fi

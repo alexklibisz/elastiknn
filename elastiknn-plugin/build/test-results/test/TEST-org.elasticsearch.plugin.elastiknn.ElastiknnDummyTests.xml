@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="org.elasticsearch.plugin.elastiknn.ElastiknnDummyTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2019-11-02T02:29:50" hostname="pop-os" time="0.265">
-  <properties/>
-  <testcase name="testDummy" classname="org.elasticsearch.plugin.elastiknn.ElastiknnDummyTests" time="0.265"/>
-  <system-out><![CDATA[[2019-11-02T08:29:50,166][INFO ][o.e.p.e.ElastiknnDummyTests] [testDummy] before test
-[2019-11-02T08:29:50,388][INFO ][o.e.p.e.ElastiknnDummyTests] [testDummy] after test
-]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
