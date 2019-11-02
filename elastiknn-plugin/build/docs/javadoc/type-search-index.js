@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"org.elasticsearch.plugin","l":"ElastiKnnPlugin"}]

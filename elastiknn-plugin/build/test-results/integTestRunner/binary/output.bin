@@ -1,0 +1,4 @@
+„[2019-11-01T22:30:01,933][INFO ][o.e.p.e.ElastiknnRestIT  ] [test] [yaml=elastiknn/10_basic/elastiknn plugin installed] before test
+z[2019-11-01T22:30:02,101][INFO ][o.e.p.e.ElastiknnRestIT  ] [test] initializing REST clients against [http://[::1]:43491]
+¨[2019-11-01T22:30:02,701][INFO ][o.e.p.e.ElastiknnRestIT  ] [test] initializing client, minimum es version [7.4.0], master version, [7.4.0], hosts [http://[::1]:43491]
+ƒ[2019-11-01T22:30:02,836][INFO ][o.e.p.e.ElastiknnRestIT  ] [test] [yaml=elastiknn/10_basic/elastiknn plugin installed] after test

@@ -1,0 +1,126 @@
+
+*****************************************************
+Summary
+-------
+Generated at: 2019-11-01T22:13:34-04:00
+Notes: 0
+Binaries: 0
+Archives: 0
+Standards: 3
+
+Apache Licensed: 0
+Generated Documents: 0
+
+JavaDocs are generated and so license header is optional
+Generated files do not required license headers
+
+3 Unknown Licenses
+
+*******************************
+
+Unapproved licenses:
+
+  /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/java/org/elasticsearch/plugin/ElastiKnnPlugin.java
+  /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala
+  /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/test/java/org/elasticsearch/plugin/elastiknn/ElastiknnRestIT.java
+
+*******************************
+
+Archives:
+
+*****************************************************
+  Files with Apache License headers will be marked AL
+  Binary files (which do not require AL headers) will be marked B
+  Compressed archives will be marked A
+  Notices, licenses etc will be marked N
+ !????? /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/java/org/elasticsearch/plugin/ElastiKnnPlugin.java
+ !????? /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala
+ !????? /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/test/java/org/elasticsearch/plugin/elastiknn/ElastiknnRestIT.java
+ 
+*****************************************************
+ Printing headers for files without AL header...
+ 
+ 
+=======================================================================
+==/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/java/org/elasticsearch/plugin/ElastiKnnPlugin.java
+=======================================================================
+package org.elasticsearch.plugin;
+
+import org.elasticsearch.ingest.Processor;
+import org.elasticsearch.plugins.IngestPlugin;
+import org.elasticsearch.plugins.Plugin;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ElastiKnnPlugin extends Plugin implements IngestPlugin {
+
+    @Override
+    public Map<String, Processor.Factory> getProcessors(Processor.Parameters parameters) {
+        return new HashMap<>(1);
+    }
+
+}
+
+=======================================================================
+==/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala
+=======================================================================
+package org.elasticsearch.plugin.elastiknn
+
+import java.util
+import java.util.function.Supplier
+
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
+import org.elasticsearch.cluster.node.DiscoveryNodes
+import org.elasticsearch.common.settings.{
+  ClusterSettings,
+  IndexScopedSettings,
+  Settings,
+  SettingsFilter
+}
+import org.elasticsearch.ingest.Processor
+import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, Plugin}
+import org.elasticsearch.rest.{RestController, RestHandler}
+
+import scala.collection.JavaConverters._
+
+class ElastiKnnPlugin extends Plugin with ActionPlugin with IngestPlugin {
+
+  override def getRestHandlers(
+      settings: Settings,
+      restController: RestController,
+      clusterSettings: ClusterSettings,
+      indexScopedSettings: IndexScopedSettings,
+      settingsFilter: SettingsFilter,
+      indexNameExpressionResolver: IndexNameExpressionResolver,
+      nodesInCluster: Supplier[DiscoveryNodes]): util.List[RestHandler] = {
+    List.empty[RestHandler].asJava
+  }
+
+  override def getProcessors(
+      parameters: Processor.Parameters): util.Map[String, Processor.Factory] = {
+    Map.empty[String, Processor.Factory].asJava
+  }
+
+}
+
+=======================================================================
+==/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/test/java/org/elasticsearch/plugin/elastiknn/ElastiknnRestIT.java
+=======================================================================
+package org.elasticsearch.plugin.elastiknn;
+
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
+import org.elasticsearch.test.rest.yaml.ClientYamlTestCandidate;
+import org.elasticsearch.test.rest.yaml.ESClientYamlSuiteTestCase;
+
+public class ElastiknnRestIT extends ESClientYamlSuiteTestCase {
+    public ElastiknnRestIT(@Name("yaml")ClientYamlTestCandidate testCandidate) {
+        super(testCandidate);
+    }
+
+    @ParametersFactory
+    public static Iterable<Object[]> parameters() throws Exception {
+        return ESClientYamlSuiteTestCase.createParameters();
+    }
+}

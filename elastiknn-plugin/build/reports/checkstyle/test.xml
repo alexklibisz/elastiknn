@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="8.20">
+<file name="/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/test/java/org/elasticsearch/plugin/elastiknn/ElastiknnDummyTests.java">
+</file>
+<file name="/home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/test/java/org/elasticsearch/plugin/elastiknn/ElastiknnRestIT.java">
+</file>
+</checkstyle>

@@ -1,0 +1,9 @@
+products:
+   /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala -> /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/build/classes/scala/main/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.class
+binary dependencies:
+   /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala -> /home/alexk/.gradle/caches/modules-2/files-2.1/org.elasticsearch/elasticsearch/7.4.0/a176aa48cab2886fa36044139dd9db71587f53ec/elasticsearch-7.4.0.jar
+   /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala -> /home/alexk/.gradle/caches/modules-2/files-2.1/org.scala-lang/scala-library/2.12.8/36b234834d8f842cdde963c8591efae6cf413e3f/scala-library-2.12.8.jar
+source dependencies:
+external dependencies:
+class names:
+   /home/alexk/Documents/dev/elastiknn/elastiknn-plugin/src/main/scala/org/elasticsearch/plugin/elastiknn/ElastiKnnPlugin.scala -> org.elasticsearch.plugin.elastiknn.ElastiKnnPlugin
