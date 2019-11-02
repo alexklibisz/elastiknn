@@ -23,11 +23,17 @@ version '0.0.1-SNAPSHOT'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'scala'
-apply plugin: 'elasticsearch.esplugin'
 //apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'elasticsearch.esplugin'
 
 licenseFile = rootProject.file("LICENSE.txt")
 noticeFile = rootProject.file("NOTICE.txt")
+
+//allprojects {
+//    project.ext {
+//        bwcVersions = new org.elasticsearch.gradle.BwcVersions()
+//    }
+//}
 
 esplugin {
     name 'elastiknn'
@@ -39,6 +45,7 @@ esplugin {
 
 dependencies {
     compile 'org.scala-lang:scala-library:2.12.8'
+    testCompile group: 'org.apache.lucene', name: 'lucene-test-framework', version: luceneVersion
 //    testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
