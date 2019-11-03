@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package klibisz.elastiknn;
+
+option java_package = "com.klibisz.elastiknn";
+
+enum Distance {
+    DISTANCE_EUCLIDEAN = 0;
+    DISTANCE_ANGULAR = 1;
+    DISTANCE_HAMMING = 2;
+    DISTANCE_JACCARD = 3;
+}
+
+message ProcessorOptions {
+    string field = 1;
+    int32 dimension = 2;
+    Distance distance = 3;
+    oneof model {
+        ExactModel exact = 4;
+        LSHModel lsh = 5;
+    }
+}
+
+message ExactModel {}
+
+message LSHModel {
+    int32 k = 1;
+    int32 L = 2;
+}

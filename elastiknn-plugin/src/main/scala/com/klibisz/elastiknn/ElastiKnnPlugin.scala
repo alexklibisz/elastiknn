@@ -7,18 +7,14 @@ import java.util.function.Supplier
 
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
 import org.elasticsearch.cluster.node.DiscoveryNodes
-import org.elasticsearch.common.settings.{
-  ClusterSettings,
-  IndexScopedSettings,
-  Settings,
-  SettingsFilter
-}
+import org.elasticsearch.common.settings._
 import org.elasticsearch.rest.{RestController, RestHandler}
 
 class ElastiKnnPlugin extends Plugin with IngestPlugin with ActionPlugin {
   override def getProcessors(
       parameters: Processor.Parameters): util.Map[String, Processor.Factory] =
-    util.Collections.emptyMap()
+    util.Collections
+      .singletonMap(ElastiKnnProcessor.TYPE, new ElastiKnnProcessor.Factory)
 
   override def getRestHandlers(
       settings: Settings,

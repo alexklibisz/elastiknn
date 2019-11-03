@@ -1,6 +1,7 @@
 import java.nio.file.Files
 
 // Most of this build file is based on: https://github.com/spinscale/elasticsearch-ingest-langdetect
+// Protobuf parts are based on: https://github.com/scalapb/gradle-demo
 
 buildscript {
     repositories {
@@ -10,23 +11,48 @@ buildscript {
     }
     dependencies {
         classpath "org.elasticsearch.gradle:build-tools:${elasticsearchVersion}"
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
     }
 }
 
 plugins {
-    id "co.riiid.gradle" version "0.4.2"
+    id 'com.google.protobuf' version '0.8.8'
+    id 'scala'
 }
+
+ext {
+    scalapbVersion = '0.9.0-M5'
+}
+
+repositories {
+    jcenter()
+}
+
+apply plugin: 'java'
+//apply plugin: 'idea'
+apply plugin: 'elasticsearch.esplugin'
 
 group 'com.github.alexklibisz.elastiknn'
 version '0.0.1-SNAPSHOT'
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'scala'
-apply plugin: 'elasticsearch.esplugin'
-
 licenseFile = rootProject.file("LICENSE.txt")
 noticeFile = rootProject.file("NOTICE.txt")
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+licenseHeaders.enabled = false
+
+configurations.all {
+    resolutionStrategy.preferProjectModules()
+}
+
+dependencies {
+    implementation 'org.scala-lang:scala-library:2.12.8'
+    implementation "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
+    implementation 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
+    testImplementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
+    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
+}
 
 esplugin {
     name 'elastiknn'
@@ -34,16 +60,6 @@ esplugin {
     classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
-}
-
-configurations.all {
-    resolutionStrategy.preferProjectModules()
-}
-
-dependencies {
-    implementation 'org.scala-lang:scala-library:2.12.9'
-    testImplementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
-    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
 
 test {
@@ -54,6 +70,38 @@ integTestRunner {
     jvmArgs '-Dtests.security.manager=false'
 }
 
-dependencyLicenses.enabled = false
-thirdPartyAudit.enabled = false
-licenseHeaders.enabled = false
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.7.1'
+    }
+    plugins {
+        scalapb {
+            artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
+                    "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:windows@bat" :
+                    "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:unix@sh"
+        }
+    }
+
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                remove java
+            }
+            task.plugins {
+                scalapb {
+                    // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
+                    // option 'flat_package'
+                }
+            }
+        }
+    }
+}
+
+// Add geneated Scala code as a source directory
+sourceSets {
+    main {
+        scala {
+            srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
+        }
+    }
+}
