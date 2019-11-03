@@ -1,9 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity}
-import io.circe.generic.semiauto._
-import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json, JsonObject}
+import io.circe.{Json, JsonObject}
 import scalapb_circe.JsonFormat
 
 /** Utilities for elastic4s library. */

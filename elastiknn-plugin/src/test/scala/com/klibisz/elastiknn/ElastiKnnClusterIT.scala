@@ -4,15 +4,14 @@ import java.util
 import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
-import com.klibisz.elastiknn.Distance.DISTANCE_EUCLIDEAN
-import com.klibisz.elastiknn.ProcessorOptions.Model.Exact
+import com.klibisz.elastiknn.Distance.DISTANCE_L2
+import com.klibisz.elastiknn.ProcessorOptions.Model.{Exact, Lsh}
 import com.klibisz.elastiknn.elastic4s._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
 import org.junit.Assert._
-import scalapb_circe.JsonFormat
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -36,7 +35,11 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
 
   def testMakePipeline(): Unit = await {
     val opts =
-      ProcessorOptions("v", 128, DISTANCE_EUCLIDEAN, Exact(ExactModel()))
+      ProcessorOptions("vraw",
+                       "vproc",
+                       128,
+                       DISTANCE_L2,
+                       Lsh(LSHModel(k = 10, l = 20)))
     val req =
       PipelineRequest(
         "test",

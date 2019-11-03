@@ -42,15 +42,22 @@ dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 licenseHeaders.enabled = false
 
-configurations.all {
-    resolutionStrategy.preferProjectModules()
+configurations {
+    all {
+        resolutionStrategy.preferProjectModules()
+    }
 }
 
 dependencies {
+    runtime 'org.scala-lang:scala-library:2.12.8'
     implementation 'org.scala-lang:scala-library:2.12.8'
+    runtime "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
     implementation "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
+//    runtime 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
     implementation 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
+//    runtime 'io.circe:circe-generic_2.12:0.12.2'
     implementation 'io.circe:circe-generic_2.12:0.12.2'
+//    runtime 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
@@ -64,11 +71,11 @@ esplugin {
 }
 
 test {
-    jvmArgs '-Dtests.security.manager=false'
+    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
 }
 
 integTestRunner {
-    jvmArgs '-Dtests.security.manager=false'
+    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
 }
 
 protobuf {
