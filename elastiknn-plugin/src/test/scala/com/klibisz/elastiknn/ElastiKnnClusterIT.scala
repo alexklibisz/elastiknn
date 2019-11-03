@@ -4,10 +4,10 @@ import java.util
 import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
-import com.klibisz.elastiknn.elastiknn.Distance.DISTANCE_EUCLIDEAN
-import com.klibisz.elastiknn.elastiknn.ProcessorOptions.Model.Exact
-import com.klibisz.elastiknn.elastiknn.{ExactModel, ProcessorOptions}
-import com.sksamuel.elastic4s.{ElasticClient, ElasticRequest, HttpEntity}
+import com.klibisz.elastiknn.Distance.DISTANCE_EUCLIDEAN
+import com.klibisz.elastiknn.ProcessorOptions.Model.Exact
+import com.klibisz.elastiknn.elastic4s._
+import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
@@ -34,19 +34,18 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
     }
   }
 
-  def pipelineRequest(name: String,
-                      procOpts: ProcessorOptions): ElasticRequest =
-    ElasticRequest("PUT",
-                   s"_ingest/pipeline/$name",
-                   HttpEntity(JsonFormat.toJsonString(procOpts)))
-
   def testMakePipeline(): Unit = await {
-
-    val req = pipelineRequest(
-      "test",
-      ProcessorOptions("vec", 128, DISTANCE_EUCLIDEAN, Exact(ExactModel())))
-
-    ???
+    val opts =
+      ProcessorOptions("v", 128, DISTANCE_EUCLIDEAN, Exact(ExactModel()))
+    val req =
+      PipelineRequest(
+        "test",
+        Pipeline("elastiknn pipeline", Seq(Processor("elastiknn", opts))))
+    for {
+      res <- client.execute(req)
+    } yield {
+      assertTrue(true)
+    }
   }
 
 }
