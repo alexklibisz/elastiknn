@@ -8,10 +8,10 @@ import scala.collection.JavaConverters._
 object circe {
 
   implicit def objectEncoder: Encoder[Object] = {
-    case s: String  => s.asJson
-    case i: Integer => Json.fromInt(i)
-    case m: java.util.Map[_, _]
-        if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
+    case s: String            => s.asJson
+    case l: java.lang.Long    => Json.fromLong(l)
+    case i: java.lang.Integer => Json.fromInt(i)
+    case m: java.util.Map[_, _] if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
       m.asInstanceOf[java.util.Map[String, Object]].asScala.asJson
   }
 

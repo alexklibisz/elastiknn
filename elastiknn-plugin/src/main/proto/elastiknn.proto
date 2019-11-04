@@ -23,15 +23,19 @@ message ProcessorOptions {
     // The distance function used for queries. This has to be given up-front as it determines how the vector gets processed.
     Distance distance = 4;
     // The model used for searching. LSHModel applied for both regular and multi-probe LSH.
-    oneof model {
-        ExactModel exact = 5;
-        LSHModel lsh = 6;
+    oneof model_options {
+        ExactModelOptions exact = 5;
+        LshModelOptions lsh = 6;
     }
 }
 
-message ExactModel {}
+message ExactModelOptions {}
 
-message LSHModel {
-    int32 k = 1;
-    int32 L = 2;
+message LshModelOptions {
+    // Hash functions for hashing incoming vectors are determined by this seed.
+    int64 seed = 1;
+
+    // Placeholders.. need to come back and get the exact lsh parameters straight. It's been a while since I learned it.
+    int32 k = 2;
+    int32 L = 3;
 }

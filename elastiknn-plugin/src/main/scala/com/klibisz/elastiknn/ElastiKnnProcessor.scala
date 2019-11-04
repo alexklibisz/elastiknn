@@ -8,7 +8,8 @@ import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
-class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions) extends AbstractProcessor(tag) {
+class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: ElastiKnnModel)
+    extends AbstractProcessor(tag) {
 
   import popts._
   import ElastiKnnProcessor.TYPE
@@ -19,9 +20,21 @@ class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: Pr
     // Check if the raw vector is present.
     require(doc.hasField(fieldRaw), s"$TYPE expected to find vector at $fieldRaw")
 
-    // Parse it.
+    // Parse vector into a regular Java List.
+    // TODO: Consider storing vectors as comma-separated strings and immediately parsing to primitive collection.
     val vecRawJava = doc.getFieldValue(fieldRaw, classOf[util.List[Double]])
     require(vecRawJava.size == dimension, s"$TYPE expected vector with $dimension elements but got ${vecRawJava.size}")
+
+    val m = new util.HashMap[String, Any] {
+      put("foo", 1)
+      put("bar", "baz")
+      put("baz", new util.HashMap[String, Any] {
+        put("foo", "bar")
+        put("bar", "baz")
+      })
+    }
+
+    doc.setFieldValue(fieldProcessed, m)
 
     doc
   }
@@ -33,6 +46,8 @@ object ElastiKnnProcessor {
 
   lazy val TYPE: String = Constants.name
 
+  private val modelCache = new LRUCache[ProcessorOptions, ElastiKnnModel](10)
+
   class Factory(nodeClient: NodeClient) extends Processor.Factory {
 
     /** This is the method that gets invoked when someone creates an elastiknn pipeline. */
@@ -42,7 +57,8 @@ object ElastiKnnProcessor {
       val json = config.asJson
       val popts = JsonFormat.fromJson[ProcessorOptions](json)
       config.clear() // Need to do this otherwise es thinks parsing didn't work.
-      new ElastiKnnProcessor(tag, nodeClient, popts)
+      val model = modelCache.get(popts, _ => ElastiKnnModel(popts))
+      new ElastiKnnProcessor(tag, nodeClient, popts, model)
     }
 
   }

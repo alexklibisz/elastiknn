@@ -5,7 +5,7 @@ import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_L2
-import com.klibisz.elastiknn.ProcessorOptions.Model.{Exact, Lsh}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
 import com.klibisz.elastiknn.elastic4s._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -32,7 +32,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
   }
 
   def testMakeExactPipeline(): Unit = await {
-    val opts = ProcessorOptions("a", "b", 32, DISTANCE_L2, Exact(ExactModel()))
+    val opts = ProcessorOptions("a", "b", 32, DISTANCE_L2, Exact(ExactModelOptions()))
     val req = PipelineRequest("exact", Pipeline("d", Seq(Processor("elastiknn", opts))))
     client.execute(req).map { res =>
       assertTrue(res.isSuccess)
@@ -41,7 +41,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
   }
 
   def testMakeLshPipeline(): Unit = await {
-    val opts = ProcessorOptions("a", "b", 32, DISTANCE_L2, Lsh(LSHModel(k = 10, l = 20)))
+    val opts = ProcessorOptions("a", "b", 32, DISTANCE_L2, Lsh(LshModelOptions(k = 10, l = 20)))
     val req = PipelineRequest("lsh", Pipeline("d", Seq(Processor("elastiknn", opts))))
     client.execute(req).map { res =>
       assertTrue(res.isSuccess)
@@ -53,9 +53,9 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
 
     lazy val testFutures = for {
       dist <- Distance.values
-      opts = ProcessorOptions("a", "b", 32, dist, Exact(ExactModel()))
+      opts = ProcessorOptions("a", "b", 32, dist, Exact(ExactModelOptions()))
       proc = Processor("elastiknn", opts)
-      preq = PipelineRequest(s"exact-${dist.name.toLowerCase}", Pipeline("exact", Seq(proc)))
+      preq = PipelineRequest(s"exact-${dist.name}", Pipeline("exact", Seq(proc)))
     } yield
       for {
         pres <- client.execute(preq)
