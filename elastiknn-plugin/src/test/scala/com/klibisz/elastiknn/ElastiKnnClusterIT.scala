@@ -5,7 +5,7 @@ import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_L2
-import com.klibisz.elastiknn.ProcessorOptions.Model.{Exact, Lsh}
+import com.klibisz.elastiknn.ProcessorOptions.Model.Lsh
 import com.klibisz.elastiknn.elastic4s._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -47,7 +47,8 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
     for {
       res <- client.execute(req)
     } yield {
-      assertTrue(true)
+      assertTrue(res.isSuccess)
+      assertTrue(res.result.acknowledged)
     }
   }
 

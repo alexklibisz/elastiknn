@@ -1,10 +1,10 @@
 package com.klibisz.elastiknn
 
 import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity}
-import io.circe.{Json, JsonObject}
+import io.circe.{Decoder, Json, JsonObject}
+import io.circe.generic.semiauto._
 import scalapb_circe.JsonFormat
 
-/** Utilities for elastic4s library. */
 object elastic4s {
 
   case class PipelineRequest(name: String, pipeline: Pipeline)
@@ -33,6 +33,9 @@ object elastic4s {
 
   case class Processor(name: String, opts: ProcessorOptions)
 
-  case class PipelineResponse(acknowledged: Boolean)
+  case class PipelineResponse(acknowledged: Boolean) {
+    implicit def decoder: Decoder[PipelineResponse] =
+      deriveDecoder[PipelineResponse]
+  }
 
 }
