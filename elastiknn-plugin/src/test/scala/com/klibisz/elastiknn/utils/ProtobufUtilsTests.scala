@@ -6,13 +6,17 @@ import com.klibisz.elastiknn.{LshModelOptions, ProcessorOptions}
 import org.elasticsearch.test.ESTestCase
 import org.junit.Assert._
 
+import scala.collection.JavaConverters._
+
 class ProtobufUtilsTests extends ESTestCase {
+
+  // TODO: you can't debug this in Intellij unless you rename it to end with IT.
 
   import ProtobufUtils._
 
-  def testPbMessagesGetConvertedToMaps(): Unit = {
+  def testMessagesGetConvertedToMaps(): Unit = {
 
-    val msg = ProcessorOptions(
+    val actual = ProcessorOptions(
       fieldRaw = "field raw",
       fieldProcessed = "field processed",
       dimension = 222,
@@ -23,22 +27,24 @@ class ProtobufUtilsTests extends ESTestCase {
           k = 22,
           l = 33
         ))
-    )
+    ).asJavaMap
+
+    val expected = Map(
+      "fieldRaw" -> "field raw",
+      "fieldProcessed" -> "field processed",
+      "dimension" -> 222,
+      "distance" -> DISTANCE_ANGULAR.index,
+      "lsh" -> Map(
+        "seed" -> 99L,
+        "k" -> 22,
+        "l" -> 33
+      ).asJava,
+      "exact" -> null
+    ).asJava
 
     assertEquals(
-      msg.asMap,
-      Map(
-        "fieldRaw" -> "field raw",
-        "fieldProcessed" -> "field processed",
-        "dimension" -> 222,
-        "distance" -> DISTANCE_ANGULAR.index,
-        "lsh" -> Map(
-          "seed" -> 99,
-          "k" -> 22,
-          "l" -> 33
-        ),
-        "exact" -> null
-      )
+      actual,
+      expected
     )
   }
 

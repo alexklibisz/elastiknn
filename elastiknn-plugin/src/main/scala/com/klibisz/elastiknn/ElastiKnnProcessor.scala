@@ -10,8 +10,6 @@ import com.klibisz.elastiknn.utils.ProtobufUtils._
 import com.klibisz.elastiknn.utils.LRUCache
 import scalapb_circe.JsonFormat
 
-import scala.collection.JavaConverters._
-
 class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: ElastiKnnModel)
     extends AbstractProcessor(tag) {
 
@@ -29,7 +27,7 @@ class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: Pr
     val vecRawJava = doc.getFieldValue(fieldRaw, classOf[util.List[Double]])
     require(vecRawJava.size == dimension, s"$TYPE expected vector with $dimension elements but got ${vecRawJava.size}")
 
-    doc.setFieldValue(fieldProcessed, popts.asMap.asJava)
+    doc.setFieldValue(fieldProcessed, popts.asJavaMap)
 
     doc
   }
