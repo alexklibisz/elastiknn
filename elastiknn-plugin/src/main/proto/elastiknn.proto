@@ -4,6 +4,8 @@ package klibisz.elastiknn;
 
 option java_package = "com.klibisz.elastiknn";
 
+import "scalapb/scalapb.proto";
+
 enum Distance {
     DISTANCE_INVALID = 0;
     DISTANCE_L1 = 1;
@@ -22,8 +24,12 @@ message ProcessorOptions {
     int32 dimension = 3;
     // The distance function used for queries. This has to be given up-front as it determines how the vector gets processed.
     Distance distance = 4;
-    // The model used for searching. LSHModel applied for both regular and multi-probe LSH.
-    oneof model_options {
+    // The model options used for searching.
+    ModelOptions model_options = 5;
+}
+
+message ModelOptions {
+    oneof sealed_value {
         ExactModelOptions exact = 5;
         LshModelOptions lsh = 6;
     }
@@ -38,4 +44,14 @@ message LshModelOptions {
     // Placeholders.. need to come back and get the exact lsh parameters straight. It's been a while since I learned it.
     int32 k = 2;
     int32 L = 3;
+}
+
+message ProcessedVector {
+    oneof sealed_value {
+        ExactVector exact = 1;
+    }
+}
+
+message ExactVector {
+    repeated float vector = 1 [(scalapb.field).collection_type="Array"];
 }
