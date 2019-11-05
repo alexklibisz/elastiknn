@@ -8,10 +8,12 @@ import com.klibisz.elastiknn.Distance.DISTANCE_L2
 import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import io.circe.{Json, JsonObject, parser}
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
 import org.junit.Assert._
 import org.junit.Before
+import scalapb_circe.JsonFormat
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -55,23 +57,57 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
     }
   }
 
-  def testExactAllDistances(): Unit = await {
+  def helperVecToSource(field: String, vec: Array[Float]): Json = Json.fromJsonObject(
+    JsonObject(field -> Json.fromString(vec.mkString(",")))
+  )
 
-    lazy val testFutures = for {
-      dist <- Distance.values
-      opts = ProcessorOptions("a", "b", 32, dist, ExactModelOptions())
-      proc = Processor("elastiknn", opts)
-      preq = PipelineRequest(s"exact-${dist.name}", Pipeline("exact", Seq(proc)))
-    } yield
-      for {
-        pres <- client.execute(preq)
-        _ = assertTrue(pres.isSuccess)
-        _ = assertTrue(pres.result.acknowledged)
-      } yield {
-        assertTrue(pres.result.acknowledged)
+  def helperTestExact(vecs: Seq[Array[Float]], dist: Distance, query: Array[Float], expectedDists: Array[Float]): Future[Unit] = {
+
+    require(vecs.nonEmpty)
+    require(vecs.map(_.length).distinct.length == 1)
+
+    val (fieldRaw, fieldProc) = ("vecRaw", "vecProc")
+    val index = s"elastiknn-exact-${dist.value}"
+    val processorOptions = Processor("elastiknn", ProcessorOptions("vecRaw", "vecProc", vecs.head.length, dist, ExactModelOptions()))
+    val pipelineRequest = PipelineRequest(index, Pipeline("exact", Seq(processorOptions)))
+    val indexRequests = vecs.zipWithIndex.map {
+      case (v: Array[Float], i: Int) =>
+        indexInto(index).id(i.toString).source(helperVecToSource(fieldRaw, v).noSpaces).pipeline(index)
+    }
+    val getRequests = vecs.indices.map { i =>
+      get(index, i.toString)
+    }
+
+    for {
+
+      // Create the pipeline.
+      pipelineResponse <- client.execute(pipelineRequest)
+      _ = assertTrue(pipelineResponse.isSuccess)
+      _ = assertTrue(pipelineResponse.result.acknowledged)
+
+      // Index the vectors.
+      indexResponse <- client.execute(bulk(indexRequests))
+      _ = assertTrue(indexResponse.isSuccess)
+      _ = assertFalse(indexResponse.result.errors)
+
+      // Get the vectors and check they contain the correct structure.
+      // Note the current implementation only works when fieldProc is at the top level.
+      getResponses <- Future.sequence(getRequests.map(client.execute(_)))
+      _ = assertEquals(getResponses.map(_.isSuccess), getResponses.map(_ => true))
+      _ = getResponses.sortBy(_.result.id).zip(vecs).foreach {
+        case (r, v) =>
+          val j = parser.parse(r.result.sourceAsString).toTry.get
+          assert(j.findAllByKey(fieldProc).nonEmpty)
+          val pv = JsonFormat.fromJson[ProcessedVectorMessage](j.findAllByKey(fieldProc).head)
+          assert(pv.sealedValue.isExact)
+          assertEquals(pv.getExact.vector.toSeq, v.toSeq)
       }
 
-    Future.sequence(testFutures)
+    } yield ()
+  }
+
+  def testExactPipelineAndSearchAllDistances(): Unit = await {
+    helperTestExact(Seq(Array(0.1f, 0.2f), Array(0.22f, 0.4f)), DISTANCE_L2, Array.empty, Array.empty)
   }
 
 }
