@@ -2,11 +2,15 @@ package com.klibisz.elastiknn
 
 import java.util
 
-import com.klibisz.elastiknn.circe._
 import io.circe.syntax._
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
+import com.klibisz.elastiknn.utils.CirceUtils._
+import com.klibisz.elastiknn.utils.ProtobufUtils._
+import com.klibisz.elastiknn.utils.LRUCache
 import scalapb_circe.JsonFormat
+
+import scala.collection.JavaConverters._
 
 class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: ElastiKnnModel)
     extends AbstractProcessor(tag) {
@@ -25,16 +29,7 @@ class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: Pr
     val vecRawJava = doc.getFieldValue(fieldRaw, classOf[util.List[Double]])
     require(vecRawJava.size == dimension, s"$TYPE expected vector with $dimension elements but got ${vecRawJava.size}")
 
-    val m = new util.HashMap[String, Any] {
-      put("foo", 1)
-      put("bar", "baz")
-      put("baz", new util.HashMap[String, Any] {
-        put("foo", "bar")
-        put("bar", "baz")
-      })
-    }
-
-    doc.setFieldValue(fieldProcessed, m)
+    doc.setFieldValue(fieldProcessed, popts.asMap.asJava)
 
     doc
   }
@@ -44,7 +39,7 @@ class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: Pr
 
 object ElastiKnnProcessor {
 
-  lazy val TYPE: String = Constants.name
+  lazy val TYPE: String = "elastiknn"
 
   private val modelCache = new LRUCache[ProcessorOptions, ElastiKnnModel](10)
 

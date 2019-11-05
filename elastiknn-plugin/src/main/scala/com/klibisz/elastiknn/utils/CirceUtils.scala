@@ -1,11 +1,11 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.utils
 
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 
 import scala.collection.JavaConverters._
 
-object circe {
+object CirceUtils {
 
   implicit def objectEncoder: Encoder[Object] = {
     case s: String            => s.asJson

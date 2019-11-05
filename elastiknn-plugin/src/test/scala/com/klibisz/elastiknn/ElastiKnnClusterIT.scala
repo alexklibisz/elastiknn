@@ -6,7 +6,7 @@ import java.util.Collections
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_L2
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
-import com.klibisz.elastiknn.elastic4s._
+import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.plugins.Plugin
@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE) // https://discuss.elastic.co/t/integration-testing-in-java-carrotsearch-thread-leaks-severe-errors/26831/4
-class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
+class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
 
   private lazy val client: ElasticClient = elasticClient(ESIntegTestCase.getRestClient)
 
@@ -27,7 +27,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingMixins {
   def testPluginsInstalled(): Unit = await {
     client.execute(catPlugins()).map { res =>
       assertEquals(res.result.length, 1)
-      assertEquals(res.result.head.component, Constants.name)
+      assertEquals(res.result.head.component, "elastiknn")
     }
   }
 

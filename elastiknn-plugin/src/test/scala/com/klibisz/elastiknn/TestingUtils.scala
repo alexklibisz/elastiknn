@@ -9,15 +9,14 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.collection.JavaConverters._
 
-trait TestingMixins {
+trait TestingUtils {
 
   private val logger: Logger = LogManager.getLogger(getClass)
 
   def defaultAwaitDuration: Duration = 10.seconds
 
   def elasticClient(rc: RestClient): ElasticClient = {
-    logger.info(
-      s"client connected to hosts: ${rc.getNodes.asScala.map(_.getHost).mkString(",")}")
+    logger.info(s"client connected to hosts: ${rc.getNodes.asScala.map(_.getHost).mkString(",")}")
     ElasticClient(JavaClient.fromRestClient(rc))
   }
 
@@ -26,8 +25,7 @@ trait TestingMixins {
     ()
   }
 
-  final def await[T](dur: Duration = defaultAwaitDuration)(
-      f: => Future[T]): Unit = {
+  final def await[T](dur: Duration = defaultAwaitDuration)(f: => Future[T]): Unit = {
     Await.result(f, dur)
     ()
   }
