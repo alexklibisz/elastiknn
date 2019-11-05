@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.utils
 
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
 import com.klibisz.elastiknn.{LshModelOptions, ProcessorOptions}
 import org.elasticsearch.test.ESTestCase
 import org.junit.Assert._
@@ -21,12 +20,11 @@ class ProtobufUtilsTests extends ESTestCase {
       fieldProcessed = "field processed",
       dimension = 222,
       distance = DISTANCE_ANGULAR,
-      modelOptions = Lsh(
-        LshModelOptions(
-          seed = 99,
-          k = 22,
-          l = 33
-        ))
+      modelOptions = LshModelOptions(
+        seed = 99,
+        k = 22,
+        l = 33
+      )
     ).asJavaMap
 
     val expected = Map(
@@ -34,12 +32,14 @@ class ProtobufUtilsTests extends ESTestCase {
       "fieldProcessed" -> "field processed",
       "dimension" -> 222,
       "distance" -> DISTANCE_ANGULAR.index,
-      "lsh" -> Map(
-        "seed" -> 99L,
-        "k" -> 22,
-        "l" -> 33
-      ).asJava,
-      "exact" -> null
+      "modelOptions" -> Map(
+        "exact" -> null,
+        "lsh" -> Map(
+          "seed" -> 99L,
+          "k" -> 22,
+          "l" -> 33
+        ).asJava
+      ).asJava
     ).asJava
 
     assertEquals(

@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import com.klibisz.elastiknn.ModelOptions.Empty
+
 import scala.util._
 
 trait ElastiKnnModel {
@@ -16,18 +18,15 @@ final class ExactModel(dimension: Int, dist: Distance) extends ElastiKnnModel {
   override def search(rawVector: String): Unit = ???
 }
 
-//final class LshModel() extends ElastiKnnModel
+final class LshModel() extends ElastiKnnModel {
+  override def process(rawVector: String): Try[ProcessedVector] = Success(ExactVector())
+  override def search(rawVector: String): Unit = ???
+}
 
 object ElastiKnnModel {
-//  def apply(popts: ProcessorOptions): Try[ElastiKnnModel] = popts.modelOptions match {
-//    case Exact(_)   => Success(new ExactModel(popts.dimension, popts.distance))
-//    case Lsh(mopts) => ???
-//    case Empty      => Failure(new IllegalArgumentException(s"No model options given"))
-//  }
-
   def apply(popts: ProcessorOptions): Try[ElastiKnnModel] = popts.modelOptions match {
     case _: ExactModelOptions => Success(new ExactModel(popts.dimension, popts.distance))
-    case _                    => ???
+    case _: LshModelOptions   => Success(new LshModel())
+    case Empty                => Failure(new IllegalArgumentException("Missing model options"))
   }
-
 }
