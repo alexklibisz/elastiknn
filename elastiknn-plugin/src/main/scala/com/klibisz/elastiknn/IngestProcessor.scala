@@ -10,10 +10,9 @@ import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
-class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: ElastiKnnModel)
-    extends AbstractProcessor(tag) {
+class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: Model) extends AbstractProcessor(tag) {
 
-  import ElastiKnnProcessor.TYPE
+  import IngestProcessor.TYPE
   import popts._
 
   /** This is the method that gets invoked when someone adds a document that uses an elastiknn pipeline. */
@@ -31,27 +30,25 @@ class ElastiKnnProcessor private (tag: String, nodeClient: NodeClient, popts: Pr
     doc
   }
 
-  override def getType: String = ElastiKnnProcessor.TYPE
+  override def getType: String = IngestProcessor.TYPE
 }
 
-object ElastiKnnProcessor {
+object IngestProcessor {
 
   lazy val TYPE: String = "elastiknn"
 
-  private val modelCache = new LRUCache[ProcessorOptions, ElastiKnnModel](100)
+  private val modelCache = new LRUCache[ProcessorOptions, Model](100)
 
   class Factory(nodeClient: NodeClient) extends Processor.Factory {
 
     /** This is the method that gets invoked when someone creates an elastiknn pipeline. */
-    override def create(registry: util.Map[String, Processor.Factory],
-                        tag: String,
-                        config: util.Map[String, Object]): ElastiKnnProcessor = {
+    override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
       val json = config.asJson
       val popts = JsonFormat.fromJson[ProcessorOptions](json)
       lazy val err = s"Failed to instantiate model from given configuration: $config"
-      val model = modelCache.get(popts, _ => ElastiKnnModel(popts).getOrElse(throw new IllegalArgumentException(err)))
+      val model = modelCache.get(popts, _ => Model(popts).getOrElse(throw new IllegalArgumentException(err)))
       config.clear() // Need to do this otherwise es thinks parsing didn't work.
-      new ElastiKnnProcessor(tag, nodeClient, popts, model)
+      new IngestProcessor(tag, nodeClient, popts, model)
     }
 
   }

@@ -1,33 +1,25 @@
 package com.klibisz.elastiknn
 
-import org.elasticsearch.ingest.Processor
-import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, Plugin}
 import java.util
 import java.util.Collections.singletonMap
-import java.util.function.Supplier
 
 import org.elasticsearch.client.node.NodeClient
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
-import org.elasticsearch.cluster.node.DiscoveryNodes
-import org.elasticsearch.common.settings._
-import org.elasticsearch.rest.{RestController, RestHandler}
+import org.elasticsearch.ingest.Processor
+import org.elasticsearch.plugins.SearchPlugin.QuerySpec
+import org.elasticsearch.plugins.{IngestPlugin, Plugin, SearchPlugin}
 import org.elasticsearch.threadpool.ThreadPool
 
-class ElastiKnnPlugin extends Plugin with IngestPlugin with ActionPlugin {
+class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
 
   override def getProcessors(parameters: Processor.Parameters): util.Map[String, Processor.Factory] = {
     val threadPool: ThreadPool = new ThreadPool(parameters.env.settings())
     val nodeClient: NodeClient = new NodeClient(parameters.env.settings(), threadPool)
-    singletonMap(ElastiKnnProcessor.TYPE, new ElastiKnnProcessor.Factory(nodeClient))
+    singletonMap(IngestProcessor.TYPE, new IngestProcessor.Factory(nodeClient))
   }
 
-  override def getRestHandlers(settings: Settings,
-                               restController: RestController,
-                               clusterSettings: ClusterSettings,
-                               indexScopedSettings: IndexScopedSettings,
-                               settingsFilter: SettingsFilter,
-                               indexNameExpressionResolver: IndexNameExpressionResolver,
-                               nodesInCluster: Supplier[DiscoveryNodes]): util.List[RestHandler] =
-    util.Collections.emptyList()
+  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
+    new QuerySpec(KNearestNeighborsQuery.NAME, KNearestNeighborsQuery.Reader, KNearestNeighborsQuery.Parser),
+    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
+  )
 
 }
