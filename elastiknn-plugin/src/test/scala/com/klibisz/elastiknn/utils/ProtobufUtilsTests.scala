@@ -19,9 +19,9 @@ class ProtobufUtilsTests extends ESTestCase {
       fieldRaw = "field raw",
       fieldProcessed = "field processed",
       dimension = 222,
-      distance = DISTANCE_ANGULAR,
       modelOptions = LshModelOptions(
         seed = 99,
+        distance = DISTANCE_ANGULAR,
         k = 22,
         l = 33
       )
@@ -31,11 +31,11 @@ class ProtobufUtilsTests extends ESTestCase {
       "fieldRaw" -> "field raw",
       "fieldProcessed" -> "field processed",
       "dimension" -> 222,
-      "distance" -> DISTANCE_ANGULAR.index,
       "modelOptions" -> Map(
         "exact" -> null,
         "lsh" -> Map(
           "seed" -> 99L,
+          "distance" -> DISTANCE_ANGULAR.index,
           "k" -> 22,
           "l" -> 33
         ).asJava

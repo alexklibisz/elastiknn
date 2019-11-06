@@ -22,10 +22,8 @@ message ProcessorOptions {
     string field_processed = 2;
     // Dimensionality of the raw floating-point vector.
     int32 dimension = 3;
-    // The distance function used for queries. This has to be given up-front as it determines how the vector gets processed.
-    Distance distance = 4;
     // The model options used for searching.
-    ModelOptions model_options = 5;
+    ModelOptions model_options = 4;
 }
 
 message ModelOptions {
@@ -41,9 +39,12 @@ message LshModelOptions {
     // Hash functions for hashing incoming vectors are determined by this seed.
     int64 seed = 1;
 
+    // The distance function used for queries. This has to be given up-front as it determines how the vector gets processed.
+    Distance distance = 2;
+
     // Placeholders.. need to come back and get the exact lsh parameters straight. It's been a while since I learned it.
-    int32 k = 2;
-    int32 L = 3;
+    int32 k = 3;
+    int32 L = 4;
 }
 
 message ProcessedVector {
