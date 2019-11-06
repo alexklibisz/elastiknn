@@ -43,6 +43,7 @@ message LshModelOptions {
     int32 L = 4;
 }
 
+// Structure of vectors which have been processed.
 message ProcessedVector {
     message ExactVector {
         repeated float vector = 1 [(scalapb.field).collection_type="Array"];
@@ -50,5 +51,37 @@ message ProcessedVector {
 
     oneof processed {
         ExactVector exact = 1;
+    }
+}
+
+
+// Body and options for the elastiknn_knn query.
+message KNearestNeighborsQuery {
+    message ExactQueryOptions {
+        Distance distance = 1;
+    }
+
+    message LshQueryOptions {}
+
+    message GivenQueryVector {
+        string vector = 1;
+    }
+
+    message IndexedQueryVector {
+        string index = 1;
+        string field = 2;
+        string id = 3;
+    }
+
+    string pipeline_id = 1;
+
+    oneof query_options {
+        ExactQueryOptions exact = 2;
+        LshQueryOptions lsh = 3;
+    }
+
+    oneof query_vector {
+        GivenQueryVector given = 4;
+        IndexedQueryVector indexed = 5;
     }
 }
