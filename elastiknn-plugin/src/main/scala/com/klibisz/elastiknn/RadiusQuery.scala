@@ -3,7 +3,7 @@ package com.klibisz.elastiknn
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.index.query.{QueryBuilder, QueryParser, QueryShardContext}
+import org.elasticsearch.index.query.{AbstractQueryBuilder, QueryBuilder, QueryParser, QueryShardContext}
 
 object RadiusQuery {
 
@@ -17,24 +17,18 @@ object RadiusQuery {
     override def fromXContent(parser: XContentParser): Builder = ???
   }
 
-  class Builder extends QueryBuilder {
-    override def toQuery(context: QueryShardContext): Query = ???
+  class Builder extends AbstractQueryBuilder[Builder] {
+    override def doWriteTo(out: StreamOutput): Unit = ???
 
-    override def queryName(queryName: String): QueryBuilder = ???
+    override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
 
-    override def queryName(): String = ???
+    override def doToQuery(context: QueryShardContext): Query = ???
 
-    override def boost(): Float = ???
+    override def doEquals(other: Builder): Boolean = ???
 
-    override def boost(boost: Float): QueryBuilder = ???
-
-    override def getName: String = ???
+    override def doHashCode(): Int = ???
 
     override def getWriteableName: String = ???
-
-    override def writeTo(out: StreamOutput): Unit = ???
-
-    override def toXContent(builder: XContentBuilder, params: ToXContent.Params): XContentBuilder = ???
   }
 
 }
