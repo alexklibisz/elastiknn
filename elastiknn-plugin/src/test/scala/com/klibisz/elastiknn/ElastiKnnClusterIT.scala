@@ -5,6 +5,7 @@ import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_L2
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
 import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -40,7 +41,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
   }
 
   def testMakeExactPipeline(): Unit = await {
-    val opts = ProcessorOptions("a", "b", 32, ExactModelOptions())
+    val opts = ProcessorOptions("a", "b", 32, Exact(ExactModelOptions()))
     val req = PipelineRequest("exact", Pipeline("d", Seq(Processor("elastiknn", opts))))
     client.execute(req).map { res =>
       assertTrue(res.isSuccess)
@@ -49,7 +50,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
   }
 
   def testMakeLshPipeline(): Unit = await {
-    val opts = ProcessorOptions("a", "b", 32, LshModelOptions(k = 10, l = 20))
+    val opts = ProcessorOptions("a", "b", 32, Lsh(LshModelOptions(k = 10, l = 20)))
     val req = PipelineRequest("lsh", Pipeline("d", Seq(Processor("elastiknn", opts))))
     client.execute(req).map { res =>
       assertTrue(res.isSuccess)
@@ -68,7 +69,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
 
     val (fieldRaw, fieldProc) = ("vecRaw", "vecProc")
     val index = s"elastiknn-exact-${dist.value}"
-    val processorOptions = Processor("elastiknn", ProcessorOptions("vecRaw", "vecProc", vecs.head.length, ExactModelOptions()))
+    val processorOptions = Processor("elastiknn", ProcessorOptions("vecRaw", "vecProc", vecs.head.length, Exact(ExactModelOptions())))
     val pipelineRequest = PipelineRequest(index, Pipeline("exact", Seq(processorOptions)))
     val indexRequests = vecs.zipWithIndex.map {
       case (v: Array[Float], i: Int) =>

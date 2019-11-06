@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn
 
-import com.klibisz.elastiknn.ModelOptions.Empty
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 
 import scala.util._
 
@@ -25,8 +25,8 @@ final class LshModel() extends Model {
 
 object Model {
   def apply(popts: ProcessorOptions): Try[Model] = popts.modelOptions match {
-    case _: ExactModelOptions => Success(new ExactModel(popts.dimension))
-    case _: LshModelOptions   => Success(new LshModel())
-    case Empty                => Failure(new IllegalArgumentException("Missing model options"))
+    case _: ModelOptions.Exact => Success(new ExactModel(popts.dimension))
+    case _: ModelOptions.Lsh   => Success(new LshModel())
+    case ModelOptions.Empty    => Failure(new IllegalArgumentException("Missing model options"))
   }
 }

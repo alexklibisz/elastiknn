@@ -22,14 +22,10 @@ message ProcessorOptions {
     string field_processed = 2;
     // Dimensionality of the raw floating-point vector.
     int32 dimension = 3;
-    // The model options used for searching.
-    ModelOptions model_options = 4;
-}
-
-message ModelOptions {
-    oneof sealed_value {
-        ExactModelOptions exact = 5;
-        LshModelOptions lsh = 6;
+    // The model options which will determine how the vector gets preprocessed and stored.
+    oneof model_options {
+        ExactModelOptions exact = 4;
+        LshModelOptions lsh = 5;
     }
 }
 
