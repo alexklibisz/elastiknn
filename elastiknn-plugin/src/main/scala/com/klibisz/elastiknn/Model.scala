@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import com.klibisz.elastiknn.ProcessedVector.ExactVector
+import com.klibisz.elastiknn.ProcessedVector.Processed.Exact
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 
 import scala.util._
@@ -11,7 +13,7 @@ trait Model {
 
 final class ExactModel(dimension: Int) extends Model {
   override def process(rawVector: String): Try[ProcessedVector] = Try(rawVector.split(",").map(_.toFloat)) match {
-    case Success(v) if v.length == dimension => Success(ExactVector(v))
+    case Success(v) if v.length == dimension => Success(ProcessedVector(Exact(ExactVector(v))))
     case Success(v)                          => Failure(new IllegalArgumentException(s"Expected dimension $dimension but got ${v.length}"))
     case Failure(t)                          => Failure(t)
   }
@@ -19,7 +21,7 @@ final class ExactModel(dimension: Int) extends Model {
 }
 
 final class LshModel() extends Model {
-  override def process(rawVector: String): Try[ProcessedVector] = Success(ExactVector())
+  override def process(rawVector: String): Try[ProcessedVector] = Success(ProcessedVector(Exact(ExactVector())))
   override def search(rawVector: String): Unit = ???
 }
 

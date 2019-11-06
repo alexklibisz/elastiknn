@@ -99,8 +99,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
         case (r, v) =>
           val j = parser.parse(r.result.sourceAsString).toTry.get
           assert(j.findAllByKey(fieldProc).nonEmpty)
-          val pv = JsonFormat.fromJson[ProcessedVectorMessage](j.findAllByKey(fieldProc).head)
-          assert(pv.sealedValue.isExact)
+          val pv = JsonFormat.fromJson[ProcessedVector](j.findAllByKey(fieldProc).head)
           assertEquals(pv.getExact.vector.toSeq, v.toSeq)
       }
 

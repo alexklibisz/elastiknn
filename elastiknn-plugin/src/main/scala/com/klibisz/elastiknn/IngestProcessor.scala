@@ -26,7 +26,7 @@ class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: Proce
     val vecProcessed = model.process(vecRaw).get
 
     // Insert it to the document.
-    doc.setFieldValue(fieldProcessed, vecProcessed.asMessage.asJavaMap)
+    doc.setFieldValue(fieldProcessed, vecProcessed.asJavaMap)
     doc
   }
 
