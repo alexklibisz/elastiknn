@@ -38,6 +38,15 @@ object KNearestNeighborsQuery {
       * Hits here right after Parser#fromXContent. This is supposed to return a Lucene query, and I'm not sure what happens after that.
       */
     override def doToQuery(context: QueryShardContext): Query = {
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html
+      // For exact queries, some of the distance functions are already implemented:
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html#vector-functions
+      // Look for cosineSimilarity(), l1norm(), and l2norm().
+      // If you end up needing to access other documents while executing the query, for example to retrieve the pipeline
+      // that was used to ingest the document, then a similar pattern is used for geo_polygon queries against an indexed
+      // shape. Look at AbstractGeometryQueryBuilder.java in the doRewrite function on line 491. It also looks like you
+      // can access a client using context.registerAsyncAction().
+
       ???
     }
 
