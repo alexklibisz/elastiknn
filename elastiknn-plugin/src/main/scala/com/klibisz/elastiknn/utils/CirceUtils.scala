@@ -1,5 +1,8 @@
 package com.klibisz.elastiknn.utils
 
+import java.lang
+import java.util
+
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 
@@ -7,16 +10,25 @@ import scala.collection.JavaConverters._
 
 object CirceUtils {
 
+  // This is a hack around not being able to figure out XContentParser and the related garbage for Json parsing.
   implicit def objectEncoder: Encoder[Object] = {
-    case s: String            => s.asJson
-    case l: java.lang.Long    => Json.fromLong(l)
-    case i: java.lang.Integer => Json.fromInt(i)
-    case m: java.util.Map[_, _] if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
-      m.asInstanceOf[java.util.Map[String, Object]].asScala.asJson
+    def encode(obj: Any): Json = obj match {
+      case s: lang.String  => s.asJson
+      case l: lang.Long    => l.asJson
+      case i: lang.Integer => i.asJson
+      case d: lang.Double  => d.asJson
+      case f: lang.Float   => f.asJson
+      case l: util.List[_] => Json.fromValues(l.asScala.map(encode))
+      case m: util.Map[_, _] if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
+        m.asScala.map {
+          case (k, v) => k.asInstanceOf[String] -> encode(v)
+        }.asJson
+    }
+    encode _
   }
 
-  implicit def mapEncoder: Encoder[java.util.Map[String, Object]] = {
-    case h: java.util.Map[String, Object] => h.asScala.asJson
+  implicit def mapEncoder: Encoder[util.Map[lang.String, Object]] = {
+    case h: util.Map[String, Object] => h.asScala.asJson
   }
 
 }

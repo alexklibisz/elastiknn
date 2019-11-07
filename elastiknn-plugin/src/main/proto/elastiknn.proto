@@ -75,13 +75,15 @@ message KNearestNeighborsQuery {
 
     string pipeline_id = 1;
 
+    int32 k = 2;
+
     oneof query_options {
-        ExactQueryOptions exact = 2;
-        LshQueryOptions lsh = 3;
+        ExactQueryOptions exact = 3;
+        LshQueryOptions lsh = 4;
     }
 
     oneof query_vector {
-        GivenQueryVector given = 4;
-        IndexedQueryVector indexed = 5;
+        GivenQueryVector given = 5;
+        IndexedQueryVector indexed = 6;
     }
 }

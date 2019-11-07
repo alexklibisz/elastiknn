@@ -12,6 +12,7 @@ class DummyIT extends ESTestCase {
   def testDummy(): Unit = {
     val knnqActual = KNearestNeighborsQuery(
       pipelineId = "foo",
+      k = 20,
       queryOptions = Exact(
         ExactQueryOptions(
           distance = DISTANCE_ANGULAR

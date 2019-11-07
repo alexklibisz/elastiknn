@@ -4,6 +4,9 @@ import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.{AbstractQueryBuilder, QueryParser, QueryShardContext}
+import io.circe.syntax._
+import com.klibisz.elastiknn.utils.CirceUtils._
+import scalapb_circe.JsonFormat
 
 object KnnQueryBuilder {
 
@@ -13,8 +16,10 @@ object KnnQueryBuilder {
 
     /** This is the first method that gets hit when you run this query. */
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
-      // TODO: use parser.text() or parser.map() to get the content
-      new KnnQueryBuilder()
+      // TODO: why does parser.map() work here, but parser.text() throws an exception?
+      val json = parser.map.asJson(mapEncoder)
+      val query = JsonFormat.fromJson[KNearestNeighborsQuery](json)
+      new KnnQueryBuilder(query)
     }
 
   }
@@ -27,7 +32,8 @@ object KnnQueryBuilder {
 
 }
 
-final class KnnQueryBuilder() extends AbstractQueryBuilder[KnnQueryBuilder] {
+final class KnnQueryBuilder(query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+
   override def doWriteTo(out: StreamOutput): Unit = {
     ???
   }
