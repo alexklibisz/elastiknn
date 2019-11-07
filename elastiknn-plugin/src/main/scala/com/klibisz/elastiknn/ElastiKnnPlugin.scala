@@ -18,7 +18,7 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
   }
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
-    new QuerySpec(KNearestNeighborsQuery.NAME, KNearestNeighborsQuery.Reader, KNearestNeighborsQuery.Parser),
+    new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
     new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
   )
 

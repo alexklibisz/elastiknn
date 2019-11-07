@@ -7,22 +7,20 @@ import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import scala.util._
 
 trait Model {
-  def process(rawVector: String): Try[ProcessedVector]
-  def search(rawVector: String)
+  def process(rawVector: Array[Double]): Try[ProcessedVector]
+  def search(rawVector: Array[Double])
 }
 
 final class ExactModel(dimension: Int) extends Model {
-  override def process(rawVector: String): Try[ProcessedVector] = Try(rawVector.split(",").map(_.toFloat)) match {
-    case Success(v) if v.length == dimension => Success(ProcessedVector(Exact(ExactVector(v))))
-    case Success(v)                          => Failure(new IllegalArgumentException(s"Expected dimension $dimension but got ${v.length}"))
-    case Failure(t)                          => Failure(t)
-  }
-  override def search(rawVector: String): Unit = ???
+  override def process(rawVector: Array[Double]): Try[ProcessedVector] =
+    if (rawVector.length == dimension) Success(ProcessedVector(Exact(ExactVector(rawVector))))
+    else Failure(new IllegalArgumentException(s"Expected dimension $dimension but got ${rawVector.length}"))
+  override def search(rawVector: Array[Double]): Unit = ???
 }
 
 final class LshModel() extends Model {
-  override def process(rawVector: String): Try[ProcessedVector] = Success(ProcessedVector(Exact(ExactVector())))
-  override def search(rawVector: String): Unit = ???
+  override def process(rawVector: Array[Double]): Try[ProcessedVector] = Success(ProcessedVector(Exact(ExactVector())))
+  override def search(rawVector: Array[Double]): Unit = ???
 }
 
 object Model {

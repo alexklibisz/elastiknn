@@ -10,6 +10,9 @@ import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
+import scala.collection.JavaConverters._
+import scala.util.Try
+
 class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: Model) extends AbstractProcessor(tag) {
 
   import IngestProcessor.TYPE
@@ -22,8 +25,9 @@ class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: Proce
     require(doc.hasField(fieldRaw), s"$TYPE expected to find vector at $fieldRaw")
 
     // Parse vector into a string.
-    val vecRaw = doc.getFieldValue(fieldRaw, classOf[String])
-    val vecProcessed = model.process(vecRaw).get
+    lazy val ex = new IllegalArgumentException(s"Failed parsing field $fieldRaw to a list of doubles")
+    val vecRaw = Try(doc.getFieldValue(fieldRaw, classOf[util.List[Double]])).getOrElse(throw ex)
+    val vecProcessed = model.process(vecRaw.asScala.toArray).get
 
     // Insert it to the document.
     doc.setFieldValue(fieldProcessed, vecProcessed.asJavaMap)

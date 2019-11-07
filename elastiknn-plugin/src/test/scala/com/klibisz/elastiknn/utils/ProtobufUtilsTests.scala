@@ -1,8 +1,11 @@
 package com.klibisz.elastiknn.utils
 
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.QueryOptions.Exact
+import com.klibisz.elastiknn.KNearestNeighborsQuery.QueryVector.Given
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
-import com.klibisz.elastiknn.{LshModelOptions, ProcessorOptions}
+import com.klibisz.elastiknn.{KNearestNeighborsQuery, LshModelOptions, ProcessorOptions}
 import org.elasticsearch.test.ESTestCase
 import org.junit.Assert._
 
@@ -16,7 +19,7 @@ class ProtobufUtilsTests extends ESTestCase {
 
   def testMessagesGetConvertedToMaps(): Unit = {
 
-    val actual = ProcessorOptions(
+    val procOptActual = ProcessorOptions(
       fieldRaw = "field raw",
       fieldProcessed = "field processed",
       dimension = 222,
@@ -29,7 +32,7 @@ class ProtobufUtilsTests extends ESTestCase {
         ))
     ).asJavaMap
 
-    val expected = Map(
+    val procOptExpected = Map(
       "fieldRaw" -> "field raw",
       "fieldProcessed" -> "field processed",
       "dimension" -> 222,
@@ -42,10 +45,7 @@ class ProtobufUtilsTests extends ESTestCase {
       ).asJava
     ).asJava
 
-    assertEquals(
-      actual,
-      expected
-    )
+    assertEquals(procOptActual, procOptExpected)
   }
 
 }

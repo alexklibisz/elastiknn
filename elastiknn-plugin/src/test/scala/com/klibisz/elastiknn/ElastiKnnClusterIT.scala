@@ -58,21 +58,21 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
     }
   }
 
-  def helperVecToSource(field: String, vec: Array[Float]): Json = Json.fromJsonObject(
-    JsonObject(field -> Json.fromString(vec.mkString(",")))
+  def helperVecToSource(field: String, vec: Array[Double]): Json = Json.fromJsonObject(
+    JsonObject(field -> Json.fromValues(vec.map(Json.fromDoubleOrNull)))
   )
 
-  def helperTestExact(vecs: Seq[Array[Float]], dist: Distance, query: Array[Float], expectedDists: Array[Float]): Future[Unit] = {
+  def helperTestExact(vecs: Seq[Array[Double]], dist: Distance, query: Array[Double], expectedDists: Array[Double]): Future[Unit] = {
 
     require(vecs.nonEmpty)
     require(vecs.map(_.length).distinct.length == 1)
 
     val (fieldRaw, fieldProc) = ("vecRaw", "vecProc")
     val index = s"elastiknn-exact-${dist.value}"
-    val processorOptions = Processor("elastiknn", ProcessorOptions("vecRaw", "vecProc", vecs.head.length, Exact(ExactModelOptions())))
-    val pipelineRequest = PipelineRequest(index, Pipeline("exact", Seq(processorOptions)))
+    val processor = Processor("elastiknn", ProcessorOptions("vecRaw", "vecProc", vecs.head.length, Exact(ExactModelOptions())))
+    val pipelineRequest = PipelineRequest(index, Pipeline("exact", Seq(processor)))
     val indexRequests = vecs.zipWithIndex.map {
-      case (v: Array[Float], i: Int) =>
+      case (v: Array[Double], i: Int) =>
         indexInto(index).id(i.toString).source(helperVecToSource(fieldRaw, v).noSpaces).pipeline(index)
     }
     val getRequests = vecs.indices.map { i =>
@@ -107,7 +107,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
   }
 
   def testExactPipelineAndSearchAllDistances(): Unit = await {
-    helperTestExact(Seq(Array(0.1f, 0.2f), Array(0.22f, 0.4f)), DISTANCE_L2, Array.empty, Array.empty)
+    helperTestExact(Seq(Array(0.1, 0.2), Array(0.22, 0.4)), DISTANCE_L2, Array.empty, Array.empty)
   }
 
 }

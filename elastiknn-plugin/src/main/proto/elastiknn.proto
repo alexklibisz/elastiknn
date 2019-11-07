@@ -46,7 +46,7 @@ message LshModelOptions {
 // Structure of vectors which have been processed.
 message ProcessedVector {
     message ExactVector {
-        repeated float vector = 1 [(scalapb.field).collection_type="Array"];
+        repeated double vector = 1 [(scalapb.field).collection_type="Array"];
     }
 
     oneof processed {
@@ -64,7 +64,7 @@ message KNearestNeighborsQuery {
     message LshQueryOptions {}
 
     message GivenQueryVector {
-        string vector = 1;
+        repeated double vector = 1 [(scalapb.field).collection_type="Array"];
     }
 
     message IndexedQueryVector {
