@@ -1,7 +1,8 @@
 package com.klibisz.elastiknn.utils
 
 import com.klibisz.elastiknn.ProcessorOptions
-import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity}
+import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
+import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity, ResponseHandler}
 import io.circe.{Decoder, Json, JsonObject}
 import io.circe.generic.semiauto._
 import scalapb_circe.JsonFormat
@@ -37,5 +38,26 @@ object Elastic4sUtils {
     implicit def decoder: Decoder[PipelineResponse] =
       deriveDecoder[PipelineResponse]
   }
+
+//  case class PutDenseVectorMappingRequest(field: String, dims: Int)
+
+//  object PutDenseVectorMappingRequest {
+//    implicit object PutDenseVectorMappingRequestHandler extends Handler[PutDenseVectorMappingRequest, PutMappingResponse] {
+//      override def build(t: PutDenseVectorMappingRequest): ElasticRequest = {
+//        // See: https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html#dense-vector
+//        val body: Json = Json.fromJsonObject(
+//          JsonObject(
+//            "properties" -> Json.fromJsonObject(
+//              t.field -> Json.fromJsonObject(
+//                JsonObject(
+//                  "type" -> "dense_vector",
+//                  "dims" ->
+//                )
+//              )
+//            ))
+//        )
+//      }
+//    }
+//  }
 
 }

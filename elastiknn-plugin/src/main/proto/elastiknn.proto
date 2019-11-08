@@ -20,12 +20,15 @@ message ProcessorOptions {
     string field_raw = 1;
     // Path to the field where the processed version of the vector is stored.
     string field_processed = 2;
+    // Whether to keep or discard the original raw vector when ingesting. The processed vector is sufficient
+    // for all elastiknn searches, so removing the original one can save space if its otherwise unused.
+    bool discard_raw = 3;
     // Dimensionality of the raw floating-point vector.
-    int32 dimension = 3;
+    int32 dimension = 4;
     // The model options which will determine how the vector gets preprocessed and stored.
     oneof model_options {
-        ExactModelOptions exact = 4;
-        LshModelOptions lsh = 5;
+        ExactModelOptions exact = 5;
+        LshModelOptions lsh = 6;
     }
 }
 

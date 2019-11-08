@@ -22,6 +22,7 @@ class ProtobufUtilsTests extends ESTestCase {
     val procOptActual = ProcessorOptions(
       fieldRaw = "field raw",
       fieldProcessed = "field processed",
+      discardRaw = true,
       dimension = 222,
       modelOptions = Lsh(
         LshModelOptions(
@@ -36,6 +37,7 @@ class ProtobufUtilsTests extends ESTestCase {
       "fieldRaw" -> "field raw",
       "fieldProcessed" -> "field processed",
       "dimension" -> 222,
+      "discardRaw" -> true,
       "exact" -> null,
       "lsh" -> Map(
         "seed" -> 99L,

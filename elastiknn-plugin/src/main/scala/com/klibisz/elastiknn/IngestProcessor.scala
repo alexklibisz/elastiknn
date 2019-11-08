@@ -6,6 +6,7 @@ import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.LRUCache
 import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.syntax._
+import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
@@ -31,6 +32,13 @@ class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: Proce
 
     // Insert it to the document.
     doc.setFieldValue(fieldProcessed, vecProcessed.asJavaMap)
+
+    // Optionally discard the original.
+    if (discardRaw) doc.removeField(fieldRaw)
+
+    // TODO: consider whether it should set/modify the mapping here. The tradeoff is that PUTing the mapping for every
+    // new document will slow down ingestion.
+
     doc
   }
 

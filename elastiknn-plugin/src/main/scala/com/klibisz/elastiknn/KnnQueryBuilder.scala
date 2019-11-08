@@ -1,11 +1,15 @@
 package com.klibisz.elastiknn
 
+import java.util.function.BiConsumer
+
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.{AbstractQueryBuilder, QueryParser, QueryShardContext}
 import io.circe.syntax._
 import com.klibisz.elastiknn.utils.CirceUtils._
+import org.elasticsearch.action.ActionListener
+import org.elasticsearch.client.Client
 import scalapb_circe.JsonFormat
 
 object KnnQueryBuilder {
@@ -54,6 +58,15 @@ final class KnnQueryBuilder(query: KNearestNeighborsQuery) extends AbstractQuery
     // that was used to ingest the document, then a similar pattern is used for geo_polygon queries against an indexed
     // shape. Look at AbstractGeometryQueryBuilder.java in the doRewrite function on line 491. It also looks like you
     // can access a client using context.registerAsyncAction().
+
+//    context.registerAsyncAction(new BiConsumer[Client, ActionListener[_]] {
+//      override def accept(client: Client, listener: ActionListener[_]): Unit = {
+//
+//        ???
+//      }
+//    })
+
+    println(this.query)
 
     ???
   }
