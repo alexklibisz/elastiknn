@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn
 
+import java.util
 import java.util.function.BiConsumer
 
 import org.apache.lucene.search.Query
@@ -10,10 +11,12 @@ import io.circe.syntax._
 import com.klibisz.elastiknn.utils.CirceUtils._
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.client.Client
-import org.elasticsearch.common.lucene.search.function.ScoreFunction
-import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScriptScoreFunctionBuilder}
-import org.elasticsearch.script.Script
+import org.elasticsearch.common.lucene.search.function.{FunctionScoreQuery, ScoreFunction}
+import org.elasticsearch.index.query.functionscore.{FunctionScoreQueryBuilder, ScoreFunctionBuilder, ScriptScoreFunctionBuilder}
+import org.elasticsearch.script.{Script, ScriptType}
 import scalapb_circe.JsonFormat
+
+import scala.collection.JavaConverters._
 
 object KnnQueryBuilder {
 
@@ -58,8 +61,17 @@ final class KnnQueryBuilder(query: KNearestNeighborsQuery) extends AbstractQuery
     // The docs show some tempting vector functions (cosineSimilarity, l1Norm, etc.), but those are only available with X-Pack.
     // This seems to work without any special mappings.
 
-//    val script = new Script()
-//    val scoreFunction = ScriptScoreFunctionBuilder
+    val script = new Script(
+      ScriptType.STORED,
+      "painless",
+      StoredScripts.exactAngular.id,
+      new util.HashMap[String, Object]() {
+        put("fieldProc", "vec_raw.exact.vector")
+        put("b", util.Arrays.asList(0.11, 0.22))
+      }
+    )
+    val scoreFunctionBuilder = new ScriptScoreFunctionBuilder(script)
+    new FunctionScoreQueryBuilder(scoreFunctionBuilder).toQuery(context)
 
     // If you end up needing to access other documents while executing the query, for example to retrieve the pipeline
     // that was used to ingest the document, then a similar pattern is used for geo_polygon queries against an indexed
@@ -71,8 +83,6 @@ final class KnnQueryBuilder(query: KNearestNeighborsQuery) extends AbstractQuery
 //        ???
 //      }
 //    })
-
-    ???
   }
 
   override def doEquals(other: KnnQueryBuilder): Boolean = {
