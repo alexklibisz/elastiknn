@@ -10,6 +10,9 @@ import io.circe.syntax._
 import com.klibisz.elastiknn.utils.CirceUtils._
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.client.Client
+import org.elasticsearch.common.lucene.search.function.ScoreFunction
+import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScriptScoreFunctionBuilder}
+import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 object KnnQueryBuilder {
@@ -54,30 +57,9 @@ final class KnnQueryBuilder(query: KNearestNeighborsQuery) extends AbstractQuery
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html
     // The docs show some tempting vector functions (cosineSimilarity, l1Norm, etc.), but those are only available with X-Pack.
     // This seems to work without any special mappings.
-    // {
-    //    "query": {
-    //        "function_score": {
-    //            "script_score": {
-    //                "script": {
-    //                    "lang": "painless",
-    //                    "inline": "float total = 0; for (int i = 0; i < doc['vec_raw'].length; ++i) { total += doc['vec_raw'][i]; } return total;"
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
-    //{
-    //    "query": {
-    //        "function_score": {
-    //            "script_score": {
-    //                "script": {
-    //                    "lang": "painless",
-    //                    "inline": "float total = 0; for (int i = 0; i < doc['vec_proc.exact.vector'].length; ++i) { total += doc['vec_proc.exact.vector'][i]; } return total;"
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
+
+//    val script = new Script()
+//    val scoreFunction = ScriptScoreFunctionBuilder
 
     // If you end up needing to access other documents while executing the query, for example to retrieve the pipeline
     // that was used to ingest the document, then a similar pattern is used for geo_polygon queries against an indexed
