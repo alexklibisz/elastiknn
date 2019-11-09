@@ -3,8 +3,11 @@ package com.klibisz.elastiknn
 import java.util
 import java.util.Collections.singletonMap
 
+import org.apache.logging.log4j.{LogManager, Logger}
+import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.node.NodeClient
+import org.elasticsearch.cluster.{ClusterChangedEvent, ClusterStateListener}
 import org.elasticsearch.cluster.service.ClusterService
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry
 import org.elasticsearch.common.xcontent.NamedXContentRegistry
@@ -18,6 +21,8 @@ import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
 
+  private val logger: Logger = LogManager.getLogger(getClass)
+
   override def createComponents(client: Client,
                                 clusterService: ClusterService,
                                 threadPool: ThreadPool,
@@ -27,7 +32,18 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
                                 environment: Environment,
                                 nodeEnvironment: NodeEnvironment,
                                 namedWriteableRegistry: NamedWriteableRegistry): util.Collection[Object] = {
-    util.Arrays.asList(new ElastiKnnLifecycleComponent(client, clusterService))
+
+    // Create scripts. Called inside a listener; otherwise you get an error: "initial cluster state not set yet"
+    // Originally this was inside a LifecycleComponent, but that doesn't seem to be necessary.
+    clusterService.addListener(new ClusterStateListener {
+      override def clusterChanged(event: ClusterChangedEvent): Unit = {
+        logger.info(s"Creating stored scripts")
+        Seq(StoredScripts.exactAngular).foreach(s => client.execute(PutStoredScriptAction.INSTANCE, s))
+        clusterService.removeListener(this)
+      }
+    })
+
+    util.Collections.emptyList[Object]()
   }
 
   override def getProcessors(parameters: Processor.Parameters): util.Map[String, Processor.Factory] = {
