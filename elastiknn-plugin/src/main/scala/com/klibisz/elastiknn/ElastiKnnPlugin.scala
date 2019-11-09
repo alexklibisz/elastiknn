@@ -12,6 +12,7 @@ import org.elasticsearch.cluster.service.ClusterService
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry
 import org.elasticsearch.common.xcontent.NamedXContentRegistry
 import org.elasticsearch.env.{Environment, NodeEnvironment}
+import org.elasticsearch.index.query.MatchAllQueryBuilder
 import org.elasticsearch.ingest.Processor
 import org.elasticsearch.plugins.SearchPlugin.QuerySpec
 import org.elasticsearch.plugins.{IngestPlugin, Plugin, SearchPlugin}
@@ -54,7 +55,10 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
-    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
+//    new QuerySpec(KnnQueryBuilder.NAME, in => new MatchAllQueryBuilder(in), xc => MatchAllQueryBuilder.fromXContent(xc)),
+//    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
   )
+
+  // TODO: maybe there's another method you have to override to get the query results out?
 
 }

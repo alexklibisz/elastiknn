@@ -16,6 +16,7 @@ object StoredScripts {
     XContentType.JSON,
     new StoredScriptSource(
       "painless",
+//      "return 99.0;",
       """
         |def a = doc[params.fieldProc];
         |def b = params.b;
