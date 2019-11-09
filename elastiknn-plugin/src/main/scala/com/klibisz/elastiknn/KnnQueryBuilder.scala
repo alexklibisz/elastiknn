@@ -1,18 +1,16 @@
 package com.klibisz.elastiknn
 
-import java.util
 import java.util.Objects
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.utils.Elastic4sUtils.Pipeline
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.functionscore.{ScriptScoreFunctionBuilder, ScriptScoreQueryBuilder}
 import org.elasticsearch.index.query.{AbstractQueryBuilder, MatchAllQueryBuilder, QueryParser, QueryShardContext}
-import org.elasticsearch.script.{Script, ScriptType}
+import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 object KnnQueryBuilder {
