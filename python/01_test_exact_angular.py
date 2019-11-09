@@ -55,7 +55,16 @@ pprint(res.json())
 
 res = get(f"{url}/{index}/_search", json={
     "query": {
-        "elastiknn_knn": {}
+        "elastiknn_knn": {
+            "pipelineId": "elastiknn-pipeline-0",
+            "k": 2,
+            "exact": {
+                "distance": "DISTANCE_ANGULAR"
+            },
+            "given": {
+                "vector": [0.11, 0.22]
+            }
+        }
     }
 })
 print(res.status_code)

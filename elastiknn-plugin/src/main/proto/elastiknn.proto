@@ -77,16 +77,17 @@ message KNearestNeighborsQuery {
     }
 
     string pipeline_id = 1;
+    string processor_id = 2;
 
-    int32 k = 2;
+    int32 k = 3;
 
     oneof query_options {
-        ExactQueryOptions exact = 3;
-        LshQueryOptions lsh = 4;
+        ExactQueryOptions exact = 4;
+        LshQueryOptions lsh = 5;
     }
 
     oneof query_vector {
-        GivenQueryVector given = 5;
-        IndexedQueryVector indexed = 6;
+        GivenQueryVector given = 6;
+        IndexedQueryVector indexed = 7;
     }
 }

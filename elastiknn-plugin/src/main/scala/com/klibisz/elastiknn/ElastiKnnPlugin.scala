@@ -7,12 +7,11 @@ import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.node.NodeClient
-import org.elasticsearch.cluster.{ClusterChangedEvent, ClusterStateListener}
 import org.elasticsearch.cluster.service.ClusterService
+import org.elasticsearch.cluster.{ClusterChangedEvent, ClusterStateListener}
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry
 import org.elasticsearch.common.xcontent.NamedXContentRegistry
 import org.elasticsearch.env.{Environment, NodeEnvironment}
-import org.elasticsearch.index.query.MatchAllQueryBuilder
 import org.elasticsearch.ingest.Processor
 import org.elasticsearch.plugins.SearchPlugin.QuerySpec
 import org.elasticsearch.plugins.{IngestPlugin, Plugin, SearchPlugin}
@@ -38,8 +37,10 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
     // Originally this was inside a LifecycleComponent, but that doesn't seem to be necessary.
     clusterService.addListener(new ClusterStateListener {
       override def clusterChanged(event: ClusterChangedEvent): Unit = {
-        logger.info(s"Creating stored scripts")
-        Seq(StoredScripts.exactAngular).foreach(s => client.execute(PutStoredScriptAction.INSTANCE, s))
+        Seq(StoredScripts.exactAngular).foreach { s =>
+          logger.info(s"Creating stored script ${s.id}")
+          client.execute(PutStoredScriptAction.INSTANCE, s.putRequest)
+        }
         clusterService.removeListener(this)
       }
     })
