@@ -7,9 +7,10 @@ import com.klibisz.elastiknn.utils.CirceUtils._
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
+import org.elasticsearch.common.lucene.search.function.{ScriptScoreFunction, ScriptScoreQuery}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.index.query.functionscore.{ScriptScoreFunctionBuilder, ScriptScoreQueryBuilder}
-import org.elasticsearch.index.query.{AbstractQueryBuilder, MatchAllQueryBuilder, QueryParser, QueryShardContext}
+import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
+import org.elasticsearch.index.query.{AbstractQueryBuilder, ExistsQueryBuilder, QueryParser, QueryShardContext}
 import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
@@ -73,17 +74,19 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(processorOptions.fieldProcessed, b)
       case _                         => ???
     }
-    // TODO: use an exists query to filter for fields which contain the processorOptions.fieldProcessed field.
-    new ScriptScoreQueryBuilder(new MatchAllQueryBuilder(), new ScriptScoreFunctionBuilder(script)).toQuery(context)
+
+    val existsQuery = new ExistsQueryBuilder(processorOptions.fieldProcessed).toQuery(context)
+    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
+    new ScriptScoreQuery(existsQuery, function.asInstanceOf[ScriptScoreFunction], 0.0f)
   }
 
   private def lshQuery(context: QueryShardContext, lshOpts: LshQueryOptions): Query = ???
 
   // TODO: what is this used for?
-  override def doWriteTo(out: StreamOutput): Unit = ???
+  override def doWriteTo(out: StreamOutput): Unit = ()
 
-  // TODO: what is this used for? I think this function gets called when there's an error.
-  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+  // TODO: This function seems to only get called when there is an error.
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
   override def doEquals(other: KnnQueryBuilder): Boolean = this.query == other.query
 
