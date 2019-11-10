@@ -4,13 +4,14 @@ import java.util
 import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
-import com.klibisz.elastiknn.Distance.DISTANCE_L2
+import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
 import com.klibisz.elastiknn.utils.Elastic4sUtils._
-import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, IndexesAndType}
-import com.sksamuel.elastic4s.ElasticDate.ElasticDateMathShow
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition, PutMappingRequest}
+import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
+import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, XContentBuilder, XContentFactory}
+import io.circe.syntax._
 import io.circe.{Json, JsonObject, parser}
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
@@ -64,7 +65,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
     JsonObject(field -> Json.fromValues(vec.map(Json.fromDoubleOrNull)))
   )
 
-  def helperTestExact(vecs: Seq[Array[Double]], dist: Distance, query: Array[Double], expectedDists: Array[Double]): Future[Unit] = {
+  def helperTestExact(vecs: Seq[Array[Double]], dist: Distance, queryVector: Array[Double], expectedDists: Array[Double]): Future[Unit] = {
 
     require(vecs.nonEmpty)
     require(vecs.map(_.length).distinct.length == 1)
@@ -81,6 +82,28 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
     val getRequests = vecs.indices.map { i =>
       get(index, i.toString)
     }
+
+    val searchGivenQuery = KNearestNeighborsQuery(
+      pipelineId = pipelineRequest.name,
+      processorId = processor.name,
+      k = vecs.length,
+      queryOptions = QueryOptions.Exact(
+        ExactQueryOptions(
+          distance = dist
+        )),
+      queryVector = QueryVector.Given(
+        GivenQueryVector(
+          queryVector
+        ))
+    )
+
+    val searchGivenRequest = search(index).query(new CustomQuery {
+      def buildQueryBody(): XContentBuilder =
+        XContentFactory.parse(
+          JsonObject(
+            "elastiknn_knn" -> JsonFormat.toJson(searchGivenQuery)
+          ).asJson.noSpaces)
+    })
 
     for {
 
@@ -110,11 +133,18 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
           assertEquals(pv.getExact.vector.toSeq, v.toSeq)
       }
 
+      // Run a query with a given vector.
+      searchGivenResponse <- client.execute(searchGivenRequest)
+      _ = assertTrue(searchGivenResponse.isSuccess)
+
     } yield ()
   }
 
   def testExactPipelineAndSearchAllDistances(): Unit = await {
-    helperTestExact(Seq(Array(0.1, 0.2), Array(0.22, 0.4)), DISTANCE_L2, Array.empty, Array.empty)
+    helperTestExact(Seq(Array(-0.1, 0.05, 0.11), Array(-0.3, -0.2, 0.5)),
+                    DISTANCE_ANGULAR,
+                    Array(-0.1, 0.2, 0.3),
+                    Array(0.90311758, 0.60697698).map(_ + 1.0))
   }
 
 }

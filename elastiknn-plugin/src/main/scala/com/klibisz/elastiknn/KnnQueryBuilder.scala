@@ -43,7 +43,7 @@ object KnnQueryBuilder {
   }
 
   // TODO: move this out to a config file.
-  private[this] val getProcessorOptionsTimeout: Long = 5000
+  private[this] val getProcessorOptionsTimeout: Long = 1000
 
   // Keep an internal cache of the processor options.
   private[this] val processorOptionsCache = CacheBuilder.newBuilder.softValues.build[(String, String), ProcessorOptions]()
