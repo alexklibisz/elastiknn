@@ -1,7 +1,9 @@
 package com.klibisz.elastiknn
 
 import java.util
+import java.util.concurrent.Callable
 
+import com.google.common.cache.{Cache, CacheBuilder, CacheLoader}
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.LRUCache
 import com.klibisz.elastiknn.utils.ProtobufUtils._
@@ -49,7 +51,8 @@ object IngestProcessor {
 
   lazy val TYPE: String = "elastiknn"
 
-  private val modelCache = new LRUCache[ProcessorOptions, Model](100)
+  private lazy val modelCache: Cache[ProcessorOptions, Model] =
+    CacheBuilder.newBuilder.softValues.build[ProcessorOptions, Model]()
 
   class Factory(nodeClient: NodeClient) extends Processor.Factory {
 
@@ -57,8 +60,9 @@ object IngestProcessor {
     override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
       val json = config.asJson
       val popts = JsonFormat.fromJson[ProcessorOptions](json)
-      lazy val err = s"Failed to instantiate model from given configuration: $config"
-      val model = modelCache.get(popts, _ => Model(popts).getOrElse(throw new IllegalArgumentException(err)))
+      val getter: Callable[Model] = () =>
+        Model(popts).getOrElse(throw new IllegalArgumentException(s"Failed to instantiate model from given configuration: $config"))
+      val model = modelCache.get(popts, getter)
       config.clear() // Need to do this otherwise es thinks parsing didn't work.
       new IngestProcessor(tag, nodeClient, popts, model)
     }

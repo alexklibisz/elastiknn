@@ -23,6 +23,8 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
 
   private val logger: Logger = LogManager.getLogger(getClass)
 
+  private var clientOpt: Option[Client] = None
+
   override def createComponents(client: Client,
                                 clusterService: ClusterService,
                                 threadPool: ThreadPool,
@@ -32,6 +34,8 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
                                 environment: Environment,
                                 nodeEnvironment: NodeEnvironment,
                                 namedWriteableRegistry: NamedWriteableRegistry): util.Collection[Object] = {
+
+    SharedClient.set(client)
 
     // Create scripts. Called inside a listener; otherwise you get an error: "initial cluster state not set yet"
     // Originally this was inside a LifecycleComponent, but that doesn't seem to be necessary.
@@ -56,10 +60,7 @@ class ElastiKnnPlugin extends Plugin with IngestPlugin with SearchPlugin {
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
-//    new QuerySpec(KnnQueryBuilder.NAME, in => new MatchAllQueryBuilder(in), xc => MatchAllQueryBuilder.fromXContent(xc)),
-//    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
+    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
   )
-
-  // TODO: maybe there's another method you have to override to get the query results out?
 
 }

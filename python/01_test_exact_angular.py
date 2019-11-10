@@ -10,12 +10,13 @@ es.ping()
 url = "http://localhost:9200"
 index = "elastiknn-index-01"
 pipeline = "elastiknn-pipeline-01"
+processor = "elastiknn"
 
 res = put(f"{url}/_ingest/pipeline/{pipeline}", json={
     "description": "elastiknn pipeline 1",
     "processors": [
         {
-            "elastiknn": {
+            processor: {
                 "fieldRaw": "vec_raw",
                 "fieldProcessed": "vec_proc",
                 "dimension": 2,
@@ -56,7 +57,8 @@ pprint(res.json())
 res = get(f"{url}/{index}/_search", json={
     "query": {
         "elastiknn_knn": {
-            "pipelineId": "elastiknn-pipeline-0",
+            "pipelineId": pipeline,
+            "processorId": processor,
             "k": 2,
             "exact": {
                 "distance": "DISTANCE_ANGULAR"
@@ -69,22 +71,5 @@ res = get(f"{url}/{index}/_search", json={
 })
 print(res.status_code)
 pprint(res.json())
-
-# res = get(f"{url}/_search", json={
-#     "query": {
-#         "elastiknn_knn": {
-#             "pipelineId": "elastiknn-pipeline-0",
-#             "k": 2,
-#             "exact": {
-#                 "distance": "DISTANCE_ANGULAR"
-#             },
-#             "given": {
-#                 "vector": [0.11, 0.22]
-#             }
-#         }
-#     }
-# })
-# print(res.status_code)
-# pprint(res.json())
 
 print("done")
