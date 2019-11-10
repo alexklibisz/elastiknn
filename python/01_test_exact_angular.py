@@ -4,13 +4,16 @@ from elasticsearch import Elasticsearch
 from requests import *
 from pprint import pprint
 
-es = Elasticsearch()
-es.ping()
-
 url = "http://localhost:9200"
 index = "elastiknn-index-01"
 pipeline = "elastiknn-pipeline-01"
 processor = "elastiknn"
+
+res = get(f"{url}/_cluster/health?wait_for_status=yellow&timeout=60s")
+assert res.status_code == 200
+
+res = post(f"{url}/_elastiknn/setup")
+assert res.status_code == 200
 
 res = put(f"{url}/_ingest/pipeline/{pipeline}", json={
     "description": "elastiknn pipeline 1",

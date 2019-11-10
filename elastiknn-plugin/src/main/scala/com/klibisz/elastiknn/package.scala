@@ -11,4 +11,8 @@ package object elastiknn {
     def client: Client = clientOpt.getOrElse(throw new IllegalStateException("Client hasn't been set yet"))
   }
 
+  // Avoid mistyping it.
+  private[elastiknn] lazy val ELASTIKNN_NAME = "elastiknn"
+  private[elastiknn] lazy val ENDPOINT_PREFIX = s"_$ELASTIKNN_NAME"
+
 }

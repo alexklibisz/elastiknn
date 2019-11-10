@@ -8,6 +8,8 @@ import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.LRUCache
 import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.syntax._
+import org.apache.logging.log4j.{LogManager, Logger}
+import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
 import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
@@ -16,7 +18,7 @@ import scalapb_circe.JsonFormat
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: ProcessorOptions, model: Model) extends AbstractProcessor(tag) {
+class IngestProcessor private (tag: String, client: NodeClient, popts: ProcessorOptions, model: Model) extends AbstractProcessor(tag) {
 
   import IngestProcessor.TYPE
   import popts._
@@ -49,22 +51,31 @@ class IngestProcessor private (tag: String, nodeClient: NodeClient, popts: Proce
 
 object IngestProcessor {
 
-  lazy val TYPE: String = "elastiknn"
+  lazy val TYPE: String = ELASTIKNN_NAME
 
   private lazy val modelCache: Cache[ProcessorOptions, Model] =
     CacheBuilder.newBuilder.softValues.build[ProcessorOptions, Model]()
 
-  class Factory(nodeClient: NodeClient) extends Processor.Factory {
+  class Factory(client: NodeClient) extends Processor.Factory {
+
+    private val logger: Logger = LogManager.getLogger(getClass)
+
+    private def createStoredScripts(): Unit =
+      Seq(StoredScripts.exactAngular).foreach { s =>
+        logger.info(s"Creating stored script ${s.id}")
+        client.execute(PutStoredScriptAction.INSTANCE, s.putRequest)
+      }
 
     /** This is the method that gets invoked when someone creates an elastiknn pipeline. */
     override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
-      val json = config.asJson
-      val popts = JsonFormat.fromJson[ProcessorOptions](json)
-      val getter: Callable[Model] = () =>
+      val configJson = config.asJson
+      val popts = JsonFormat.fromJson[ProcessorOptions](configJson)
+      val call: Callable[Model] = () =>
         Model(popts).getOrElse(throw new IllegalArgumentException(s"Failed to instantiate model from given configuration: $config"))
-      val model = modelCache.get(popts, getter)
+      val model = modelCache.get(popts, call)
       config.clear() // Need to do this otherwise es thinks parsing didn't work.
-      new IngestProcessor(tag, nodeClient, popts, model)
+//      createStoredScripts() // (Re-)create scripts.
+      new IngestProcessor(tag, client, popts, model)
     }
 
   }

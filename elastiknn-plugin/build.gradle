@@ -61,6 +61,7 @@ dependencies {
 //    implementation 'com.carrotsearch:hppc:0.8.1'
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
+//    runtime 'org.elasticsearch.client:elasticsearch-rest-client:7.4.0'
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
 

@@ -9,12 +9,14 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQue
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
 import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
-import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, XContentBuilder, XContentFactory}
+import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, ElasticRequest, XContentBuilder, XContentFactory}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject, parser}
 import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
+import org.elasticsearch.test.ESIntegTestCase.ClusterScope
 import org.junit.Assert._
 import org.junit.Before
 import scalapb_circe.JsonFormat
@@ -22,6 +24,7 @@ import scalapb_circe.JsonFormat
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+@ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE) // https://discuss.elastic.co/t/integration-testing-in-java-carrotsearch-thread-leaks-severe-errors/26831/4
 class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
 
@@ -107,6 +110,10 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
 
     for {
 
+      // Hit the setup endpoint.
+      setupResponse <- client.execute(ElastiKnnSetupRequest())
+      _ = assertTrue(setupResponse.isSuccess)
+
       // Create the pipeline.
       pipelineResponse <- client.execute(pipelineRequest)
       _ = assertTrue(pipelineResponse.isSuccess)
@@ -117,7 +124,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
       _ = assertTrue(createIndexResponse.isSuccess)
 
       // Index the vectors.
-      indexResponse <- client.execute(bulk(indexRequests))
+      indexResponse <- client.execute(bulk(indexRequests).refresh(RefreshPolicy.IMMEDIATE))
       _ = assertTrue(indexResponse.isSuccess)
       _ = assertFalse(indexResponse.result.errors)
 
@@ -135,7 +142,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
 
       // Run a query with a given vector.
       searchGivenResponse <- client.execute(searchGivenRequest)
-      _ = assertTrue(searchGivenResponse.isSuccess)
+      _ = assertTrue(searchGivenResponse.result.toString, searchGivenResponse.isSuccess)
 
     } yield ()
   }

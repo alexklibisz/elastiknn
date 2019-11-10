@@ -2,6 +2,7 @@ package com.klibisz.elastiknn
 
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.http.JavaClient
+import org.apache.http.HttpHost
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.RestClient
 
@@ -16,7 +17,7 @@ trait TestingUtils {
   def defaultAwaitDuration: Duration = 10.seconds
 
   def elasticClient(rc: RestClient): ElasticClient = {
-    logger.info(s"client connected to hosts: ${rc.getNodes.asScala.map(_.getHost).mkString(",")}")
+    logger.warn(s"client connected to hosts: ${rc.getNodes.asScala.map(_.getHost).mkString(",")}")
     ElasticClient(JavaClient.fromRestClient(rc))
   }
 
