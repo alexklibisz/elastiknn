@@ -1,7 +1,3 @@
-import java.nio.file.Files
-
-// Most of this build file is based on: https://github.com/spinscale/elasticsearch-ingest-langdetect
-// Protobuf parts are based on: https://github.com/scalapb/gradle-demo
 
 buildscript {
     repositories {
@@ -20,20 +16,21 @@ plugins {
     id 'scala'
 }
 
-ext {
-    scalapbVersion = '0.9.0-M5'
-}
-
 repositories {
     jcenter()
 }
 
+group = rootProject.properties['group']
+version = rootProject.properties['pluginVersion'] + '_es' + elasticsearchVersion
+
+ext {
+    scalapbVersion = '0.9.0-M5'
+}
+
 apply plugin: 'java'
+apply plugin: 'scala'
 //apply plugin: 'idea'
 apply plugin: 'elasticsearch.esplugin'
-
-group 'com.github.alexklibisz.elastiknn'
-version '0.0.1-SNAPSHOT'
 
 licenseFile = rootProject.file("LICENSE.txt")
 noticeFile = rootProject.file("NOTICE.txt")

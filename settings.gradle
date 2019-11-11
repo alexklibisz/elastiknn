@@ -1,0 +1,3 @@
+rootProject.name = 'elastiknn'
+include 'es74x'
+//including 'testing'

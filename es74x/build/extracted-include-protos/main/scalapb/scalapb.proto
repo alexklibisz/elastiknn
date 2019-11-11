@@ -1,0 +1,213 @@
+syntax = "proto2";
+
+package scalapb;
+
+option java_package = "scalapb.options";
+
+option (options) = {
+  package_name: "scalapb.options"
+  flat_package: true
+};
+
+import "google/protobuf/descriptor.proto";
+
+message ScalaPbOptions {
+  // If set then it overrides the java_package and package.
+  optional string package_name = 1;
+
+  // If true, the compiler does not append the proto base file name
+  // into the generated package name. If false (the default), the
+  // generated scala package name is the package_name.basename where
+  // basename is the proto file name without the .proto extension.
+  optional bool flat_package = 2;
+
+  // Adds the following imports at the top of the file (this is meant
+  // to provide implicit TypeMappers)
+  repeated string import = 3;
+
+  // Text to add to the generated scala file.  This can be used only
+  // when single_file is true.
+  repeated string preamble = 4;
+
+  // If true, all messages and enums (but not services) will be written
+  // to a single Scala file.
+  optional bool single_file = 5;
+
+  // By default, wrappers defined at
+  // https://github.com/google/protobuf/blob/master/src/google/protobuf/wrappers.proto,
+  // are mapped to an Option[T] where T is a primitive type. When this field
+  // is set to true, we do not perform this transformation.
+  optional bool no_primitive_wrappers = 7;
+
+  // DEPRECATED. In ScalaPB <= 0.5.47, it was necessary to explicitly enable
+  // primitive_wrappers. This field remains here for backwards compatibility,
+  // but it has no effect on generated code. It is an error to set both
+  // `primitive_wrappers` and `no_primitive_wrappers`.
+  optional bool primitive_wrappers = 6;
+
+  // Scala type to be used for repeated fields. If unspecified,
+  // `scala.collection.Seq` will be used.
+  optional string collection_type = 8;
+
+  // If set to true, all generated messages in this file will preserve unknown
+  // fields.
+  optional bool preserve_unknown_fields = 9;
+
+  // If defined, sets the name of the file-level object that would be generated. This
+  // object extends `GeneratedFileObject` and contains descriptors, and list of message
+  // and enum companions.
+  optional string object_name = 10;
+
+  // Whether to apply the options only to this file, or for the entire package (and its subpackages)
+  enum OptionsScope {
+    // Apply the options for this file only (default)
+    FILE = 0;
+
+    // Apply the options for the entire package and its subpackages.
+    PACKAGE = 1;
+  }
+  // Experimental: scope to apply the given options.
+  optional OptionsScope scope = 11;
+
+  // If true, lenses will be generated.
+  optional bool lenses = 12 [default=true];
+
+  // If true, then source-code info information will be included in the
+  // generated code - normally the source code info is cleared out to reduce
+  // code size.  The source code info is useful for extracting source code
+  // location from the descriptors as well as comments.
+  optional bool retain_source_code_info = 13;
+
+  // Scala type to be used for maps. If unspecified,
+  // `scala.collection.immutable.Map` will be used.
+  optional string map_type = 14;
+
+  // If true, no default values will be generated in message constructors.
+  optional bool no_default_values_in_constructor = 15;
+
+  /* Naming convention for generated enum values */
+  enum EnumValueNaming {
+    AS_IN_PROTO = 0;  // Enum value names in Scala use the same name as in the proto
+    CAMEL_CASE = 1;   // Convert enum values to CamelCase in Scala.
+  }
+  optional EnumValueNaming enum_value_naming = 16;
+
+  // For use in tests only. Inhibit Java conversions even when when generator parameters
+  // request for it.
+  optional bool test_only_no_java_conversions = 100001;
+}
+
+extend google.protobuf.FileOptions {
+  // File-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  optional ScalaPbOptions options = 1020;
+}
+
+message MessageOptions {
+  // Additional classes and traits to mix in to the case class.
+  repeated string extends = 1;
+
+  // Additional classes and traits to mix in to the companion object.
+  repeated string companion_extends = 2;
+
+  // Custom annotations to add to the generated case class.
+  repeated string annotations = 3;
+
+  // All instances of this message will be converted to this type. An implicit TypeMapper
+  // must be present.
+  optional string type = 4;
+
+  // Custom annotations to add to the companion object of the generated class.
+  repeated string companion_annotations = 5;
+
+  // Additional classes and traits to mix in to generated sealed_oneof base trait.
+  repeated string sealed_oneof_extends = 6;
+
+  // If true, when this message is used as an optional field, do not wrap it in an `Option`.
+  // This is equivalent of setting `(field).no_box` to true on each field with the message type.
+  optional bool no_box = 7;
+}
+
+extend google.protobuf.MessageOptions {
+  // Message-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  optional MessageOptions message = 1020;
+}
+
+message FieldOptions {
+  optional string type = 1;
+
+  optional string scala_name = 2;
+
+  // Can be specified only if this field is repeated. If unspecified,
+  // it falls back to the file option named `collection_type`, which defaults
+  // to `scala.collection.Seq`.
+  optional string collection_type = 3;
+
+  // If the field is a map, you can specify custom Scala types for the key
+  // or value.
+  optional string key_type = 4;
+  optional string value_type = 5;
+
+  // Custom annotations to add to the field.
+  repeated string annotations = 6;
+
+  // Can be specified only if this field is a map. If unspecified,
+  // it falls back to the file option named `map_type` which defaults to
+  // `scala.collection.immutable.Map`
+  optional string map_type = 7;
+
+  // Do not box this value in Option[T]. If set, this overrides MessageOptions.no_box
+  optional bool no_box = 30;
+}
+
+extend google.protobuf.FieldOptions {
+  // Field-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  optional FieldOptions field = 1020;
+}
+
+message EnumOptions {
+  // Additional classes and traits to mix in to the base trait
+  repeated string extends = 1;
+
+  // Additional classes and traits to mix in to the companion object.
+  repeated string companion_extends = 2;
+
+  // All instances of this enum will be converted to this type. An implicit TypeMapper
+  // must be present.
+  optional string type = 3;
+}
+
+extend google.protobuf.EnumOptions {
+  // Enum-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  //
+  // The field is called enum_options and not enum since enum is not allowed in Java.
+  optional EnumOptions enum_options = 1020;
+}
+
+message EnumValueOptions {
+  // Additional classes and traits to mix in to an individual enum value.
+  repeated string extends = 1;
+
+  // Name in Scala to use for this enum value.
+  optional string scala_name = 2;
+}
+
+extend google.protobuf.EnumValueOptions {
+  // Enum-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  optional EnumValueOptions enum_value = 1020;
+}
+
+message OneofOptions {
+  // Additional traits to mix in to a oneof.
+  repeated string extends = 1;
+}
+
+extend google.protobuf.OneofOptions {
+  // Enum-level optionals for ScalaPB.
+  // Extension number officially assigned by protobuf-global-extension-registry@google.com
+  optional OneofOptions oneof = 1020;
+}
