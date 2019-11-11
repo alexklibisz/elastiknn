@@ -1,0 +1,7 @@
+"elastiknn plugin installed":
+  - do:
+      cluster.state: {}
+  - set: {master_node: master}
+  - do:
+      nodes.info: {}
+  - match:  { nodes.$master.plugins.0.name: elastiknn }

@@ -49,4 +49,6 @@ object Elastic4sUtils {
     }
   }
 
+  case class GetStoredScriptRequest(id: String)
+
 }
