@@ -10,4 +10,8 @@ gradle-app.setting
 # Cache of project
 .gradletasknamecache
 
+# IntelliJ configs
 .idea
+
+# Misc log files
+*.log

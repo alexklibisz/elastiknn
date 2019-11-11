@@ -1,4 +1,9 @@
+import java.util.function.Function
+
 buildscript {
+    ext {
+        scalaVersion = rootProject.properties['scalaVersion']
+    }
     repositories {
         mavenLocal()
         mavenCentral()
@@ -22,7 +27,8 @@ repositories {
 }
 
 test {
-//    systemProperty "project.dir", rootProject.projectDir
+    systemProperty "project.dir", rootProject.projectDir
+    dependsOn rootProject.task("jar")
     outputs.upToDateWhen { false }
     testLogging {
         showStandardStreams = true
@@ -33,7 +39,7 @@ test {
 }
 
 dependencies {
-    testCompile "org.scala-lang:scala-library:${rootProject.properties['scalaVersion']}"
-    testCompile 'org.scalatest:scalatest_2.12:3.0.8'
+    implementation "org.scala-lang:scala-library:$scalaVersion"
+    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }
