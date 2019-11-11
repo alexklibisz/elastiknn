@@ -1,0 +1,39 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.25'
+    }
+}
+
+apply plugin: 'scala'
+apply plugin: 'com.github.maiflai.scalatest'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url 'https://repo.gradle.org/gradle/libs-releases' }
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://artifacts.elastic.co/maven' }
+}
+
+test {
+//    systemProperty "project.dir", rootProject.projectDir
+    outputs.upToDateWhen { false }
+    testLogging {
+        showStandardStreams = true
+        exceptionFormat = 'full'
+        events "standardOut", "started", "passed", "skipped", "failed"
+    }
+    maxParallelForks = 1
+}
+
+dependencies {
+    testCompile "org.scala-lang:scala-library:${rootProject.properties['scalaVersion']}"
+    testCompile 'org.scalatest:scalatest_2.12:3.0.8'
+    testRuntime 'org.pegdown:pegdown:1.4.2'
+}
