@@ -1,9 +1,6 @@
 import java.util.function.Function
 
 buildscript {
-    ext {
-        scalaVersion = rootProject.properties['scalaVersion']
-    }
     repositories {
         mavenLocal()
         mavenCentral()
@@ -27,8 +24,7 @@ repositories {
 }
 
 test {
-    systemProperty "project.dir", rootProject.projectDir
-    dependsOn rootProject.task("jar")
+    dependsOn rootProject.task("bundlePlugin")
     outputs.upToDateWhen { false }
     testLogging {
         showStandardStreams = true
@@ -40,6 +36,8 @@ test {
 
 dependencies {
     implementation "org.scala-lang:scala-library:$scalaVersion"
+    implementation 'com.typesafe:config:1.4.0'
+    implementation "org.testcontainers:testcontainers:1.12.3"
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }

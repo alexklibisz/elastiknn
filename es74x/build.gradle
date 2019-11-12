@@ -6,7 +6,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "org.elasticsearch.gradle:build-tools:${elasticsearchVersion}"
+        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
     }
 }
@@ -21,7 +21,7 @@ repositories {
 }
 
 group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion'] + '_es' + elasticsearchVersion
+version = rootProject.properties['pluginVersion'] + '_es' + esVersion
 
 ext {
     scalapbVersion = '0.9.0-M5'
@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
 //    runtime 'org.elasticsearch.client:elasticsearch-rest-client:7.4.0'
-    testImplementation "org.codelibs.elasticsearch.module:lang-painless:${elasticsearchVersion}"
+    testImplementation "org.codelibs.elasticsearch.module:lang-painless:${esVersion}"
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
 
