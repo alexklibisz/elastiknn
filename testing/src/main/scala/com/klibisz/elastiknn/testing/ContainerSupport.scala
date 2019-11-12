@@ -1,19 +1,23 @@
 package com.klibisz.elastiknn.testing
 
-import com.typesafe.config.Config
+import java.io.File
+
+import scala.concurrent.{ExecutionContext, Future}
+import sys.process._
 
 
 trait ContainerSupport {
 
-  final case class ContainerConfig(image: String, tag: String, pluginDir: String, httpPort: Int)
-  object ContainerConfig {
-    def apply(config: Config): ContainerConfig = ???
+  private val testingDir = new File(System.getProperty("project.testingDir"))
+
+  def startContainer()(implicit ec: ExecutionContext): Future[Unit] = Future {
+    Process("docker-compose up -d", testingDir).!!
+    Process("curl localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s", testingDir).!!
   }
 
-  def startContainer(config: ContainerConfig): Unit = {
 
-    ???
+  def stopContainer()(implicit ec: ExecutionContext): Future[Unit] = Future {
+    Process("docker-compose down", testingDir).!!
   }
-
 
 }
