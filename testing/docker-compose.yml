@@ -1,14 +1,24 @@
-version: '3'
+version: "3"
 services:
   elasticsearch:
     build:
       context: ${ES_CONTEXT:-../es74x}
       dockerfile: Dockerfile
-    ports:
-      - "9200:9200"
-      - "9300:9300"
     environment:
       - cluster.name=docker-cluster
       - discovery.type=single-node
       - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
       - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  elasticsearch_lb:
+    image: nginx:1.17-alpine
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./docker-compose.eslb.conf:/etc/nginx/nginx.conf

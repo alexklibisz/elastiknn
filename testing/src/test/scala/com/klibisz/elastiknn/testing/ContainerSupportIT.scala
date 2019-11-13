@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.testing
 
 import org.scalatest.{AsyncFunSpec, Matchers, Succeeded}
 
-class ContainerSupportSpec extends AsyncFunSpec with Matchers with ContainerSupport {
+class ContainerSupportIT extends AsyncFunSpec with Matchers with ContainerSupport {
 
   describe("container setup") {
 
