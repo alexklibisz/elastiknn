@@ -7,8 +7,7 @@ cd $(dirname $0)/..
 
 # Build and start the containers.
 cd testing
-docker-compose build
-docker-compose up -d --scale elasticsearch=3
+docker-compose up --detach --force-recreate --scale elasticsearch=3
 
 # Healthcheck.
 python3 -u - <<DOC

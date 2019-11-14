@@ -9,7 +9,7 @@ class ClusterSupportSpec extends AsyncFunSpec with Matchers with ClusterSupport 
 
     it("starts an elasticsearch container with the plugin installed") {
       for {
-        _ <- startContainer()
+        _ <- startCluster()
         healthRes <- client.execute(catHealth())
       } yield {
         healthRes.isSuccess shouldBe true
@@ -19,7 +19,7 @@ class ClusterSupportSpec extends AsyncFunSpec with Matchers with ClusterSupport 
 
     it("installs the elastiknn plugin") {
       for {
-        _ <- startContainer()
+        _ <- startCluster()
         pluginsRes <- client.execute(catPlugins())
       } yield {
         pluginsRes.isSuccess shouldBe true
@@ -30,7 +30,7 @@ class ClusterSupportSpec extends AsyncFunSpec with Matchers with ClusterSupport 
 
     it("stops the container") {
       for {
-        _ <- stopContainer()
+        _ <- stopCluster()
         healthRes <- recoverToExceptionIf[RuntimeException] {
           client.execute(catHealth()).map(_.result)
         }

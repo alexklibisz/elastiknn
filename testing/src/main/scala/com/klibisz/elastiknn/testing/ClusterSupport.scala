@@ -7,7 +7,8 @@ import com.sksamuel.elastic4s.http.JavaClient
 import org.apache.http.HttpHost
 import org.elasticsearch.client.{RestClient, RestClientBuilder}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import sys.process._
 
 
@@ -21,10 +22,16 @@ trait ClusterSupport {
     ElasticClient(jc)
   }
 
-  def startContainer()(implicit ec: ExecutionContext): Future[Unit] =
+  def startCluster()(implicit ec: ExecutionContext): Future[Unit] =
     Future(Process("./cluster-start.sh", testingDir).!!)
 
-  def stopContainer()(implicit ec: ExecutionContext): Future[Unit] =
+  def stopCluster()(implicit ec: ExecutionContext): Future[Unit] =
     Future(Process("./cluster-stop.sh", testingDir).!!)
+
+  def blockingStartCluster(wait: Duration = Duration("40 seconds"))(implicit ec: ExecutionContext): Unit =
+    Await.result(startCluster(), wait)
+
+  def blockingStopCluster(wait: Duration = Duration("40 seconds"))(implicit ec: ExecutionContext): Unit =
+    Await.result(stopCluster(), wait)
 
 }
