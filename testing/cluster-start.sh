@@ -1,13 +1,16 @@
 #!/bin/bash
 set -e
 
+# Prevent this error: max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+sudo sysctl -w vm.max_map_count=262144
+
 # Build the plugins.
 cd $(dirname $0)/..
-./gradlew assemble
+./gradlew clean assemble
 
 # Build and start the containers.
 cd testing
-docker-compose up --detach --force-recreate # --scale elasticsearch=3
+docker-compose up --detach --build --force-recreate --scale elasticsearch_data=3
 
 # Healthcheck.
 python3 -u - <<DOC

@@ -1,13 +1,19 @@
 package com.klibisz.elastiknn.testing
 
 import com.klibisz.elastiknn.elastic4s._
+import com.sksamuel.elastic4s.Executor
+import org.scalatest.concurrent.AsyncTimeLimitedTests
+import org.scalatest.time.Span
 import org.scalatest.{AsyncFunSpec, Matchers}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
-class ElastiKnnSetupSpec extends AsyncFunSpec with Matchers with Elastic4sClientSupport {
+class ElastiKnnSetupSpec extends AsyncFunSpec with AsyncTimeLimitedTests with Matchers with Elastic4sClientSupport {
 
-  override implicit def executionContext: ExecutionContextExecutor = ExecutionContext.global
+  override def timeLimit: Span = 10.seconds
+
+  implicit def futureExecutor: Executor[Future] = Executor.FutureExecutor(this.executionContext)
 
   describe("plugin setup") {
 

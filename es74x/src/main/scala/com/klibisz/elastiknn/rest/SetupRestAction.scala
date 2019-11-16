@@ -27,7 +27,6 @@ class SetupRestAction(restController: RestController) extends BaseRestHandler {
 
     logger.info("Received setup request")
 
-
     // This is the "happy" path. If anything above this crashes, it will short-circuit and return an error response.
     channel: RestChannel =>
       client.execute(
@@ -39,8 +38,8 @@ class SetupRestAction(restController: RestController) extends BaseRestHandler {
       )
 
 //      channel: RestChannel => {
-//        // TODO: is this any different than doing:
-//        channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\":true}"))
+//        channel.sendResponse(new BytesRestResponse(RestStatus.OK, ""))
+////        channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\":true}"))
 //      }
   }
 }

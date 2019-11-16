@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.sksamuel.elastic4s.{ElasticRequest, Handler}
+import com.sksamuel.elastic4s.{ElasticError, ElasticRequest, Handler, HttpResponse, ResponseHandler}
 
 package object elastic4s {
 
