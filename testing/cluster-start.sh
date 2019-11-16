@@ -7,14 +7,14 @@ cd $(dirname $0)/..
 
 # Build and start the containers.
 cd testing
-docker-compose up --detach --force-recreate --scale elasticsearch=3
+docker-compose up --detach --force-recreate # --scale elasticsearch=3
 
 # Healthcheck.
 python3 -u - <<DOC
 from urllib.request import Request, urlopen
 import sys
 from time import sleep
-req = Request("http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=2s")
+req = Request("http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s")
 for _ in range(30):
   try:
     res = urlopen(req)

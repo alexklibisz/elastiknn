@@ -22,9 +22,6 @@ repositories {
 }
 
 test {
-    systemProperty "project.testingDir", project.projectDir.absolutePath
-    environment "ES_CONTEXT", "${rootProject.projectDir.absolutePath}/es74x"
-    dependsOn rootProject.task("bundlePlugin")
     outputs.upToDateWhen { false }
     testLogging {
         showStandardStreams = true
