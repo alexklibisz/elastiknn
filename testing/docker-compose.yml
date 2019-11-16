@@ -13,6 +13,8 @@ services:
       - cluster.initial_master_nodes=elasticsearch_master
       - node.master=true
       - node.data=false
+      - node.ml=false
+      - node.ingest=false
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms500m -Xmx500m"
     ulimits:
