@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, ENDPOINT_PREFIX, StoredScripts}
-import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient
@@ -22,11 +21,6 @@ class SetupRestAction(restController: RestController) extends BaseRestHandler {
   private val acknowledgedResponse: BytesRestResponse = new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\":true}")
 
   override def prepareRequest(request: RestRequest, client: NodeClient): BaseRestHandler.RestChannelConsumer = {
-
-    val logger: Logger = LogManager.getLogger(getClass)
-
-    logger.info("Received setup request")
-
     // This is the "happy" path. If anything above this crashes, it will short-circuit and return an error response.
     channel: RestChannel =>
       client.execute(
@@ -36,10 +30,5 @@ class SetupRestAction(restController: RestController) extends BaseRestHandler {
           override def processResponse(response: AcknowledgedResponse): Unit = channel.sendResponse(acknowledgedResponse)
         }
       )
-
-//      channel: RestChannel => {
-//        channel.sendResponse(new BytesRestResponse(RestStatus.OK, ""))
-////        channel.sendResponse(new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\":true}"))
-//      }
   }
 }

@@ -1,12 +1,11 @@
 version: "3"
+
 services:
-  # Single master node exposing port 9200.
+  # Single master node.
   elasticsearch_master:
     build:
       context: ${ES_CONTEXT:-../es74x}
       dockerfile: Dockerfile
-    ports:
-      - "9200:9200"
     container_name: elasticsearch_master
     environment:
       - node.name=elasticsearch_master
@@ -15,9 +14,32 @@ services:
       - node.master=true
       - node.data=false
       - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms500m -Xmx500m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  # Single client node exposing port 9200.
+  elasticsearch_client:
+    build:
+      context: ${ES_CONTEXT:-../es74x}
+      dockerfile: Dockerfile
+    ports:
+      - "9200:9200"
+    environment:
+      - node.name=elasticsearch_client
+      - cluster.name=docker-cluster
+      - cluster.initial_master_nodes=elasticsearch_master
+      - discovery.zen.ping.unicast.hosts=elasticsearch_master
+      - node.master=false
+      - node.data=false
+      - node.ml=false
+      - node.ingest=false
+      - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms400m -Xmx400m"
     ulimits:
       memlock:
         soft: -1
@@ -28,15 +50,13 @@ services:
     build:
       context: ${ES_CONTEXT:-../es74x}
       dockerfile: Dockerfile
-    depends_on:
-      - elasticsearch_master
     environment:
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms500m -Xmx500m"
     ulimits:
       memlock:
         soft: -1
