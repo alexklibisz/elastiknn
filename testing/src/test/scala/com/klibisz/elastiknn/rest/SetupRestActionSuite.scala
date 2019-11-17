@@ -1,16 +1,16 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.Distance
 import com.klibisz.elastiknn.elastic4s._
-import com.sksamuel.elastic4s.Executor
+import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
-import org.scalatest.{AsyncFunSpec, AsyncFunSuite, Inspectors, Matchers}
+import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class RestSetupSpec extends AsyncFunSuite with AsyncTimeLimitedTests with Matchers with Inspectors with ElasticAsyncClient {
+class SetupRestActionSuite extends AsyncFunSuite with AsyncTimeLimitedTests with Matchers with Inspectors with ElasticAsyncClient {
 
   override def timeLimit: Span = 10.seconds
 

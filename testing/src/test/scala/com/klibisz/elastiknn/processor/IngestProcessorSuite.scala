@@ -1,11 +1,12 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn.processor
 
-import com.klibisz.elastiknn.{ExactModelOptions, LshModelOptions, ProcessorOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.elastic4s.{Pipeline, PipelineRequest, Processor}
+import com.klibisz.elastiknn.testing.ElasticAsyncClient
+import com.klibisz.elastiknn.{ExactModelOptions, LshModelOptions, ProcessorOptions}
 import org.scalatest.{AsyncFunSuite, Matchers}
 
-class IngestPipelineSpec extends AsyncFunSuite with Matchers with ElasticAsyncClient {
+class IngestProcessorSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
 
   test("make an exact pipeline") {
     val opts = ProcessorOptions("a", "b", false, 32, ModelOptions.Exact(ExactModelOptions()))

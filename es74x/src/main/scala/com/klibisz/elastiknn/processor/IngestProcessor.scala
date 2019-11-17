@@ -1,16 +1,15 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.processor
 
 import java.util
 import java.util.concurrent.Callable
 
-import com.google.common.cache.{Cache, CacheBuilder, CacheLoader}
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.utils.LRUCache
 import com.klibisz.elastiknn.utils.ProtobufUtils._
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, Model, ProcessorOptions, StoredScripts}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
-import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
