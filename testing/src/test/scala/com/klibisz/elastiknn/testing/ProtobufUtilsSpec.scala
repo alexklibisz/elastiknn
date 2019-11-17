@@ -1,23 +1,16 @@
-package com.klibisz.elastiknn.utils
+package com.klibisz.elastiknn.testing
 
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector}
-import com.klibisz.elastiknn.KNearestNeighborsQuery.QueryOptions.Exact
-import com.klibisz.elastiknn.KNearestNeighborsQuery.QueryVector.Given
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
-import com.klibisz.elastiknn.{KNearestNeighborsQuery, LshModelOptions, ProcessorOptions}
-import org.elasticsearch.test.ESTestCase
-import org.junit.Assert._
+import com.klibisz.elastiknn.{LshModelOptions, ProcessorOptions}
+import org.scalatest.{FunSuite, Matchers}
+import com.klibisz.elastiknn.utils.ProtobufUtils._
 
 import scala.collection.JavaConverters._
 
-class ProtobufUtilsTests extends ESTestCase {
+class ProtobufUtilsSpec extends FunSuite with Matchers {
 
-  // TODO: you can't debug this in Intellij unless you rename it to end with IT.
-
-  import ProtobufUtils._
-
-  def testMessagesGetConvertedToMaps(): Unit = {
+  test("converting a pb message to a java map") {
 
     val procOptActual = ProcessorOptions(
       fieldRaw = "field raw",
@@ -47,7 +40,9 @@ class ProtobufUtilsTests extends ESTestCase {
       ).asJava
     ).asJava
 
-    assertEquals(procOptActual, procOptExpected)
+    procOptActual shouldBe procOptExpected
+
   }
+
 
 }
