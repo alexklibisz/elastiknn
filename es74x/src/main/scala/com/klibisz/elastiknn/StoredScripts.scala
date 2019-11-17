@@ -42,4 +42,20 @@ object StoredScripts {
     )
   )
 
+  val exactEuclidean: ExactScript = ExactScript(
+    "elastiknn-exact-euclidean",
+    new StoredScriptSource(
+      "painless",
+      """
+        |return 0.0;
+        |""".stripMargin,
+      Collections.emptyMap()
+    )
+  )
+
+  val exactScripts: Seq[ExactScript] = Seq(
+    exactAngular,
+    exactEuclidean
+  )
+
 }

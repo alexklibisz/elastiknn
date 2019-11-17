@@ -1,4 +1,3 @@
-
 buildscript {
     repositories {
         mavenLocal()
@@ -6,44 +5,22 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
     }
 }
 
 plugins {
     id 'com.google.protobuf' version '0.8.8'
-    id 'scala'
 }
+
+apply plugin: 'scala'
 
 repositories {
     jcenter()
 }
 
 group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion'] + '_es' + esVersion
-
-ext {
-    scalapbVersion = '0.9.0-M5'
-}
-
-apply plugin: 'java'
-apply plugin: 'scala'
-apply plugin: 'elasticsearch.esplugin'
-
-licenseFile = rootProject.file("LICENSE.txt")
-noticeFile = rootProject.file("NOTICE.txt")
-
-dependencyLicenses.enabled = false
-thirdPartyAudit.enabled = false
-licenseHeaders.enabled = false
-testingConventions.enabled = false
-
-configurations {
-    all {
-        resolutionStrategy.preferProjectModules()
-    }
-}
+version = rootProject.properties['pluginVersion']
 
 dependencies {
     runtime 'org.scala-lang:scala-library:2.12.8'
@@ -53,26 +30,8 @@ dependencies {
     implementation 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
     runtime 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
     implementation 'io.circe:circe-generic_2.12:0.12.2'
-    implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
-    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
-}
-
-esplugin {
-    name 'elastiknn'
-    description 'Ingest processor and queries for exact and approximate nearest neighbors search'
-    classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
-}
-
-test {
-    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
-}
-
-integTestRunner {
-    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
 }
 
 protobuf {

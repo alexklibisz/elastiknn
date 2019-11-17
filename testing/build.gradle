@@ -21,6 +21,9 @@ repositories {
     maven { url 'https://artifacts.elastic.co/maven' }
 }
 
+group = rootProject.properties['group']
+version = rootProject.properties['pluginVersion']
+
 test {
     outputs.upToDateWhen { false }
     testLogging {
@@ -32,6 +35,7 @@ test {
 }
 
 dependencies {
+    testImplementation project(':core')
     implementation "org.scala-lang:scala-library:$scalaVersion"
     implementation 'com.typesafe:config:1.4.0'
     implementation "org.testcontainers:testcontainers:1.12.3"

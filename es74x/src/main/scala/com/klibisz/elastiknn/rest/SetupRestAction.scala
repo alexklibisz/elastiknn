@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, ENDPOINT_PREFIX, StoredScripts}
-import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
+import org.elasticsearch.action.admin.cluster.storedscripts.{PutStoredScriptAction, PutStoredScriptRequest}
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.common.xcontent.XContentType
@@ -21,14 +21,16 @@ class SetupRestAction(restController: RestController) extends BaseRestHandler {
   private val acknowledgedResponse: BytesRestResponse = new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\":true}")
 
   override def prepareRequest(request: RestRequest, client: NodeClient): BaseRestHandler.RestChannelConsumer = {
-    // This is the "happy" path. If anything above this crashes, it will short-circuit and return an error response.
-    channel: RestChannel =>
-      client.execute(
-        PutStoredScriptAction.INSTANCE,
-        StoredScripts.exactAngular.putRequest,
-        new RestActionListener[AcknowledgedResponse](channel) {
-          override def processResponse(response: AcknowledgedResponse): Unit = channel.sendResponse(acknowledgedResponse)
-        }
-      )
+
+    // TODO: generalize this.
+    def execMany(reqs: Seq[PutStoredScriptRequest], channel: RestChannel): Unit = reqs match {
+      case r :: tail => client.execute(PutStoredScriptAction.INSTANCE, r, new RestActionListener[AcknowledgedResponse](channel) {
+        override def processResponse(response: AcknowledgedResponse): Unit = execMany(tail, channel)
+      })
+      case _ => channel.sendResponse(acknowledgedResponse)
+    }
+
+    channel: RestChannel => execMany(StoredScripts.exactScripts.map(_.putRequest), channel)
+
   }
 }
