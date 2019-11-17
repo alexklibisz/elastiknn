@@ -61,4 +61,15 @@ package object elastic4s {
 
   case class Processor(name: String, opts: ProcessorOptions)
 
+  //  def helperVecToSource(field: String, vec: Array[Double]): Json = Json.fromJsonObject(
+  //    JsonObject(field -> Json.fromValues(vec.map(Json.fromDoubleOrNull)))
+  //  )
+
+  case class IndexVectorRequest(rawField: String, vector: Array[Double], pipelineId: String)
+
+  object IndexVectorRequest {
+
+  }
+
+
 }
