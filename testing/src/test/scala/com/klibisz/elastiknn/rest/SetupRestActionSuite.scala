@@ -1,8 +1,7 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.Distance
+import com.klibisz.elastiknn.{Distance, ElasticAsyncClient}
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}

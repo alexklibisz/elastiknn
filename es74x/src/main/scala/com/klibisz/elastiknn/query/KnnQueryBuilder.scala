@@ -1,6 +1,5 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.query
 
-import java.time.Duration
 import java.util
 import java.util.Objects
 import java.util.concurrent.Callable
@@ -8,6 +7,8 @@ import java.util.concurrent.Callable
 import com.google.common.cache.CacheBuilder
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.utils.CirceUtils._
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.processor.StoredScripts
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.search.Query

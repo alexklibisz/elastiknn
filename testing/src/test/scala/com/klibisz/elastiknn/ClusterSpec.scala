@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn
 
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.scalatest.{AsyncFunSuite, Matchers}

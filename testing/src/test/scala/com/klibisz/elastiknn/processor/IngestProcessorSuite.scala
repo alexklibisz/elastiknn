@@ -2,8 +2,7 @@ package com.klibisz.elastiknn.processor
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.elastic4s.{Pipeline, PipelineRequest, Processor}
-import com.klibisz.elastiknn.testing.ElasticAsyncClient
-import com.klibisz.elastiknn.{ExactModelOptions, LshModelOptions, ProcessorOptions}
+import com.klibisz.elastiknn.{ElasticAsyncClient, ExactModelOptions, LshModelOptions, ProcessorOptions}
 import org.scalatest.{AsyncFunSuite, Matchers}
 
 class IngestProcessorSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {

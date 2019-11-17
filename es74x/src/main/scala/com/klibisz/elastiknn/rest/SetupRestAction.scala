@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, ENDPOINT_PREFIX, StoredScripts}
+import com.klibisz.elastiknn.processor.StoredScripts
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, ENDPOINT_PREFIX}
 import org.elasticsearch.action.admin.cluster.storedscripts.{PutStoredScriptAction, PutStoredScriptRequest}
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient

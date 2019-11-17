@@ -1,11 +1,11 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.query
 
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.{AbstractQueryBuilder, QueryParser, QueryShardContext}
 
-object RadiusQuery {
+object RadiusQueryBuilder {
 
   val NAME: String = "elastiknn_radius"
 

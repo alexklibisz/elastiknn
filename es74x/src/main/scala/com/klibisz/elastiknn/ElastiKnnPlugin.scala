@@ -4,7 +4,8 @@ import java.util
 import java.util.Collections.singletonMap
 import java.util.function.Supplier
 
-import org.apache.logging.log4j.{LogManager, Logger}
+import com.klibisz.elastiknn.processor.IngestProcessor
+import com.klibisz.elastiknn.query.{KnnQueryBuilder, RadiusQueryBuilder}
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
@@ -23,8 +24,6 @@ import org.elasticsearch.threadpool.ThreadPool
 import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin {
-
-  private val logger: Logger = LogManager.getLogger(getClass)
 
   override def createComponents(client: Client,
                                 clusterService: ClusterService,
@@ -47,7 +46,7 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
-    new QuerySpec(RadiusQuery.NAME, RadiusQuery.Reader, RadiusQuery.Parser)
+    new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 
   override def getRestHandlers(settings: Settings,

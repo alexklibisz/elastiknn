@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.processor
 
 import java.util
 import java.util.Collections

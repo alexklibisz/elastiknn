@@ -1,14 +1,14 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn.utils
 
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
+import com.klibisz.elastiknn.utils.ProtobufUtils._
 import com.klibisz.elastiknn.{LshModelOptions, ProcessorOptions}
 import org.scalatest.{FunSuite, Matchers}
-import com.klibisz.elastiknn.utils.ProtobufUtils._
 
 import scala.collection.JavaConverters._
 
-class ProtobufUtilsSpec extends FunSuite with Matchers {
+class ProtobufUtilsTests extends FunSuite with Matchers {
 
   test("converting a pb message to a java map") {
 

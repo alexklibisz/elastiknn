@@ -6,7 +6,7 @@ import java.util.concurrent.Callable
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, Model, ProcessorOptions, StoredScripts}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, Model, ProcessorOptions}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptAction
