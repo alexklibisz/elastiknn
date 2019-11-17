@@ -26,7 +26,7 @@ for _ in range(30):
       print("Elasticsearch is ready")
       sys.exit(0)
   except ConnectionResetError as e:
-    sys.stdout.write('.')
+    print('.', end = ''); sys.stdout.flush()
     pass
   sleep(1)
 print("Elasticsearch failed health checks", sys.stderr)

@@ -20,6 +20,17 @@ object StoredScripts {
     )
   }
 
+  private val dummyScript = new StoredScriptSource(
+    "painless",
+    """
+      |return 0.0;
+      |""".stripMargin,
+    Collections.emptyMap()
+  )
+
+  val exactL1: ExactScript = ExactScript("elastiknn-exact-l1", dummyScript)
+  val exactL2: ExactScript = ExactScript("elastiknn-exact-l2", dummyScript)
+
   val exactAngular: ExactScript = ExactScript(
     "elastiknn-exact-angular",
     new StoredScriptSource(
@@ -42,20 +53,9 @@ object StoredScripts {
     )
   )
 
-  val exactEuclidean: ExactScript = ExactScript(
-    "elastiknn-exact-euclidean",
-    new StoredScriptSource(
-      "painless",
-      """
-        |return 0.0;
-        |""".stripMargin,
-      Collections.emptyMap()
-    )
-  )
+  val exactHamming: ExactScript = ExactScript("elastiknn-exact-hamming", dummyScript)
+  val exactJaccard: ExactScript = ExactScript("elastiknn-exact-jaccard", dummyScript)
 
-  val exactScripts: Seq[ExactScript] = Seq(
-    exactAngular,
-    exactEuclidean
-  )
+  val exactScripts: Seq[ExactScript] = Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
 
 }
