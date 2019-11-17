@@ -1,7 +1,10 @@
 package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity}
+import com.sksamuel.elastic4s.ElasticDsl.indexInto
+import io.circe.syntax._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Json, JsonObject}
 import scalapb_circe.JsonFormat
@@ -61,15 +64,9 @@ package object elastic4s {
 
   case class Processor(name: String, opts: ProcessorOptions)
 
-  //  def helperVecToSource(field: String, vec: Array[Double]): Json = Json.fromJsonObject(
-  //    JsonObject(field -> Json.fromValues(vec.map(Json.fromDoubleOrNull)))
-  //  )
-
-  case class IndexVectorRequest(rawField: String, vector: Array[Double], pipelineId: String)
-
-  object IndexVectorRequest {
-
+  def indexVector(index: String, rawField: String, vector: Array[Double]): IndexRequest = {
+    val source = JsonObject(rawField -> Json.fromValues(vector.map(Json.fromDoubleOrNull))).asJson
+    indexInto(index).source(source.noSpaces)
   }
-
 
 }
