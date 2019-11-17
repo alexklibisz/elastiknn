@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn
 
 import java.util
-import java.util.Collections
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
@@ -11,18 +10,15 @@ import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
-import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, ElasticRequest, XContentBuilder, XContentFactory}
+import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, XContentBuilder, XContentFactory}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject, parser}
-import org.elasticsearch.painless.PainlessPlugin
-import org.elasticsearch.plugins.{Plugin, ScriptPlugin}
+import org.elasticsearch.plugins.Plugin
 import org.elasticsearch.test.ESIntegTestCase
-import org.elasticsearch.test.ESIntegTestCase.{ClusterScope, Scope}
 import org.junit.Assert._
 import org.junit.Before
 import scalapb_circe.JsonFormat
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -39,7 +35,7 @@ class ElastiKnnClusterIT extends ESIntegTestCase with TestingUtils {
   }
 
   override def nodePlugins(): util.Collection[Class[_ <: Plugin]] = {
-    util.Arrays.asList(classOf[PainlessPlugin], classOf[ElastiKnnPlugin])
+    util.Arrays.asList(classOf[ElastiKnnPlugin])
   }
 
   def testPluginsInstalled(): Unit = await {
