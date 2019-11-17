@@ -6,7 +6,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope
 import com.klibisz.elastiknn.Distance.DISTANCE_ANGULAR
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, Lsh}
-import com.klibisz.elastiknn.utils.Elastic4sUtils._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
