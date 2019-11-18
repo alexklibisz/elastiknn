@@ -23,6 +23,13 @@ import org.elasticsearch.script.ScriptService
 import org.elasticsearch.threadpool.ThreadPool
 import org.elasticsearch.watcher.ResourceWatcherService
 
+// TODO: This is bad, but some places (like the queries) require a client and it seems otherwise impossible to access it.
+private[elastiknn] object SharedClient {
+  private var clientOpt: Option[Client] = None
+  def set(client: Client): Unit = synchronized(this.clientOpt = Some(client))
+  def client: Client = clientOpt.getOrElse(throw new IllegalStateException("Client hasn't been set yet"))
+}
+
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin {
 
   override def createComponents(client: Client,
