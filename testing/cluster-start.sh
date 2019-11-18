@@ -4,6 +4,9 @@ set -e
 # Prevent this error: max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
 sudo sysctl -w vm.max_map_count=262144
 
+# Make sure docker-compose is installed.
+docker-compose --version >> /dev/null
+
 # Build the plugins.
 cd $(dirname $0)/..
 ./gradlew clean assemble
