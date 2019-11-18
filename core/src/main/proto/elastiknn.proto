@@ -7,12 +7,11 @@ option java_package = "com.klibisz.elastiknn";
 import "scalapb/scalapb.proto";
 
 enum Distance {
-    DISTANCE_INVALID = 0;
-    DISTANCE_L1 = 1;
-    DISTANCE_L2 = 2;
-    DISTANCE_ANGULAR = 3;
-    DISTANCE_HAMMING = 4;
-    DISTANCE_JACCARD = 5;
+    DISTANCE_L1 = 0;
+    DISTANCE_L2 = 1;
+    DISTANCE_ANGULAR = 2;
+    DISTANCE_HAMMING = 3;
+    DISTANCE_JACCARD = 4;
 }
 
 message ProcessorOptions {

@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.Distance.{DISTANCE_HAMMING, DISTANCE_INVALID, DISTANCE_JACCARD}
+import com.klibisz.elastiknn.Distance._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.elastic4s._
 import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ExactModelOptions, ProcessorOptions}
@@ -74,10 +74,10 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
   }
 
   for {
-    dist <- Distance.values.filterNot(_ == DISTANCE_INVALID)
+    dist <- Distance.values
     dim <- Seq(10, 128, 512)
   } yield {
-    test(s"searches over $dim-dimensional vectors with $dist distance") {
+    test(s"exact search on $dim-dimensional vectors with $dist distance") {
 
       val resourceName = s"${dist.name.toLowerCase}-$dim.json"
       val tryRead = dist match {
