@@ -12,7 +12,7 @@ object StoredScripts {
 
   final case class ExactScript(id: String, scriptSource: StoredScriptSource) {
     val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(id, "score", new BytesArray("{}"), XContentType.JSON, scriptSource)
-    def script(fieldProc: String, b: Array[Double]): Script = new Script(
+    def script[T](fieldProc: String, b: Array[T]): Script = new Script(
       ScriptType.STORED,
       null,
       id,

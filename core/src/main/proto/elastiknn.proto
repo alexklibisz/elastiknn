@@ -24,17 +24,16 @@ message ProcessorOptions {
     string field_raw = 1;
     // Dimensionality of the raw floating-point vector.
     int32 dimension = 2;
+    // Provide the vector type to prevent mixing vectors of different types.
+    VectorType vector_type = 3;
     // The model options which will determine how the vector gets preprocessed and stored.
     oneof model_options {
-        ExactModelOptions exact = 3;
-        LshModelOptions lsh = 4;
+        ExactModelOptions exact = 4;
+        LshModelOptions lsh = 5;
     }
 }
 
-message ExactModelOptions {
-    // Vector type. This ensures you don't mix vectors of different types.
-    VectorType vector_type = 1;
-}
+message ExactModelOptions {}
 
 message LshModelOptions {
     // Hash functions for hashing incoming vectors are determined by this seed.
@@ -51,52 +50,59 @@ message LshModelOptions {
     int32 L = 5;
 }
 
+// A vector of doubles, used for l1, l2, and angular distances.
+message DoubleVector {
+    repeated double values = 1 [(scalapb.field).collection_type="Array"];
+}
+
+// A vector of booleans, used for Hamming and Jaccard distances.
+message BoolVector {
+    repeated bool values = 2 [(scalapb.field).collection_type="Array"];
+}
+
 // Generic representation of a vector.
 message ElastiKnnVector {
-
-    // A vector of doubles, used for l1, l2, and angular distances.
-    message DoubleVector {
-        repeated double values = 1 [(scalapb.field).collection_type="Array"];
-    }
-
-    // A vector of booleans, used for Hamming and Jaccard distances.
-    message BoolVector {
-        repeated bool values = 2 [(scalapb.field).collection_type="Array"];
-    }
-
     oneof vector {
-        DoubleVector doubleVec = 1;
-        BoolVector boolVec = 2;
+        DoubleVector double_vector = 1;
+        BoolVector bool_vector = 2;
     }
 }
 
 
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
+
+    // Options for running an exact (exhaustive) query. This is only recommended for small datasets.
     message ExactQueryOptions {
-        Distance distance = 1;
+        string field_raw = 1;
+        Distance distance = 2;
     }
 
-    message LshQueryOptions {}
+    // Options for running locality-sensitive-hashing queries.
+    message LshQueryOptions {
+        // Pipeline used to index the original vectors.
+        string pipeline_id = 1;
+        // TODO: regular and multi-probe lsh options here.
+    }
 
+    // Find the neighbors for a vector which has already been indexed.
     message IndexedQueryVector {
         string index = 1;
         string field = 2;
         string id = 3;
     }
 
-    string pipeline_id = 1;
-    string processor_id = 2;
-
-    int32 k = 3;
+    message GivenQueryVector {
+        ElastiKnnVector vector = 1;
+    }
 
     oneof query_options {
-        ExactQueryOptions exact = 4;
-        LshQueryOptions lsh = 5;
+        ExactQueryOptions exact = 1;
+        LshQueryOptions lsh = 2;
     }
 
     oneof query_vector {
-        ElastiKnnVector given = 6;
-        IndexedQueryVector indexed = 7;
+        GivenQueryVector given = 3;
+        IndexedQueryVector indexed = 4;
     }
 }

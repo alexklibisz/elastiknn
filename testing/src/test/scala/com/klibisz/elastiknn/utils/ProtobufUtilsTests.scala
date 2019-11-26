@@ -14,8 +14,6 @@ class ProtobufUtilsTests extends FunSuite with Matchers {
 
     val procOptActual = ProcessorOptions(
       fieldRaw = "field raw",
-      fieldProcessed = "field processed",
-      discardRaw = true,
       dimension = 222,
       modelOptions = Lsh(
         LshModelOptions(

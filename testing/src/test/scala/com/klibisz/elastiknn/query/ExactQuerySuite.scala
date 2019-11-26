@@ -77,37 +77,37 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
     dist <- Distance.values
     dim <- Seq(10, 128, 512)
   } yield {
-    test(s"exact search on $dim-dimensional vectors with $dist distance") {
-
-      val resourceName = s"${dist.name.toLowerCase}-$dim.json"
-      val tryRead = dist match {
-        case DISTANCE_JACCARD | DISTANCE_HAMMING => readTestData[Boolean](resourceName)
-        case _ => readTestData[Double](resourceName)
-      }
-
-      val index = s"test-exact-${dist.name.toLowerCase}"
-
-      for {
-
-        // Read the test data.
-        testData <- Future.fromTry(tryRead)
-
-        // Delete the index before running anything.
-        _ <- client.execute(deleteIndex(index))
-
-        // Hit setup endpoint.
-        setupRes <- client.execute(ElastiKnnSetupRequest())
-        _ = setupRes.isSuccess shouldBe true
-
-        // Create the pipeline.
-        popts = ProcessorOptions("vecRaw", "vecProc", false, testData.corpus.head.length, ModelOptions.Exact(ExactModelOptions()))
-        processor = Processor("elastiknn", popts)
-        pipelineReq = PipelineRequest(index, Pipeline("exact", Seq(processor)))
-        pipelineRes <- client.execute(pipelineReq)
-        _ = pipelineRes.isSuccess shouldBe true
-
-      } yield Succeeded
-    }
+//    test(s"exact search on $dim-dimensional vectors with $dist distance") {
+//
+//      val resourceName = s"${dist.name.toLowerCase}-$dim.json"
+//      val tryRead = dist match {
+//        case DISTANCE_JACCARD | DISTANCE_HAMMING => readTestData[Boolean](resourceName)
+//        case _ => readTestData[Double](resourceName)
+//      }
+//
+//      val index = s"test-exact-${dist.name.toLowerCase}"
+//
+//      for {
+//
+//        // Read the test data.
+//        testData <- Future.fromTry(tryRead)
+//
+//        // Delete the index before running anything.
+//        _ <- client.execute(deleteIndex(index))
+//
+//        // Hit setup endpoint.
+//        setupRes <- client.execute(ElastiKnnSetupRequest())
+//        _ = setupRes.isSuccess shouldBe true
+//
+//        // Create the pipeline.
+//        popts = ProcessorOptions("vecRaw", dim, testData.corpus.head.length, ModelOptions.Exact(ExactModelOptions()))
+//        processor = Processor("elastiknn", popts)
+//        pipelineReq = PipelineRequest(index, Pipeline("exact", Seq(processor)))
+//        pipelineRes <- client.execute(pipelineReq)
+//        _ = pipelineRes.isSuccess shouldBe true
+//
+//      } yield Succeeded
+//    }
   }
 
 }

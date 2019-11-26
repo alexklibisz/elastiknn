@@ -87,20 +87,21 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
 
   // Exact queries get converted to script-score queries.
   private def exactQuery(context: QueryShardContext, exactOpts: ExactQueryOptions): Query = {
-    val procOpts = processorOptions(SharedClient.client, query.pipelineId, query.processorId)
-    val b: Array[Double] = query.queryVector match {
-      case QueryVector.Given(givenQueryVector)     => givenQueryVector.vector
-      case QueryVector.Indexed(indexedQueryVector) => getIndexedQueryVector(indexedQueryVector)
-      case QueryVector.Empty                       => throw new IllegalArgumentException("Must provide query vector")
-    }
-    val script: Script = exactOpts.distance match {
-      case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(procOpts.fieldProcessed, b)
-      case _                         => ???
-    }
-
-    val existsQuery = new ExistsQueryBuilder(procOpts.fieldProcessed).toQuery(context)
-    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
-    new ScriptScoreQuery(existsQuery, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+//    val procOpts = processorOptions(SharedClient.client, query.pipelineId, query.processorId)
+//    val b: Array[Double] = query.queryVector match {
+//      case QueryVector.Given(givenQueryVector)     => givenQueryVector.vector
+//      case QueryVector.Indexed(indexedQueryVector) => getIndexedQueryVector(indexedQueryVector)
+//      case QueryVector.Empty                       => throw new IllegalArgumentException("Must provide query vector")
+//    }
+//    val script: Script = exactOpts.distance match {
+//      case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(procOpts.fieldProcessed, b)
+//      case _                         => ???
+//    }
+//
+//    val existsQuery = new ExistsQueryBuilder(procOpts.fieldProcessed).toQuery(context)
+//    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
+//    new ScriptScoreQuery(existsQuery, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+    ???
   }
 
   private def lshQuery(context: QueryShardContext, lshOpts: LshQueryOptions): Query = ???

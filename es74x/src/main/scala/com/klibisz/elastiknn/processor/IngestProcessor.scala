@@ -2,11 +2,10 @@ package com.klibisz.elastiknn.processor
 
 import java.util
 
-import com.klibisz.elastiknn.ElastiKnnVector.{BoolVector, DoubleVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_DOUBLE
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, ParseVectorException, ProcessorOptions}
+import com.klibisz.elastiknn.{BoolVector, DoubleVector, ELASTIKNN_NAME, ParseVectorException, ProcessorOptions}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
@@ -45,10 +44,11 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 
     popts.modelOptions match {
       // For exact models, just make sure the vector can be parsed.
-      case ModelOptions.Exact(exactOpts) =>
-        if (exactOpts.vectorType == VECTOR_TYPE_DOUBLE) parseDoubleVector(doc).get else parseBoolVector(doc).get
-        doc
+      case ModelOptions.Exact(_) =>
+        if (popts.vectorType == VECTOR_TYPE_DOUBLE) parseDoubleVector(doc).get else parseBoolVector(doc).get
     }
+
+    doc
 
   }
 
