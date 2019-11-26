@@ -4,3 +4,4 @@ protobuf
 scikit-learn
 numpy
 dataclasses-json
+marshmallow

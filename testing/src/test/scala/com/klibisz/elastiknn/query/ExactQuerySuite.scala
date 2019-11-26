@@ -112,10 +112,10 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         createIndexRes <- client.execute(createIndex(index))
         _ = createIndexRes.isSuccess shouldBe true
 
-        // Index the vectors
-        indexVecsReqs = testData.corpus.map {
-          case darr: Array[Double] => ???
-        }
+//        // Index the vectors
+//        indexVecsReqs = testData.corpus.map {
+//          case darr: Array[Double] => ???
+//        }
 
 
 
