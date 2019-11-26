@@ -9,6 +9,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import io.circe.Decoder
 import io.circe.parser.decode
 import org.scalatest._
+import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -101,11 +102,22 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         setupRes <- client.execute(ElastiKnnSetupRequest())
         _ = setupRes.isSuccess shouldBe true
 
-        popts = ProcessorOptions("vecRaw", dim, vecType, ModelOptions.Exact(ExactModelOptions()))
-        processor = Processor("elastiknn", popts)
-        pipelineReq = PipelineRequest(index, Pipeline(s"exact search for ${dist.name}", Seq(processor)))
+        // Create the pipeline.
+        popts = ProcessorOptions("vecRaw", dim, vecType)
+        pipelineReq = PutPipelineRequest(index, s"exact search for ${dist.name}", Processor("elastiknn", popts))
         pipelineRes <- client.execute(pipelineReq)
         _ = pipelineRes.isSuccess shouldBe true
+
+        // Create the index.
+        createIndexRes <- client.execute(createIndex(index))
+        _ = createIndexRes.isSuccess shouldBe true
+
+        // Index the vectors
+        indexVecsReqs = testData.corpus.map {
+          case darr: Array[Double] => ???
+        }
+
+
 
       } yield Succeeded
     }

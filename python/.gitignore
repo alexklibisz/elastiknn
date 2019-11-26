@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 .idea
+elastiknn/elastiknn_pb2.py
+scalapb

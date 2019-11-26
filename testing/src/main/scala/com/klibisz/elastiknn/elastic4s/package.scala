@@ -2,11 +2,12 @@ package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity}
+import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity, XContentBuilder, XContentFactory}
 import com.sksamuel.elastic4s.ElasticDsl.indexInto
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Json, JsonObject}
+import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 
 package object elastic4s {
@@ -34,39 +35,41 @@ package object elastic4s {
     }
   }
 
-  case class PipelineRequest(name: String, pipeline: Pipeline)
+  case class Processor(name: String, configuration: String)
 
-  case class PipelineResponse(acknowledged: Boolean) {
-    implicit def decoder: Decoder[PipelineResponse] =
-      deriveDecoder[PipelineResponse]
+  object Processor {
+    def apply(name: String, configuration: GeneratedMessage): Processor =
+      Processor(name, JsonFormat.toJsonString(configuration))
   }
 
-  object PipelineRequest {
-    implicit object PipelineRequestHandler extends Handler[PipelineRequest, PipelineResponse] {
-      override def build(t: PipelineRequest): ElasticRequest = {
-        // See: https://www.elastic.co/guide/en/elasticsearch/reference/current/ingest-processors.html
-        val body: Json = Json.fromJsonObject(
-          JsonObject(
-            "description" -> Json.fromString(t.pipeline.description),
-            "processors" -> Json.fromValues(t.pipeline.processors.map { p =>
-              Json.fromJsonObject(
-                JsonObject(p.name -> JsonFormat.toJson(p.opts))
-              )
-            })
-          ))
-        val endpoint = s"_ingest/pipeline/${t.name}"
-        ElasticRequest("PUT", endpoint, HttpEntity(body.noSpaces))
-      }
+  case class PutPipelineRequest(id: String, description: String, processors: Seq[Processor] = Seq.empty)
+
+  object PutPipelineRequest {
+    def apply(id: String, description: String, processor: Processor): PutPipelineRequest =
+      PutPipelineRequest(id, description, Seq(processor))
+  }
+
+  case class PutPipelineResponse(acknowledged: Boolean)
+
+  implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, PutPipelineResponse] {
+    private def processorToXContent(p: Processor): XContentBuilder = {
+      val xcb = XContentFactory.jsonBuilder()
+      xcb.rawField(p.name, XContentFactory.parse(p.configuration))
+      xcb
+    }
+
+    override def build(request: PutPipelineRequest): ElasticRequest = {
+      val xcb = XContentFactory.jsonBuilder()
+      xcb.field("description", request.description)
+      xcb.array("processors", request.processors.map(processorToXContent).toArray)
+      xcb.endObject()
+      ElasticRequest("PUT", s"_ingest/pipeline/${request.id}", HttpEntity(xcb.string()))
     }
   }
 
-  case class Pipeline(description: String, processors: Seq[Processor])
-
-  case class Processor(name: String, opts: ProcessorOptions)
-
   def indexVector(index: String, rawField: String, vector: Array[Double]): IndexRequest = {
-    val source = JsonObject(rawField -> Json.fromValues(vector.map(Json.fromDoubleOrNull))).asJson
-    indexInto(index).source(source.noSpaces)
+    val xcb = XContentFactory.jsonBuilder.array(rawField, vector)
+    indexInto(index).source(xcb.string())
   }
 
 }
