@@ -1,12 +1,9 @@
 package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import com.sksamuel.elastic4s.{ElasticRequest, Handler, HttpEntity, XContentBuilder, XContentFactory}
 import com.sksamuel.elastic4s.ElasticDsl.indexInto
-import io.circe.syntax._
-import io.circe.generic.semiauto._
-import io.circe.{Decoder, Json, JsonObject}
+import com.sksamuel.elastic4s.requests.indexes.IndexRequest
+import com.sksamuel.elastic4s._
 import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 

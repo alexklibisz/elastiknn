@@ -60,18 +60,18 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 //    }
 //  }
 
-  private def readTestData[T](resourceName: String)(implicit ev: Decoder[TestData[T]]): Try[TestData[T]] = {
+  private def readTestData(resourceName: String): Try[TestData] = {
     val src: BufferedSource = scala.io.Source.fromResource(resourceName)
     val rawJson = try src.mkString finally src.close()
-    decode[TestData[T]](rawJson).toTry
+    decode[TestData](rawJson).toTry
   }
 
   test("parses test data") {
     for {
-      testData <- Future.fromTry(readTestData[Double]("distance_angular-10.json"))
+      testData <- Future.fromTry(readTestData("distance_angular-10.json"))
     } yield {
-      forAll(testData.corpus) { _ should have length 10 }
-      forAll(testData.queries) { _.vector should have length 10 }
+      forAll(testData.corpus) { _.getDoubleVector.values should have length 10 }
+      forAll(testData.queries) { _.vector.getDoubleVector.values should have length 10 }
     }
   }
 
@@ -83,8 +83,8 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 
       val resourceName = s"${dist.name.toLowerCase}-$dim.json"
       val (tryRead, vecType) = dist match {
-        case DISTANCE_JACCARD | DISTANCE_HAMMING => (readTestData[Boolean](resourceName), VECTOR_TYPE_BOOL)
-        case _ => (readTestData[Double](resourceName), VECTOR_TYPE_DOUBLE)
+        case DISTANCE_JACCARD | DISTANCE_HAMMING => (readTestData(resourceName), VECTOR_TYPE_BOOL)
+        case _ => (readTestData(resourceName), VECTOR_TYPE_DOUBLE)
       }
 
 

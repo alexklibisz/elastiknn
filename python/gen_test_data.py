@@ -6,7 +6,7 @@ from typing import List, Union
 
 import numpy as np
 from dataclasses_json import dataclass_json, config
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 from sklearn.neighbors import NearestNeighbors
 
 from elastiknn.elastiknn_pb2 import *
@@ -15,7 +15,7 @@ from elastiknn.elastiknn_pb2 import *
 @dataclass_json
 @dataclass
 class Query:
-    vector: ElastiKnnVector = field(metadata=config(encoder=MessageToJson))
+    vector: ElastiKnnVector = field(metadata=config(encoder=MessageToDict))
     distances: List[float]
     indices: List[int]
 
@@ -23,7 +23,7 @@ class Query:
 @dataclass_json
 @dataclass
 class TestData:
-    corpus: List[ElastiKnnVector] = field(metadata=config(encoder=lambda vecs: list(map(MessageToJson, vecs))))
+    corpus: List[ElastiKnnVector] = field(metadata=config(encoder=lambda vecs: list(map(MessageToDict, vecs))))
     queries: List[Query]
 
 
