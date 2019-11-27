@@ -64,9 +64,9 @@ package object elastic4s {
     }
   }
 
-  def indexVector(index: String, rawField: String, vector: Array[Double]): IndexRequest = {
-    val xcb = XContentFactory.jsonBuilder.array(rawField, vector)
-    indexInto(index).source(xcb.string())
+  def indexVector(index: String, rawField: String, vector: ElastiKnnVector, pipeline: String): IndexRequest = {
+    val xcb = XContentFactory.jsonBuilder.rawField(rawField, JsonFormat.toJsonString(vector))
+    indexInto(index).source(xcb.string()).pipeline(pipeline)
   }
 
 }

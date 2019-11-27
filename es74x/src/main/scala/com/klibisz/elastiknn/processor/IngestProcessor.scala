@@ -5,7 +5,7 @@ import java.util
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_DOUBLE
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.{BoolVector, DoubleVector, ELASTIKNN_NAME, ParseVectorException, ProcessorOptions}
+import com.klibisz.elastiknn.{BoolVector, DoubleVector, ELASTIKNN_NAME, ParseVectorException, ProcessorOptions, VectorDimensionException}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
@@ -13,26 +13,41 @@ import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 class IngestProcessor private (tag: String, client: NodeClient, popts: ProcessorOptions) extends AbstractProcessor(tag) {
 
   import IngestProcessor.TYPE
   import popts._
 
-  private def parseDoubleVector(doc: IngestDocument): Try[DoubleVector] =
-    Try(doc.getFieldValue(fieldRaw, classOf[util.List[Double]]))
+  private def parseDoubleVector(doc: IngestDocument): Try[DoubleVector] = {
+    val key = s"$fieldRaw.doubleVector.values"
+    Try(doc.getFieldValue(key, classOf[util.List[Double]]))
       .map(ld => DoubleVector(values = ld.asScala.toArray))
       .recoverWith {
-        case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of doubles at $fieldRaw")))
+        case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of doubles at $key")))
       }
+      .flatMap {
+        dv =>
+          if (dv.values.length == popts.dimension) Success(dv)
+          else Failure(VectorDimensionException(dv.values.length, popts.dimension))
+      }
+  }
 
-  private def parseBoolVector(doc: IngestDocument): Try[BoolVector] =
-    Try(doc.getFieldValue(fieldRaw, classOf[util.List[Boolean]]))
-    .map(lb => BoolVector(values = lb.asScala.toArray))
-    .recoverWith {
-      case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of booleans at $fieldRaw")))
-    }
+
+  private def parseBoolVector(doc: IngestDocument): Try[BoolVector] = {
+    val key = s"$fieldRaw.boolVector.values"
+    Try(doc.getFieldValue(key, classOf[util.List[Boolean]]))
+      .map(ld => BoolVector(values = ld.asScala.toArray))
+      .recoverWith {
+        case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of booleans at $key")))
+      }
+      .flatMap {
+        dv =>
+          if (dv.values.length == popts.dimension) Success(dv)
+          else Failure(VectorDimensionException(dv.values.length, popts.dimension))
+      }
+  }
 
   override def getType: String = IngestProcessor.TYPE
 
@@ -44,7 +59,7 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 
     popts.modelOptions match {
       // For exact models, just make sure the vector can be parsed.
-      case ModelOptions.Exact(_) =>
+      case ModelOptions.Empty | ModelOptions.Exact(_) =>
         if (popts.vectorType == VECTOR_TYPE_DOUBLE) parseDoubleVector(doc).get else parseBoolVector(doc).get
     }
 
