@@ -1,9 +1,11 @@
 package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, IndexedQueryVector}
 import com.sksamuel.elastic4s.ElasticDsl.indexInto
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s._
+import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
 import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 
@@ -68,5 +70,23 @@ package object elastic4s {
     val xcb = XContentFactory.jsonBuilder.rawField(rawField, JsonFormat.toJsonString(vector))
     indexInto(index).source(xcb.string()).pipeline(pipeline)
   }
+
+  private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery = () => {
+    val json = JsonFormat.toJsonString(knnq)
+    XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
+  }
+
+  def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector): CustomQuery = knnQuery(KNearestNeighborsQuery(
+    KNearestNeighborsQuery.QueryOptions.Exact(options),
+    KNearestNeighborsQuery.QueryVector.Indexed(vector)
+  ))
+
+  def knnQuery(options: ExactQueryOptions, vector: GivenQueryVector): CustomQuery = knnQuery(KNearestNeighborsQuery(
+    KNearestNeighborsQuery.QueryOptions.Exact(options),
+    KNearestNeighborsQuery.QueryVector.Given(vector)
+  ))
+
+  def knnQuery(options: KNearestNeighborsQuery.QueryOptions, vector: KNearestNeighborsQuery.QueryVector): CustomQuery =
+    knnQuery(KNearestNeighborsQuery(options, vector))
 
 }

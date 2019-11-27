@@ -3,6 +3,8 @@ package com.klibisz.elastiknn.processor
 import java.util
 import java.util.Collections
 
+import com.klibisz.elastiknn.ElastiKnnVector
+import com.klibisz.elastiknn.ElastiKnnVector.Vector.DoubleVector
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest
 import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.xcontent.XContentType
@@ -10,15 +12,18 @@ import org.elasticsearch.script.{Script, ScriptType, StoredScriptSource}
 
 object StoredScripts {
 
-  final case class ExactScript(id: String, scriptSource: StoredScriptSource) {
+  final case class ExactScript[V <: ElastiKnnVector.Vector](id: String, scriptSource: StoredScriptSource) {
     val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(id, "score", new BytesArray("{}"), XContentType.JSON, scriptSource)
-    def script[T](fieldProc: String, b: Array[T]): Script = new Script(
+    def script[T](field: String, other: ElastiKnnVector): Script = new Script(
       ScriptType.STORED,
       null,
       id,
-      util.Map.of("fp", s"$fieldProc.exact.vector", "b", b)
+      util.Map.of("field", field, "b", b)
     )
   }
+
+
+
 
   private val dummyScript = new StoredScriptSource(
     "painless",
@@ -36,8 +41,8 @@ object StoredScripts {
     new StoredScriptSource(
       "painless",
       """
-        |def a = doc[params.fp];
-        |def b = params.b;
+        |def a = doc[params.field];
+        |def b = params.other;
         |double dotprod = 0.0; // Dot product a and b.
         |double asqsum = 0.0;  // Squared sum of a.
         |double bsqsum = 0.0;  // Squared sum of b.

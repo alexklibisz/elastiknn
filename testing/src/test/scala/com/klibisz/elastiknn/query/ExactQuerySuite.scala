@@ -1,10 +1,11 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.Distance._
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ExactModelOptions, ProcessorOptions}
+import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ExactModelOptions, KNearestNeighborsQuery, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import io.circe.Decoder
@@ -50,6 +51,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 
       val index = s"test-exact-${dist.name.toLowerCase}"
       val pipeline = s"$index-pipeline"
+      val rawField = "vecRaw"
 
       for {
 
@@ -64,7 +66,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ = setupRes.isSuccess shouldBe true
 
         // Create the pipeline.
-        popts = ProcessorOptions("vecRaw", dim, vectorType)
+        popts = ProcessorOptions(rawField, dim, vectorType)
         pipelineReq = PutPipelineRequest(pipeline, s"exact search for ${dist.name}", Processor("elastiknn", popts))
         pipelineRes <- client.execute(pipelineReq)
         _ = pipelineRes.isSuccess shouldBe true
@@ -81,6 +83,21 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         indexVecsRes <- client.execute(bulk(indexVecsReqs).refresh(RefreshPolicy.IMMEDIATE))
         _ = indexVecsRes.isSuccess shouldBe true
         _ = indexVecsRes.result.errors shouldBe false
+
+        // Run exact query.
+        queriesAndRequests = testData.queries.map { q =>
+          q -> search(index).query(knnQuery(ExactQueryOptions(rawField, dist), GivenQueryVector(Some(q.vector))))
+        }
+
+        queriesAndResults <- Future.sequence(testData.queries.map { query =>
+          val req = search(index).query(knnQuery(ExactQueryOptions(rawField, dist), GivenQueryVector(Some(query.vector))))
+          client.execute(req).map(res => query -> res)
+        })
+
+        _ = forAll(queriesAndResults) {
+          case (query, result) =>
+            result.isSuccess shouldBe true
+        }
 
       } yield Succeeded
     }

@@ -5,7 +5,7 @@ import java.util.Objects
 import java.util.concurrent.Callable
 
 import com.google.common.cache.CacheBuilder
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.processor.StoredScripts
@@ -23,6 +23,8 @@ import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
 
@@ -37,6 +39,7 @@ object KnnQueryBuilder {
       val query = JsonFormat.fromJson[KNearestNeighborsQuery](json)
       new KnnQueryBuilder(query)
     }
+
   }
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
@@ -72,29 +75,44 @@ object KnnQueryBuilder {
 
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  import KnnQueryBuilder.processorOptions
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   private val logger: Logger = LogManager.getLogger(getClass)
 
   // Use the query options to build a lucene query.
-  override def doToQuery(context: QueryShardContext): Query = query.queryOptions match {
-    case QueryOptions.Exact(exactOpts) => exactQuery(context, exactOpts)
-    case QueryOptions.Lsh(lshOpts)     => lshQuery(context, lshOpts)
-    case QueryOptions.Empty            => throw new IllegalArgumentException("Must provide query options")
+  override def doToQuery(context: QueryShardContext): Query = (query.queryOptions, query.queryVector) match {
+    case (QueryOptions.Exact(opts), QueryVector.Given(query)) => {
+
+      context.executeAsyncActions()
+
+      exactGivenQuery(???, ???, ???)
+      ???
+    }
   }
+
+//  query.queryOptions match {
+//    case QueryOptions.Exact(exactOpts) => exactQuery(context, exactOpts)
+//    case QueryOptions.Lsh(lshOpts)     => lshQuery(context, lshOpts)
+//    case QueryOptions.Empty            => throw new IllegalArgumentException("Must provide query options")
+//  }
 
   private def getIndexedQueryVector(indexedQueryVector: IndexedQueryVector): Array[Double] = ???
 
+  private def exactGivenQuery(context: QueryShardContext, opts: ExactQueryOptions, query: GivenQueryVector): Try[Query] = {
+    ???
+  }
+
   // Exact queries get converted to script-score queries.
-  private def exactQuery(context: QueryShardContext, exactOpts: ExactQueryOptions): Query = {
-//    val procOpts = processorOptions(SharedClient.client, query.pipelineId, query.processorId)
-//    val b: Array[Double] = query.queryVector match {
-//      case QueryVector.Given(givenQueryVector)     => givenQueryVector.vector
-//      case QueryVector.Indexed(indexedQueryVector) => getIndexedQueryVector(indexedQueryVector)
-//      case QueryVector.Empty                       => throw new IllegalArgumentException("Must provide query vector")
+  private def exactQuery(context: QueryShardContext, exactOpts: ExactQueryOptions): Try[Query] = {
+//    // Extract the vector.
+//    lazy val failNoQueryVec = Future.failed(new IllegalArgumentException("Must provide query vector"))
+//    lazy val ekv: Future[ElastiKnnVector] = query.queryVector match {
+//      case QueryVector.Given(given) => Future.fromTry(Try(given.vector.get)).recoverWith { case _ => failNoQueryVec}
+//      case QueryVector.Indexed(indexed) => ???
+//      case QueryVector.Empty => failNoQueryVec
 //    }
 //    val script: Script = exactOpts.distance match {
-//      case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(procOpts.fieldProcessed, b)
+//      case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(exactOpts.fieldRaw, ekv.getDoubleVector)
 //      case _                         => ???
 //    }
 //
