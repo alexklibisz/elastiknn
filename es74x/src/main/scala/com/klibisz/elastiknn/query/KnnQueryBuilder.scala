@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import java.util
 import java.util.Objects
-import java.util.concurrent.Callable
+import java.util.concurrent.{Callable, Executor}
 
 import com.google.common.cache.CacheBuilder
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
@@ -20,10 +20,11 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentP
 import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import org.elasticsearch.index.query.{AbstractQueryBuilder, ExistsQueryBuilder, QueryParser, QueryShardContext}
 import org.elasticsearch.script.Script
+import org.elasticsearch.threadpool.ThreadPool
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
@@ -75,13 +76,24 @@ object KnnQueryBuilder {
 
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  implicit val ec: ExecutionContext = ExecutionContext.global
+  implicit val ec: Executor = ExecutionContext.global
 
   private val logger: Logger = LogManager.getLogger(getClass)
+
+  // NOTES:
+  // you can get a client from a QueryShardContext: context.getClient
+  // you can get a threadpool from the client, and an execution context from the threadpool:
+  // val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(context.getClient.threadPool.executor(ThreadPool.Names.SEARCH))
 
   // Use the query options to build a lucene query.
   override def doToQuery(context: QueryShardContext): Query = (query.queryOptions, query.queryVector) match {
     case (QueryOptions.Exact(opts), QueryVector.Given(query)) => {
+
+      val q: Client = context.getClient
+
+      val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(context.getClient.threadPool.executor(ThreadPool.Names.SEARCH))
+
+
 
       context.executeAsyncActions()
 
