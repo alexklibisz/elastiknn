@@ -1,13 +1,16 @@
 package com.klibisz.elastiknn.query
 
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, OutputStream}
+
 import com.klibisz.elastiknn.Distance._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ProcessorOptions}
+import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, KNearestNeighborsQuery, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import io.circe.parser.decode
+import org.elasticsearch.common.io.stream.{InputStreamStreamInput, OutputStreamStreamOutput}
 import org.scalatest._
 
 import scala.concurrent.Future
@@ -82,7 +85,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ = indexVecsRes.result.errors shouldBe false
 
         // Run exact query.
-        queriesAndResults <- Future.sequence(testData.queries.map { query =>
+        queriesAndResults <- Future.sequence(testData.queries.take(1).map { query =>
           val req = search(index).query(knnQuery(ExactQueryOptions(rawField, dist), query.vector))
           client.execute(req).map(res => query -> res)
         })

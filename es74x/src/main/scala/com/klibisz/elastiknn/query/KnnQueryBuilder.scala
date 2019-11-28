@@ -43,7 +43,14 @@ object KnnQueryBuilder {
   }
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
-    override def read(in: StreamInput): KnnQueryBuilder = ???
+
+    /** This is uses to transfer the query across nodes in the cluster. */
+    override def read(in: StreamInput): KnnQueryBuilder = {
+      // Based on this: https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
+      in.readFloat()
+      in.readOptionalString()
+      new KnnQueryBuilder(JsonFormat.fromJsonString[KNearestNeighborsQuery](in.readString()))
+    }
   }
 
   // TODO: move this out to a config file.
@@ -124,7 +131,9 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
   private def lshGivenQuery(context: QueryShardContext, lshOpts: LshQueryOptions, ekv: ElastiKnnVector): Try[Query] = ???
 
   // TODO: what is this used for?
-  override def doWriteTo(out: StreamOutput): Unit = ()
+  override def doWriteTo(out: StreamOutput): Unit = {
+    out.writeString(JsonFormat.toJsonString(query))
+  }
 
   // TODO: This function seems to only get called when there is an error.
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -134,4 +143,6 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
   override def doHashCode(): Int = Objects.hash(this.query)
 
   override def getWriteableName: String = KnnQueryBuilder.NAME
+
+
 }
