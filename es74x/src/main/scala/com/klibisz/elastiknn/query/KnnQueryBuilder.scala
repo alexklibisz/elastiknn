@@ -2,13 +2,14 @@ package com.klibisz.elastiknn.query
 
 import java.util
 import java.util.Objects
-import java.util.concurrent.{Callable, Executor}
+import java.util.concurrent.Callable
 
 import com.google.common.cache.CacheBuilder
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
-import com.klibisz.elastiknn.utils.CirceUtils._
+import com.klibisz.elastiknn.Distance._
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.processor.StoredScripts
+import com.klibisz.elastiknn.utils.CirceUtils._
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.search.Query
@@ -18,13 +19,11 @@ import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.{ScriptScoreFunction, ScriptScoreQuery}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
-import org.elasticsearch.index.query.{AbstractQueryBuilder, ExistsQueryBuilder, QueryParser, QueryShardContext}
+import org.elasticsearch.index.query._
 import org.elasticsearch.script.Script
-import org.elasticsearch.threadpool.ThreadPool
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
@@ -76,8 +75,6 @@ object KnnQueryBuilder {
 
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  implicit val ec: Executor = ExecutionContext.global
-
   private val logger: Logger = LogManager.getLogger(getClass)
 
   // NOTES:
@@ -87,54 +84,44 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
 
   // Use the query options to build a lucene query.
   override def doToQuery(context: QueryShardContext): Query = (query.queryOptions, query.queryVector) match {
-    case (QueryOptions.Exact(opts), QueryVector.Given(query)) => {
+    case (QueryOptions.Exact(opts), QueryVector.Given(query)) => exactGivenQuery(context, opts, query).get
+    case (QueryOptions.Lsh(opts), QueryVector.Given(query)) => lshGivenQuery(context, opts, query).get
+    case _ => ???
+  }
 
-      val q: Client = context.getClient
+  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder = {
+    // TODO: I think this is where I should fetch the indexed vectors and processors if needed. This seems to be how
+    // elasticsearch's GeoQueryBuilder solves this problem. In this case I think it should rewrite an indexed vector query
+    // into a given vector query.
+    super.doRewrite(queryShardContext)
+  }
 
-      val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(context.getClient.threadPool.executor(ThreadPool.Names.SEARCH))
-
-
-
-      context.executeAsyncActions()
-
-      exactGivenQuery(???, ???, ???)
-      ???
+  /** Returns a Try of an exact query using a given query vector. */
+  private def exactGivenQuery(context: QueryShardContext, opts: ExactQueryOptions, ekv: ElastiKnnVector): Try[Query] = {
+    import ElastiKnnVector.Vector._
+    (opts.distance, ekv.vector) match {
+      case (DISTANCE_ANGULAR, dvec: DoubleVector) =>
+        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactAngular.script(opts.fieldRaw, dvec)))
+      case (DISTANCE_L1,  dvec: DoubleVector) =>
+        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL1.script(opts.fieldRaw, dvec)))
+      case (DISTANCE_L2, dvec: DoubleVector) =>
+        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL2.script(opts.fieldRaw, dvec)))
+      case (DISTANCE_HAMMING, bvec: BoolVector) =>
+        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactHamming.script(opts.fieldRaw, bvec)))
+      case (DISTANCE_JACCARD, bvec: BoolVector) =>
+        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactJaccard.script(opts.fieldRaw, bvec)))
+      case (_, Empty) => Failure(new IllegalArgumentException("Must provide vector"))
+      case (_, _) => Failure(IncompatibleDistanceAndVectorException(opts.distance, ekv))
     }
   }
 
-//  query.queryOptions match {
-//    case QueryOptions.Exact(exactOpts) => exactQuery(context, exactOpts)
-//    case QueryOptions.Lsh(lshOpts)     => lshQuery(context, lshOpts)
-//    case QueryOptions.Empty            => throw new IllegalArgumentException("Must provide query options")
-//  }
-
-  private def getIndexedQueryVector(indexedQueryVector: IndexedQueryVector): Array[Double] = ???
-
-  private def exactGivenQuery(context: QueryShardContext, opts: ExactQueryOptions, query: GivenQueryVector): Try[Query] = {
-    ???
+  private def scriptScoreQuery(context: QueryShardContext, field: String, script: Script): ScriptScoreQuery = {
+    val exists = new ExistsQueryBuilder(field).toQuery(context)
+    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
+    new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
   }
 
-  // Exact queries get converted to script-score queries.
-  private def exactQuery(context: QueryShardContext, exactOpts: ExactQueryOptions): Try[Query] = {
-//    // Extract the vector.
-//    lazy val failNoQueryVec = Future.failed(new IllegalArgumentException("Must provide query vector"))
-//    lazy val ekv: Future[ElastiKnnVector] = query.queryVector match {
-//      case QueryVector.Given(given) => Future.fromTry(Try(given.vector.get)).recoverWith { case _ => failNoQueryVec}
-//      case QueryVector.Indexed(indexed) => ???
-//      case QueryVector.Empty => failNoQueryVec
-//    }
-//    val script: Script = exactOpts.distance match {
-//      case Distance.DISTANCE_ANGULAR => StoredScripts.exactAngular.script(exactOpts.fieldRaw, ekv.getDoubleVector)
-//      case _                         => ???
-//    }
-//
-//    val existsQuery = new ExistsQueryBuilder(procOpts.fieldProcessed).toQuery(context)
-//    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
-//    new ScriptScoreQuery(existsQuery, function.asInstanceOf[ScriptScoreFunction], 0.0f)
-    ???
-  }
-
-  private def lshQuery(context: QueryShardContext, lshOpts: LshQueryOptions): Query = ???
+  private def lshGivenQuery(context: QueryShardContext, lshOpts: LshQueryOptions, ekv: ElastiKnnVector): Try[Query] = ???
 
   // TODO: what is this used for?
   override def doWriteTo(out: StreamOutput): Unit = ()

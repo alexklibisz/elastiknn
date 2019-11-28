@@ -5,7 +5,7 @@ import java.util
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_DOUBLE
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.{BoolVector, DoubleVector, ELASTIKNN_NAME, ParseVectorException, ProcessorOptions, VectorDimensionException}
+import com.klibisz.elastiknn._
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
@@ -21,7 +21,7 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
   import popts._
 
   private def parseDoubleVector(doc: IngestDocument): Try[DoubleVector] = {
-    val key = s"$fieldRaw.doubleVector.values"
+    val key = doubleVectorPath(fieldRaw)
     Try(doc.getFieldValue(key, classOf[util.List[Double]]))
       .map(ld => DoubleVector(values = ld.asScala.toArray))
       .recoverWith {
@@ -36,7 +36,7 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 
 
   private def parseBoolVector(doc: IngestDocument): Try[BoolVector] = {
-    val key = s"$fieldRaw.boolVector.values"
+    val key = boolVectorPath(fieldRaw)
     Try(doc.getFieldValue(key, classOf[util.List[Boolean]]))
       .map(ld => BoolVector(values = ld.asScala.toArray))
       .recoverWith {

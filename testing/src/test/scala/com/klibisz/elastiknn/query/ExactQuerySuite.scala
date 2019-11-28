@@ -1,17 +1,14 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.Distance._
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ExactModelOptions, KNearestNeighborsQuery, ProcessorOptions}
+import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import io.circe.Decoder
 import io.circe.parser.decode
 import org.scalatest._
-import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
 import scala.io.BufferedSource
@@ -36,7 +33,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
   }
 
   for {
-    dist <- Distance.values
+    dist <- Distance.values.filter(_ == DISTANCE_ANGULAR)
     dim <- Seq(10, 128, 512)
   } yield {
     test(s"exact search on $dim-dimensional vectors with $dist distance") {
@@ -85,12 +82,8 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ = indexVecsRes.result.errors shouldBe false
 
         // Run exact query.
-        queriesAndRequests = testData.queries.map { q =>
-          q -> search(index).query(knnQuery(ExactQueryOptions(rawField, dist), GivenQueryVector(Some(q.vector))))
-        }
-
         queriesAndResults <- Future.sequence(testData.queries.map { query =>
-          val req = search(index).query(knnQuery(ExactQueryOptions(rawField, dist), GivenQueryVector(Some(query.vector))))
+          val req = search(index).query(knnQuery(ExactQueryOptions(rawField, dist), query.vector))
           client.execute(req).map(res => query -> res)
         })
 

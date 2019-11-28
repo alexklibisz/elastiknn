@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, GivenQueryVector, IndexedQueryVector}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
 import com.sksamuel.elastic4s.ElasticDsl.indexInto
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s._
@@ -81,7 +81,7 @@ package object elastic4s {
     KNearestNeighborsQuery.QueryVector.Indexed(vector)
   ))
 
-  def knnQuery(options: ExactQueryOptions, vector: GivenQueryVector): CustomQuery = knnQuery(KNearestNeighborsQuery(
+  def knnQuery(options: ExactQueryOptions, vector: ElastiKnnVector): CustomQuery = knnQuery(KNearestNeighborsQuery(
     KNearestNeighborsQuery.QueryOptions.Exact(options),
     KNearestNeighborsQuery.QueryVector.Given(vector)
   ))

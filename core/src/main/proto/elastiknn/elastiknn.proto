@@ -92,17 +92,13 @@ message KNearestNeighborsQuery {
         string id = 3;
     }
 
-    message GivenQueryVector {
-        ElastiKnnVector vector = 1;
-    }
-
     oneof query_options {
         ExactQueryOptions exact = 1;
         LshQueryOptions lsh = 2;
     }
 
     oneof query_vector {
-        GivenQueryVector given = 3;
+        ElastiKnnVector given = 3;
         IndexedQueryVector indexed = 4;
     }
 }
