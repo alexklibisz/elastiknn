@@ -62,11 +62,12 @@ object StoredScripts {
         |double bsqsum = 0.0;  // Squared sum of b.
         |for (int i = 0; i < a.length; i++) {
         |  dotprod += a[i] * b[i];
-        |  asqsum += Math.pow(a[i], 2);
-        |  bsqsum += Math.pow(b[i], 2);
+        |  asqsum += a[i] * a[i];
+        |  bsqsum += b[i] * b[i];
         |}
         |double sim = dotprod / (Math.sqrt(asqsum) * Math.sqrt(bsqsum));
-        |return 1.0 + sim; // Can't have negative scores.
+        |return 1.0 + dotprod;
+        |// return 1.0 + sim; // Can't have negative scores.
         |""".stripMargin,
       Collections.emptyMap()
     )

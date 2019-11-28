@@ -6,6 +6,7 @@ option java_package = "com.klibisz.elastiknn";
 
 import "scalapb/scalapb.proto";
 
+// TODO: these should likely be called "similarity" due to how elasticsearch scores queries.
 enum Distance {
     DISTANCE_L1 = 0;
     DISTANCE_L2 = 1;

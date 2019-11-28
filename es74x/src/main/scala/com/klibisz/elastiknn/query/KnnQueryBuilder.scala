@@ -5,6 +5,7 @@ import java.util.Objects
 import java.util.concurrent.Callable
 
 import com.google.common.cache.CacheBuilder
+import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.Distance._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn._
@@ -21,6 +22,7 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentP
 import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import org.elasticsearch.index.query._
 import org.elasticsearch.script.Script
+import com.google.protobuf.ByteString
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
@@ -45,12 +47,7 @@ object KnnQueryBuilder {
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
 
     /** This is uses to transfer the query across nodes in the cluster. */
-    override def read(in: StreamInput): KnnQueryBuilder = {
-      // Based on this: https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
-      in.readFloat()
-      in.readOptionalString()
-      new KnnQueryBuilder(JsonFormat.fromJsonString[KNearestNeighborsQuery](in.readString()))
-    }
+    override def read(in: StreamInput): KnnQueryBuilder = new KnnQueryBuilder(in)
   }
 
   // TODO: move this out to a config file.
@@ -84,6 +81,19 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
 
   private val logger: Logger = LogManager.getLogger(getClass)
 
+  /** Decodes a KnnQueryBuilder from the StreamInput as a base64 string. Using the ByteArray directly doesn't work. */
+  def this(in: StreamInput) = this({
+    // https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
+    in.readFloat()
+    in.readOptionalString()
+    val ba = BaseEncoding.base64.decode(in.readString())
+    KNearestNeighborsQuery.parseFrom(ba)
+  })
+
+  /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
+  override def doWriteTo(out: StreamOutput): Unit =
+    out.writeString(BaseEncoding.base64.encode(query.toByteArray))
+
   // NOTES:
   // you can get a client from a QueryShardContext: context.getClient
   // you can get a threadpool from the client, and an execution context from the threadpool:
@@ -96,12 +106,12 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
     case _ => ???
   }
 
-  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder = {
-    // TODO: I think this is where I should fetch the indexed vectors and processors if needed. This seems to be how
-    // elasticsearch's GeoQueryBuilder solves this problem. In this case I think it should rewrite an indexed vector query
-    // into a given vector query.
-    super.doRewrite(queryShardContext)
-  }
+//  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder = {
+//    // TODO: I think this is where I should fetch the indexed vectors and processors if needed. This seems to be how
+//    // elasticsearch's GeoQueryBuilder solves this problem. In this case I think it should rewrite an indexed vector query
+//    // into a given vector query.
+//    super.doRewrite(queryShardContext)
+//  }
 
   /** Returns a Try of an exact query using a given query vector. */
   private def exactGivenQuery(context: QueryShardContext, opts: ExactQueryOptions, ekv: ElastiKnnVector): Try[Query] = {
@@ -129,11 +139,6 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
   }
 
   private def lshGivenQuery(context: QueryShardContext, lshOpts: LshQueryOptions, ekv: ElastiKnnVector): Try[Query] = ???
-
-  // TODO: what is this used for?
-  override def doWriteTo(out: StreamOutput): Unit = {
-    out.writeString(JsonFormat.toJsonString(query))
-  }
 
   // TODO: This function seems to only get called when there is an error.
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()

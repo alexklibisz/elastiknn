@@ -1,16 +1,13 @@
 package com.klibisz.elastiknn.query
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, OutputStream}
-
 import com.klibisz.elastiknn.Distance._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, KNearestNeighborsQuery, ProcessorOptions}
+import com.klibisz.elastiknn.{Distance, ElasticAsyncClient, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import io.circe.parser.decode
-import org.elasticsearch.common.io.stream.{InputStreamStreamInput, OutputStreamStreamOutput}
 import org.scalatest._
 
 import scala.concurrent.Future
@@ -79,7 +76,9 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ = createIndexRes.isSuccess shouldBe true
 
         // Index the vectors
-        indexVecsReqs = testData.corpus.map(ekv => indexVector(index, popts.fieldRaw, ekv, pipeline))
+        indexVecsReqs = testData.corpus.zipWithIndex.filter(_._2 == 20).map {
+          case (ekv, i) => indexVector(index, popts.fieldRaw, ekv, pipeline).id(i.toString)
+        }
         indexVecsRes <- client.execute(bulk(indexVecsReqs).refresh(RefreshPolicy.IMMEDIATE))
         _ = indexVecsRes.isSuccess shouldBe true
         _ = indexVecsRes.result.errors shouldBe false
@@ -92,6 +91,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 
         _ = forAll(queriesAndResults) {
           case (query, result) =>
+            println(testData)
             result.isSuccess shouldBe true
         }
 

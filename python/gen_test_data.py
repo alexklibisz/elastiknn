@@ -40,7 +40,7 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
         np_corpus_vecs = np.random.rand(corpus_size, dim)
         np_query_vecs = np.random.rand(num_queries, dim)
 
-    knn = NearestNeighbors(n_neighbors=corpus_size, algorithm='brute', metric=metric)
+    knn = NearestNeighbors(n_neighbors=10, algorithm='brute', metric=metric)
     (dists, inds) = knn.fit(np_corpus_vecs).kneighbors(np_query_vecs)
 
     if boolean:
