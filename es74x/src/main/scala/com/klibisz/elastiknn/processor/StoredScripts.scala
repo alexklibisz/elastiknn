@@ -25,7 +25,7 @@ object StoredScripts {
       ScriptType.STORED,
       null,
       id,
-      util.Map.of("field", doubleVectorPath(field), "other", other.value.values)
+      util.Map.of("field", field, "other", other.value.values)
     )
   }
 
@@ -34,7 +34,7 @@ object StoredScripts {
       ScriptType.STORED,
       null,
       id,
-      util.Map.of("field", boolVectorPath(field), "other", other.value.values)
+      util.Map.of("field", field, "other", other.value.values)
     )
   }
 
@@ -46,6 +46,15 @@ object StoredScripts {
     Collections.emptyMap()
   )
 
+  // Note on accessing the stored vectors: arrays get sorted when they're indexed, meaning if you access doc['myVec.doubleVector.values'][0]
+  // you'll get the smallest element in the original vector, not the 0th element. See this issue: https://github.com/elastic/elasticsearch/issues/49695
+  // In order to get the original vector, you have to use params._source['myVec']['doubleVector']['values']. This seems
+  // have some performance tradeoffs compared to accessing `doc`. See here:
+  // https://www.elastic.co/guide/en/elasticsearch/reference/5.4/modules-scripting-fields.html#modules-scripting-stored
+  // There is also a "dense vector" datatype, but it's experimental and doesn't implement a way to access the values
+  // in a painless script. So for now we are stuck with accessing params._source. We might come back to this if it proves
+  // to be a huge issue, but exact searches are mainly intended as a testing and demo mechanism anyways.
+
   val exactL1: ExactDoubleScript = ExactDoubleScript("elastiknn-exact-l1", dummyScript)
 
   val exactL2: ExactDoubleScript = ExactDoubleScript("elastiknn-exact-l2", dummyScript)
@@ -55,7 +64,7 @@ object StoredScripts {
     new StoredScriptSource(
       "painless",
       """
-        |def a = doc[params.field];
+        |def a = params._source[params.field]['doubleVector']['values'];
         |def b = params.other;
         |double dotprod = 0.0; // Dot product a and b.
         |double asqsum = 0.0;  // Squared sum of a.
@@ -66,8 +75,7 @@ object StoredScripts {
         |  bsqsum += b[i] * b[i];
         |}
         |double sim = dotprod / (Math.sqrt(asqsum) * Math.sqrt(bsqsum));
-        |return 1.0 + dotprod;
-        |// return 1.0 + sim; // Can't have negative scores.
+        |return 1.0 + sim;
         |""".stripMargin,
       Collections.emptyMap()
     )

@@ -63,3 +63,11 @@ services:
       memlock:
         soft: -1
         hard: -1
+
+  # Kibana instance for debugging, linked to the client node.
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.4.0
+    links:
+      - elasticsearch_client:elasticsearch
+    ports:
+      - 5601:5601

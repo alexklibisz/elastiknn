@@ -34,7 +34,7 @@ public class Dummy {
         double asqsum = 0.0;
         double bsqsum = 0.0;
 
-        for (int i = 0; i < a.length; i++) {
+        for (int i = 0; i < 1; i++) {
           dotprod += a[i] * b[i];
           asqsum += a[i] * a[i];
           bsqsum += b[i] * b[i];

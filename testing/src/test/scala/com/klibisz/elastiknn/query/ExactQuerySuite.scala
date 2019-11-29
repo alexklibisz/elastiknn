@@ -34,7 +34,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 
   for {
     dist <- Distance.values.filter(_ == DISTANCE_ANGULAR)
-    dim <- Seq(10, 128, 512)
+    dim <- Seq(10 /*, 128, 512 */)
   } yield {
     test(s"exact search on $dim-dimensional vectors with $dist distance") {
 
