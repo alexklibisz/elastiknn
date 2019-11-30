@@ -4,19 +4,24 @@ import java.util
 
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
+import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
-import org.apache.lucene.index.IndexableField
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
+import org.apache.lucene.index._
+import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
+import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource
+import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData
 import org.elasticsearch.index.mapper.FieldMapper.CopyTo
 import org.elasticsearch.index.mapper.Mapper.TypeParser.ParserContext
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
-import io.circe.syntax._
-import org.apache.lucene.util.BytesRef
+import org.elasticsearch.index.{Index, IndexSettings, fielddata}
+import org.elasticsearch.indices.breaker.CircuitBreakerService
+import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
 
-/** Based on DenseVectorFieldMapper in Elasticsearch. */
+/** Based on DenseVectorFieldMapper and related classes in Elasticsearch. */
 object ElastiKnnVectorFieldMapper {
 
   val CONTENT_TYPE = s"${ELASTIKNN_NAME}_vector"
@@ -63,6 +68,81 @@ object ElastiKnnVectorFieldMapper {
 
     override def existsQuery(context: QueryShardContext): Query =
       new DocValuesFieldExistsQuery(name())
+
+    override def fielddataBuilder(
+        indexName: String): fielddata.IndexFieldData.Builder =
+      FieldData.Builder
+  }
+
+  object FieldData {
+    object Builder extends fielddata.IndexFieldData.Builder {
+      override def build(
+          indexSettings: IndexSettings,
+          fieldType: MappedFieldType,
+          cache: fielddata.IndexFieldDataCache,
+          breakerService: CircuitBreakerService,
+          mapperService: MapperService): fielddata.IndexFieldData[_] =
+        new FieldData(indexSettings.getIndex, fieldType.name)
+    }
+  }
+
+  class FieldData(index: Index, fieldName: String)
+      extends DocValuesIndexFieldData(index, fieldName)
+      with fielddata.IndexFieldData[AtomicFieldData] {
+    override def load(context: LeafReaderContext): AtomicFieldData =
+      new AtomicFieldData(context.reader(), fieldName)
+
+    override def loadDirect(context: LeafReaderContext): AtomicFieldData =
+      load(context)
+
+    override def sortField(missingValue: Any,
+                           sortMode: MultiValueMode,
+                           nested: XFieldComparatorSource.Nested,
+                           reverse: Boolean): SortField =
+      throw new UnsupportedOperationException("Sorting is not supported")
+  }
+
+  class AtomicFieldData(reader: LeafReader, field: String)
+      extends fielddata.AtomicFieldData {
+
+    private lazy val bdv: BinaryDocValues = DocValues.getBinary(reader, field)
+
+    override def getScriptValues: fielddata.ScriptDocValues[_] =
+      new ScriptDocValues(bdv)
+
+    override def getBytesValues: fielddata.SortedBinaryDocValues =
+      throw new UnsupportedOperationException(
+        "String representation of doc values for elastiknn_vector fields is not supported")
+
+    override def ramBytesUsed(): Long = 0L
+
+    override def close(): Unit = ()
+  }
+
+  class ScriptDocValues(in: BinaryDocValues)
+      extends fielddata.ScriptDocValues[Any] {
+
+    private var ekv: Option[ElastiKnnVector] = None
+
+    override def setNextDocId(docId: Int): Unit =
+      if (in.advanceExact(docId))
+        ekv = Some(ElastiKnnVector.parseFrom(in.binaryValue.bytes))
+      else ekv = None
+
+    override def get(i: Int): Any = ekv match {
+      case Some(ElastiKnnVector(ElastiKnnVector.Vector.DoubleVector(v))) =>
+        v.values(i)
+      case Some(ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))) =>
+        v.values(i)
+      case _ =>
+        throw new IllegalStateException(
+          s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
+    }
+
+    override def size(): Int = ekv match {
+      case Some(_) => 1
+      case None    => 0
+    }
   }
 
 }
