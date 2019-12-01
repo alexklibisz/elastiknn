@@ -46,19 +46,19 @@ class ExactQuerySuite
   }
 
   for {
-    dist <- Similarity.values.filter(_ == SIMILARITY_ANGULAR)
-    dim <- Seq(10 /*, 128, 512 */ )
+    sim <- Similarity.values.filter(_ == SIMILARITY_ANGULAR)
+    dim <- Seq(10, 128, 512)
   } yield {
-    test(s"exact search on $dim-dimensional vectors with $dist distance") {
+    test(s"exact search on $dim-dimensional vectors with $sim distance") {
 
-      val resourceName = s"${dist.name.toLowerCase}-$dim.json"
+      val resourceName = s"${sim.name.toLowerCase}-$dim.json"
       val tryReadData = readTestData(resourceName)
-      val vectorType = dist match {
+      val vectorType = sim match {
         case SIMILARITY_JACCARD | SIMILARITY_HAMMING => VECTOR_TYPE_BOOL
         case _                                       => VECTOR_TYPE_DOUBLE
       }
 
-      val index = s"test-exact-${dist.name.toLowerCase}"
+      val index = s"test-exact-${sim.name.toLowerCase}"
       val pipeline = s"$index-pipeline"
       val rawField = "vec"
       val mapDef =
@@ -79,7 +79,7 @@ class ExactQuerySuite
         // Create the pipeline.
         popts = ProcessorOptions(rawField, dim, vectorType)
         pipelineReq = PutPipelineRequest(pipeline,
-                                         s"exact search for ${dist.name}",
+                                         s"exact search for ${sim.name}",
                                          Processor("elastiknn", popts))
         pipelineRes <- client.execute(pipelineReq)
         _ = pipelineRes.shouldBeSuccess
@@ -89,7 +89,7 @@ class ExactQuerySuite
         _ = createIndexRes.shouldBeSuccess
 
         // Index the vectors
-        indexVecsReqs = testData.corpus.zipWithIndex.filter(_._2 == 20).map {
+        indexVecsReqs = testData.corpus.zipWithIndex.map {
           case (ekv, i) =>
             indexVector(index, popts.fieldRaw, ekv, pipeline).id(i.toString)
         }
@@ -99,17 +99,24 @@ class ExactQuerySuite
         _ = indexVecsRes.result.errors shouldBe false
 
         // Run exact query.
-        queriesAndResults <- Future.sequence(testData.queries.take(1).map {
-          query =>
-            val req = search(index).query(
-              knnQuery(ExactQueryOptions(rawField, dist), query.vector))
-            client.execute(req).map(res => query -> res)
+        queriesAndResponses <- Future.sequence(testData.queries.map { query =>
+          val req = search(index).query(
+            knnQuery(ExactQueryOptions(rawField, sim), query.vector))
+          client.execute(req).map(res => query -> res)
         })
 
-        _ = forAll(queriesAndResults) {
-          case (query, result) =>
-            println(query)
-            result.shouldBeSuccess
+        _ = forAll(queriesAndResponses) {
+          case (query, response) =>
+            response.shouldBeSuccess
+            forAll(
+              query.similarities
+                .zip(query.indices)
+                .zip(response.result.hits.hits)) {
+              case ((sim, ind), hit) =>
+                hit.id shouldBe ind.toString
+                hit.score.toDouble shouldBe sim +- 1e-6
+            }
+
         }
 
       } yield Succeeded

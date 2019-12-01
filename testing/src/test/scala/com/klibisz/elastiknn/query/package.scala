@@ -9,14 +9,18 @@ import scala.util.{Failure, Success, Try}
 
 package object query {
 
-  implicit def decodeScalaPB[SPB <: GeneratedMessage with Message[SPB]](implicit ev: GeneratedMessageCompanion[SPB]): Decoder[SPB]
-    = (c: HCursor) => Try(JsonFormat.fromJson(c.value)) match {
-    case Failure(ex) =>
-      Left(DecodingFailure(ex.getLocalizedMessage, Nil))
-    case Success(msg) => Right(msg)
-  }
+  implicit def decodeScalaPB[SPB <: GeneratedMessage with Message[SPB]](
+      implicit ev: GeneratedMessageCompanion[SPB]): Decoder[SPB] =
+    (c: HCursor) =>
+      Try(JsonFormat.fromJson(c.value)) match {
+        case Failure(ex) =>
+          Left(DecodingFailure(ex.getLocalizedMessage, Nil))
+        case Success(msg) => Right(msg)
+    }
 
-  case class Query(vector: ElastiKnnVector, distances: Seq[Double], indices: Seq[Int])
+  case class Query(vector: ElastiKnnVector,
+                   similarities: Seq[Double],
+                   indices: Seq[Int])
   object Query {
     implicit def decQuery: Decoder[Query] = deriveDecoder[Query]
   }
@@ -27,7 +31,6 @@ package object query {
   }
 
 }
-
 
 object Dummy extends App {
 

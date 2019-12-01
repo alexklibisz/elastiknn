@@ -73,7 +73,7 @@ object StoredScripts {
         |double asqsum = 0.0;  // Squared sum of a.
         |double bsqsum = 0.0;  // Squared sum of b.
         |for (int i = 0; i < b.length; i++) {
-        |  dotprod += (double) a[i] * b[i];
+        |  dotprod += a[i] * b[i];
         |  asqsum += a[i] * a[i];
         |  bsqsum += b[i] * b[i];
         |}
