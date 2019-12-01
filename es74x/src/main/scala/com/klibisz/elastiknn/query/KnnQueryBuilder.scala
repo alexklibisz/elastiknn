@@ -3,12 +3,14 @@ package com.klibisz.elastiknn.query
 import java.util
 import java.util.Objects
 import java.util.concurrent.Callable
+import java.util.function.BiConsumer
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{
   ExactQueryOptions,
+  IndexedQueryVector,
   LshQueryOptions,
   QueryOptions,
   QueryVector
@@ -16,11 +18,16 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
+import io.circe.{Json, JsonObject}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.search.Query
+import org.apache.lucene.util.SetOnce
+import org.elasticsearch.action.{ActionListener, ActionResponse}
+import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest}
 import org.elasticsearch.client.Client
+import org.elasticsearch.common.CheckedConsumer
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.{
   ScriptScoreFunction,
@@ -41,7 +48,7 @@ import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
 
-  val NAME = "elastiknn_knn"
+  val NAME = s"${ELASTIKNN_NAME}_knn"
 
   object Parser extends QueryParser[KnnQueryBuilder] {
 
@@ -103,10 +110,23 @@ object KnnQueryBuilder {
 
 }
 
+/** Dummy class only used to rewrite queries given a supplier object. */
+private final class KnnQueryBuilderWithSupplier(
+    supplier: SetOnce[KNearestNeighborsQuery])
+    extends AbstractQueryBuilder[KnnQueryBuilder] {
+  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder =
+    new KnnQueryBuilder(supplier.get())
+  private val ex = new UnsupportedOperationException("Only supports doRewrite")
+  def doWriteTo(out: StreamOutput): Unit = throw ex
+  def doXContent(b: XContentBuilder, p: ToXContent.Params): Unit = throw ex
+  def doToQuery(context: QueryShardContext): Query = throw ex
+  def doEquals(other: KnnQueryBuilder): Boolean = throw ex
+  def doHashCode(): Int = throw ex
+  def getWriteableName: String = throw ex
+}
+
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
     extends AbstractQueryBuilder[KnnQueryBuilder] {
-
-  private val logger: Logger = LogManager.getLogger(getClass)
 
   /** Decodes a KnnQueryBuilder from the StreamInput as a base64 string. Using the ByteArray directly doesn't work. */
   def this(in: StreamInput) =
@@ -122,11 +142,6 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
   override def doWriteTo(out: StreamOutput): Unit =
     out.writeString(BaseEncoding.base64.encode(query.toByteArray))
 
-  // NOTES:
-  // you can get a client from a QueryShardContext: context.getClient
-  // you can get a threadpool from the client, and an execution context from the threadpool:
-  // val executionContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(context.getClient.threadPool.executor(ThreadPool.Names.SEARCH))
-
   // Use the query options to build a lucene query.
   override def doToQuery(context: QueryShardContext): Query =
     (query.queryOptions, query.queryVector) match {
@@ -137,12 +152,41 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
       case _ => ???
     }
 
-//  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder = {
-//    // TODO: I think this is where I should fetch the indexed vectors and processors if needed. This seems to be how
-//    // elasticsearch's GeoQueryBuilder solves this problem. In this case I think it should rewrite an indexed vector query
-//    // into a given vector query.
-//    super.doRewrite(queryShardContext)
-//  }
+  /** Checks if a query needs to be rewritten and rewrites it. */
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder = {
+    query.queryVector match {
+      case QueryVector.Given(_)    => this
+      case QueryVector.Indexed(qv) => rewriteIndexedQuery(context, qv)
+      case QueryVector.Empty =>
+        throw new IllegalStateException("Query must be provided")
+    }
+  }
+
+  private def rewriteIndexedQuery(context: QueryRewriteContext,
+                                  qv: IndexedQueryVector): QueryBuilder = {
+    val supplier = new SetOnce[KNearestNeighborsQuery]()
+    context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
+      c.execute(
+        GetAction.INSTANCE,
+        new GetRequest(qv.index, qv.id),
+        new ActionListener[GetResponse] {
+          def onResponse(res: GetResponse): Unit = {
+            val pth = s"${qv.field}."
+            val map = pth.split('.').foldLeft(res.getSourceAsMap) {
+              case (m, k) =>
+                m.get(k).asInstanceOf[util.Map[String, AnyRef]]
+            }
+            val json = map.asJson(mapEncoder)
+            val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
+            supplier.set(query.withGiven(ekv))
+            l.asInstanceOf[ActionListener[Any]].onResponse(null)
+          }
+          def onFailure(e: Exception): Unit = l.onFailure(e)
+        }
+      )
+    })
+    new KnnQueryBuilderWithSupplier(supplier)
+  }
 
   /** Returns a Try of an exact query using a given query vector. */
   private def exactGivenQuery(context: QueryShardContext,

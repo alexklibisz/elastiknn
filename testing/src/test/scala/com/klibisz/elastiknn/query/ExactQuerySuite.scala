@@ -98,14 +98,15 @@ class ExactQuerySuite
         _ = indexVecsRes.shouldBeSuccess
         _ = indexVecsRes.result.errors shouldBe false
 
-        // Run exact query.
-        queriesAndResponses <- Future.sequence(testData.queries.map { query =>
-          val req = search(index).query(
-            knnQuery(ExactQueryOptions(rawField, sim), query.vector))
-          client.execute(req).map(res => query -> res)
+        // Run exact queries with given vectors.
+        givenQueriesAndResponses <- Future.sequence(testData.queries.map {
+          query =>
+            val req = search(index).query(
+              knnQuery(ExactQueryOptions(rawField, sim), query.vector))
+            client.execute(req).map(res => query -> res)
         })
-        _ = queriesAndResponses should have length testData.queries.length
-        _ = forAll(queriesAndResponses) {
+        _ = givenQueriesAndResponses should have length testData.queries.length
+        _ = forAll(givenQueriesAndResponses) {
           case (query, res) =>
             res.shouldBeSuccess
             res.result.hits.hits should have length query.indices.length
@@ -114,6 +115,8 @@ class ExactQuerySuite
               case (sim, score) => score shouldBe sim +- 1e-6.toFloat
             }
         }
+
+        // Run exact queries with indexed vectors.
 
       } yield Succeeded
     }
