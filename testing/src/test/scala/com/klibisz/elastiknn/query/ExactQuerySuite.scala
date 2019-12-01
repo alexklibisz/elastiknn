@@ -45,11 +45,8 @@ class ExactQuerySuite
     }
   }
 
-  val filter: Set[Similarity] =
-    Set(SIMILARITY_L1, SIMILARITY_L2, SIMILARITY_ANGULAR, SIMILARITY_JACCARD)
-
   for {
-    sim <- Similarity.values.filter(filter.contains)
+    sim <- Similarity.values
     dim <- Seq(10, 128, 512)
   } yield {
     test(s"exact search on $dim-dimensional vectors with $sim distance") {
@@ -113,8 +110,8 @@ class ExactQuerySuite
             res.shouldBeSuccess
             res.result.hits.hits should have length query.indices.length
             // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
-            forAll(query.similarities.zip(res.result.hits.hits)) {
-              case (sim, hit) => hit.score shouldBe sim +- 1e-6.toFloat
+            forAll(query.similarities.zip(res.result.hits.hits.map(_.score))) {
+              case (sim, score) => score shouldBe sim +- 1e-6.toFloat
             }
         }
 

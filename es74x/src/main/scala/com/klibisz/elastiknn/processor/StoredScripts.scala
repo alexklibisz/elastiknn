@@ -97,7 +97,18 @@ object StoredScripts {
   )
 
   val exactHamming: ExactBoolScript =
-    ExactBoolScript("elastiknn-exact-hamming", "return 0.0;")
+    ExactBoolScript(
+      "elastiknn-exact-hamming",
+      """
+        |def a = doc[params.field];
+        |def b = params.other;
+        |double eq = 0;
+        |for (int i = 0; i < b.length; i++) {
+        |  if (a[i] == b[i]) eq += 1;
+        |}
+        |return eq / b.length;
+        |""".stripMargin
+    )
 
   val exactJaccard: ExactBoolScript =
     ExactBoolScript(

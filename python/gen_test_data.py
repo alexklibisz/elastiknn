@@ -28,9 +28,9 @@ class TestData:
 def dist2sim(metric: str) -> Callable[[float], float]:
     if metric is 'cosine':
         return lambda d: 2.0 - d
-    elif metric in {'l1', 'l2', 'hamming'}:
+    elif metric in {'l1', 'l2'}:
         return lambda d: 1.0 / (d + 1e-6)
-    elif metric is 'jaccard':
+    elif metric in {'jaccard', 'hamming'}:
         return lambda d: 1 - d
     else:
         return lambda d: d
