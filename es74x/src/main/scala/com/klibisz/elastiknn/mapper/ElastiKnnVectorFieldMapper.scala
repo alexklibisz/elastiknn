@@ -26,9 +26,7 @@ object ElastiKnnVectorFieldMapper {
 
   val CONTENT_TYPE = s"${ELASTIKNN_NAME}_vector"
 
-  object Defaults {
-    lazy val FIELD_TYPE = new FieldType()
-  }
+  private val fieldType = new FieldType
 
   class TypeParser extends Mapper.TypeParser {
 
@@ -41,10 +39,9 @@ object ElastiKnnVectorFieldMapper {
 
   class Builder(name: String)
       extends FieldMapper.Builder[ElastiKnnVectorFieldMapper.Builder,
-                                  ElastiKnnVectorFieldMapper](
-        name,
-        Defaults.FIELD_TYPE,
-        Defaults.FIELD_TYPE) {
+                                  ElastiKnnVectorFieldMapper](name,
+                                                              fieldType,
+                                                              fieldType) {
     override def build(
         context: Mapper.BuilderContext): ElastiKnnVectorFieldMapper = {
       super.setupFieldType(context)
@@ -169,9 +166,8 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
   }
 
   override def parseCreateField(context: ParseContext,
-                                fields: util.List[IndexableField]): Unit = {
-    throw new AssertionError("parse is implemented directly")
-  }
+                                fields: util.List[IndexableField]): Unit =
+    throw new IllegalStateException("parse is implemented directly")
 
   override def contentType(): String = {
     ElastiKnnVectorFieldMapper.CONTENT_TYPE
