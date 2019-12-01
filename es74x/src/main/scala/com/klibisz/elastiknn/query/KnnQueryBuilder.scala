@@ -110,21 +110,6 @@ object KnnQueryBuilder {
 
 }
 
-/** Dummy class only used to rewrite queries given a supplier object. */
-private final class KnnQueryBuilderWithSupplier(
-    supplier: SetOnce[KNearestNeighborsQuery])
-    extends AbstractQueryBuilder[KnnQueryBuilder] {
-  override def doRewrite(queryShardContext: QueryRewriteContext): QueryBuilder =
-    new KnnQueryBuilder(supplier.get())
-  private val ex = new UnsupportedOperationException("Only supports doRewrite")
-  def doWriteTo(out: StreamOutput): Unit = throw ex
-  def doXContent(b: XContentBuilder, p: ToXContent.Params): Unit = throw ex
-  def doToQuery(context: QueryShardContext): Query = throw ex
-  def doEquals(other: KnnQueryBuilder): Boolean = throw ex
-  def doHashCode(): Int = throw ex
-  def getWriteableName: String = throw ex
-}
-
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
     extends AbstractQueryBuilder[KnnQueryBuilder] {
 
@@ -164,7 +149,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
 
   private def rewriteIndexedQuery(context: QueryRewriteContext,
                                   qv: IndexedQueryVector): QueryBuilder = {
-    val supplier = new SetOnce[KNearestNeighborsQuery]()
+    val supplier = new SetOnce[KnnQueryBuilder]()
     context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
       c.execute(
         GetAction.INSTANCE,
@@ -178,14 +163,14 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
             }
             val json = map.asJson(mapEncoder)
             val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
-            supplier.set(query.withGiven(ekv))
+            supplier.set(new KnnQueryBuilder(query.withGiven(ekv)))
             l.asInstanceOf[ActionListener[Any]].onResponse(null)
           }
           def onFailure(e: Exception): Unit = l.onFailure(e)
         }
       )
     })
-    new KnnQueryBuilderWithSupplier(supplier)
+    RewriteLater(_ => supplier.get())
   }
 
   /** Returns a Try of an exact query using a given query vector. */
