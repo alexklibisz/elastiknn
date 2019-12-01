@@ -45,7 +45,8 @@ class ExactQuerySuite
     }
   }
 
-  val filter = Set(SIMILARITY_L2, SIMILARITY_ANGULAR)
+  val filter: Set[Similarity] =
+    Set(SIMILARITY_L1, SIMILARITY_L2, SIMILARITY_ANGULAR)
 
   for {
     sim <- Similarity.values.filter(filter.contains)

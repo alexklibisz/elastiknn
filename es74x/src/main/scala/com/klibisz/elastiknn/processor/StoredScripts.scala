@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.processor
 import java.util
 import java.util.Collections
 
-import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.ElastiKnnVector
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest
@@ -15,18 +14,21 @@ object StoredScripts {
 
   sealed trait ExactScript[V <: ElastiKnnVector.Vector] {
     def id: String
-    def scriptSource: StoredScriptSource
+    def script: String
     val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(
       id,
       "score",
       new BytesArray("{}"),
       XContentType.JSON,
-      scriptSource)
+      new StoredScriptSource(
+        "painless",
+        script,
+        Collections.emptyMap()
+      ))
     def script(field: String, other: V): Script
   }
 
-  final case class ExactDoubleScript(id: String,
-                                     scriptSource: StoredScriptSource)
+  final case class ExactDoubleScript(id: String, script: String)
       extends ExactScript[ElastiKnnVector.Vector.DoubleVector] {
     override def script(field: String, other: Vector.DoubleVector): Script =
       new Script(
@@ -37,7 +39,7 @@ object StoredScripts {
       )
   }
 
-  final case class ExactBoolScript(id: String, scriptSource: StoredScriptSource)
+  final case class ExactBoolScript(id: String, script: String)
       extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
     override def script(field: String, other: Vector.BoolVector): Script =
       new Script(
@@ -48,23 +50,23 @@ object StoredScripts {
       )
   }
 
-  protected[elastiknn] val dummyScript = new StoredScriptSource(
-    "painless",
+  val exactL1: ExactDoubleScript = ExactDoubleScript(
+    "elastiknn-exact-l1",
     """
-      |return 0.0;
-      |""".stripMargin,
-    Collections.emptyMap()
+      |def a = doc[params.field];
+      |def b = params.other;
+      |double sumabsdiff = 0.0;
+      |for (int i = 0; i < b.length; i++) {
+      |  sumabsdiff += Math.abs(a[i] - b[i]);
+      |}
+      |return 1.0 / (sumabsdiff + 1e-6);
+      |""".stripMargin
   )
-
-  val exactL1: ExactDoubleScript =
-    ExactDoubleScript("elastiknn-exact-l1", dummyScript)
 
   val exactL2: ExactDoubleScript =
     ExactDoubleScript(
       "elastiknn-exact-l2",
-      new StoredScriptSource(
-        "painless",
-        """
+      """
         |def a = doc[params.field];
         |def b = params.other;
         |double sumsqdiff = 0.0;
@@ -73,38 +75,32 @@ object StoredScripts {
         |}
         |double dist = Math.sqrt(sumsqdiff);
         |return 1.0 / (dist + 1e-6);
-        |""".stripMargin,
-        Collections.emptyMap()
-      )
+        |""".stripMargin
     )
 
   val exactAngular: ExactDoubleScript = ExactDoubleScript(
     "elastiknn-exact-angular",
-    new StoredScriptSource(
-      "painless",
-      """
-        |def a = doc[params.field];
-        |def b = params.other;
-        |double dotprod = 0.0; // Dot product a and b.
-        |double asqsum = 0.0;  // Squared sum of a.
-        |double bsqsum = 0.0;  // Squared sum of b.
-        |for (int i = 0; i < b.length; i++) {
-        |  dotprod += a[i] * b[i];
-        |  asqsum += a[i] * a[i];
-        |  bsqsum += b[i] * b[i];
-        |}
-        |double sim = dotprod / (Math.sqrt(asqsum) * Math.sqrt(bsqsum));
-        |return 1.0 + sim;
-        |""".stripMargin,
-      Collections.emptyMap()
-    )
+    """
+      |def a = doc[params.field];
+      |def b = params.other;
+      |double dotprod = 0.0; // Dot product a and b.
+      |double asqsum = 0.0;  // Squared sum of a.
+      |double bsqsum = 0.0;  // Squared sum of b.
+      |for (int i = 0; i < b.length; i++) {
+      |  dotprod += a[i] * b[i];
+      |  asqsum += a[i] * a[i];
+      |  bsqsum += b[i] * b[i];
+      |}
+      |double sim = dotprod / (Math.sqrt(asqsum) * Math.sqrt(bsqsum));
+      |return 1.0 + sim;
+      |""".stripMargin
   )
 
   val exactHamming: ExactBoolScript =
-    ExactBoolScript("elastiknn-exact-hamming", dummyScript)
+    ExactBoolScript("elastiknn-exact-hamming", "return 0.0;")
 
   val exactJaccard: ExactBoolScript =
-    ExactBoolScript("elastiknn-exact-jaccard", dummyScript)
+    ExactBoolScript("elastiknn-exact-jaccard", "return 0.0;")
 
   val exactScripts: Seq[ExactScript[_]] =
     Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
