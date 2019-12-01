@@ -100,7 +100,23 @@ object StoredScripts {
     ExactBoolScript("elastiknn-exact-hamming", "return 0.0;")
 
   val exactJaccard: ExactBoolScript =
-    ExactBoolScript("elastiknn-exact-jaccard", "return 0.0;")
+    ExactBoolScript(
+      "elastiknn-exact-jaccard",
+      """
+        |def a = doc[params.field];
+        |def b = params.other;
+        |double isec = 0;
+        |double asum = 0;
+        |double bsum = 0;
+        |for (int i = 0; i < b.length; i++) {
+        |  if (a[i] && b[i]) isec += 1;
+        |  if (a[i]) asum += 1;
+        |  if (b[i]) bsum += 1;
+        |}
+        |double sim = isec / (asum + bsum - isec);
+        |return sim;
+        |""".stripMargin
+    )
 
   val exactScripts: Seq[ExactScript[_]] =
     Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)

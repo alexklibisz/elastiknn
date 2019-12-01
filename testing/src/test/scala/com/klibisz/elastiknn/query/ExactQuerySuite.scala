@@ -46,7 +46,7 @@ class ExactQuerySuite
   }
 
   val filter: Set[Similarity] =
-    Set(SIMILARITY_L1, SIMILARITY_L2, SIMILARITY_ANGULAR)
+    Set(SIMILARITY_L1, SIMILARITY_L2, SIMILARITY_ANGULAR, SIMILARITY_JACCARD)
 
   for {
     sim <- Similarity.values.filter(filter.contains)
@@ -108,20 +108,14 @@ class ExactQuerySuite
           client.execute(req).map(res => query -> res)
         })
         _ = queriesAndResponses should have length testData.queries.length
-
         _ = forAll(queriesAndResponses) {
-          case (query, response) =>
-            response.shouldBeSuccess
-            response.result.hits.hits should have length query.indices.length
-            forAll(
-              query.similarities
-                .zip(query.indices)
-                .zip(response.result.hits.hits)) {
-              case ((sim, ind), hit) =>
-                hit.id shouldBe ind.toString
-                hit.score.toDouble shouldBe sim +- 1e-6
+          case (query, res) =>
+            res.shouldBeSuccess
+            res.result.hits.hits should have length query.indices.length
+            // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
+            forAll(query.similarities.zip(res.result.hits.hits)) {
+              case (sim, hit) => hit.score shouldBe sim +- 1e-6.toFloat
             }
-
         }
 
       } yield Succeeded

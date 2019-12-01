@@ -30,6 +30,8 @@ def dist2sim(metric: str) -> Callable[[float], float]:
         return lambda d: 2.0 - d
     elif metric in {'l1', 'l2', 'hamming'}:
         return lambda d: 1.0 / (d + 1e-6)
+    elif metric is 'jaccard':
+        return lambda d: 1 - d
     else:
         return lambda d: d
 

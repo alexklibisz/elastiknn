@@ -19,7 +19,7 @@ package object query {
     }
 
   case class Query(vector: ElastiKnnVector,
-                   similarities: Seq[Double],
+                   similarities: Seq[Float],
                    indices: Seq[Int])
   object Query {
     implicit def decQuery: Decoder[Query] = deriveDecoder[Query]
