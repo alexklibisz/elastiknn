@@ -135,15 +135,13 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
       case (QueryOptions.Lsh(opts), QueryVector.Given(query)) =>
         lshGivenQuery(context, opts, query).get
       case (QueryOptions.Empty, QueryVector.Empty) =>
-        throw new IllegalArgumentException(
-          "Missing query options _and_ query vector")
+        throw illArgEx("Missing query options _and_ query vector")
       case (_, QueryVector.Indexed(_)) =>
-        throw new IllegalArgumentException(
-          "Indexed vector query should should have been rewritten")
+        throw illArgEx("Indexed vector query should should have been rewritten")
       case (QueryOptions.Empty, _) =>
-        throw new IllegalArgumentException("Missing query options")
+        throw illArgEx("Missing query options")
       case (_, QueryVector.Empty) =>
-        throw new IllegalArgumentException("Missing query vector")
+        throw illArgEx("Missing query vector")
     }
 
   /** Checks if a query needs to be rewritten and rewrites it. */
@@ -151,8 +149,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
     query.queryVector match {
       case QueryVector.Given(_)    => this
       case QueryVector.Indexed(qv) => rewriteIndexedQuery(context, qv)
-      case QueryVector.Empty =>
-        throw new IllegalStateException("Query must be provided")
+      case QueryVector.Empty       => throw illArgEx("Missing query vector")
     }
   }
 
@@ -216,10 +213,8 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
             context,
             opts.fieldRaw,
             StoredScripts.exactJaccard.script(opts.fieldRaw, bvec)))
-      case (_, Empty) =>
-        Failure(new IllegalArgumentException("Must provide vector"))
-      case (_, _) =>
-        Failure(IncompatibleDistanceAndVectorException(opts.similarity, ekv))
+      case (_, Empty) => Failure(illArgEx("Must provide vector"))
+      case (_, _)     => Failure(SimilarityAndTypeException(opts.similarity, ekv))
     }
   }
 
