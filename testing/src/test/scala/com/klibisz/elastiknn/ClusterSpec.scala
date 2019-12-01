@@ -3,13 +3,17 @@ package com.klibisz.elastiknn
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.scalatest.{AsyncFunSuite, Matchers}
 
-class ClusterSpec extends AsyncFunSuite with Matchers with ElasticAsyncClient {
+class ClusterSpec
+    extends AsyncFunSuite
+    with Matchers
+    with Elastic4sMatchers
+    with ElasticAsyncClient {
 
   test("returns green health") {
     for {
       healthRes <- client.execute(catHealth())
     } yield {
-      healthRes.isSuccess shouldBe true
+      healthRes.shouldBeSuccess
       healthRes.result.status shouldBe "green"
     }
   }
@@ -18,7 +22,7 @@ class ClusterSpec extends AsyncFunSuite with Matchers with ElasticAsyncClient {
     for {
       catPluginsRes <- client.execute(catPlugins())
     } yield {
-      catPluginsRes.isSuccess shouldBe true
+      catPluginsRes.shouldBeSuccess
       catPluginsRes.result should not be empty
       catPluginsRes.result.head.component shouldBe "elastiknn"
     }
@@ -28,9 +32,12 @@ class ClusterSpec extends AsyncFunSuite with Matchers with ElasticAsyncClient {
     for {
       catNodesRes <- client.execute(catNodes())
     } yield {
-      catNodesRes.isSuccess shouldBe true
+      catNodesRes.shouldBeSuccess
       catNodesRes.result should have length 4
-      catNodesRes.result.map(_.nodeRole).sorted shouldBe Seq("-", "dil", "dil", "m").sorted
+      catNodesRes.result.map(_.nodeRole).sorted shouldBe Seq("-",
+                                                             "dil",
+                                                             "dil",
+                                                             "m").sorted
     }
   }
 

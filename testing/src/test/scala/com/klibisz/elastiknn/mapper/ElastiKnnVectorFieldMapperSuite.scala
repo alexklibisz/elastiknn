@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.elastic4s.scriptScoreQuery
 import com.klibisz.elastiknn.{ElastiKnnVector, ElasticAsyncClient, _}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
 import com.sksamuel.elastic4s.requests.mappings.BasicField
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
@@ -17,6 +18,7 @@ class ElastiKnnVectorFieldMapperSuite
     extends AsyncFunSuite
     with Matchers
     with Inspectors
+    with Elastic4sMatchers
     with ElasticAsyncClient {
 
   private val fieldName = "ekv"
@@ -27,11 +29,12 @@ class ElastiKnnVectorFieldMapperSuite
     for {
       _ <- client.execute(deleteIndex(indexName))
 
-      createRes <- client.execute(createIndex(indexName))
-      _ = createRes.isSuccess shouldBe true
+      createRes: Response[CreateIndexResponse] <- client.execute(
+        createIndex(indexName))
+      _ = createRes.shouldBeSuccess
 
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
-      _ <- mappingRes.isSuccess shouldBe true
+      _ <- mappingRes.shouldBeSuccess
     } yield Succeeded
   }
 
@@ -83,20 +86,21 @@ class ElastiKnnVectorFieldMapperSuite
       _ <- client.execute(deleteIndex(indexName))
 
       createRes <- client.execute(createIndex(indexName))
-      _ = createRes.isSuccess shouldBe true
+      _ = createRes.shouldBeSuccess
 
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
-      _ <- mappingRes.isSuccess shouldBe true
+      _ <- mappingRes.shouldBeSuccess
 
       indexRes <- client.execute(
         bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
-      _ = indexRes.isSuccess shouldBe true
+      _ = indexRes.shouldBeSuccess
       _ = indexRes.result.errors shouldBe false
 
-      scriptSearches = (0 until 3).map(i => client.execute(scriptSearch(i)))
+      scriptSearches = doubleVectors.indices.map(i =>
+        client.execute(scriptSearch(i)))
       scriptResponses <- Future.sequence(scriptSearches)
 
-      _ = forAll(scriptResponses) { _.isSuccess shouldBe true }
+      _ = forAll(scriptResponses) { _.shouldBeSuccess }
       _ = check(scriptResponses(0), 0)
       _ = check(scriptResponses(1), 1)
       _ = check(scriptResponses(2), 2)
@@ -157,20 +161,21 @@ class ElastiKnnVectorFieldMapperSuite
       _ <- client.execute(deleteIndex(indexName))
 
       createRes <- client.execute(createIndex(indexName))
-      _ = createRes.isSuccess shouldBe true
+      _ = createRes.shouldBeSuccess
 
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
-      _ <- mappingRes.isSuccess shouldBe true
+      _ <- mappingRes.shouldBeSuccess
 
       indexRes <- client.execute(
         bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
-      _ = indexRes.isSuccess shouldBe true
+      _ = indexRes.shouldBeSuccess
       _ = indexRes.result.errors shouldBe false
 
-      scriptSearches = (0 until 3).map(i => client.execute(scriptSearch(i)))
+      scriptSearches = boolVectors.indices.map(i =>
+        client.execute(scriptSearch(i)))
       scriptResponses <- Future.sequence(scriptSearches)
 
-      _ = forAll(scriptResponses) { _.isSuccess shouldBe true }
+      _ = forAll(scriptResponses) { _.shouldBeSuccess }
       _ = check(scriptResponses(0), 0)
       _ = check(scriptResponses(1), 1)
       _ = check(scriptResponses(2), 2)

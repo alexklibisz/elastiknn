@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.{Distance, ElasticAsyncClient}
+import com.klibisz.elastiknn.{Distance, Elastic4sMatchers, ElasticAsyncClient}
 import com.klibisz.elastiknn.elastic4s._
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
@@ -9,7 +9,13 @@ import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class SetupRestActionSuite extends AsyncFunSuite with AsyncTimeLimitedTests with Matchers with Inspectors with ElasticAsyncClient {
+class SetupRestActionSuite
+    extends AsyncFunSuite
+    with AsyncTimeLimitedTests
+    with Matchers
+    with Inspectors
+    with Elastic4sMatchers
+    with ElasticAsyncClient {
 
   override def timeLimit: Span = 10.seconds
 
@@ -17,20 +23,22 @@ class SetupRestActionSuite extends AsyncFunSuite with AsyncTimeLimitedTests with
     for {
       setupRes <- client.execute(ElastiKnnSetupRequest())
     } yield {
-      setupRes.isSuccess shouldBe true
+      setupRes.shouldBeSuccess
     }
   }
 
   test("installs stored scripts") {
-    val distances: Seq[String] = Distance.values.tail.map(_.name.toLowerCase.replace("distance_", ""))
+    val distances: Seq[String] =
+      Distance.values.tail.map(_.name.toLowerCase.replace("distance_", ""))
 
     for {
       setupRes <- client.execute(ElastiKnnSetupRequest())
-      getScriptRequests = distances.map(d => client.execute(GetScriptRequest(s"elastiknn-exact-$d")))
+      getScriptRequests = distances.map(d =>
+        client.execute(GetScriptRequest(s"elastiknn-exact-$d")))
       getScriptResults <- Future.sequence(getScriptRequests)
     } yield {
-      setupRes.isSuccess shouldBe true
-      forAll(getScriptResults)(_.isSuccess shouldBe true)
+      setupRes.shouldBeSuccess
+      forAll(getScriptResults)(_.shouldBeSuccess)
     }
   }
 
