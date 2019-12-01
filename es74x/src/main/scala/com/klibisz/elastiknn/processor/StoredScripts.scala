@@ -56,15 +56,6 @@ object StoredScripts {
     Collections.emptyMap()
   )
 
-  // Note on accessing the stored vectors: arrays get sorted when they're indexed, meaning if you access doc['myVec.doubleVector.values'][0]
-  // you'll get the smallest element in the original vector, not the 0th element. See this issue: https://github.com/elastic/elasticsearch/issues/49695
-  // In order to get the original vector, you have to use params._source['myVec']['doubleVector']['values']. This seems
-  // have some performance tradeoffs compared to accessing `doc`. See here:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/5.4/modules-scripting-fields.html#modules-scripting-stored
-  // There is also a "dense vector" datatype, but it's experimental and doesn't implement a way to access the values
-  // in a painless script. So for now we are stuck with accessing params._source. We might come back to this if it proves
-  // to be a huge issue, but exact searches are mainly intended as a testing and demo mechanism anyways.
-
   val exactL1: ExactDoubleScript =
     ExactDoubleScript("elastiknn-exact-l1", dummyScript)
 

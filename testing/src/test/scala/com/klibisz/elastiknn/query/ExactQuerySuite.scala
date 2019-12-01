@@ -36,7 +36,7 @@ class ExactQuerySuite
 
   test("parses test data") {
     for {
-      testData <- Future.fromTry(readTestData("distance_angular-10.json"))
+      testData <- Future.fromTry(readTestData("similarity_angular-10.json"))
     } yield {
       forAll(testData.corpus) { _.getDoubleVector.values should have length 10 }
       forAll(testData.queries) {
@@ -46,7 +46,7 @@ class ExactQuerySuite
   }
 
   for {
-    dist <- Similarity.values.filter(_ == DISTANCE_ANGULAR)
+    dist <- Similarity.values.filter(_ == SIMILARITY_ANGULAR)
     dim <- Seq(10 /*, 128, 512 */ )
   } yield {
     test(s"exact search on $dim-dimensional vectors with $dist distance") {
@@ -54,8 +54,8 @@ class ExactQuerySuite
       val resourceName = s"${dist.name.toLowerCase}-$dim.json"
       val tryReadData = readTestData(resourceName)
       val vectorType = dist match {
-        case DISTANCE_JACCARD | DISTANCE_HAMMING => VECTOR_TYPE_BOOL
-        case _                                   => VECTOR_TYPE_DOUBLE
+        case SIMILARITY_JACCARD | SIMILARITY_HAMMING => VECTOR_TYPE_BOOL
+        case _                                       => VECTOR_TYPE_DOUBLE
       }
 
       val index = s"test-exact-${dist.name.toLowerCase}"

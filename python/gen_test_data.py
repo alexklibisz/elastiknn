@@ -1,12 +1,10 @@
 import json
-import sys
 from dataclasses import dataclass, field
-from datetime import date
-from typing import List, Union
+from typing import List
 
 import numpy as np
 from dataclasses_json import dataclass_json, config
-from google.protobuf.json_format import MessageToJson, MessageToDict
+from google.protobuf.json_format import MessageToDict
 from sklearn.neighbors import NearestNeighbors
 
 from elastiknn.elastiknn_pb2 import *
@@ -68,7 +66,7 @@ def main(argv: List[str]):
 
     for dim in dims:
         for metric in metrics:
-            gen_test_data(dim, 100, 10, metric, f'{output_dir}/distance_{metric}-{dim}.json')
+            gen_test_data(dim, 100, 10, metric, f'{output_dir}/similarity_{metric}-{dim}.json')
 
 
 if __name__ == "__main__":

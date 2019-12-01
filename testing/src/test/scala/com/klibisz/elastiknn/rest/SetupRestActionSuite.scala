@@ -29,7 +29,7 @@ class SetupRestActionSuite
 
   test("installs stored scripts") {
     val distances: Seq[String] =
-      Similarity.values.tail.map(_.name.toLowerCase.replace("distance_", ""))
+      Similarity.values.tail.map(_.name.toLowerCase.replace("similarity_", ""))
 
     for {
       setupRes <- client.execute(ElastiKnnSetupRequest())

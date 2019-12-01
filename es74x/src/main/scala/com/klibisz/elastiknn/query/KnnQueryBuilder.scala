@@ -150,29 +150,29 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
                               ekv: ElastiKnnVector): Try[Query] = {
     import ElastiKnnVector.Vector._
     (opts.similarity, ekv.vector) match {
-      case (DISTANCE_ANGULAR, dvec: DoubleVector) =>
+      case (SIMILARITY_ANGULAR, dvec: DoubleVector) =>
         Success(
           scriptScoreQuery(
             context,
             opts.fieldRaw,
             StoredScripts.exactAngular.script(opts.fieldRaw, dvec)))
-      case (DISTANCE_L1, dvec: DoubleVector) =>
+      case (SIMILARITY_L1, dvec: DoubleVector) =>
         Success(
           scriptScoreQuery(context,
                            opts.fieldRaw,
                            StoredScripts.exactL1.script(opts.fieldRaw, dvec)))
-      case (DISTANCE_L2, dvec: DoubleVector) =>
+      case (SIMILARITY_L2, dvec: DoubleVector) =>
         Success(
           scriptScoreQuery(context,
                            opts.fieldRaw,
                            StoredScripts.exactL2.script(opts.fieldRaw, dvec)))
-      case (DISTANCE_HAMMING, bvec: BoolVector) =>
+      case (SIMILARITY_HAMMING, bvec: BoolVector) =>
         Success(
           scriptScoreQuery(
             context,
             opts.fieldRaw,
             StoredScripts.exactHamming.script(opts.fieldRaw, bvec)))
-      case (DISTANCE_JACCARD, bvec: BoolVector) =>
+      case (SIMILARITY_JACCARD, bvec: BoolVector) =>
         Success(
           scriptScoreQuery(
             context,

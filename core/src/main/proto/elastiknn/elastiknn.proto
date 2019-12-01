@@ -7,11 +7,11 @@ option java_package = "com.klibisz.elastiknn";
 import "scalapb/scalapb.proto";
 
 enum Similarity {
-    DISTANCE_L1 = 0;
-    DISTANCE_L2 = 1;
-    DISTANCE_ANGULAR = 2;
-    DISTANCE_HAMMING = 3;
-    DISTANCE_JACCARD = 4;
+    SIMILARITY_L1 = 0;
+    SIMILARITY_L2 = 1;
+    SIMILARITY_ANGULAR = 2;
+    SIMILARITY_HAMMING = 3;
+    SIMILARITY_JACCARD = 4;
 }
 
 enum VectorType {

@@ -26,7 +26,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
       modelOptions = Lsh(
         LshModelOptions(
           seed = 99,
-          similarity = DISTANCE_ANGULAR,
+          similarity = SIMILARITY_ANGULAR,
           k = 22,
           l = 33,
           fieldProcessed = "field_proc"
@@ -41,7 +41,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
       "lsh" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
-        "similarity" -> DISTANCE_ANGULAR.index,
+        "similarity" -> SIMILARITY_ANGULAR.index,
         "k" -> 22,
         "l" -> 33
       ).asJava
@@ -54,7 +54,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
   test("query serialization and deserialization") {
     val knnq1 = KNearestNeighborsQuery(
       KNearestNeighborsQuery.QueryOptions.Exact(
-        ExactQueryOptions("vecRaw", DISTANCE_ANGULAR)))
+        ExactQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
     val s1 = knnq1.toByteString.toStringUtf8
     val knnq2 =
       KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
