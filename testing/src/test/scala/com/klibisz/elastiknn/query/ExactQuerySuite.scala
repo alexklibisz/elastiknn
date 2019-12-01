@@ -104,10 +104,12 @@ class ExactQuerySuite
             knnQuery(ExactQueryOptions(rawField, sim), query.vector))
           client.execute(req).map(res => query -> res)
         })
+        _ = queriesAndResponses should have length testData.queries.length
 
         _ = forAll(queriesAndResponses) {
           case (query, response) =>
             response.shouldBeSuccess
+            response.result.hits.hits should have length query.indices.length
             forAll(
               query.similarities
                 .zip(query.indices)
