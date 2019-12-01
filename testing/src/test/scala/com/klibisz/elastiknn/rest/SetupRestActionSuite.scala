@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.{Distance, Elastic4sMatchers, ElasticAsyncClient}
 import com.klibisz.elastiknn.elastic4s._
+import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, Similarity}
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
@@ -29,7 +29,7 @@ class SetupRestActionSuite
 
   test("installs stored scripts") {
     val distances: Seq[String] =
-      Distance.values.tail.map(_.name.toLowerCase.replace("distance_", ""))
+      Similarity.values.tail.map(_.name.toLowerCase.replace("distance_", ""))
 
     for {
       setupRes <- client.execute(ElastiKnnSetupRequest())

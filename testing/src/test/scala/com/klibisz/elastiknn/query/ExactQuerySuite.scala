@@ -1,17 +1,18 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.Distance._
+import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
 import com.klibisz.elastiknn.elastic4s._
 import com.klibisz.elastiknn.{
-  Distance,
   Elastic4sMatchers,
   ElasticAsyncClient,
-  ProcessorOptions
+  ProcessorOptions,
+  Similarity
 }
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
 import io.circe.parser.decode
 import org.scalatest._
 
@@ -45,7 +46,7 @@ class ExactQuerySuite
   }
 
   for {
-    dist <- Distance.values.filter(_ == DISTANCE_ANGULAR)
+    dist <- Similarity.values.filter(_ == DISTANCE_ANGULAR)
     dim <- Seq(10 /*, 128, 512 */ )
   } yield {
     test(s"exact search on $dim-dimensional vectors with $dist distance") {
@@ -59,7 +60,9 @@ class ExactQuerySuite
 
       val index = s"test-exact-${dist.name.toLowerCase}"
       val pipeline = s"$index-pipeline"
-      val rawField = "vecRaw"
+      val rawField = "vec"
+      val mapDef =
+        MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
 
       for {
 
@@ -81,11 +84,8 @@ class ExactQuerySuite
         pipelineRes <- client.execute(pipelineReq)
         _ = pipelineRes.shouldBeSuccess
 
-        // Delete the index.
-        _ <- client.execute(deleteIndex(index))
-
-        // Create the index.
-        createIndexRes <- client.execute(createIndex(index))
+        // Create the index with mapping.
+        createIndexRes <- client.execute(createIndex(index).mapping(mapDef))
         _ = createIndexRes.shouldBeSuccess
 
         // Index the vectors
@@ -108,6 +108,7 @@ class ExactQuerySuite
 
         _ = forAll(queriesAndResults) {
           case (query, result) =>
+            println(query)
             result.shouldBeSuccess
         }
 

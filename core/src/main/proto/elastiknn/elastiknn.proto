@@ -6,8 +6,7 @@ option java_package = "com.klibisz.elastiknn";
 
 import "scalapb/scalapb.proto";
 
-// TODO: these should likely be called "similarity" due to how elasticsearch scores queries.
-enum Distance {
+enum Similarity {
     DISTANCE_L1 = 0;
     DISTANCE_L2 = 1;
     DISTANCE_ANGULAR = 2;
@@ -43,20 +42,20 @@ message LshModelOptions {
     // Path to the field where the processed version of the vector is stored.
     string field_processed = 2;
 
-    // The distance function used for queries. This has to be given up-front as it determines how the vector gets processed.
-    Distance distance = 3;
+    // The similarity function used for queries. This has to be given up-front as it determines how the vector gets processed.
+    Similarity similarity = 3;
 
     // Placeholders.. need to come back and get the exact lsh parameters straight. It's been a while since I learned it.
     int32 k = 4;
     int32 L = 5;
 }
 
-// A vector of doubles, used for l1, l2, and angular distances.
+// A vector of doubles, used for l1, l2, and angular similarity.
 message DoubleVector {
     repeated double values = 1 [(scalapb.field).collection_type="Array"];
 }
 
-// A vector of booleans, used for Hamming and Jaccard distances.
+// A vector of booleans, used for Hamming and Jaccard similarity.
 message BoolVector {
     repeated bool values = 2 [(scalapb.field).collection_type="Array"];
 }
@@ -76,7 +75,7 @@ message KNearestNeighborsQuery {
     // Options for running an exact (exhaustive) query. This is only recommended for small datasets.
     message ExactQueryOptions {
         string field_raw = 1;
-        Distance distance = 2;
+        Similarity similarity = 2;
     }
 
     // Options for running locality-sensitive-hashing queries.

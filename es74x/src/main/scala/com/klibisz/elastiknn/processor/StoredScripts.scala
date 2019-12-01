@@ -16,26 +16,36 @@ object StoredScripts {
   sealed trait ExactScript[V <: ElastiKnnVector.Vector] {
     def id: String
     def scriptSource: StoredScriptSource
-    val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(id, "score", new BytesArray("{}"), XContentType.JSON, scriptSource)
+    val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(
+      id,
+      "score",
+      new BytesArray("{}"),
+      XContentType.JSON,
+      scriptSource)
     def script(field: String, other: V): Script
   }
 
-  final case class ExactDoubleScript(id: String, scriptSource: StoredScriptSource) extends ExactScript[ElastiKnnVector.Vector.DoubleVector] {
-    override def script(field: String, other: Vector.DoubleVector): Script = new Script(
-      ScriptType.STORED,
-      null,
-      id,
-      util.Map.of("field", field, "other", other.value.values)
-    )
+  final case class ExactDoubleScript(id: String,
+                                     scriptSource: StoredScriptSource)
+      extends ExactScript[ElastiKnnVector.Vector.DoubleVector] {
+    override def script(field: String, other: Vector.DoubleVector): Script =
+      new Script(
+        ScriptType.STORED,
+        null,
+        id,
+        util.Map.of("field", field, "other", other.value.values)
+      )
   }
 
-  final case class ExactBoolScript(id: String, scriptSource: StoredScriptSource) extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
-    override def script(field: String, other: Vector.BoolVector): Script = new Script(
-      ScriptType.STORED,
-      null,
-      id,
-      util.Map.of("field", field, "other", other.value.values)
-    )
+  final case class ExactBoolScript(id: String, scriptSource: StoredScriptSource)
+      extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
+    override def script(field: String, other: Vector.BoolVector): Script =
+      new Script(
+        ScriptType.STORED,
+        null,
+        id,
+        util.Map.of("field", field, "other", other.value.values)
+      )
   }
 
   protected[elastiknn] val dummyScript = new StoredScriptSource(
@@ -55,22 +65,24 @@ object StoredScripts {
   // in a painless script. So for now we are stuck with accessing params._source. We might come back to this if it proves
   // to be a huge issue, but exact searches are mainly intended as a testing and demo mechanism anyways.
 
-  val exactL1: ExactDoubleScript = ExactDoubleScript("elastiknn-exact-l1", dummyScript)
+  val exactL1: ExactDoubleScript =
+    ExactDoubleScript("elastiknn-exact-l1", dummyScript)
 
-  val exactL2: ExactDoubleScript = ExactDoubleScript("elastiknn-exact-l2", dummyScript)
+  val exactL2: ExactDoubleScript =
+    ExactDoubleScript("elastiknn-exact-l2", dummyScript)
 
   val exactAngular: ExactDoubleScript = ExactDoubleScript(
     "elastiknn-exact-angular",
     new StoredScriptSource(
       "painless",
       """
-        |def a = params._source[params.field]['doubleVector']['values'];
+        |def a = doc[params.field];
         |def b = params.other;
         |double dotprod = 0.0; // Dot product a and b.
         |double asqsum = 0.0;  // Squared sum of a.
         |double bsqsum = 0.0;  // Squared sum of b.
-        |for (int i = 0; i < a.length; i++) {
-        |  dotprod += a[i] * b[i];
+        |for (int i = 0; i < b.length; i++) {
+        |  dotprod += (double) a[i] * b[i];
         |  asqsum += a[i] * a[i];
         |  bsqsum += b[i] * b[i];
         |}
@@ -81,10 +93,13 @@ object StoredScripts {
     )
   )
 
-  val exactHamming: ExactBoolScript = ExactBoolScript("elastiknn-exact-hamming", dummyScript)
+  val exactHamming: ExactBoolScript =
+    ExactBoolScript("elastiknn-exact-hamming", dummyScript)
 
-  val exactJaccard: ExactBoolScript = ExactBoolScript("elastiknn-exact-jaccard", dummyScript)
+  val exactJaccard: ExactBoolScript =
+    ExactBoolScript("elastiknn-exact-jaccard", dummyScript)
 
-  val exactScripts: Seq[ExactScript[_]] = Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
+  val exactScripts: Seq[ExactScript[_]] =
+    Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
 
 }
