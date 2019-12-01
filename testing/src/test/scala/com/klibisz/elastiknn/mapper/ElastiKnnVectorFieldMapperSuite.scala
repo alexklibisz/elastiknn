@@ -1,21 +1,14 @@
 package com.klibisz.elastiknn.mapper
 
-import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.{ElastiKnnVector, ElasticAsyncClient}
 import com.klibisz.elastiknn.elastic4s.scriptScoreQuery
+import com.klibisz.elastiknn.{ElastiKnnVector, ElasticAsyncClient, _}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import com.sksamuel.elastic4s.{
-  Index,
-  Indexes,
-  Response,
-  XContentBuilder,
-  XContentFactory
-}
 import com.sksamuel.elastic4s.requests.mappings.BasicField
-import com.sksamuel.elastic4s.requests.script.{Script, ScriptType}
+import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
-import org.scalatest.{Assertion, AsyncFunSuite, Inspectors, Matchers, Succeeded}
+import com.sksamuel.elastic4s.{Indexes, Response, XContentFactory}
+import org.scalatest._
 import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
@@ -42,14 +35,16 @@ class ElastiKnnVectorFieldMapperSuite
     } yield Succeeded
   }
 
-  test("index and search double vectors") {
-    val indexName = "test-index-access-double-vectors"
+  test("index and script search double vectors") {
+    val indexName = "test-index-script-search-double-vectors"
 
     val doubleVectors = Seq(
       DoubleVector(Array(0.99, 0.12, -0.34)),
       DoubleVector(Array(0.22, 0.19, 0.44)),
       DoubleVector(Array(0.33, -0.119, 0.454))
     )
+
+    val offset = 3
 
     val indexReqs =
       doubleVectors
@@ -64,7 +59,7 @@ class ElastiKnnVectorFieldMapperSuite
                   ))
                 .string()))
 
-    def scriptSearch(i: Int, o: Int = 3): SearchRequest = {
+    def scriptSearch(i: Int): SearchRequest = {
       search(indexName).query(
         scriptScoreQuery(Script(
           s"""
@@ -72,15 +67,15 @@ class ElastiKnnVectorFieldMapperSuite
            |int o = (int) params.o;
            |return a + o;
            |""".stripMargin,
-          params = Map("o" -> o, "field" -> fieldName, "i" -> i)
+          params = Map("o" -> offset, "field" -> fieldName, "i" -> i)
         )))
     }
 
-    def check(r: Response[SearchResponse], i: Int, o: Int = 3): Assertion =
+    def check(r: Response[SearchResponse], i: Int): Assertion =
       r.result.hits.hits
         .map(_.score)
         .sorted shouldBe doubleVectors
-        .map(_.values(i).toFloat + o)
+        .map(_.values(i).toFloat + offset)
         .sorted
         .toArray
 
@@ -95,8 +90,8 @@ class ElastiKnnVectorFieldMapperSuite
 
       indexRes <- client.execute(
         bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
-      _ <- indexRes.isSuccess shouldBe true
-      _ <- indexRes.result.errors shouldBe false
+      _ = indexRes.isSuccess shouldBe true
+      _ = indexRes.result.errors shouldBe false
 
       scriptSearches = (0 until 3).map(i => client.execute(scriptSearch(i)))
       scriptResponses <- Future.sequence(scriptSearches)
@@ -108,9 +103,79 @@ class ElastiKnnVectorFieldMapperSuite
 
     } yield Succeeded
   }
-//
-//  test("index and access bool vectors") {
-//    ???
-//  }
+
+  test("index and script search bool vectors") {
+    val indexName = "test-index-script-search-bool-vectors"
+
+    val boolVectors = Seq(
+      BoolVector(Array(true, false, false)),
+      BoolVector(Array(false, false, true)),
+      BoolVector(Array(true, true, true))
+    )
+
+    val indexReqs =
+      boolVectors
+        .map(
+          v =>
+            indexInto(indexName).source(
+              XContentFactory.jsonBuilder
+                .rawField(
+                  fieldName,
+                  JsonFormat.toJsonString(
+                    ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))
+                  ))
+                .string()))
+
+    val score: Float = 22.2f // has to be float because that's the search response score type.
+
+    def scriptSearch(i: Int): SearchRequest = {
+      search(indexName).query(
+        scriptScoreQuery(Script(
+          s"""
+             |boolean b = (boolean) doc[params.field][params.i];
+             |double score = params.score;
+             |if (b) {
+             |  return score;
+             |} else {
+             |  return 1.0;
+             |}
+             |""".stripMargin,
+          params = Map("score" -> score, "field" -> fieldName, "i" -> i)
+        )))
+    }
+
+    def check(r: Response[SearchResponse], i: Int): Assertion = {
+      val a = r.result.hits.hits.map(_.score).sorted
+      val b = boolVectors
+        .map(bvec => if (bvec.values(i)) score else 1.0f)
+        .sorted
+        .toArray
+      a shouldBe b
+    }
+
+    for {
+      _ <- client.execute(deleteIndex(indexName))
+
+      createRes <- client.execute(createIndex(indexName))
+      _ = createRes.isSuccess shouldBe true
+
+      mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
+      _ <- mappingRes.isSuccess shouldBe true
+
+      indexRes <- client.execute(
+        bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
+      _ = indexRes.isSuccess shouldBe true
+      _ = indexRes.result.errors shouldBe false
+
+      scriptSearches = (0 until 3).map(i => client.execute(scriptSearch(i)))
+      scriptResponses <- Future.sequence(scriptSearches)
+
+      _ = forAll(scriptResponses) { _.isSuccess shouldBe true }
+      _ = check(scriptResponses(0), 0)
+      _ = check(scriptResponses(1), 1)
+      _ = check(scriptResponses(2), 2)
+
+    } yield Succeeded
+  }
 
 }

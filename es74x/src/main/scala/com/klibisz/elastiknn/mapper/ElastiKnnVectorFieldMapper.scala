@@ -21,7 +21,11 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService
 import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
 
-/** Based on DenseVectorFieldMapper and related classes in Elasticsearch. */
+/**
+  * Custom "elastiknn_vector" type which stores ElastiKnnVectors without modifying their order.
+  * Based heavily on the DenseVectorFieldMapper and related classes in Elasticsearch.
+  * See for context:https://github.com/elastic/elasticsearch/issues/49695
+  */
 object ElastiKnnVectorFieldMapper {
 
   val CONTENT_TYPE = s"${ELASTIKNN_NAME}_vector"

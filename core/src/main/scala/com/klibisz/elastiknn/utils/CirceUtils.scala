@@ -18,8 +18,10 @@ object CirceUtils {
       case i: lang.Integer => i.asJson
       case d: lang.Double  => d.asJson
       case f: lang.Float   => f.asJson
+      case b: lang.Boolean => b.asJson
       case l: util.List[_] => Json.fromValues(l.asScala.map(encode))
-      case m: util.Map[_, _] if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
+      case m: util.Map[_, _]
+          if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
         m.asScala.map {
           case (k, v) => k.asInstanceOf[String] -> encode(v)
         }.asJson
