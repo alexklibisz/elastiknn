@@ -134,7 +134,16 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery)
         exactGivenQuery(context, opts, query).get
       case (QueryOptions.Lsh(opts), QueryVector.Given(query)) =>
         lshGivenQuery(context, opts, query).get
-      case _ => ???
+      case (QueryOptions.Empty, QueryVector.Empty) =>
+        throw new IllegalArgumentException(
+          "Missing query options _and_ query vector")
+      case (_, QueryVector.Indexed(_)) =>
+        throw new IllegalArgumentException(
+          "Indexed vector query should should have been rewritten")
+      case (QueryOptions.Empty, _) =>
+        throw new IllegalArgumentException("Missing query options")
+      case (_, QueryVector.Empty) =>
+        throw new IllegalArgumentException("Missing query vector")
     }
 
   /** Checks if a query needs to be rewritten and rewrites it. */
