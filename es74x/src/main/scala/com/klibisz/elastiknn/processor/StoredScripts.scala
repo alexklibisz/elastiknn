@@ -60,7 +60,23 @@ object StoredScripts {
     ExactDoubleScript("elastiknn-exact-l1", dummyScript)
 
   val exactL2: ExactDoubleScript =
-    ExactDoubleScript("elastiknn-exact-l2", dummyScript)
+    ExactDoubleScript(
+      "elastiknn-exact-l2",
+      new StoredScriptSource(
+        "painless",
+        """
+        |def a = doc[params.field];
+        |def b = params.other;
+        |double sumsqdiff = 0.0;
+        |for (int i = 0; i < b.length; i++) {
+        |  sumsqdiff += Math.pow(a[i] - b[i], 2);
+        |}
+        |double dist = Math.sqrt(sumsqdiff);
+        |return 1.0 / (dist + 1e-6);
+        |""".stripMargin,
+        Collections.emptyMap()
+      )
+    )
 
   val exactAngular: ExactDoubleScript = ExactDoubleScript(
     "elastiknn-exact-angular",

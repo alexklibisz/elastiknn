@@ -45,8 +45,10 @@ class ExactQuerySuite
     }
   }
 
+  val filter = Set(SIMILARITY_L2, SIMILARITY_ANGULAR)
+
   for {
-    sim <- Similarity.values.filter(_ == SIMILARITY_ANGULAR)
+    sim <- Similarity.values.filter(filter.contains)
     dim <- Seq(10, 128, 512)
   } yield {
     test(s"exact search on $dim-dimensional vectors with $sim distance") {
