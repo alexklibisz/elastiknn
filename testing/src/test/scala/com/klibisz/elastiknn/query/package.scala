@@ -19,24 +19,15 @@ package object query {
     }
 
   case class Query(vector: ElastiKnnVector,
-                   similarities: Seq[Float],
-                   indices: Seq[Int])
+                   similarities: Vector[Float],
+                   indices: Vector[Int])
   object Query {
     implicit def decQuery: Decoder[Query] = deriveDecoder[Query]
   }
 
-  case class TestData(corpus: Seq[ElastiKnnVector], queries: Seq[Query])
+  case class TestData(corpus: Vector[ElastiKnnVector], queries: Vector[Query])
   object TestData {
     implicit def decTestData: Decoder[TestData] = deriveDecoder[TestData]
   }
-
-}
-
-object Dummy extends App {
-
-//  val bv = ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(BoolVector(values = Array(true, false, true))))
-
-//  val bv = JsonFormat.fromJsonString[ElastiKnnVector](s)
-//  println(bv.getBoolVector.values.toSeq)
 
 }
