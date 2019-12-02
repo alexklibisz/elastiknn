@@ -58,9 +58,9 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
         pb_corpus_vecs = [ElastiKnnVector(bool_vector=BoolVector(values=list(map(bool, _)))) for _ in np_corpus_vecs]
         pb_query_vecs = [ElastiKnnVector(bool_vector=BoolVector(values=list(map(bool, _)))) for _ in np_query_vecs]
     else:
-        pb_corpus_vecs = [ElastiKnnVector(double_vector=DoubleVector(values=list(map(float, _)))) for _ in
+        pb_corpus_vecs = [ElastiKnnVector(float_vector=FloatVector(values=list(map(float, _)))) for _ in
                           np_corpus_vecs]
-        pb_query_vecs = [ElastiKnnVector(double_vector=DoubleVector(values=list(map(float, _)))) for _ in np_query_vecs]
+        pb_query_vecs = [ElastiKnnVector(float_vector=FloatVector(values=list(map(float, _)))) for _ in np_query_vecs]
 
     queries = [
         Query(vector=vec, similarities=list(map(lambda d: d2s(float(d)), dists_)), indices=list(map(int, inds_)))

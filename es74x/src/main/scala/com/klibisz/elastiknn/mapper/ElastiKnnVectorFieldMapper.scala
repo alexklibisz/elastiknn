@@ -35,19 +35,13 @@ object ElastiKnnVectorFieldMapper {
   class TypeParser extends Mapper.TypeParser {
 
     /** This method gets called when you create a mapping with this type. */
-    override def parse(name: String,
-                       node: util.Map[String, AnyRef],
-                       parserContext: ParserContext): Mapper.Builder[_, _] =
+    override def parse(name: String, node: util.Map[String, AnyRef], parserContext: ParserContext): Mapper.Builder[_, _] =
       new Builder(name)
   }
 
   class Builder(name: String)
-      extends FieldMapper.Builder[ElastiKnnVectorFieldMapper.Builder,
-                                  ElastiKnnVectorFieldMapper](name,
-                                                              fieldType,
-                                                              fieldType) {
-    override def build(
-        context: Mapper.BuilderContext): ElastiKnnVectorFieldMapper = {
+      extends FieldMapper.Builder[ElastiKnnVectorFieldMapper.Builder, ElastiKnnVectorFieldMapper](name, fieldType, fieldType) {
+    override def build(context: Mapper.BuilderContext): ElastiKnnVectorFieldMapper = {
       super.setupFieldType(context)
       new ElastiKnnVectorFieldMapper(name,
                                      fieldType,
@@ -64,25 +58,22 @@ object ElastiKnnVectorFieldMapper {
     override def clone(): FieldType = new FieldType()
 
     override def termQuery(value: Any, context: QueryShardContext): Query =
-      throw new UnsupportedOperationException(
-        s"Field [${name()}] of type [${typeName()}] doesn't support queries")
+      throw new UnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support queries")
 
     override def existsQuery(context: QueryShardContext): Query =
       new DocValuesFieldExistsQuery(name())
 
-    override def fielddataBuilder(
-        indexName: String): fielddata.IndexFieldData.Builder =
+    override def fielddataBuilder(indexName: String): fielddata.IndexFieldData.Builder =
       FieldData.Builder
   }
 
   object FieldData {
     object Builder extends fielddata.IndexFieldData.Builder {
-      override def build(
-          indexSettings: IndexSettings,
-          fieldType: MappedFieldType,
-          cache: fielddata.IndexFieldDataCache,
-          breakerService: CircuitBreakerService,
-          mapperService: MapperService): fielddata.IndexFieldData[_] =
+      override def build(indexSettings: IndexSettings,
+                         fieldType: MappedFieldType,
+                         cache: fielddata.IndexFieldDataCache,
+                         breakerService: CircuitBreakerService,
+                         mapperService: MapperService): fielddata.IndexFieldData[_] =
         new FieldData(indexSettings.getIndex, fieldType.name)
     }
   }
@@ -103,8 +94,7 @@ object ElastiKnnVectorFieldMapper {
       throw new UnsupportedOperationException("Sorting is not supported")
   }
 
-  class AtomicFieldData(reader: LeafReader, field: String)
-      extends fielddata.AtomicFieldData {
+  class AtomicFieldData(reader: LeafReader, field: String) extends fielddata.AtomicFieldData {
 
     private lazy val bdv: BinaryDocValues = DocValues.getBinary(reader, field)
 
@@ -112,16 +102,14 @@ object ElastiKnnVectorFieldMapper {
       new ScriptDocValues(bdv)
 
     override def getBytesValues: fielddata.SortedBinaryDocValues =
-      throw new UnsupportedOperationException(
-        "String representation of doc values for elastiknn_vector fields is not supported")
+      throw new UnsupportedOperationException("String representation of doc values for elastiknn_vector fields is not supported")
 
     override def ramBytesUsed(): Long = 0L
 
     override def close(): Unit = ()
   }
 
-  class ScriptDocValues(in: BinaryDocValues)
-      extends fielddata.ScriptDocValues[Any] {
+  class ScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
     private var ekv: Option[ElastiKnnVector] = None
 
@@ -131,13 +119,12 @@ object ElastiKnnVectorFieldMapper {
       else ekv = None
 
     override def get(i: Int): Any = ekv match {
-      case Some(ElastiKnnVector(ElastiKnnVector.Vector.DoubleVector(v))) =>
+      case Some(ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(v))) =>
         v.values(i)
       case Some(ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))) =>
         v.values(i)
       case _ =>
-        throw new IllegalStateException(
-          s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
+        throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
     }
 
     override def size(): Int = ekv match {
@@ -154,12 +141,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
                                  indexSettings: Settings,
                                  multiFields: FieldMapper.MultiFields,
                                  copyTo: CopyTo)
-    extends FieldMapper(simpleName,
-                        fieldType,
-                        defaultFieldType,
-                        indexSettings,
-                        multiFields,
-                        copyTo) {
+    extends FieldMapper(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo) {
 
   override def parse(context: ParseContext): Unit = {
     val json = context.parser.map.asJson(mapEncoder)
@@ -169,8 +151,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     context.doc.addWithKey(name, field)
   }
 
-  override def parseCreateField(context: ParseContext,
-                                fields: util.List[IndexableField]): Unit =
+  override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
     throw new IllegalStateException("parse is implemented directly")
 
   override def contentType(): String = {

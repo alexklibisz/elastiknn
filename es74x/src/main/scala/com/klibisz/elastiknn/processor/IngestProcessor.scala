@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.processor
 import java.util
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_DOUBLE
+import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_FLOAT
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn._
 import io.circe.syntax._
@@ -20,20 +20,18 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
   import IngestProcessor.TYPE
   import popts._
 
-  private def parseDoubleVector(doc: IngestDocument): Try[DoubleVector] = {
-    val key = doubleVectorPath(fieldRaw)
+  private def parseFloatVector(doc: IngestDocument): Try[FloatVector] = {
+    val key = floatVectorPath(fieldRaw)
     Try(doc.getFieldValue(key, classOf[util.List[Double]]))
-      .map(ld => DoubleVector(values = ld.asScala.toArray))
+      .map(ld => FloatVector(values = ld.asScala.toArray))
       .recoverWith {
         case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of doubles at $key")))
       }
-      .flatMap {
-        dv =>
-          if (dv.values.length == popts.dimension) Success(dv)
-          else Failure(VectorDimensionException(dv.values.length, popts.dimension))
+      .flatMap { dv =>
+        if (dv.values.length == popts.dimension) Success(dv)
+        else Failure(VectorDimensionException(dv.values.length, popts.dimension))
       }
   }
-
 
   private def parseBoolVector(doc: IngestDocument): Try[BoolVector] = {
     val key = boolVectorPath(fieldRaw)
@@ -42,10 +40,9 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
       .recoverWith {
         case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of booleans at $key")))
       }
-      .flatMap {
-        dv =>
-          if (dv.values.length == popts.dimension) Success(dv)
-          else Failure(VectorDimensionException(dv.values.length, popts.dimension))
+      .flatMap { dv =>
+        if (dv.values.length == popts.dimension) Success(dv)
+        else Failure(VectorDimensionException(dv.values.length, popts.dimension))
       }
   }
 
@@ -60,7 +57,7 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
     popts.modelOptions match {
       // For exact models, just make sure the vector can be parsed.
       case ModelOptions.Empty | ModelOptions.Exact(_) =>
-        if (popts.vectorType == VECTOR_TYPE_DOUBLE) parseDoubleVector(doc).get else parseBoolVector(doc).get
+        if (popts.vectorType == VECTOR_TYPE_FLOAT) parseFloatVector(doc).get else parseBoolVector(doc).get
     }
 
     doc

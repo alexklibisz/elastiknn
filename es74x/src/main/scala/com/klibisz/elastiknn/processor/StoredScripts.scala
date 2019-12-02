@@ -15,22 +15,20 @@ object StoredScripts {
   sealed trait ExactScript[V <: ElastiKnnVector.Vector] {
     def id: String
     def script: String
-    val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(
-      id,
-      "score",
-      new BytesArray("{}"),
-      XContentType.JSON,
-      new StoredScriptSource(
-        "painless",
-        script,
-        Collections.emptyMap()
-      ))
+    val putRequest: PutStoredScriptRequest = new PutStoredScriptRequest(id,
+                                                                        "score",
+                                                                        new BytesArray("{}"),
+                                                                        XContentType.JSON,
+                                                                        new StoredScriptSource(
+                                                                          "painless",
+                                                                          script,
+                                                                          Collections.emptyMap()
+                                                                        ))
     def script(field: String, other: V): Script
   }
 
-  final case class ExactDoubleScript(id: String, script: String)
-      extends ExactScript[ElastiKnnVector.Vector.DoubleVector] {
-    override def script(field: String, other: Vector.DoubleVector): Script =
+  final case class ExactDoubleScript(id: String, script: String) extends ExactScript[ElastiKnnVector.Vector.FloatVector] {
+    override def script(field: String, other: Vector.FloatVector): Script =
       new Script(
         ScriptType.STORED,
         null,
@@ -39,8 +37,7 @@ object StoredScripts {
       )
   }
 
-  final case class ExactBoolScript(id: String, script: String)
-      extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
+  final case class ExactBoolScript(id: String, script: String) extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
     override def script(field: String, other: Vector.BoolVector): Script =
       new Script(
         ScriptType.STORED,

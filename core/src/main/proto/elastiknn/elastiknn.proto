@@ -15,7 +15,7 @@ enum Similarity {
 }
 
 enum VectorType {
-    VECTOR_TYPE_DOUBLE = 0;
+    VECTOR_TYPE_FLOAT = 0;
     VECTOR_TYPE_BOOL = 1;
 }
 
@@ -51,7 +51,7 @@ message LshModelOptions {
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.
-message DoubleVector {
+message FloatVector {
     repeated double values = 1 [(scalapb.field).collection_type="Array"];
 }
 
@@ -63,7 +63,7 @@ message BoolVector {
 // Generic representation of a vector.
 message ElastiKnnVector {
     oneof vector {
-        DoubleVector double_vector = 1;
+        FloatVector float_vector = 1;
         BoolVector bool_vector = 2;
     }
 }

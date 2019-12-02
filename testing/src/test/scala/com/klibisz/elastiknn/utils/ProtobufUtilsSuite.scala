@@ -4,13 +4,9 @@ import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_DOUBLE
+import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_FLOAT
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn.{
-  KNearestNeighborsQuery,
-  LshModelOptions,
-  ProcessorOptions
-}
+import com.klibisz.elastiknn.{KNearestNeighborsQuery, LshModelOptions, ProcessorOptions}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
@@ -22,7 +18,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
     val procOptActual = ProcessorOptions(
       fieldRaw = "field_raw",
       dimension = 222,
-      vectorType = VECTOR_TYPE_DOUBLE,
+      vectorType = VECTOR_TYPE_FLOAT,
       modelOptions = Lsh(
         LshModelOptions(
           seed = 99,
@@ -37,7 +33,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
       "fieldRaw" -> "field_raw",
       "dimension" -> 222,
       "exact" -> null,
-      "vectorType" -> VECTOR_TYPE_DOUBLE.value,
+      "vectorType" -> VECTOR_TYPE_FLOAT.value,
       "lsh" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
@@ -52,9 +48,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
   }
 
   test("query serialization and deserialization") {
-    val knnq1 = KNearestNeighborsQuery(
-      KNearestNeighborsQuery.QueryOptions.Exact(
-        ExactQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
+    val knnq1 = KNearestNeighborsQuery(KNearestNeighborsQuery.QueryOptions.Exact(ExactQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
     val s1 = knnq1.toByteString.toStringUtf8
     val knnq2 =
       KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)

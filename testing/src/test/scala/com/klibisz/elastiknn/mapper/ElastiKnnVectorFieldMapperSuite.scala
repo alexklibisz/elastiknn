@@ -14,12 +14,7 @@ import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
 
-class ElastiKnnVectorFieldMapperSuite
-    extends AsyncFunSuite
-    with Matchers
-    with Inspectors
-    with Elastic4sMatchers
-    with ElasticAsyncClient {
+class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient {
 
   private val fieldName = "ekv"
   private val field = BasicField(fieldName, "elastiknn_vector")
@@ -29,8 +24,7 @@ class ElastiKnnVectorFieldMapperSuite
     for {
       _ <- client.execute(deleteIndex(indexName))
 
-      createRes: Response[CreateIndexResponse] <- client.execute(
-        createIndex(indexName))
+      createRes: Response[CreateIndexResponse] <- client.execute(createIndex(indexName))
       _ = createRes.shouldBeSuccess
 
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
@@ -41,25 +35,24 @@ class ElastiKnnVectorFieldMapperSuite
   test("index and script search double vectors") {
     val indexName = "test-index-script-search-double-vectors"
 
-    val doubleVectors = Seq(
-      DoubleVector(Array(0.99, 0.12, -0.34)),
-      DoubleVector(Array(0.22, 0.19, 0.44)),
-      DoubleVector(Array(0.33, -0.119, 0.454))
+    val floatVectors = Seq(
+      FloatVector(Array(0.99, 0.12, -0.34)),
+      FloatVector(Array(0.22, 0.19, 0.44)),
+      FloatVector(Array(0.33, -0.119, 0.454))
     )
 
     val offset = 3
 
     val indexReqs =
-      doubleVectors
+      floatVectors
         .map(
           v =>
             indexInto(indexName).source(
               XContentFactory.jsonBuilder
-                .rawField(
-                  fieldName,
-                  JsonFormat.toJsonString(
-                    ElastiKnnVector(ElastiKnnVector.Vector.DoubleVector(v))
-                  ))
+                .rawField(fieldName,
+                          JsonFormat.toJsonString(
+                            ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(v))
+                          ))
                 .string()))
 
     def scriptSearch(i: Int): SearchRequest = {
@@ -77,7 +70,7 @@ class ElastiKnnVectorFieldMapperSuite
     def check(r: Response[SearchResponse], i: Int): Assertion =
       r.result.hits.hits
         .map(_.score)
-        .sorted shouldBe doubleVectors
+        .sorted shouldBe floatVectors
         .map(_.values(i).toFloat + offset)
         .sorted
         .toArray
@@ -91,13 +84,11 @@ class ElastiKnnVectorFieldMapperSuite
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
       _ <- mappingRes.shouldBeSuccess
 
-      indexRes <- client.execute(
-        bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
+      indexRes <- client.execute(bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
       _ = indexRes.shouldBeSuccess
       _ = indexRes.result.errors shouldBe false
 
-      scriptSearches = doubleVectors.indices.map(i =>
-        client.execute(scriptSearch(i)))
+      scriptSearches = floatVectors.indices.map(i => client.execute(scriptSearch(i)))
       scriptResponses <- Future.sequence(scriptSearches)
 
       _ = forAll(scriptResponses) { _.shouldBeSuccess }
@@ -123,11 +114,10 @@ class ElastiKnnVectorFieldMapperSuite
           v =>
             indexInto(indexName).source(
               XContentFactory.jsonBuilder
-                .rawField(
-                  fieldName,
-                  JsonFormat.toJsonString(
-                    ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))
-                  ))
+                .rawField(fieldName,
+                          JsonFormat.toJsonString(
+                            ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))
+                          ))
                 .string()))
 
     val score: Float = 22.2f // has to be float because that's the search response score type.
@@ -166,13 +156,11 @@ class ElastiKnnVectorFieldMapperSuite
       mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
       _ <- mappingRes.shouldBeSuccess
 
-      indexRes <- client.execute(
-        bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
+      indexRes <- client.execute(bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))
       _ = indexRes.shouldBeSuccess
       _ = indexRes.result.errors shouldBe false
 
-      scriptSearches = boolVectors.indices.map(i =>
-        client.execute(scriptSearch(i)))
+      scriptSearches = boolVectors.indices.map(i => client.execute(scriptSearch(i)))
       scriptResponses <- Future.sequence(scriptSearches)
 
       _ = forAll(scriptResponses) { _.shouldBeSuccess }

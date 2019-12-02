@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_DOUBLE}
+import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_FLOAT}
 import com.klibisz.elastiknn.elastic4s._
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions, Similarity}
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -34,9 +34,9 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
     for {
       testData <- Future.fromTry(readTestData("similarity_angular-10.json"))
     } yield {
-      forAll(testData.corpus) { _.getDoubleVector.values should have length 10 }
+      forAll(testData.corpus) { _.getFloatVector.values should have length 10 }
       forAll(testData.queries) {
-        _.vector.getDoubleVector.values should have length 10
+        _.vector.getFloatVector.values should have length 10
       }
     }
   }
@@ -51,7 +51,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
       val tryReadData = readTestData(resourceName)
       val vectorType = sim match {
         case SIMILARITY_JACCARD | SIMILARITY_HAMMING => VECTOR_TYPE_BOOL
-        case _                                       => VECTOR_TYPE_DOUBLE
+        case _                                       => VECTOR_TYPE_FLOAT
       }
 
       val index = s"test-exact-${sim.name.toLowerCase}"
