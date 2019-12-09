@@ -38,6 +38,7 @@ dependencies {
     implementation 'io.circe:circe-generic_2.12:0.12.2'
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
+    implementation 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
 }
 
 protobuf {

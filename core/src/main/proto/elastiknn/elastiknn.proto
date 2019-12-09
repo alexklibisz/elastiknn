@@ -57,7 +57,13 @@ message FloatVector {
 
 // A vector of booleans, used for Hamming and Jaccard similarity.
 message BoolVector {
-    repeated bool values = 2 [(scalapb.field).collection_type="Array"];
+    repeated bool values = 1 [(scalapb.field).collection_type="Array"];
+}
+
+// A sparse vector of booleans, represented by the true indices and total number of indices.
+message SparseBoolVector {
+    repeated int32 true_indices = 1 [(scalapb.field).collection_type="Set"];
+    int32 total_indices = 2;
 }
 
 // Generic representation of a vector.
@@ -65,6 +71,7 @@ message ElastiKnnVector {
     oneof vector {
         FloatVector float_vector = 1;
         BoolVector bool_vector = 2;
+        SparseBoolVector sparse_bool_vector = 3;
     }
 }
 

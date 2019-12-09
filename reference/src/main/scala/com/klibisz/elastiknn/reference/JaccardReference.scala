@@ -1,11 +1,39 @@
 package com.klibisz.elastiknn.reference
 
+import com.klibisz.elastiknn.SparseBoolVector
+import com.klibisz.elastiknn.utils.Implicits._
 import org.apache.commons.math3.primes.Primes
+import org.apache.spark.ml.feature.MinHashLSH
 
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
-object Jaccard {
+trait JaccardModel {
+
+  /** Fit/store/index the given corpus and return an instance that can accept queries against the given corpus. */
+  def fit(corpus: Seq[SparseBoolVector]): JaccardModel
+
+  /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
+  def query(query: SparseBoolVector, k: Int): Seq[Int]
+
+}
+
+class ExactJaccardModel(corpus: Seq[SparseBoolVector] = Seq.empty) extends JaccardModel {
+
+  def fit(corpus: Seq[SparseBoolVector]) = new ExactJaccardModel(corpus)
+
+  def query(query: SparseBoolVector, k: Int): Seq[Int] =
+    corpus.zipWithIndex
+      .map {
+        case (v, i) => i -> v.jaccardSim(query)
+      }
+      .topK(k, _._2)
+      .map(_._1)
+      .toVector
+
+}
+
+object JaccardReference {
 
   def exact(a: Vector[Boolean], b: Vector[Boolean]): Double = {
     val isec = a.zip(b).count { case (ai, bi) => ai && bi }
@@ -72,32 +100,53 @@ object Jaccard {
     approx.toVector
   }
 
+  def spark(): Unit = {
+
+    val mh = new MinHashLSH()
+      .setNumHashTables(3)
+      .setInputCol("keys")
+      .setOutputCol("values")
+
+  }
+
+  implicit class NiceVectors(vec: Vector[Double]) {
+    def maxSortedIndices: Vector[Int] = vec.zipWithIndex.sortBy(_._1 * -1).map(_._2)
+  }
+
+  def evaluate(m1: JaccardModel, m2: JaccardModel, corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector]): Unit = {}
+
   def main(args: Array[String]): Unit = {
 
     implicit val rng = new scala.util.Random(0)
-    val corpusSize = 10
+    val corpusSize = 100
+    val numQueries = 10
 
-    val k = 50 // Dimensions of each vector
+    val k = 6 // Dimensions of each vector
 
-    // Random corpus.
-    val corpus: Vector[Vector[Boolean]] = for {
-      _ <- (0 until corpusSize).toVector
-    } yield (0 until k).toVector.map(_ => rng.nextBoolean())
+    // Random corpus and queries.
+    val corpus: Seq[SparseBoolVector] = SparseBoolVector.random(k, corpusSize)
+    val queries: Seq[SparseBoolVector] = SparseBoolVector.random(k, numQueries)
 
-    // Random query vector.
-    val query: Vector[Boolean] = (0 until k).toVector.map(_ => rng.nextBoolean())
+    ???
 
-    println(s"Q ${query.mkString(",")}")
-    for (c <- corpus) println(s"C ${c.mkString(",")}")
-
-    println("Exact jaccard:")
-    println(exact(corpus, query).map(s => f"$s%.3f").mkString(","))
-
-    println("Approximate minhash:")
-    for (i <- 0 to 20) {
-      val approx = approxMinhash(corpus, query, 10, 2)(new Random(i))
-      println(approx.map(s => f"$s%.3f").mkString(","))
-    }
+//    // Random query vector.
+//    val query: Vector[Boolean] = (0 until k).toVector.map(_ => rng.nextBoolean())
+//
+//    println(s"Q ${query.mkString(",")}")
+//    for (c <- corpus) println(s"C ${c.mkString(",")}")
+//
+//    println("Exact jaccard:")
+//    val ex = new ExactJaccardModel(corpus)
+//
+//    println(exact(corpus, query).maxSortedIndices)
+//
+//    println("Spark minhash:")
+//
+//    println("Approximate minhash:")
+//    for (i <- 0 to 20) {
+//      val approx = approxMinhash(corpus, query, 10, 2)(new Random(i))
+//      println(approx.maxSortedIndices)
+//    }
 
   }
 

@@ -16,7 +16,9 @@ group = rootProject.properties['group']
 version = rootProject.properties['pluginVersion']
 
 dependencies {
+    implementation project(':core')
     runtime 'org.scala-lang:scala-library:2.12.8'
     implementation 'org.scala-lang:scala-library:2.12.8'
     implementation 'org.apache.commons:commons-math3:3.6.1'
+    implementation 'org.apache.spark:spark-mllib_2.12:2.4.4'
 }
