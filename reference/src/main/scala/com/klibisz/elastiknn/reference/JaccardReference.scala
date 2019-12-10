@@ -3,7 +3,10 @@ package com.klibisz.elastiknn.reference
 import com.klibisz.elastiknn.SparseBoolVector
 import com.klibisz.elastiknn.utils.Implicits._
 import org.apache.commons.math3.primes.Primes
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.feature.MinHashLSH
+import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
 import scala.collection.immutable
 import scala.util.Random
@@ -97,16 +100,36 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int)(implicit 
   }
 }
 
-object JaccardReference {
+class SparkModel(numTables: Int, numBands: Int, numRows: Int)(implicit spark: SparkSession) extends JaccardModel {
 
-  def spark(): Unit = {
+  private def toSparkSparseVector(sbv: SparseBoolVector) = Vectors.sparse(sbv.totalIndices, sbv.trueIndices.map(_ -> 1.0).toSeq)
 
-    val mh = new MinHashLSH()
-      .setNumHashTables(3)
+  private def toDF(vectors: Seq[SparseBoolVector]): DataFrame =
+    spark
+      .createDataFrame(vectors.zipWithIndex.map {
+        case (v, i) => i -> toSparkSparseVector(v)
+      })
+      .toDF("id", "keys")
+
+  /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
+  def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
+
+    val corpusDF = toDF(corpus)
+    val model = new MinHashLSH()
+      .setNumHashTables(numTables)
       .setInputCol("keys")
       .setOutputCol("values")
+      .fit(corpusDF)
+    val corpusTransformed = model.transform(corpusDF).cache()
 
+    for (q <- queries) yield {
+      val ds = model.approxNearestNeighbors(corpusTransformed, toSparkSparseVector(q), k)
+      ds.toDF.select("id").rdd.map(_.getInt(0)).collect().toVector
+    }
   }
+}
+
+object JaccardReference {
 
   def recall[T](relevant: Traversable[T], retrieved: Traversable[T]): Double =
     relevant.toSet.intersect(retrieved.toSet).size * 1.0 / retrieved.size
@@ -117,6 +140,7 @@ object JaccardReference {
   def main(args: Array[String]): Unit = {
 
     implicit val rng = new scala.util.Random(0)
+    implicit val ss: SparkSession = SparkSession.builder.master("local").appName("Jaccard Reference").getOrCreate()
 
     val corpusSize = 100
     val numQueries = 10
@@ -128,28 +152,11 @@ object JaccardReference {
     val queries: Seq[SparseBoolVector] = SparseBoolVector.random(dim, numQueries)
 
     val exactResult: Seq[Vector[Int]] = ExactJaccardModel.query(corpus, queries, k)
-    val modelResult: Seq[Vector[Int]] = new MinhashJaccardModel(75, 20, 3).query(corpus, queries, k)
+    val sparkResult = new SparkModel(10, 20, 3).query(corpus, queries, k)
+    val modelResult: Seq[Vector[Int]] = new MinhashJaccardModel(120, 20, 3).query(corpus, queries, k)
 
-    print(meanRecall(exactResult, modelResult))
-
-//    // Random query vector.
-//    val query: Vector[Boolean] = (0 until k).toVector.map(_ => rng.nextBoolean())
-//
-//    println(s"Q ${query.mkString(",")}")
-//    for (c <- corpus) println(s"C ${c.mkString(",")}")
-//
-//    println("Exact jaccard:")
-//    val ex = new ExactJaccardModel(corpus)
-//
-//    println(exact(corpus, query).maxSortedIndices)
-//
-//    println("Spark minhash:")
-//
-//    println("Approximate minhash:")
-//    for (i <- 0 to 20) {
-//      val approx = approxMinhash(corpus, query, 10, 2)(new Random(i))
-//      println(approx.maxSortedIndices)
-//    }
+    println(meanRecall(exactResult, modelResult))
+    println(meanRecall(exactResult, sparkResult))
 
   }
 
