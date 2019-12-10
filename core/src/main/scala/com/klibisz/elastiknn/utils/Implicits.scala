@@ -27,6 +27,7 @@ object Implicits {
       val bsum: Int = other.lengthTrue
       isec.toDouble / (asum + bsum - isec)
     }
+
   }
 
   implicit class SparseBoolVectorCompanionImplicits(sbvc: GeneratedMessageCompanion[SparseBoolVector]) {

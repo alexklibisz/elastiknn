@@ -5,100 +5,99 @@ import com.klibisz.elastiknn.utils.Implicits._
 import org.apache.commons.math3.primes.Primes
 import org.apache.spark.ml.feature.MinHashLSH
 
+import scala.collection.immutable
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
 trait JaccardModel {
 
-  /** Fit/store/index the given corpus and return an instance that can accept queries against the given corpus. */
-  def fit(corpus: Seq[SparseBoolVector]): JaccardModel
-
   /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
-  def query(query: SparseBoolVector, k: Int): Seq[Int]
+  def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]]
 
 }
 
-class ExactJaccardModel(corpus: Seq[SparseBoolVector] = Seq.empty) extends JaccardModel {
+object ExactJaccardModel extends JaccardModel {
 
-  def fit(corpus: Seq[SparseBoolVector]) = new ExactJaccardModel(corpus)
+  def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]] =
+    for (query <- queries)
+      yield
+        corpus.zipWithIndex
+          .map {
+            case (v, i) => i -> v.jaccardSim(query)
+          }
+          .topK(k, _._2)
+          .toVector
+          .sortBy(_._2)
+          .reverse
+          .map(_._1)
+          .toVector
 
-  def query(query: SparseBoolVector, k: Int): Seq[Int] =
-    corpus.zipWithIndex
-      .map {
-        case (v, i) => i -> v.jaccardSim(query)
-      }
-      .topK(k, _._2)
-      .map(_._1)
-      .toVector
+}
 
+class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int)(implicit rng: Random) extends JaccardModel {
+
+  // Based loosely on: https://github.com/chrisjmccormick/MinHash/blob/master/runMinHashExample.py
+
+  def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
+
+    val dim = corpus.head.length
+    val numHashes = numBands * numRows
+    val nextPrime = Primes.nextPrime(dim)
+
+    // Each table is represented by a function mapping a vector to a hash value for each band.
+    def table(): SparseBoolVector => Vector[Int] = {
+      // Define hash functions.
+      val hashFuncs: Vector[Int => Int] = (for {
+        _ <- 0 until numHashes
+        a = rng.nextInt(dim)
+        b = rng.nextInt(dim)
+      } yield (x: Int) => (a * x + b) % nextPrime).toVector
+
+      // Compute signatures using hash functions.
+      def sig(vec: SparseBoolVector): Vector[Int] =
+        for {
+          f <- hashFuncs
+          hashed = vec.trueIndices.map(f)
+        } yield if (hashed.nonEmpty) hashed.min else Int.MaxValue
+
+      // Group into bands and hash.
+      def hashBands(sig: Vector[Int]): Vector[Int] =
+        for (group <- sig.grouped(numRows).toVector)
+          yield MurmurHash3.orderedHash(group)
+
+      (sbv: SparseBoolVector) =>
+        hashBands(sig(sbv))
+    }
+
+    val tables = (0 until numTables).map(_ => table())
+
+    // Index maps from (table number, band number, hash) to list of corpus indices.
+    val preIndex = for {
+      (t, ti) <- tables.zipWithIndex
+      (c, ci) <- corpus.zipWithIndex
+      (b, bi) <- t(c).zipWithIndex
+    } yield (ti, bi, b) -> ci
+
+    val index: Map[(Int, Int, Int), Vector[Int]] = preIndex.groupBy(_._1).mapValues(_.map(_._2).toVector)
+
+    // Compute the hashes for each query vector, accumulate the list of candidates, count them to get the top k.
+    for (q <- queries) yield {
+      // Accumulate a list of candidates with possible duplicates.
+      val candidates: IndexedSeq[Int] = for {
+        (t, ti) <- tables.zipWithIndex
+        (b, bi) <- t(q).zipWithIndex
+        c <- index.getOrElse((ti, bi, b), Vector.empty[Int])
+      } yield c
+
+      // Flatten the list into a mapping from candidate id to its number of occurrences.
+      val counted: Map[Int, Int] = candidates.groupBy(identity).mapValues(_.length)
+
+      counted.toVector.topK(k, _._2).map(_._1).toVector
+    }
+  }
 }
 
 object JaccardReference {
-
-  def exact(a: Vector[Boolean], b: Vector[Boolean]): Double = {
-    val isec = a.zip(b).count { case (ai, bi) => ai && bi }
-    val asum = a.count(identity)
-    val bsum = b.count(identity)
-    isec * 1.0 / (asum + bsum - isec)
-  }
-
-  // Returns the mapping of index -> similarity.
-  def exact(corpus: Vector[Vector[Boolean]], query: Vector[Boolean]): Vector[Double] =
-    for (c <- corpus) yield exact(c, query)
-
-  /**
-    * Approximate Jaccard using Minhashing.
-    * Based loosely on:
-    *  - https://github.com/chrisjmccormick/MinHash/blob/master/runMinHashExample.py
-    * @param corpus
-    * @param query
-    * @param numBands
-    * @param numRowsInBand
-    * @return
-    */
-  def approxMinhash(corpus: Vector[Vector[Boolean]], query: Vector[Boolean], numBands: Int, numRowsInBand: Int)(
-      implicit rng: Random): Vector[Double] = {
-
-    val dim = corpus.head.length
-    val numHashes = numBands * numRowsInBand
-
-    // Define hash functions.
-    val nextPrime: Int = Primes.nextPrime(dim)
-    val hashFuncs: Seq[Int => Int] = for {
-      _ <- 0 until numHashes
-      a = rng.nextInt(dim)
-      b = rng.nextInt(dim)
-    } yield (x: Int) => (a * x + b) % nextPrime
-
-    // Compute corpus and query signatures.
-    def signature(vec: Vector[Boolean]): Vector[Int] =
-      for {
-        f <- hashFuncs.toVector
-        hashed = vec.zipWithIndex.filter(_._1).map(_._2).map(f)
-      } yield if (hashed.nonEmpty) hashed.min else Int.MaxValue
-
-    val corpusSignatures: Seq[Vector[Int]] = corpus.map(signature)
-    require(corpusSignatures.length == corpus.length)
-    corpusSignatures.foreach(sig => require(sig.length == numHashes, "One signature per hash function"))
-
-    val querySignature: Vector[Int] = signature(query)
-
-    // Group into bands.
-    val corpusSignaturesBanded: Seq[Vector[Vector[Int]]] = corpusSignatures.map(_.grouped(numRowsInBand).toVector)
-    val querySignatureBanded: Vector[Vector[Int]] = querySignature.grouped(numRowsInBand).toVector
-
-    // Hash each band.
-    val corpusSignaturesHashed: Seq[Vector[Int]] = corpusSignaturesBanded.map(_.map(MurmurHash3.orderedHash))
-    val querySignatureHashed: Vector[Int] = querySignatureBanded.map(MurmurHash3.orderedHash)
-
-    // Approximate jaccard similarity by computing the fraction of equivalent hashed bands.
-    val approx: Seq[Double] = for {
-      c <- corpusSignaturesHashed
-      n = c.zip(querySignatureHashed).count { case (hc, hq) => hc == hq }
-    } yield n * 1.0 / numBands
-
-    approx.toVector
-  }
 
   def spark(): Unit = {
 
@@ -109,25 +108,29 @@ object JaccardReference {
 
   }
 
-  implicit class NiceVectors(vec: Vector[Double]) {
-    def maxSortedIndices: Vector[Int] = vec.zipWithIndex.sortBy(_._1 * -1).map(_._2)
-  }
+  def recall[T](relevant: Traversable[T], retrieved: Traversable[T]): Double =
+    relevant.toSet.intersect(retrieved.toSet).size * 1.0 / retrieved.size
 
-  def evaluate(m1: JaccardModel, m2: JaccardModel, corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector]): Unit = {}
+  def meanRecall[T](relevant: Seq[Traversable[T]], retrieved: Seq[Traversable[T]]): Double =
+    relevant.zip(retrieved).map(x => recall(x._1.toSet, x._2.toSet)).sum * 1.0 / relevant.length
 
   def main(args: Array[String]): Unit = {
 
     implicit val rng = new scala.util.Random(0)
+
     val corpusSize = 100
     val numQueries = 10
-
-    val k = 6 // Dimensions of each vector
+    val dim = 128
+    val k = 20
 
     // Random corpus and queries.
-    val corpus: Seq[SparseBoolVector] = SparseBoolVector.random(k, corpusSize)
-    val queries: Seq[SparseBoolVector] = SparseBoolVector.random(k, numQueries)
+    val corpus: Seq[SparseBoolVector] = SparseBoolVector.random(dim, corpusSize)
+    val queries: Seq[SparseBoolVector] = SparseBoolVector.random(dim, numQueries)
 
-    ???
+    val exactResult: Seq[Vector[Int]] = ExactJaccardModel.query(corpus, queries, k)
+    val modelResult: Seq[Vector[Int]] = new MinhashJaccardModel(75, 20, 3).query(corpus, queries, k)
+
+    print(meanRecall(exactResult, modelResult))
 
 //    // Random query vector.
 //    val query: Vector[Boolean] = (0 until k).toVector.map(_ => rng.nextBoolean())
