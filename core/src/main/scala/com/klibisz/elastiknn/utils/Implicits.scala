@@ -28,6 +28,8 @@ object Implicits {
       isec.toDouble / (asum + bsum - isec)
     }
 
+    def jaccardDist(other: SparseBoolVector): Double = 1 - jaccardSim(other)
+
   }
 
   implicit class SparseBoolVectorCompanionImplicits(sbvc: GeneratedMessageCompanion[SparseBoolVector]) {
@@ -35,8 +37,17 @@ object Implicits {
       trueIndices = v.zipWithIndex.filter(_._1).map(_._2).toSet,
       totalIndices = v.size
     )
-    def random(totalIndices: Int)(implicit rng: Random): SparseBoolVector = from((0 until totalIndices).map(_ => rng.nextBoolean()))
-    def random(totalIndices: Int, n: Int)(implicit rng: Random): Seq[SparseBoolVector] = (0 until n).map(_ => random(totalIndices))
+    def random(totalIndices: Int, bias: Double)(implicit rng: Random): SparseBoolVector =
+      from((0 until totalIndices).map(_ => rng.nextDouble() <= bias))
+
+    def random(totalIndices: Int)(implicit rng: Random): SparseBoolVector =
+      from((0 until totalIndices).map(_ => rng.nextBoolean()))
+
+    def randoms(totalIndices: Int, n: Int, bias: Double)(implicit rng: Random): Vector[SparseBoolVector] =
+      (0 until n).map(_ => random(totalIndices, bias)).toVector
+
+    def randoms(totalIndices: Int, n: Int)(implicit rng: Random): Vector[SparseBoolVector] =
+      (0 until n).map(_ => random(totalIndices)).toVector
   }
 
   implicit class TraversableImplicits[T](trv: Traversable[T]) {
