@@ -51,23 +51,25 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
     val numHashes = numBands * numRows
 
     // Each table is represented by a function mapping a vector to a hash value for each band.
-    def table(): SparseBoolVector => Vector[Int] = {
-      // Define hash functions.
-      val hashFuncs: Vector[Int => Int] = (for {
+    def table(): SparseBoolVector => Seq[Int] = {
+      // Define hash function coefficients.
+      val coefficients: Seq[(Int, Int)] = for {
         _ <- 0 until numHashes
         a = 1 + rng.nextInt(HASH_PRIME - 1)
         b = rng.nextInt(HASH_PRIME - 1)
-      } yield (x: Int) => ((1 + x) * a + b) % HASH_PRIME).toVector
+      } yield (a, b)
 
       // Compute signatures using hash functions.
-      def sig(vec: SparseBoolVector): Vector[Int] =
+      def sig(vec: SparseBoolVector): Seq[Long] =
         for {
-          f <- hashFuncs
-          hashed = vec.trueIndices.map(f)
-        } yield if (hashed.nonEmpty) hashed.min else Int.MaxValue
+          (a, b) <- coefficients
+          hashed = vec.trueIndices.map { elem =>
+            ((1L + elem) * a + b) % HASH_PRIME
+          }
+        } yield if (hashed.nonEmpty) hashed.min else Long.MaxValue
 
       // Group into bands and hash.
-      def hashBands(sig: Vector[Int]): Vector[Int] =
+      def hashBands(sig: Seq[Long]): Seq[Int] =
         for (group <- sig.grouped(numRows).toVector)
           yield MurmurHash3.orderedHash(group)
 
