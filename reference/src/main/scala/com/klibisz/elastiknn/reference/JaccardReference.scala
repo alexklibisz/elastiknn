@@ -24,9 +24,10 @@ object ExactJaccardModel extends JaccardModel {
       yield
         corpus.zipWithIndex
           .map {
-            case (v, i) => i -> v.jaccardDist(query)
+            case (v, i) => i -> v.jaccardSim(query)
           }
           .sortBy(_._2)
+          .reverseIterator
           .take(k)
           .toVector
 
@@ -93,9 +94,9 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       } yield c
 
       // Compute the actual distance to each candidate.
-      val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardDist(q))
+      val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardSim(q))
 
-      candidateSims.sortBy(_._2).take(k).toVector
+      candidateSims.sortBy(_._2).reverseIterator.take(k).toVector
     }
   }
 }
@@ -136,7 +137,7 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
           case (t, i) => sameBucket(transformedQuery, t)
         }
         .map(_._2)
-      candidateIndices.map(i => i -> corpus(i).jaccardDist(q)).sortBy(_._2).take(k).toVector
+      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).sortBy(_._2).reverseIterator.take(k).toVector
     }
   }
 }
@@ -195,7 +196,8 @@ object JaccardReference {
     implicit val ss: SparkSession = SparkSession.builder.master("local").appName("Jaccard Reference").getOrCreate()
 
     val corpusSize = 5000
-    val numQueries = 1
+    val numQueries = 20
+    val numTables = 10
     val dim = 128
     val k1 = 100
 
@@ -204,13 +206,13 @@ object JaccardReference {
     val queries: Vector[SparseBoolVector] = SparseBoolVector.randoms(dim, numQueries)
 
     val exactResult = ExactJaccardModel.query(corpus, queries, k1)
-    val modelResult = new MinhashJaccardModel(1, 10, 1).query(corpus, queries, k1)
-    val model2Result = new MinhashJaccardModel2(10).query(corpus, queries, k1)
-    val sparkResult = new SparkModel(10).query(corpus, queries, k1)
+    val modelResult = new MinhashJaccardModel(numTables, 1, 1).query(corpus, queries, k1)
+    val model2Result = new MinhashJaccardModel2(numTables).query(corpus, queries, k1)
+    val sparkResult = new SparkModel(numTables).query(corpus, queries, k1)
 
-    println(meanRecall(exactResult, modelResult))
-    println(meanRecall(exactResult, model2Result))
-    println(meanRecall(exactResult, sparkResult))
+    println(f"Model 1: ${meanRecall(exactResult, modelResult)}%.3f")
+    println(f"Model 2: ${meanRecall(exactResult, model2Result)}%.3f")
+    println(f"Spark  : ${meanRecall(exactResult, sparkResult)}%.3f")
 
   }
 
