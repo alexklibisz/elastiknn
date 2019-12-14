@@ -13,22 +13,22 @@ import scala.util.hashing.MurmurHash3
 trait JaccardModel {
 
   /** Find the nearest neighbors to the given query and return their indices and distances from the original corpus. */
-  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[(Int, Double)]]
+  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[Int]]
 
 }
 
 object ExactJaccardModel extends JaccardModel {
 
-  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[(Int, Double)]] =
+  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[Int]] =
     for (query <- queries)
       yield
         corpus.zipWithIndex
           .map {
             case (v, i) => i -> v.jaccardSim(query)
           }
-          .sortBy(_._2)
-          .reverseIterator
+          .sortBy(_._2 * -1)
           .take(k)
+          .map(_._1)
           .toVector
 
 }
@@ -40,7 +40,7 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
   // Same as what's used in Spark.
   private val HASH_PRIME = 2038074743
 
-  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[(Int, Double)]] = {
+  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
 
     val rng = new scala.util.Random(0)
     val dim = corpus.head.length
@@ -96,7 +96,7 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       // Compute the actual distance to each candidate.
       val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardSim(q))
 
-      candidateSims.sortBy(_._2).reverseIterator.take(k).toVector
+      candidateSims.sortBy(_._2 * -1).take(k).map(_._1).toVector
     }
   }
 }
@@ -107,7 +107,7 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
   private val HASH_PRIME = 2038074743
 
   /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
-  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[(Int, Double)]] = {
+  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
 
     val rng = new scala.util.Random(0)
 
@@ -137,7 +137,7 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
           case (t, i) => sameBucket(transformedQuery, t)
         }
         .map(_._2)
-      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).sortBy(_._2).reverseIterator.take(k).toVector
+      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).sortBy(_._2 * -1).take(k).map(_._1).toVector
     }
   }
 }
@@ -154,7 +154,7 @@ class SparkModel(numTables: Int)(implicit spark: SparkSession) extends JaccardMo
       .toDF("id", "keys")
 
   /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
-  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[(Int, Double)]] = {
+  def query(corpus: Vector[SparseBoolVector], queries: Vector[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
 
     val corpusDF = toDF(corpus)
     val model = new MinHashLSH()
@@ -173,7 +173,7 @@ class SparkModel(numTables: Int)(implicit spark: SparkSession) extends JaccardMo
     for (q <- queries) yield {
       val ds = model.approxNearestNeighbors(corpusTransformed, toSparkSparseVector(q), k)
       ds.toDF.rdd
-        .map(r => r.getInt(0) -> r.getDouble(3))
+        .map(r => r.getInt(0))
         .collect()
         .toVector
     }
@@ -182,10 +182,10 @@ class SparkModel(numTables: Int)(implicit spark: SparkSession) extends JaccardMo
 
 object JaccardReference {
 
-  def recall(relevant: Vector[(Int, Double)], retrieved: Vector[(Int, Double)]): Double =
-    relevant.map(_._1).toSet.intersect(retrieved.map(_._1).toSet).size * 1.0 / retrieved.size
+  def recall(relevant: Vector[Int], retrieved: Vector[Int]): Double =
+    relevant.toSet.intersect(retrieved.toSet).size * 1.0 / retrieved.size
 
-  def meanRecall(relevant: Seq[Vector[(Int, Double)]], retrieved: Seq[Vector[(Int, Double)]]): Double =
+  def meanRecall(relevant: Seq[Vector[Int]], retrieved: Seq[Vector[Int]]): Double =
     relevant.zip(retrieved).map(x => recall(x._1, x._2)).sum * 1.0 / relevant.length
 
   def main(args: Array[String]): Unit = {
@@ -195,11 +195,11 @@ object JaccardReference {
     implicit val rng: Random = new scala.util.Random(0)
     implicit val ss: SparkSession = SparkSession.builder.master("local").appName("Jaccard Reference").getOrCreate()
 
-    val corpusSize = 5000
-    val numQueries = 20
+    val corpusSize = 100
+    val numQueries = 10
     val numTables = 10
     val dim = 128
-    val k1 = 100
+    val k1 = 20
 
     // Random corpus and queries.
     val corpus: Vector[SparseBoolVector] = SparseBoolVector.randoms(dim, corpusSize)
