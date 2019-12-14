@@ -37,24 +37,27 @@ object ExactJaccardModel extends JaccardModel {
 
 }
 
-class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int)(implicit rng: Random) extends JaccardModel {
+class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends JaccardModel {
 
   // Based loosely on: https://github.com/chrisjmccormick/MinHash/blob/master/runMinHashExample.py
 
+  // Same as what's used in Spark.
+  private val HASH_PRIME = 2038074743
+
   def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
 
+    val rng = new scala.util.Random(0)
     val dim = corpus.head.length
     val numHashes = numBands * numRows
-    val nextPrime = Primes.nextPrime(dim)
 
     // Each table is represented by a function mapping a vector to a hash value for each band.
     def table(): SparseBoolVector => Vector[Int] = {
       // Define hash functions.
       val hashFuncs: Vector[Int => Int] = (for {
         _ <- 0 until numHashes
-        a = rng.nextInt(dim)
-        b = rng.nextInt(dim)
-      } yield (x: Int) => (a * x + b) % nextPrime).toVector
+        a = 1 + rng.nextInt(HASH_PRIME - 1)
+        b = rng.nextInt(HASH_PRIME - 1)
+      } yield (x: Int) => ((1 + x) * a + b) % HASH_PRIME).toVector
 
       // Compute signatures using hash functions.
       def sig(vec: SparseBoolVector): Vector[Int] =
@@ -84,23 +87,49 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int)(implicit 
     val index: Map[(Int, Int, Int), Vector[Int]] = preIndex.groupBy(_._1).mapValues(_.map(_._2).toVector)
 
     // Compute the hashes for each query vector, accumulate the list of candidates, count them to get the top k.
-    for (q <- queries) yield {
+    queries.map { q =>
       // Accumulate a list of candidates with possible duplicates.
-      val candidates: IndexedSeq[Int] = for {
+      val candidateIndices: IndexedSeq[Int] = for {
         (t, ti) <- tables.zipWithIndex
         (b, bi) <- t(q).zipWithIndex
         c <- index.getOrElse((ti, bi, b), Vector.empty[Int])
       } yield c
 
-      // Flatten the list into a mapping from candidate id to its number of occurrences.
-      val counted: Map[Int, Int] = candidates.groupBy(identity).mapValues(_.length)
+      // Compute the actual distance to each candidate.
+      val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardSim(q))
 
-      counted.toVector.topK(k, _._2).map(_._1).toVector
+      candidateSims.topK(k, _._2).map(_._1).toVector
     }
   }
 }
 
-class SparkModel(numTables: Int, numBands: Int, numRows: Int)(implicit spark: SparkSession) extends JaccardModel {
+class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
+
+  // Same as what's used in Spark.
+  private val HASH_PRIME = 2038074743
+
+  /** Find the nearest neighbors to the given query and return their indices from the original corpus. */
+  def query(corpus: Seq[SparseBoolVector], queries: Seq[SparseBoolVector], k: Int): Seq[Vector[Int]] = {
+
+    val rng = new scala.util.Random(0)
+
+    val randCoefficients: Seq[(Int, Int)] = for {
+      _ <- 0 until numTables
+    } yield (1 + rng.nextInt(HASH_PRIME - 1), rng.nextInt(HASH_PRIME - 1))
+
+    def hashFunction(v: SparseBoolVector): Seq[Int] =
+      for {
+        (a, b) <- randCoefficients
+        hh = v.trueIndices.map { i =>
+          ((1 + i) * a + b) % HASH_PRIME
+        }
+      } yield hh.min
+
+    ???
+  }
+}
+
+class SparkModel(numTables: Int)(implicit spark: SparkSession) extends JaccardModel {
 
   private def toSparkSparseVector(sbv: SparseBoolVector) = Vectors.sparse(sbv.totalIndices, sbv.trueIndices.map(_ -> 1.0).toSeq)
 
@@ -116,11 +145,17 @@ class SparkModel(numTables: Int, numBands: Int, numRows: Int)(implicit spark: Sp
 
     val corpusDF = toDF(corpus)
     val model = new MinHashLSH()
+      .setSeed(0)
       .setNumHashTables(numTables)
       .setInputCol("keys")
       .setOutputCol("values")
       .fit(corpusDF)
     val corpusTransformed = model.transform(corpusDF).cache()
+
+    println("Before transforming:")
+    corpusDF.show(10)
+    println("After transforming:")
+    corpusTransformed.show(10)
 
     for (q <- queries) yield {
       val ds = model.approxNearestNeighbors(corpusTransformed, toSparkSparseVector(q), k)
@@ -139,7 +174,7 @@ object JaccardReference {
 
   def main(args: Array[String]): Unit = {
 
-    implicit val rng = new scala.util.Random(0)
+    implicit val rng: Random = new scala.util.Random(0)
     implicit val ss: SparkSession = SparkSession.builder.master("local").appName("Jaccard Reference").getOrCreate()
 
     val corpusSize = 100
@@ -152,8 +187,8 @@ object JaccardReference {
     val queries: Seq[SparseBoolVector] = SparseBoolVector.random(dim, numQueries)
 
     val exactResult: Seq[Vector[Int]] = ExactJaccardModel.query(corpus, queries, k)
-    val sparkResult = new SparkModel(10, 20, 3).query(corpus, queries, k)
-    val modelResult: Seq[Vector[Int]] = new MinhashJaccardModel(120, 20, 3).query(corpus, queries, k)
+    val sparkResult = new SparkModel(10).query(corpus, queries, k)
+    val modelResult: Seq[Vector[Int]] = new MinhashJaccardModel(1, 10, 1).query(corpus, queries, k)
 
     println(meanRecall(exactResult, modelResult))
     println(meanRecall(exactResult, sparkResult))
