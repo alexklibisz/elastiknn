@@ -2,11 +2,10 @@ package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Lsh
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Jaccard
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_FLOAT
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn.{KNearestNeighborsQuery, LshModelOptions, ProcessorOptions}
+import com.klibisz.elastiknn.{JaccardLshOptions, KNearestNeighborsQuery, ProcessorOptions}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
@@ -18,12 +17,13 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
     val procOptActual = ProcessorOptions(
       fieldRaw = "field_raw",
       dimension = 222,
-      vectorType = VECTOR_TYPE_FLOAT,
-      modelOptions = Lsh(
-        LshModelOptions(
-          seed = 99,
-          similarity = SIMILARITY_ANGULAR,
-          fieldProcessed = "field_proc"
+      modelOptions = Jaccard(
+        JaccardLshOptions(
+          seed = 99L,
+          fieldProcessed = "field_proc",
+          numTables = 10,
+          numBands = 10,
+          numRows = 3
         ))
     ).asJavaMap
 
@@ -31,11 +31,12 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
       "fieldRaw" -> "field_raw",
       "dimension" -> 222,
       "exact" -> null,
-      "vectorType" -> VECTOR_TYPE_FLOAT.value,
-      "lsh" -> Map(
+      "jaccard" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
-        "similarity" -> SIMILARITY_ANGULAR.index
+        "numTables" -> 10,
+        "numBands" -> 10,
+        "numRows" -> 3
       ).asJava
     ).asJava
 

@@ -1,10 +1,9 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
-import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.VectorType.{VECTOR_TYPE_BOOL, VECTOR_TYPE_FLOAT}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.elastic4s._
-import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions, Similarity}
+import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
@@ -49,10 +48,6 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
 
       val resourceName = s"${sim.name.toLowerCase}-$dim.json"
       val tryReadData = readTestData(resourceName)
-      val vectorType = sim match {
-        case SIMILARITY_JACCARD | SIMILARITY_HAMMING => VECTOR_TYPE_BOOL
-        case _                                       => VECTOR_TYPE_FLOAT
-      }
 
       val index = s"test-exact-${sim.name.toLowerCase}"
       val pipeline = s"$index-pipeline"
@@ -76,7 +71,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ = setupRes.shouldBeSuccess
 
         // Create the pipeline.
-        popts = ProcessorOptions(rawField, dim, vectorType)
+        popts = ProcessorOptions(rawField, dim, modelOptions = ModelOptions.Exact(ExactModelOptions(sim)))
         pipelineReq = PutPipelineRequest(pipeline, s"exact search for ${sim.name}", Processor("elastiknn", popts))
         pipelineRes <- client.execute(pipelineReq)
         _ = pipelineRes.shouldBeSuccess

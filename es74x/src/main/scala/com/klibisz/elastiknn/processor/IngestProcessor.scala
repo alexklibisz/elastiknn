@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.processor
 import java.util
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_FLOAT
+import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.Implicits._
@@ -59,8 +59,11 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 
     popts.modelOptions match {
       // For exact models, just make sure the vector can be parsed.
-      case ModelOptions.Empty | ModelOptions.Exact(_) =>
-        if (popts.vectorType == VECTOR_TYPE_FLOAT) parseFloatVector(doc).get else parseBoolVector(doc).get
+      case ModelOptions.Exact(exactOpts) =>
+        exactOpts.similarity match {
+          case SIMILARITY_L1 | SIMILARITY_L2 | SIMILARITY_ANGULAR => parseFloatVector(doc).get
+          case SIMILARITY_JACCARD | SIMILARITY_HAMMING            => parseBoolVector(doc).get
+        }
     }
 
     doc
