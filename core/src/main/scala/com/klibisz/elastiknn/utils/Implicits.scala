@@ -1,10 +1,11 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.common.collect.MinMaxPriorityQueue
-import com.klibisz.elastiknn.SparseBoolVector
+import com.klibisz.elastiknn.{ElastiKnnVector, SparseBoolVector}
 import scalapb.GeneratedMessageCompanion
+import scalapb_circe.JsonFormat
 
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object Implicits {
 
@@ -30,6 +31,10 @@ object Implicits {
 
     def jaccardDist(other: SparseBoolVector): Double = 1 - jaccardSim(other)
 
+    def denseArray(): Array[Boolean] = (0 until sbv.totalIndices).toArray.map(sbv.trueIndices)
+
+    def values(i: Int): Boolean = sbv.trueIndices(i)
+
   }
 
   implicit class SparseBoolVectorCompanionImplicits(sbvc: GeneratedMessageCompanion[SparseBoolVector]) {
@@ -37,13 +42,16 @@ object Implicits {
       trueIndices = v.zipWithIndex.filter(_._1).map(_._2).toSet,
       totalIndices = v.size
     )
-
     def random(totalIndices: Int, bias: Double = 0.5)(implicit rng: Random): SparseBoolVector =
       from((0 until totalIndices).map(_ => rng.nextDouble() <= bias))
-
     def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[SparseBoolVector] =
       (0 until n).map(_ => random(totalIndices, bias)).toVector
+  }
 
+  implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
+    import io.circe.syntax._
+    import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
+    def from(m: java.util.Map[String, AnyRef]): Try[ElastiKnnVector] = Try(JsonFormat.fromJson[ElastiKnnVector](m.asJson(mapEncoder)))
   }
 
   implicit class TraversableImplicits[T](trv: Traversable[T]) {

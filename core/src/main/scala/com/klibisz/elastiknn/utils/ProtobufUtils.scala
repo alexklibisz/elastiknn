@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.utils
 
-import scalapb.GeneratedMessage
+import com.google.common.io.BaseEncoding
+import scalapb.{GeneratedMessage, GeneratedMessageCompanion, Message}
 import scalapb.descriptors._
 
 import scala.collection.JavaConverters._
@@ -34,6 +35,12 @@ object ProtobufUtils {
       convertMap(gm.toPMessage.value)
     }
 
+    def toBase64: String = BaseEncoding.base64.encode(gm.toByteArray)
+
+  }
+
+  implicit class RichGeneratedCompanion[M <: GeneratedMessage with Message[M]](cmp: GeneratedMessageCompanion[M]) {
+    def parseBase64(s: String): M = cmp.parseFrom(BaseEncoding.base64.decode(s))
   }
 
 }

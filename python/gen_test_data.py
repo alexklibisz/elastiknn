@@ -36,6 +36,10 @@ def dist2sim(metric: str) -> Callable[[float], float]:
         return lambda d: d
 
 
+def bool_vector(bools: List[bool]) -> SparseBoolVector:
+    return SparseBoolVector(total_indices=len(bools), true_indices=set([i for i, b in enumerate(bools) if b]))
+
+
 def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, output_path: str) -> TestData:
     np.random.seed(dim)
 
@@ -55,8 +59,8 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
     (dists, inds) = knn.fit(np_corpus_vecs).kneighbors(np_query_vecs)
 
     if boolean:
-        pb_corpus_vecs = [ElastiKnnVector(bool_vector=BoolVector(values=list(map(bool, _)))) for _ in np_corpus_vecs]
-        pb_query_vecs = [ElastiKnnVector(bool_vector=BoolVector(values=list(map(bool, _)))) for _ in np_query_vecs]
+        pb_corpus_vecs = [ElastiKnnVector(sparse_bool_vector=bool_vector(list(map(bool, _)))) for _ in np_corpus_vecs]
+        pb_query_vecs = [ElastiKnnVector(sparse_bool_vector=bool_vector(list(map(bool, _)))) for _ in np_query_vecs]
     else:
         pb_corpus_vecs = [ElastiKnnVector(float_vector=FloatVector(values=list(map(float, _)))) for _ in
                           np_corpus_vecs]

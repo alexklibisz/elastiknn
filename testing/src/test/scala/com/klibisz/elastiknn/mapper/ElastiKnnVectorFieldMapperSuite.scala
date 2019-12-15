@@ -1,7 +1,8 @@
 package com.klibisz.elastiknn.mapper
 
 import com.klibisz.elastiknn.elastic4s.scriptScoreQuery
-import com.klibisz.elastiknn.{ElastiKnnVector, ElasticAsyncClient, _}
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.utils.Implicits._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
@@ -103,9 +104,9 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
     val indexName = "test-index-script-search-bool-vectors"
 
     val boolVectors = Seq(
-      BoolVector(Array(true, false, false)),
-      BoolVector(Array(false, false, true)),
-      BoolVector(Array(true, true, true))
+      SparseBoolVector.from(Array(true, false, false)),
+      SparseBoolVector.from(Array(false, false, true)),
+      SparseBoolVector.from(Array(true, true, true))
     )
 
     val indexReqs =
@@ -116,7 +117,7 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
               XContentFactory.jsonBuilder
                 .rawField(fieldName,
                           JsonFormat.toJsonString(
-                            ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))
+                            ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(v))
                           ))
                 .string()))
 

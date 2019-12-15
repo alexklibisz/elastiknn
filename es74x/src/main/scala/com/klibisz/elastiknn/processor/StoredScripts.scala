@@ -5,6 +5,7 @@ import java.util.Collections
 
 import com.klibisz.elastiknn.ElastiKnnVector
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
+import com.klibisz.elastiknn.utils.Implicits._
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest
 import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.xcontent.XContentType
@@ -37,13 +38,14 @@ object StoredScripts {
       )
   }
 
-  final case class ExactBoolScript(id: String, script: String) extends ExactScript[ElastiKnnVector.Vector.BoolVector] {
-    override def script(field: String, other: Vector.BoolVector): Script =
+  final case class ExactBoolScript(id: String, script: String) extends ExactScript[ElastiKnnVector.Vector.SparseBoolVector] {
+    override def script(field: String, other: Vector.SparseBoolVector): Script =
       new Script(
         ScriptType.STORED,
         null,
         id,
-        util.Map.of("field", field, "other", other.value.values)
+        // TODO: change exact scripts to use sparse representation.
+        util.Map.of("field", field, "other", other.value.denseArray)
       )
   }
 

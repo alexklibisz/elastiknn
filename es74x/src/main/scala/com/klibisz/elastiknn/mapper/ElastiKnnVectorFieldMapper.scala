@@ -3,6 +3,8 @@ package com.klibisz.elastiknn.mapper
 import java.util
 
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.utils.ProtobufUtils._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
@@ -114,14 +116,14 @@ object ElastiKnnVectorFieldMapper {
     private var ekv: Option[ElastiKnnVector] = None
 
     override def setNextDocId(docId: Int): Unit =
-      if (in.advanceExact(docId))
-        ekv = Some(ElastiKnnVector.parseFrom(in.binaryValue.bytes))
-      else ekv = None
+      if (in.advanceExact(docId)) {
+        ekv = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()))
+      } else ekv = None
 
     override def get(i: Int): Any = ekv match {
       case Some(ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(v))) =>
         v.values(i)
-      case Some(ElastiKnnVector(ElastiKnnVector.Vector.BoolVector(v))) =>
+      case Some(ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(v))) =>
         v.values(i)
       case _ =>
         throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
@@ -147,7 +149,9 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     val json = context.parser.map.asJson(mapEncoder)
     val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
     val name = fieldType.name()
-    val field = new BinaryDocValuesField(name, new BytesRef(ekv.toByteArray))
+    // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
+    // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
+    val field = new BinaryDocValuesField(name, new BytesRef(ekv.toBase64))
     context.doc.addWithKey(name, field)
   }
 

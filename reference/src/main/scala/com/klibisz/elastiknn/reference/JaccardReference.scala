@@ -202,13 +202,13 @@ object JaccardReference {
     val queries: Vector[SparseBoolVector] = SparseBoolVector.randoms(dim, numQueries)
 
     val exactResult = ExactJaccardModel.query(corpus, queries, k1)
-    val modelResult = new MinhashJaccardModel(numTables, 1, 1).query(corpus, queries, k1)
+    val modelResult = new MinhashJaccardModel(2, 40, 2).query(corpus, queries, k1)
     val model2Result = new MinhashJaccardModel2(numTables).query(corpus, queries, k1)
-    val sparkResult = new SparkModel(numTables).query(corpus, queries, k1)
+//    val sparkResult = new SparkModel(numTables).query(corpus, queries, k1)
 
     println(f"Model 1: ${meanRecall(exactResult, modelResult)}%.3f")
     println(f"Model 2: ${meanRecall(exactResult, model2Result)}%.3f")
-    println(f"Spark  : ${meanRecall(exactResult, sparkResult)}%.3f")
+//    println(f"Spark  : ${meanRecall(exactResult, sparkResult)}%.3f")
 
   }
 

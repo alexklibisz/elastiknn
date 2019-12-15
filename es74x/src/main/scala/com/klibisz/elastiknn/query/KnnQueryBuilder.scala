@@ -12,6 +12,7 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQ
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
+import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.{Json, JsonObject}
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
@@ -98,13 +99,12 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       // https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
       in.readFloat()
       in.readOptionalString()
-      val ba = BaseEncoding.base64.decode(in.readString())
-      KNearestNeighborsQuery.parseFrom(ba)
+      KNearestNeighborsQuery.parseBase64(in.readString())
     })
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
-    out.writeString(BaseEncoding.base64.encode(query.toByteArray))
+    out.writeString(query.toBase64)
 
   // Use the query options to build a lucene query.
   override def doToQuery(context: QueryShardContext): Query =
@@ -167,9 +167,9 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
         Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL1.script(opts.fieldRaw, dvec)))
       case (SIMILARITY_L2, dvec: FloatVector) =>
         Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL2.script(opts.fieldRaw, dvec)))
-      case (SIMILARITY_HAMMING, bvec: BoolVector) =>
+      case (SIMILARITY_HAMMING, bvec: SparseBoolVector) =>
         Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactHamming.script(opts.fieldRaw, bvec)))
-      case (SIMILARITY_JACCARD, bvec: BoolVector) =>
+      case (SIMILARITY_JACCARD, bvec: SparseBoolVector) =>
         Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactJaccard.script(opts.fieldRaw, bvec)))
       case (_, Empty) => Failure(illArgEx("Must provide vector"))
       case (_, _)     => Failure(SimilarityAndTypeException(opts.similarity, ekv))

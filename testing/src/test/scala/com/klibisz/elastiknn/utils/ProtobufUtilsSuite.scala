@@ -23,8 +23,6 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
         LshModelOptions(
           seed = 99,
           similarity = SIMILARITY_ANGULAR,
-          k = 22,
-          l = 33,
           fieldProcessed = "field_proc"
         ))
     ).asJavaMap
@@ -37,9 +35,7 @@ class ProtobufUtilsSuite extends FunSuite with Matchers {
       "lsh" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
-        "similarity" -> SIMILARITY_ANGULAR.index,
-        "k" -> 22,
-        "l" -> 33
+        "similarity" -> SIMILARITY_ANGULAR.index
       ).asJava
     ).asJava
 

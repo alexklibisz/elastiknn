@@ -44,20 +44,19 @@ message LshModelOptions {
 
     // The similarity function used for queries. This has to be given up-front as it determines how the vector gets processed.
     Similarity similarity = 3;
-
-    // Placeholders.. need to come back and get the exact lsh parameters straight. It's been a while since I learned it.
-    int32 k = 4;
-    int32 L = 5;
 }
+
+//message ApproximateJaccardModelOptions {
+//    int64 seed = 1;
+//    string field_processed = 2;
+//    int32 num_tables = 3;
+//    int32 num_bands = 4;
+//    int32 num_rows = 5;
+//}
 
 // A vector of doubles, used for l1, l2, and angular similarity.
 message FloatVector {
     repeated double values = 1 [(scalapb.field).collection_type="Array"];
-}
-
-// A vector of booleans, used for Hamming and Jaccard similarity.
-message BoolVector {
-    repeated bool values = 1 [(scalapb.field).collection_type="Array"];
 }
 
 // A sparse vector of booleans, represented by the true indices and total number of indices.
@@ -70,8 +69,7 @@ message SparseBoolVector {
 message ElastiKnnVector {
     oneof vector {
         FloatVector float_vector = 1;
-        BoolVector bool_vector = 2;
-        SparseBoolVector sparse_bool_vector = 3;
+        SparseBoolVector sparse_bool_vector = 2;
     }
 }
 

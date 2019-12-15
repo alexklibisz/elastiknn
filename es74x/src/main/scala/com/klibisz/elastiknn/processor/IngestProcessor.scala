@@ -6,6 +6,7 @@ import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.VectorType.VECTOR_TYPE_FLOAT
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
@@ -20,31 +21,33 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
   import IngestProcessor.TYPE
   import popts._
 
-  private def parseFloatVector(doc: IngestDocument): Try[FloatVector] = {
-    val key = floatVectorPath(fieldRaw)
-    Try(doc.getFieldValue(key, classOf[util.List[Double]]))
-      .map(ld => FloatVector(values = ld.asScala.toArray))
-      .recoverWith {
-        case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of doubles at $key")))
-      }
-      .flatMap { dv =>
-        if (dv.values.length == popts.dimension) Success(dv)
-        else Failure(VectorDimensionException(dv.values.length, popts.dimension))
-      }
-  }
+  private def parseVector(doc: IngestDocument): Try[ElastiKnnVector] =
+    (for {
+      srcMap <- Try(doc.getFieldValue(fieldRaw, classOf[util.Map[String, AnyRef]]))
+      ekv <- ElastiKnnVector.from(srcMap)
+    } yield ekv).recoverWith {
+      case ex => Failure(ParseVectorException(Some(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from $fieldRaw: $ex")))
+    }
 
-  private def parseBoolVector(doc: IngestDocument): Try[BoolVector] = {
-    val key = boolVectorPath(fieldRaw)
-    Try(doc.getFieldValue(key, classOf[util.List[Boolean]]))
-      .map(ld => BoolVector(values = ld.asScala.toArray))
-      .recoverWith {
-        case _ => Failure(ParseVectorException(Some(s"Failed to parse vector of booleans at $key")))
+  private def parseFloatVector(doc: IngestDocument): Try[FloatVector] =
+    for {
+      ekv <- parseVector(doc)
+      ret <- ekv.vector match {
+        case ElastiKnnVector.Vector.FloatVector(fv) =>
+          if (fv.values.length == popts.dimension) Success(fv) else Failure(VectorDimensionException(fv.values.length, popts.dimension))
+        case v => Failure(illArgEx(s"Expected vector of floats but got: $v"))
       }
-      .flatMap { dv =>
-        if (dv.values.length == popts.dimension) Success(dv)
-        else Failure(VectorDimensionException(dv.values.length, popts.dimension))
+    } yield ret
+
+  private def parseBoolVector(doc: IngestDocument): Try[SparseBoolVector] =
+    for {
+      ekv <- parseVector(doc)
+      ret <- ekv.vector match {
+        case ElastiKnnVector.Vector.SparseBoolVector(sbv) =>
+          if (sbv.totalIndices == popts.dimension) Success(sbv) else Failure(VectorDimensionException(sbv.totalIndices, popts.dimension))
+        case v => Failure(illArgEx(s"Expected vector of booleans but got: $v"))
       }
-  }
+    } yield ret
 
   override def getType: String = IngestProcessor.TYPE
 
