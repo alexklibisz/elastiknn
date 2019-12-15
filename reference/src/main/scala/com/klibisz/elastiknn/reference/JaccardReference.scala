@@ -74,14 +74,14 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
 
     val tables = (0 until numTables).map(_ => table())
 
-    // Index maps from (table number, band number, hash) to list of corpus indices.
+    // Index maps from hash(table number, band number, hash) to list of corpus indices.
     val preIndex = for {
       (t, ti) <- tables.zipWithIndex
       (c, ci) <- corpus.zipWithIndex
       (b, bi) <- t(c).zipWithIndex
-    } yield (ti, bi, b) -> ci
+    } yield MurmurHash3.orderedHash(Seq(ti, bi, b)) -> ci
 
-    val index: Map[(Int, Int, Int), Vector[Int]] = preIndex.groupBy(_._1).mapValues(_.map(_._2).toVector)
+    val index: Map[Int, Vector[Int]] = preIndex.groupBy(_._1).mapValues(_.map(_._2).toVector)
 
     // Compute the hashes for each query vector, accumulate the list of candidates, count them to get the top k.
     queries.map { q =>
@@ -89,7 +89,7 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       val candidateIndices: IndexedSeq[Int] = for {
         (t, ti) <- tables.zipWithIndex
         (b, bi) <- t(q).zipWithIndex
-        c <- index.getOrElse((ti, bi, b), Vector.empty[Int])
+        c <- index.getOrElse(MurmurHash3.orderedHash(Seq(ti, bi, b)), Vector.empty[Int])
       } yield c
 
       // Compute the actual distance to each candidate.
