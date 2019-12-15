@@ -1,11 +1,11 @@
 package com.klibisz.elastiknn.processor
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.elastic4s.{Processor, PutPipelineRequest}
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.client.ElastiKnnDsl
 import org.scalatest.{AsyncFunSuite, Matchers}
 
-class IngestProcessorSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient {
+class IngestProcessorSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient with ElastiKnnDsl {
 
   test("make an exact pipeline") {
     val opts = ProcessorOptions("a", 32, ModelOptions.Exact(ExactModelOptions(Similarity.SIMILARITY_ANGULAR)))

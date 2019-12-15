@@ -77,8 +77,7 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
 
 
 def main(argv: List[str]):
-    assert len(argv) == 2, "please give the output directory"
-    output_dir = argv[1]
+    output_dir = argv[1] if len(argv) == 2 else "../src/test/resources"
     metrics = ['l1', 'l2', 'angular', 'hamming', 'jaccard']
     dims = [10, 128, 512]
 

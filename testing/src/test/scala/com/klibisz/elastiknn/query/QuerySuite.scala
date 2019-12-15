@@ -1,13 +1,17 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.Similarity
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.client.ElastiKnnDsl
+import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions, Similarity}
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
+import com.sksamuel.elastic4s.ElasticDsl._
 import io.circe.parser.decode
-import org.scalatest.{AsyncTestSuite, Matchers}
+import org.scalatest.{AsyncTestSuite, Inspectors, Matchers}
 
-import scala.util.Try
+import scala.concurrent.Future
+import scala.util.{Random, Try}
 
-trait QuerySuite extends Matchers {
+trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with Elastic4sMatchers with ElastiKnnDsl {
 
   this: AsyncTestSuite =>
 
@@ -22,17 +26,34 @@ trait QuerySuite extends Matchers {
       dec <- decode[TestData](rawJson).toTry
     } yield dec
 
-  def setupAndIndex(sim: Similarity, dim: Int) = {
+  def setupAndIndex(sim: Similarity, dim: Int, modelOptions: ModelOptions) = {
 
     val tryReadData = readTestData(sim, dim)
 
-    val index = s"test-exact-${sim.name.toLowerCase}"
+    val index = s"test-${sim.name.toLowerCase}-${Random.nextInt(Int.MaxValue)}"
     val pipeline = s"$index-pipeline"
     val rawField = "vec"
     val mapDef = MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
 
     def corpusId(i: Int): String = s"c$i"
     def queryId(i: Int): String = s"q$i"
+
+    for {
+      // Read test data.
+      testData <- Future.fromTry(tryReadData)
+      numHits = testData.queries.head.similarities.length
+
+      // Delete index before running.
+      _ <- client.execute(deleteIndex(index))
+
+      // Hit setup endpoint.
+      setupRes <- client.execute(ElastiKnnSetupRequest())
+      _ = setupRes.shouldBeSuccess
+
+      // Create the pipeline.
+      popts = ProcessorOptions(rawField, dim, modelOptions)
+
+    } yield ???
 
   }
 

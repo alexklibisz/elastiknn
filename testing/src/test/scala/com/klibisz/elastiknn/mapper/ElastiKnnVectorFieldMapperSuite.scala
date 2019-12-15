@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.mapper
 
-import com.klibisz.elastiknn.elastic4s.scriptScoreQuery
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.client.ElastiKnnDsl
 import com.klibisz.elastiknn.utils.Implicits._
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.requests
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
 import com.sksamuel.elastic4s.requests.mappings.BasicField
-import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import com.sksamuel.elastic4s.{Indexes, Response, XContentFactory}
 import org.scalatest._
@@ -15,7 +14,13 @@ import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
 
-class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient {
+class ElastiKnnVectorFieldMapperSuite
+    extends AsyncFunSuite
+    with Matchers
+    with Inspectors
+    with Elastic4sMatchers
+    with ElasticAsyncClient
+    with ElastiKnnDsl {
 
   private val fieldName = "ekv"
   private val field = BasicField(fieldName, "elastiknn_vector")
@@ -58,7 +63,7 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
 
     def scriptSearch(i: Int): SearchRequest = {
       search(indexName).query(
-        scriptScoreQuery(Script(
+        scriptScoreQuery(requests.script.Script(
           s"""
            |double a = (double) doc[params.field][params.i];
            |int o = (int) params.o;
@@ -125,7 +130,7 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
 
     def scriptSearch(i: Int): SearchRequest = {
       search(indexName).query(
-        scriptScoreQuery(Script(
+        scriptScoreQuery(requests.script.Script(
           s"""
              |boolean b = (boolean) doc[params.field][params.i];
              |double score = params.score;

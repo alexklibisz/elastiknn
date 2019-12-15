@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.elastic4s._
+import com.klibisz.elastiknn.client.ElastiKnnDsl
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, Similarity}
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
@@ -15,7 +15,8 @@ class SetupRestActionSuite
     with Matchers
     with Inspectors
     with Elastic4sMatchers
-    with ElasticAsyncClient {
+    with ElasticAsyncClient
+    with ElastiKnnDsl {
 
   override def timeLimit: Span = 10.seconds
 
@@ -33,8 +34,7 @@ class SetupRestActionSuite
 
     for {
       setupRes <- client.execute(ElastiKnnSetupRequest())
-      getScriptRequests = distances.map(d =>
-        client.execute(GetScriptRequest(s"elastiknn-exact-$d")))
+      getScriptRequests = distances.map(d => client.execute(GetScriptRequest(s"elastiknn-exact-$d")))
       getScriptResults <- Future.sequence(getScriptRequests)
     } yield {
       setupRes.shouldBeSuccess

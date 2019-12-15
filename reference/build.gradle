@@ -1,14 +1,8 @@
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
-    }
-}
-
 apply plugin: 'scala'
 
 repositories {
+    mavenLocal()
+    mavenCentral()
     jcenter()
 }
 

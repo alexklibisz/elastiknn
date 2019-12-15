@@ -1,0 +1,14 @@
+apply plugin: 'scala'
+apply plugin: 'java-library'
+
+repositories {
+    jcenter()
+}
+
+group = rootProject.properties['group']
+version = rootProject.properties['pluginVersion']
+
+dependencies {
+    api project(':core')
+    api 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
+}
