@@ -26,8 +26,7 @@ object ExactJaccardModel extends JaccardModel {
           .map {
             case (v, i) => i -> v.jaccardSim(query)
           }
-          .sortBy(_._2 * -1)
-          .take(k)
+          .topK(k, _._2)
           .map(_._1)
           .toVector
 
@@ -96,7 +95,7 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       // Compute the actual distance to each candidate.
       val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardSim(q))
 
-      candidateSims.sortBy(_._2 * -1).take(k).map(_._1).toVector
+      candidateSims.topK(k, _._2).map(_._1).toVector
     }
   }
 }
@@ -115,29 +114,26 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
       _ <- 0 until numTables
     } yield (1 + rng.nextInt(HASH_PRIME - 1), rng.nextInt(HASH_PRIME - 1))
 
-    def hashFunction(v: SparseBoolVector): Seq[Double] =
+    def hashFunction(v: SparseBoolVector): Seq[Long] =
       randCoefficients.map {
         case (a, b) =>
-          v.trueIndices
-            .map { elem: Int =>
-              ((1L + elem) * a + b) % HASH_PRIME
-            }
-            .min
-            .toDouble
+          v.trueIndices.map { elem: Int =>
+            ((1L + elem) * a + b) % HASH_PRIME
+          }.min
       }
 
-    def sameBucket(x: Seq[Double], y: Seq[Double]): Boolean = x.zip(y).exists(tuple => tuple._1 == tuple._2)
+    def sameBucket(x: Seq[Long], y: Seq[Long]): Boolean = x.zip(y).exists(tuple => tuple._1 == tuple._2)
 
-    val transformedCorpus: Seq[Seq[Double]] = corpus.map(hashFunction)
+    val transformedCorpus: Seq[Seq[Long]] = corpus.map(hashFunction)
 
     queries.map { q =>
-      val transformedQuery: Seq[Double] = hashFunction(q)
+      val transformedQuery: Seq[Long] = hashFunction(q)
       val candidateIndices: Seq[Int] = transformedCorpus.zipWithIndex
         .filter {
           case (t, i) => sameBucket(transformedQuery, t)
         }
         .map(_._2)
-      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).sortBy(_._2 * -1).take(k).map(_._1).toVector
+      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).topK(k, _._2).map(_._1).toVector
     }
   }
 }
@@ -195,8 +191,8 @@ object JaccardReference {
     implicit val rng: Random = new scala.util.Random(0)
     implicit val ss: SparkSession = SparkSession.builder.master("local").appName("Jaccard Reference").getOrCreate()
 
-    val corpusSize = 100
-    val numQueries = 10
+    val corpusSize = 10000
+    val numQueries = 50
     val numTables = 10
     val dim = 128
     val k1 = 20
