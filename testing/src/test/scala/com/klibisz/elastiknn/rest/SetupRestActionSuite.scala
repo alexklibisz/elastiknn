@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.client.ElastiKnnDsl
+import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, Similarity}
 import org.scalatest.concurrent.AsyncTimeLimitedTests
 import org.scalatest.time.Span
@@ -15,8 +15,7 @@ class SetupRestActionSuite
     with Matchers
     with Inspectors
     with Elastic4sMatchers
-    with ElasticAsyncClient
-    with ElastiKnnDsl {
+    with ElasticAsyncClient {
 
   override def timeLimit: Span = 10.seconds
 

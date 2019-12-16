@@ -5,13 +5,17 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQ
 import com.klibisz.elastiknn.{ElastiKnnVector, KNearestNeighborsQuery}
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
+import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query, QueryBuilderFn}
 import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 
-/** Request/response objects and helper methods based on the elastic4s library. */
-trait ElastiKnnDsl extends ElasticDsl {
+/**
+  * Request/response objects and helper methods based on the elastic4s library. Unfortunately this has to be an object,
+  * otherwise you get runtime errors for Jackson decoding.
+  */
+object ElastiKnnDsl extends ElasticDsl {
 
   case class ElastiKnnSetupRequest(endpointPrefix: String = "_elastiknn")
 
@@ -25,8 +29,6 @@ trait ElastiKnnDsl extends ElasticDsl {
   }
 
   case class GetScriptRequest(id: String)
-
-  case class Script(lang: String, source: String)
 
   case class GetScriptResponse(@JsonProperty("_id") id: String, found: Boolean, script: Script)
 
@@ -75,10 +77,8 @@ trait ElastiKnnDsl extends ElasticDsl {
     indexInto(index).source(xcb.string()).pipeline(pipeline)
   }
 
-  private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery = () => {
-    val json = JsonFormat.toJsonString(knnq)
-    XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
-  }
+  private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery =
+    () => XContentFactory.jsonBuilder.rawField("elastiknn_knn", JsonFormat.toJsonString(knnq))
 
   def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector): CustomQuery =
     knnQuery(
@@ -97,7 +97,7 @@ trait ElastiKnnDsl extends ElasticDsl {
   def knnQuery(options: KNearestNeighborsQuery.QueryOptions, vector: KNearestNeighborsQuery.QueryVector): CustomQuery =
     knnQuery(KNearestNeighborsQuery(options, vector))
 
-  def scriptScoreQuery(script: requests.script.Script, filter: Option[Query] = None): CustomQuery =
+  def scriptScoreQuery(script: Script, filter: Option[Query] = None): CustomQuery =
     () =>
       XContentFactory
         .jsonBuilder()
@@ -109,5 +109,3 @@ trait ElastiKnnDsl extends ElasticDsl {
         .endObject()
         .endObject()
 }
-
-object ElastiKnnDsl extends ElastiKnnDsl

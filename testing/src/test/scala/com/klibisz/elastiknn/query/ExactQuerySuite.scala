@@ -3,8 +3,8 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.client.ElastiKnnDsl
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.klibisz.elastiknn.client.ElastiKnnDsl._
+import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
 import io.circe.parser.decode
@@ -17,7 +17,7 @@ import scala.util.Try
 /**
   * Tests for the exact query functionality, using test data generated via Python and scikit-learn.
   */
-class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient with ElastiKnnDsl {
+class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient with ElasticDsl {
 
   private def readTestData(resourceName: String): Try[TestData] =
     for {

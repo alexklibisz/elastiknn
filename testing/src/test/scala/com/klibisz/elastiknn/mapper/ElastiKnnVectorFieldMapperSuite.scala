@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.mapper
 
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.client.ElastiKnnDsl
+import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.klibisz.elastiknn.utils.Implicits._
 import com.sksamuel.elastic4s.requests
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
@@ -14,13 +14,7 @@ import scalapb_circe.JsonFormat
 
 import scala.concurrent.Future
 
-class ElastiKnnVectorFieldMapperSuite
-    extends AsyncFunSuite
-    with Matchers
-    with Inspectors
-    with Elastic4sMatchers
-    with ElasticAsyncClient
-    with ElastiKnnDsl {
+class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient {
 
   private val fieldName = "ekv"
   private val field = BasicField(fieldName, "elastiknn_vector")

@@ -1,17 +1,17 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.client.ElastiKnnDsl
+import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions, Similarity}
+import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
-import com.sksamuel.elastic4s.ElasticDsl._
 import io.circe.parser.decode
 import org.scalatest.{AsyncTestSuite, Inspectors, Matchers}
 
 import scala.concurrent.Future
 import scala.util.{Random, Try}
 
-trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with Elastic4sMatchers with ElastiKnnDsl {
+trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with Elastic4sMatchers with ElasticDsl {
 
   this: AsyncTestSuite =>
 
