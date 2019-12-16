@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.mapper
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.klibisz.elastiknn.utils.Implicits._
+import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse

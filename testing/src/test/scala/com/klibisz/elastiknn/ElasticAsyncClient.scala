@@ -10,14 +10,14 @@ import scala.concurrent.Future
 
 trait ElasticAsyncClient {
 
-  this : AsyncTestSuite =>
+  this: AsyncTestSuite =>
 
   lazy val elasticHost: HttpHost = new HttpHost("localhost", 9200)
 
   // This makes sure the client executes requests on the execution context setup by the test.
   implicit def futureExecutor: Executor[Future] = Executor.FutureExecutor(this.executionContext)
 
-  protected lazy val client: ElasticClient = {
+  protected implicit lazy val client: ElasticClient = {
     val rc = RestClient.builder(elasticHost).build()
     val jc = new JavaClient(rc)
     ElasticClient(jc)

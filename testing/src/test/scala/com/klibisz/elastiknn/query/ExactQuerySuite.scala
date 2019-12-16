@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
@@ -17,7 +18,16 @@ import scala.util.Try
 /**
   * Tests for the exact query functionality, using test data generated via Python and scikit-learn.
   */
-class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with Elastic4sMatchers with ElasticAsyncClient with ElasticDsl {
+class ExactQuerySuite
+    extends AsyncFunSuite
+    with Matchers
+    with SilentMatchers
+    with Inspectors
+    with Elastic4sMatchers
+    with ElasticAsyncClient
+    with ElasticDsl {
+
+  private val eknn: ElastiKnnClient = new ElastiKnnClient()
 
   private def readTestData(resourceName: String): Try[TestData] =
     for {
@@ -33,8 +43,8 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
     for {
       testData <- Future.fromTry(readTestData("similarity_angular-10.json"))
     } yield {
-      forAll(testData.corpus) { _.getFloatVector.values should have length 10 }
-      forAll(testData.queries) {
+      forAll(testData.corpus.silent) { _.getFloatVector.values should have length 10 }
+      forAll(testData.queries.silent) {
         _.vector.getFloatVector.values should have length 10
       }
     }
@@ -50,7 +60,7 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
       val tryReadData = readTestData(resourceName)
 
       val index = s"test-exact-${sim.name.toLowerCase}"
-      val pipeline = s"$index-pipeline"
+      val pipelineId = s"$index-pipeline"
       val rawField = "vec"
       val mapDef = MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
 
@@ -67,71 +77,58 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
         _ <- client.execute(deleteIndex(index))
 
         // Hit setup endpoint.
-        setupRes <- client.execute(ElastiKnnSetupRequest())
-        _ = setupRes.shouldBeSuccess
+        _ <- eknn.setupCluster()
 
         // Create the pipeline.
         popts = ProcessorOptions(rawField, dim, modelOptions = ModelOptions.Exact(ExactModelOptions(sim)))
-        pipelineReq = PutPipelineRequest(pipeline, s"exact search for ${sim.name}", Processor("elastiknn", popts))
-        pipelineRes <- client.execute(pipelineReq)
-        _ = pipelineRes.shouldBeSuccess
+        _ <- eknn.createPipeline(pipelineId, popts)
 
         // Create the index with mapping.
         createIndexRes <- client.execute(createIndex(index).mapping(mapDef))
         _ = createIndexRes.shouldBeSuccess
 
         // Index the vectors
-        indexVecsReqs = testData.corpus.zipWithIndex.map {
-          case (ekv, i) =>
-            indexVector(index, popts.fieldRaw, ekv, pipeline).id(corpusId(i))
-        }
-        indexVecsRes <- client.execute(bulk(indexVecsReqs).refresh(RefreshPolicy.IMMEDIATE))
-        _ = indexVecsRes.shouldBeSuccess
-        _ = indexVecsRes.result.errors shouldBe false
+        corpusIds = testData.corpus.indices.map(corpusId)
+        _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.corpus, Some(corpusIds), RefreshPolicy.Immediate)
 
         // Run exact queries with given vectors.
         givenQueriesAndResponses <- Future.sequence(testData.queries.map { query =>
-          val req = search(index)
-            .query(knnQuery(ExactQueryOptions(rawField, sim), query.vector))
-            .size(numHits)
-          client.execute(req).map(res => query -> res)
+          eknn.knnQuery(index, ExactQueryOptions(rawField, sim), query.vector, numHits).map(res => query -> res)
         })
         _ = givenQueriesAndResponses should have length testData.queries.length
-        _ = forAll(givenQueriesAndResponses) {
+        _ = forAll(givenQueriesAndResponses.silent) {
           case (query, res) =>
-            res.shouldBeSuccess
-            res.result.hits.hits should have length numHits
+            res.hits.hits should have length numHits
             // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
-            forAll(query.similarities.zip(res.result.hits.hits.map(_.score))) {
+            forAll(query.similarities.zip(res.hits.hits.map(_.score)).silent) {
               case (sim, score) => score shouldBe sim +- 1e-6f
             }
         }
 
         // Index the query vectors.
-        indexVecsReqs = testData.queries.zipWithIndex.map {
-          case (query, i) =>
-            indexVector(index, popts.fieldRaw, query.vector, pipeline)
-              .id(s"q$i")
-        }
-        indexVecsRes <- client.execute(bulk(indexVecsReqs).refresh(RefreshPolicy.IMMEDIATE))
-        _ = indexVecsRes.shouldBeSuccess
-        _ = indexVecsRes.result.errors shouldBe false
+        _ <- eknn.indexVectors(index,
+                               pipelineId,
+                               popts.fieldRaw,
+                               testData.queries.map(_.vector),
+                               ids = Some(testData.queries.indices.map(queryId)),
+                               RefreshPolicy.Immediate)
 
         // Run exact queries with indexed vectors. Adjust the size so that it will include at least numHits vectors from
         // the corpus. This lets you filter out other query vectors which might be closer than the corpus vectors.
         indexedQueriesAndResponses <- Future.sequence(testData.queries.zipWithIndex.map {
           case (query, i) =>
-            val req = search(index)
-              .query(knnQuery(ExactQueryOptions(rawField, sim), IndexedQueryVector(index, rawField, queryId(i))))
-              .size(numHits + testData.queries.length + 1)
-            client.execute(req).map(res => query -> res)
+            eknn
+              .knnQuery(index,
+                        ExactQueryOptions(rawField, sim),
+                        IndexedQueryVector(index, rawField, queryId(i)),
+                        numHits + testData.queries.length + 1)
+              .map(res => query -> res)
         })
 
         _ = indexedQueriesAndResponses should have length testData.queries.length
-        _ = forAll(indexedQueriesAndResponses.zipWithIndex) {
+        _ = forAll(indexedQueriesAndResponses.zipWithIndex.silent) {
           case ((query, res), i) =>
-            res.shouldBeSuccess
-            val hits = res.result.hits.hits
+            val hits = res.hits.hits
             hits should have length numHits + testData.queries.length + 1
             // The first hit's id is the same as the query vector's id. It's more reliable to check this by finding
             // the hit matching the id and then making sure it has the max score of all the hits.
@@ -140,8 +137,8 @@ class ExactQuerySuite extends AsyncFunSuite with Matchers with Inspectors with E
             find.map(_.score) shouldBe Some(hits.map(_.score).max)
 
             // The remaining hits have the right scores. Only consider the corpus vectors.
-            val scores = hits.filter(_.id.startsWith("c")).map(_.score).take(query.similarities.length)
-            forAll(query.similarities.zip(scores)) {
+            val scores = hits.filterNot(_.id.startsWith("q")).map(_.score).take(query.similarities.length)
+            forAll(query.similarities.zip(scores).silent) {
               case (sim, score) => score shouldBe sim +- 1e-6f
             }
         }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
 import com.klibisz.elastiknn.{ElastiKnnVector, KNearestNeighborsQuery}
 import com.sksamuel.elastic4s._
+import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
@@ -15,7 +16,7 @@ import scalapb_circe.JsonFormat
   * Request/response objects and helper methods based on the elastic4s library. Unfortunately this has to be an object,
   * otherwise you get runtime errors for Jackson decoding.
   */
-object ElastiKnnDsl extends ElasticDsl {
+object ElastiKnnDsl {
 
   case class ElastiKnnSetupRequest(endpointPrefix: String = "_elastiknn")
 
