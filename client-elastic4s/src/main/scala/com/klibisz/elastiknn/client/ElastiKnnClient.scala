@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, QueryOptions}
 import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions}
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
