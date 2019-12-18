@@ -1,35 +1,14 @@
 package com.klibisz.elastiknn.models
 
+import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.klibisz.elastiknn.ElastiKnnVector.Vector.{FloatVector, SparseBoolVector}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn._
 import io.circe._
-import io.circe.generic.semiauto.deriveEncoder
+import io.circe.syntax._
 
 import scala.util._
-
-trait VectorModel[R] {
-
-  /**
-    * Map a vector to a Try of some representation which can be converted Json.
-    * @param v The vector
-    * @param enc Encoder typeclass so the representation can be mapped to JSON.
-    * @param dec Decoder typeclass so the representation can be parsed from JSON.
-    * @return
-    */
-  def apply(v: ElastiKnnVector)(implicit enc: Encoder[R], dec: Decoder[R]): Try[R]
-}
-
-case class ExactRepresentation()
-object ExactRepresentation {
-  implicit def encoder: Encoder[ExactRepresentation] = deriveEncoder[ExactRepresentation]
-}
-
-class ExactModel(opts: ExactModelOptions) extends VectorModel[ExactRepresentation] {
-  def apply(v: ElastiKnnVector)(implicit enc: Encoder[ExactRepresentation], dec: Decoder[ExactRepresentation]): Try[ExactRepresentation] =
-    ???
-}
 
 object ExactModel {
   def apply(popts: ProcessorOptions, mopts: ExactModelOptions, vec: ElastiKnnVector): Try[Unit] = (mopts.similarity, vec) match {
@@ -41,21 +20,26 @@ object ExactModel {
   }
 }
 
-case class JaccardLshRepresentation()
-object JaccardLshRepresentation {
-  implicit def encoder: Encoder[JaccardLshRepresentation] = deriveEncoder[JaccardLshRepresentation]
-}
+class JaccardLshModel(opts: JaccardLshOptions) {
 
-class JaccardLshModel(opts: JaccardLshOptions) extends VectorModel[JaccardLshRepresentation] {
-  def apply(v: ElastiKnnVector)(implicit enc: Encoder[JaccardLshRepresentation],
-                                dec: Decoder[JaccardLshRepresentation]): Try[JaccardLshRepresentation] = ???
+  private val rng: Random = new Random(opts.seed)
+//  private val hashFuncs: Seq[]
+
+  def apply(vec: ElastiKnnVector): Try[Map[String, String]] = {
+    ???
+  }
 }
 
 object VectorModel {
 
+  private val jaccardCache = CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
+    def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
+  })
+
   def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = (popts.modelOptions, vec) match {
-    case (Exact(ex), _) => ExactModel(popts, ex, vec).map(_ => Json.fromJsonObject(JsonObject.empty))
-    case _              => ???
+    case (Exact(mopts), _)   => ExactModel(popts, mopts, vec).map(_ => Json.fromJsonObject(JsonObject.empty))
+    case (Jaccard(mopts), _) => jaccardCache.get(mopts)(vec).map(_.asJson)
+    case _                   => ???
   }
 
 }

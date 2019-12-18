@@ -82,15 +82,6 @@ object IngestProcessor {
 
   lazy val TYPE: String = ELASTIKNN_NAME
 
-  private val modelCache: LoadingCache[ModelOptions, VectorModel[_]] =
-    CacheBuilder.newBuilder.softValues.build(new CacheLoader[ModelOptions, VectorModel[_]] {
-      override def load(key: ModelOptions): VectorModel[_] = key match {
-        case ModelOptions.Exact(opts)   => new ExactModel(opts)
-        case ModelOptions.Jaccard(opts) => new JaccardLshModel(opts)
-        case ModelOptions.Empty         => new ExactModel(ExactModelOptions.defaultInstance)
-      }
-    })
-
   class Factory(client: NodeClient) extends Processor.Factory {
 
     private val logger: Logger = LogManager.getLogger(getClass)
