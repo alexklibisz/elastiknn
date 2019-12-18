@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.client.ElastiKnnDsl._
@@ -37,9 +37,11 @@ trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with E
     val popts: ProcessorOptions = ProcessorOptions(rawField, dim, modelOptions)
     val mapDef: MappingDefinition = MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
     val eknn: ElastiKnnClient = new ElastiKnnClient()
+    val queryVectorIdPrefix: String = "q"
+    val corpusVectorIdPrefix: String = "c"
 
-    def corpusId(i: Int): String = s"c$i"
-    def queryId(i: Int): String = s"q$i"
+    private def corpusId(i: Int): String = s"$corpusVectorIdPrefix$i"
+    private def queryId(i: Int): String = s"$queryVectorIdPrefix$i"
 
     private lazy val setupIndexCorpus: Future[TestData] = for {
       testData <- Future.fromTry(readTestData(sim, dim))
@@ -51,19 +53,36 @@ trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with E
       _ <- eknn.indexVectors(index, pipelineId, rawField, testData.corpus, Some(corpusIds), Immediate)
     } yield testData
 
-    final def testGiven(queryOptions: QueryOptions)(fun: Seq[(Query, SearchResponse)] => Future[Assertion]): Future[Assertion] =
+    private lazy val numHits: Future[Int] = for (testData <- setupIndexCorpus)
+      yield testData.queries.head.similarities.length
+
+    /** Runs a test for queries which just take an [[ElastiKnnVector]]. Passes the query and response to an assertion. */
+    def testGiven(queryOptions: QueryOptions)(fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
       for {
         testData <- setupIndexCorpus
-        numHits = testData.queries.head.similarities.length
+        numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           queryOptions match {
             case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q.vector, numHits).map(r => q -> r)
           }
         })
-        assertion <- fun(queriesResponses)
-      } yield assertion
+      } yield fun(queriesResponses)
 
-    final def queryIndexed: Seq[(Query, SearchResponse)] = ???
+    /** Run tests for queries which take an [[IndexedQueryVector]]. Passes the query, query vector ID, and response to an assertion. */
+    def testIndexed(queryOptions: QueryOptions)(fun: Seq[(Query, String, SearchResponse)] => Assertion): Future[Assertion] =
+      for {
+        testData <- setupIndexCorpus
+        numHits <- numHits.map(_ + testData.queries.length + 1)
+        queryIds = testData.queries.indices.map(queryId)
+        _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.queries.map(_.vector), ids = Some(queryIds), Immediate)
+        queriesAndResponses <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (q, i) =>
+            queryOptions match {
+              case QueryOptions.Exact(opts) =>
+                eknn.knnQuery(index, opts, IndexedQueryVector(index, rawField, queryId(i)), numHits).map(r => (q, queryId(i), r))
+            }
+        })
+      } yield fun(queriesAndResponses)
 
   }
 
