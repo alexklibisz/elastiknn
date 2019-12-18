@@ -1,9 +1,8 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
-import com.sksamuel.elastic4s.ElasticDsl
 import org.scalatest._
 
 import scala.concurrent.Future
@@ -18,8 +17,7 @@ class ExactQuerySuite
     with SilentMatchers
     with Inspectors
     with Elastic4sMatchers
-    with ElasticAsyncClient
-    with ElasticDsl {
+    with ElasticAsyncClient {
 
   for {
     sim <- Similarity.values

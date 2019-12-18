@@ -1,7 +1,9 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.common.collect.MinMaxPriorityQueue
-import com.klibisz.elastiknn.{ElastiKnnVector, SparseBoolVector}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions, SparseBoolVector}
+import io.circe.Json
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
@@ -52,6 +54,15 @@ object Implicits {
     import io.circe.syntax._
     import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
     def from(m: java.util.Map[String, AnyRef]): Try[ElastiKnnVector] = Try(JsonFormat.fromJson[ElastiKnnVector](m.asJson(mapEncoder)))
+  }
+
+  implicit class ModelOptionsImplicits(mopts: ModelOptions) {
+
+    /** Return the processed field name. */
+    private[elastiknn] def fieldProc: Option[String] = mopts match {
+      case ModelOptions.Exact(_) | ModelOptions.Empty => None
+      case ModelOptions.Jaccard(j)                    => Some(j.fieldProcessed)
+    }
   }
 
   implicit class TraversableImplicits[T](trv: Traversable[T]) {

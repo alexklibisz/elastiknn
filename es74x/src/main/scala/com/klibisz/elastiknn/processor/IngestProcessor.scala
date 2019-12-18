@@ -2,23 +2,25 @@ package com.klibisz.elastiknn.processor
 
 import java.util
 
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.models.{ExactModel, JaccardLshModel, VectorModel}
+import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
+import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContent, XContentParser, XContentType}
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class IngestProcessor private (tag: String, client: NodeClient, popts: ProcessorOptions) extends AbstractProcessor(tag) {
 
-  import IngestProcessor.TYPE
+  import IngestProcessor._
   import popts._
 
   private def parseVector(doc: IngestDocument): Try[ElastiKnnVector] =
@@ -57,17 +59,21 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
     // Check if the raw vector is present.
     require(doc.hasField(fieldRaw), s"$TYPE expected to find vector at $fieldRaw")
 
-    popts.modelOptions match {
-      // For exact models, just make sure the vector can be parsed.
-      case ModelOptions.Exact(exactOpts) =>
-        exactOpts.similarity match {
-          case SIMILARITY_L1 | SIMILARITY_L2 | SIMILARITY_ANGULAR => parseFloatVector(doc).get
-          case SIMILARITY_JACCARD | SIMILARITY_HAMMING            => parseBoolVector(doc).get
-        }
+    // Attempt to parse and process vector.
+    val docTry: Try[IngestDocument] = for {
+      vecRaw <- parseVector(doc)
+      vecProc <- VectorModel.toJson(popts, vecRaw)
+    } yield {
+      // If the model options prescribe a processed field, set it here.
+      modelOptions.fieldProc.foreach { fieldProc =>
+        doc.setFieldValue(fieldProc,
+                          XContentType.JSON.xContent
+                            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, vecProc.noSpaces))
+      }
+      doc // Return the doc, which may or may not be modified.
     }
 
-    doc
-
+    docTry.get
   }
 
 }
@@ -75,6 +81,15 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 object IngestProcessor {
 
   lazy val TYPE: String = ELASTIKNN_NAME
+
+  private val modelCache: LoadingCache[ModelOptions, VectorModel[_]] =
+    CacheBuilder.newBuilder.softValues.build(new CacheLoader[ModelOptions, VectorModel[_]] {
+      override def load(key: ModelOptions): VectorModel[_] = key match {
+        case ModelOptions.Exact(opts)   => new ExactModel(opts)
+        case ModelOptions.Jaccard(opts) => new JaccardLshModel(opts)
+        case ModelOptions.Empty         => new ExactModel(ExactModelOptions.defaultInstance)
+      }
+    })
 
   class Factory(client: NodeClient) extends Processor.Factory {
 
@@ -84,7 +99,8 @@ object IngestProcessor {
     override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
       val configJson = config.asJson
       val popts = JsonFormat.fromJson[ProcessorOptions](configJson)
-      config.clear() // Need to do this otherwise es thinks parsing didn't work.
+      require(!popts.modelOptions.isEmpty, "Model options are not defined")
+      config.clear() // Need to do this otherwise ES thinks parsing didn't work!
       new IngestProcessor(tag, client, popts)
     }
 

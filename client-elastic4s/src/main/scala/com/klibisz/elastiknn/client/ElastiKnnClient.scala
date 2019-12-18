@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions}
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
@@ -76,18 +76,13 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     execute(bulk(withIds).refresh(refresh))
   }
 
-  /**
-    *
-    * @param index
-    * @param options
-    * @param vector
-    * @param k
-    * @return
-    */
   def knnQuery(index: String, options: ExactQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
     execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
 
   def knnQuery(index: String, options: ExactQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
     execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
+
+  def knnQuery(index: String, options: LshQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
+    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Given(vector))).size(k))
 
 }

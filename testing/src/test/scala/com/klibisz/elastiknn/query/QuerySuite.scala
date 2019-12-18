@@ -1,21 +1,20 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{IndexedQueryVector, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.client.ElastiKnnClient
-import com.klibisz.elastiknn.client.ElastiKnnDsl._
-import com.klibisz.elastiknn.{ElastiKnnVector, Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions, Similarity}
+import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy.Immediate
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import io.circe.parser.decode
-import org.scalatest.{Assertion, AsyncTestSuite, Inspectors, Matchers}
+import org.scalatest.{Assertion, AsyncTestSuite}
 
 import scala.concurrent.Future
-import scala.util.{Random, Try}
+import scala.util.Try
 
-trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with Elastic4sMatchers with ElasticDsl {
+trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
 
   this: AsyncTestSuite =>
 
@@ -29,6 +28,8 @@ trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with E
       }
       dec <- decode[TestData](rawJson).toTry
     } yield dec
+
+  final def testDataDims: Seq[Int] = Seq(10, 128, 512)
 
   final class Support(rawField: String, sim: Similarity, dim: Int, modelOptions: ModelOptions) {
 
@@ -64,6 +65,8 @@ trait QuerySuite extends Matchers with Inspectors with ElasticAsyncClient with E
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           queryOptions match {
             case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q.vector, numHits).map(r => q -> r)
+            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q.vector, numHits).map(r => q -> r)
+            case _                        => Future.failed(illArgEx("query options must be exact or lsh"))
           }
         })
       } yield fun(queriesResponses)
