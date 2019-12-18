@@ -3,14 +3,10 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.sksamuel.elastic4s.ElasticDsl
-import io.circe.parser.decode
 import org.scalatest._
 
 import scala.concurrent.Future
-import scala.io.BufferedSource
-import scala.util.Try
 
 /**
   * Tests for the exact query functionality, using test data generated via Python and scikit-learn.
@@ -25,34 +21,28 @@ class ExactQuerySuite
     with ElasticAsyncClient
     with ElasticDsl {
 
-  private val eknn: ElastiKnnClient = new ElastiKnnClient()
-
-  private def readTestData(resourceName: String): Try[TestData] =
-    for {
-      rawJson <- Try {
-        val src: BufferedSource = scala.io.Source.fromResource(resourceName)
-        try src.mkString
-        finally src.close()
-      }
-      decoded <- decode[TestData](rawJson).toTry
-    } yield decoded
-
-  test("parses test data") {
-    for (testData <- Future.fromTry(readTestData("similarity_angular-10.json")))
-      yield {
-        forAll(testData.corpus.silent) {
-          _.getFloatVector.values should have length 10
-        }
-        forAll(testData.queries.silent) {
-          _.vector.getFloatVector.values should have length 10
-        }
-      }
-  }
-
   for {
     sim <- Similarity.values
     dim <- Seq(10, 128, 512)
   } yield {
+
+    test(s"parsing test data for $dim-dimensional $sim") {
+      for (testData <- Future.fromTry(readTestData(sim, dim))) yield {
+        forAll(testData.corpus.silent) {
+          case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
+          case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
+          case _                                                             => Assertions.fail()
+        }
+        forAll(testData.queries.silent) {
+          _.vector match {
+            case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
+            case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
+            case _                                                             => Assertions.fail()
+          }
+        }
+      }
+    }
+
     val support = new Support("vec_raw", sim, dim, ModelOptions.Exact(ExactModelOptions(sim)))
     test(s"exact $dim-dimensional ${sim.name} search given a vector") {
       support.testGiven(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
