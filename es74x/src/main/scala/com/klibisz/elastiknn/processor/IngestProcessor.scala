@@ -9,6 +9,7 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.models.{ExactModel, JaccardLshModel, VectorModel}
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.Implicits._
+import io.circe.Json
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
@@ -31,25 +32,12 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
       case ex => Failure(ParseVectorException(Some(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from $fieldRaw: $ex")))
     }
 
-  private def parseFloatVector(doc: IngestDocument): Try[FloatVector] =
-    for {
-      ekv <- parseVector(doc)
-      ret <- ekv.vector match {
-        case ElastiKnnVector.Vector.FloatVector(fv) =>
-          if (fv.values.length == popts.dimension) Success(fv) else Failure(VectorDimensionException(fv.values.length, popts.dimension))
-        case v => Failure(illArgEx(s"Expected vector of floats but got: $v"))
-      }
-    } yield ret
-
-  private def parseBoolVector(doc: IngestDocument): Try[SparseBoolVector] =
-    for {
-      ekv <- parseVector(doc)
-      ret <- ekv.vector match {
-        case ElastiKnnVector.Vector.SparseBoolVector(sbv) =>
-          if (sbv.totalIndices == popts.dimension) Success(sbv) else Failure(VectorDimensionException(sbv.totalIndices, popts.dimension))
-        case v => Failure(illArgEx(s"Expected vector of booleans but got: $v"))
-      }
-    } yield ret
+  private def setField(doc: IngestDocument, field: String, json: Json): Unit = {
+    val reg = NamedXContentRegistry.EMPTY
+    val dep = DeprecationHandler.THROW_UNSUPPORTED_OPERATION
+    val parser = XContentType.JSON.xContent.createParser(reg, dep, json.noSpaces)
+    doc.setFieldValue(field, parser.map())
+  }
 
   override def getType: String = IngestProcessor.TYPE
 
@@ -65,12 +53,9 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
       vecProc <- VectorModel.toJson(popts, vecRaw)
     } yield {
       // If the model options prescribe a processed field, set it here.
-      modelOptions.fieldProc.foreach { fieldProc =>
-        doc.setFieldValue(fieldProc,
-                          XContentType.JSON.xContent
-                            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, vecProc.noSpaces))
-      }
-      doc // Return the doc, which may or may not be modified.
+      modelOptions.fieldProc.foreach(fieldProc => setField(doc, fieldProc, vecProc))
+      // Return the doc, which may or may not be modified.
+      doc
     }
 
     docTry.get

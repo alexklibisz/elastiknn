@@ -13,11 +13,15 @@ object Implicits {
 
   implicit class SparseBoolVectorImplicits(sbv: SparseBoolVector) {
 
-    def length: Int = sbv.totalIndices
+    lazy val length: Int = sbv.totalIndices
 
-    def lengthTrue: Int = sbv.trueIndices.size
+    lazy val nonEmpty: Boolean = length > 0
 
-    def lengthFalse: Int = sbv.totalIndices - sbv.trueIndices.size
+    lazy val isEmpty: Boolean = length == 0
+
+    lazy val lengthTrue: Int = sbv.trueIndices.size
+
+    lazy val lengthFalse: Int = sbv.totalIndices - sbv.trueIndices.size
 
     def compatibleWith(other: SparseBoolVector): Boolean = sbv.totalIndices == other.totalIndices
 
