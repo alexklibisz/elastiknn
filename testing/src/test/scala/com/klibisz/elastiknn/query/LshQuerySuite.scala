@@ -18,7 +18,8 @@ class LshQuerySuite
   private val simToOpts: Map[Similarity, Seq[ModelOptions]] = Map[Similarity, Seq[ModelOptions]](
     SIMILARITY_JACCARD -> Seq(
       ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 1, 10, 1)),
-      ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 3, 20, 1)),
+      ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 1, 10, 3)),
+      ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 2, 20, 3))
     )
   ).withDefault((other: Similarity) => Seq.empty[ModelOptions])
 

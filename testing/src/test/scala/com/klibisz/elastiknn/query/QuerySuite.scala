@@ -34,7 +34,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
   final class Support(rawField: String, sim: Similarity, dim: Int, modelOptions: ModelOptions) {
 
     val index: String = s"test-${sim.name.toLowerCase}-$dim"
-    val pipelineId: String = s"$index-pipeline"
+    val pipelineId: String = s"$index-pipeline-${modelOptions.hashCode.abs}"
     val popts: ProcessorOptions = ProcessorOptions(rawField, dim, modelOptions)
     val mapDef: MappingDefinition = MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
     val eknn: ElastiKnnClient = new ElastiKnnClient()
