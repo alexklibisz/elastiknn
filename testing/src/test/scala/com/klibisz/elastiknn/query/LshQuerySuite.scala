@@ -34,13 +34,26 @@ class LshQuerySuite
     test(s"approximate search given vector: ($dim, $sim, $opt)") {
       support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
         case queriesAndResponses =>
-          // TODO: Requirements are very loose.
-          forAtLeast(1, queriesAndResponses.silent) {
+          forAtLeast(queriesAndResponses.length / 2, queriesAndResponses.silent) {
             case (query, res) =>
-              res.hits.hits should have length query.similarities.length
+              res.hits.hits should not be empty
               val correctCorpusIds = query.indices.map(support.corpusId).toSet
               val returnedCorpusIds = res.hits.hits.map(_.id).toSet
               correctCorpusIds.intersect(returnedCorpusIds) should not be empty
+          }
+      }
+    }
+
+    test(s"approximate search with indexed vector: ($dim, $sim, $opt)") {
+      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
+        case queriesAndResponses =>
+          forAll(queriesAndResponses.silent) {
+            case (query, id, res) =>
+              res.hits.hits should not be empty
+              // Top hit should be the query vector itself.
+              val self = res.hits.hits.find(_.id == id)
+              self shouldBe defined
+              self.map(_.score) shouldBe Some(res.hits.hits.map(_.score).max)
           }
       }
     }

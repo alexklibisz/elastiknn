@@ -80,9 +80,12 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
         _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.queries.map(_.vector), ids = Some(queryIds), Immediate)
         queriesAndResponses <- Future.sequence(testData.queries.zipWithIndex.map {
           case (q, i) =>
+            val iqv = IndexedQueryVector(index, rawField, queryId(i))
             queryOptions match {
               case QueryOptions.Exact(opts) =>
-                eknn.knnQuery(index, opts, IndexedQueryVector(index, rawField, queryId(i)), numHits).map(r => (q, queryId(i), r))
+                eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
+              case QueryOptions.Lsh(opts) =>
+                eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
             }
         })
       } yield fun(queriesAndResponses)
