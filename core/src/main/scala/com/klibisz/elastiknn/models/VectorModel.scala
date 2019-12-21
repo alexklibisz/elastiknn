@@ -42,17 +42,17 @@ class JaccardLshModel(opts: JaccardLshOptions) {
         ((1L + i) * a + b) % HASH_PRIME
   }
 
-  private val emptyHash: Map[String, Int] = (for {
+  private val emptyHash: Map[String, String] = (for {
     ti <- 0 until numTables
     bi <- 0 until numBands
     h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
-  } yield (s"$ti,$bi", h)).toMap
+  } yield (s"$ti,$bi", h.toString)).toMap
 
-  def hash(sbv: SparseBoolVector): Map[String, Int] =
+  def hash(sbv: SparseBoolVector): Map[String, String] =
     if (sbv.isEmpty) emptyHash
     else {
       // Implemented in a way that should avoid creating any ancillary data structures in the loops.
-      var hh = Map.empty[String, Int]
+      var hh = Map.empty[String, String]
       val rh = Array.fill(numRows)(Long.MaxValue)
       var hi = 0
       fastfor(0, _ < numTables) { ti =>
@@ -62,13 +62,13 @@ class JaccardLshModel(opts: JaccardLshOptions) {
             rh.update(ri, h(sbv.trueIndices.minBy(h)))
             hi += 1
           }
-          hh += (s"$ti,$bi" -> MurmurHash3.orderedHash(rh))
+          hh += (s"$ti,$bi" -> MurmurHash3.orderedHash(rh).toString)
         }
       }
       hh
     }
 
-  def hash(vec: ElastiKnnVector): Try[Map[String, Int]] = vec match {
+  def hash(vec: ElastiKnnVector): Try[Map[String, String]] = vec match {
     case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(hash(sbv))
     case _                                                             => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
   }

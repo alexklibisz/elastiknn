@@ -27,12 +27,12 @@ class LshQuerySuite
 
     val support = new Support("vec_raw", sim, dim, opt)
 
-    test(s"approximate search given vector: ($dim, $sim, $opt)") {
-      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
-        case queriesAndResponses =>
-          ???
-      }
-    }
+//    test(s"approximate search given vector: ($dim, $sim, $opt)") {
+//      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
+//        case queriesAndResponses =>
+//          ???
+//      }
+//    }
 
   }
 

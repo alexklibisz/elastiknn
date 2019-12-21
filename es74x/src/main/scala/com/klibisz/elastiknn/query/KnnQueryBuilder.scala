@@ -9,6 +9,7 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
@@ -53,86 +54,36 @@ object KnnQueryBuilder {
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
 
     /** This is uses to transfer the query across nodes in the cluster. */
-    override def read(in: StreamInput): KnnQueryBuilder =
-      new KnnQueryBuilder(in)
-  }
-
-  // TODO: move this out to a config file.
-  private[this] val getProcessorOptionsTimeout: Long = 1000
-
-  // Keep an internal cache of the processor options.
-  private[this] val processorOptionsCache = CacheBuilder.newBuilder.softValues
-    .build[(String, String), ProcessorOptions]()
-
-  // Method with logic for fetching, parsing, and caching processor options.
-  // It uses the client in a blocking fashion, but there should be very few pipelines compared to the number of vectors.
-  def processorOptions(client: Client, pipelineId: String, processorId: String): ProcessorOptions = {
-    lazy val callable: Callable[ProcessorOptions] = () =>
-      KnnQueryBuilder.synchronized {
-        val getRes = client
-          .execute(new GetPipelineAction(), new GetPipelineRequest(pipelineId))
-          .actionGet(getProcessorOptionsTimeout)
-        require(getRes.pipelines.size() > 0, s"Found no pipelines with id $pipelineId")
-        val configMap = getRes.pipelines.get(0).getConfigAsMap
-        require(configMap.containsKey("processors"), s"Pipeline $pipelineId has no processors")
-        val procsList = configMap
-          .get("processors")
-          .asInstanceOf[util.ArrayList[util.Map[String, util.Map[String, Object]]]]
-        val procOptsOpt = procsList.asScala
-          .find(_.containsKey(processorId))
-          .map(_.get(processorId))
-        require(procOptsOpt.isDefined, s"Found no processor with id $processorId for pipeline $pipelineId")
-        val procOptsJson = procOptsOpt.get.asJson
-        val procOpts = JsonFormat.fromJson[ProcessorOptions](procOptsJson)
-        procOpts
-    }
-    processorOptionsCache.get((pipelineId, processorId), callable)
-  }
-
-}
-
-final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
-
-  /** Decodes a KnnQueryBuilder from the StreamInput as a base64 string. Using the ByteArray directly doesn't work. */
-  def this(in: StreamInput) =
-    this({
+    override def read(in: StreamInput): KnnQueryBuilder = {
       // https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
       in.readFloat()
       in.readOptionalString()
-      KNearestNeighborsQuery.parseBase64(in.readString())
-    })
+      new KnnQueryBuilder(KNearestNeighborsQuery.parseBase64(in.readString()))
+    }
+
+  }
+}
+
+final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
     out.writeString(query.toBase64)
 
-  // Use the query options to build a lucene query.
-  override def doToQuery(context: QueryShardContext): Query =
-    (query.queryOptions, query.queryVector) match {
-      case (QueryOptions.Exact(opts), QueryVector.Given(query)) =>
-        exactGivenQuery(context, opts, query).get
-      case (QueryOptions.Lsh(opts), QueryVector.Given(query)) =>
-        lshGivenQuery(context, opts, query).get
-      case (QueryOptions.Empty, QueryVector.Empty) =>
-        throw illArgEx("Missing query options _and_ query vector")
-      case (_, QueryVector.Indexed(_)) =>
-        throw illArgEx("Indexed vector query should should have been rewritten")
-      case (QueryOptions.Empty, _) =>
-        throw illArgEx("Missing query options")
-      case (_, QueryVector.Empty) =>
-        throw illArgEx("Missing query vector")
-    }
-
-  /** Checks if a query needs to be rewritten and rewrites it. */
-  override def doRewrite(context: QueryRewriteContext): QueryBuilder = {
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder =
     query.queryVector match {
-      case QueryVector.Given(_)    => this
-      case QueryVector.Indexed(qv) => rewriteIndexedQuery(context, qv)
-      case QueryVector.Empty       => throw illArgEx("Missing query vector")
+      case QueryVector.Indexed(indexedQueryVector) => rewriteIndexed(context, indexedQueryVector)
+      case QueryVector.Given(elastiKnnVector) =>
+        query.queryOptions match {
+          case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, elastiKnnVector)
+          case QueryOptions.Lsh(lshQueryOptions)     => new LshQueryBuilder(lshQueryOptions, elastiKnnVector)
+          case QueryOptions.Empty                    => throw illArgEx("Query options cannot be empty")
+        }
+      case QueryVector.Empty => throw illArgEx("Query vector cannot be empty")
     }
-  }
 
-  private def rewriteIndexedQuery(context: QueryRewriteContext, qv: IndexedQueryVector): QueryBuilder = {
+  /** Fetches the indexed vector from the cluster and rewrites the query as a given vector query. */
+  private def rewriteIndexed(context: QueryRewriteContext, qv: IndexedQueryVector): QueryBuilder = {
     val supplier = new SetOnce[KnnQueryBuilder]()
     context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
       c.execute(
@@ -157,22 +108,61 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
     RewriteLater(_ => supplier.get())
   }
 
-  /** Returns a Try of an exact query using a given query vector. */
-  private def exactGivenQuery(context: QueryShardContext, opts: ExactQueryOptions, ekv: ElastiKnnVector): Try[Query] = {
+  override def doToQuery(context: QueryShardContext): Query =
+    throw new IllegalArgumentException("Query should have been re-written")
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+
+  override def doEquals(other: KnnQueryBuilder): Boolean = this.query == other.query
+
+  override def doHashCode(): Int = Objects.hash(this.query)
+
+  override def getWriteableName: String = KnnQueryBuilder.NAME
+
+}
+
+object KnnExactQueryBuilder {
+
+  val NAME = s"${ELASTIKNN_NAME}_knn_exact"
+
+  object Parser extends QueryParser[KnnExactQueryBuilder] {
+    override def fromXContent(parser: XContentParser): KnnExactQueryBuilder =
+      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query directly")
+  }
+
+  object Reader extends Writeable.Reader[KnnExactQueryBuilder] {
+    override def read(in: StreamInput): KnnExactQueryBuilder = {
+      in.readFloat()
+      in.readOptionalString()
+      new KnnExactQueryBuilder(
+        ExactQueryOptions.parseBase64(in.readString()),
+        ElastiKnnVector.parseBase64(in.readString())
+      )
+    }
+  }
+
+}
+
+final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val elastiKnnVector: ElastiKnnVector)
+    extends AbstractQueryBuilder[KnnExactQueryBuilder] {
+
+  import exactQueryOptions._
+
+  override def doToQuery(context: QueryShardContext): Query = {
     import ElastiKnnVector.Vector._
-    (opts.similarity, ekv.vector) match {
+    (similarity, elastiKnnVector.vector) match {
       case (SIMILARITY_ANGULAR, dvec: FloatVector) =>
-        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactAngular.script(opts.fieldRaw, dvec)))
+        scriptScoreQuery(context, fieldRaw, StoredScripts.exactAngular.script(fieldRaw, dvec))
       case (SIMILARITY_L1, dvec: FloatVector) =>
-        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL1.script(opts.fieldRaw, dvec)))
+        scriptScoreQuery(context, fieldRaw, StoredScripts.exactL1.script(fieldRaw, dvec))
       case (SIMILARITY_L2, dvec: FloatVector) =>
-        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactL2.script(opts.fieldRaw, dvec)))
+        scriptScoreQuery(context, fieldRaw, StoredScripts.exactL2.script(fieldRaw, dvec))
       case (SIMILARITY_HAMMING, bvec: SparseBoolVector) =>
-        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactHamming.script(opts.fieldRaw, bvec)))
+        scriptScoreQuery(context, fieldRaw, StoredScripts.exactHamming.script(fieldRaw, bvec))
       case (SIMILARITY_JACCARD, bvec: SparseBoolVector) =>
-        Success(scriptScoreQuery(context, opts.fieldRaw, StoredScripts.exactJaccard.script(opts.fieldRaw, bvec)))
-      case (_, Empty) => Failure(illArgEx("Must provide vector"))
-      case (_, _)     => Failure(SimilarityAndTypeException(opts.similarity, ekv))
+        scriptScoreQuery(context, fieldRaw, StoredScripts.exactJaccard.script(fieldRaw, bvec))
+      case (_, Empty) => throw illArgEx("Must provide vector")
+      case (_, _)     => throw SimilarityAndTypeException(similarity, elastiKnnVector)
     }
   }
 
@@ -182,16 +172,32 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
     new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
   }
 
-  private def lshGivenQuery(context: QueryShardContext, lshOpts: LshQueryOptions, ekv: ElastiKnnVector): Try[Query] = ???
+  def doWriteTo(out: StreamOutput): Unit = {
+    out.writeString(exactQueryOptions.toBase64)
+    out.writeString(elastiKnnVector.toBase64)
+  }
 
-  // TODO: This function seems to only get called when there is an error.
-  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+  def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doEquals(other: KnnQueryBuilder): Boolean =
-    this.query == other.query
+  def doEquals(other: KnnExactQueryBuilder): Boolean =
+    exactQueryOptions == other.exactQueryOptions && elastiKnnVector == other.elastiKnnVector
 
-  override def doHashCode(): Int = Objects.hash(this.query)
+  def doHashCode(): Int = Objects.hash(exactQueryOptions, elastiKnnVector)
 
-  override def getWriteableName: String = KnnQueryBuilder.NAME
+  def getWriteableName: String = KnnExactQueryBuilder.NAME
+}
 
+final class LshQueryBuilder(lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector)
+    extends AbstractQueryBuilder[LshQueryBuilder] {
+  override def doWriteTo(out: StreamOutput): Unit = ???
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+
+  override def doToQuery(context: QueryShardContext): Query = ???
+
+  override def doEquals(other: LshQueryBuilder): Boolean = ???
+
+  override def doHashCode(): Int = ???
+
+  override def getWriteableName: String = ???
 }
