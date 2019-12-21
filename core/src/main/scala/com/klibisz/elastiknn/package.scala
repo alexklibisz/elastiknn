@@ -16,7 +16,7 @@ package object elastiknn {
   private[elastiknn] lazy val ELASTIKNN_NAME = "elastiknn"
   private[elastiknn] lazy val ENDPOINT_PREFIX = s"_$ELASTIKNN_NAME"
 
-  private[elastiknn] def illArgEx(msg: String): IllegalArgumentException =
-    new IllegalArgumentException(msg)
+  private[elastiknn] def illArgEx(msg: String, cause: Option[Throwable] = None): IllegalArgumentException =
+    new IllegalArgumentException(msg, cause.orNull)
 
 }

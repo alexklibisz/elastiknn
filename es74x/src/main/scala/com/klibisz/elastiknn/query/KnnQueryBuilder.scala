@@ -2,38 +2,31 @@ package com.klibisz.elastiknn.query
 
 import java.util
 import java.util.Objects
-import java.util.concurrent.Callable
-import java.util.function.BiConsumer
 
-import com.google.common.cache.CacheBuilder
-import com.google.common.io.BaseEncoding
-import com.klibisz.elastiknn.Similarity._
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import io.circe.{Json, JsonObject}
+import com.klibisz.elastiknn.{KNearestNeighborsQuery, _}
 import io.circe.syntax._
-import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
-import org.elasticsearch.action.{ActionListener, ActionResponse}
+import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
-import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest}
+import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest, GetPipelineResponse}
 import org.elasticsearch.client.Client
-import org.elasticsearch.common.CheckedConsumer
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.{ScriptScoreFunction, ScriptScoreQuery}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import org.elasticsearch.index.query._
+import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 object KnnQueryBuilder {
 
@@ -60,11 +53,16 @@ object KnnQueryBuilder {
       in.readOptionalString()
       new KnnQueryBuilder(KNearestNeighborsQuery.parseBase64(in.readString()))
     }
-
   }
+
+  private val processorOptionsCache: Cache[LshQueryOptions, ProcessorOptions] =
+    CacheBuilder.newBuilder.softValues.build[LshQueryOptions, ProcessorOptions]()
+
 }
 
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+
+  import KnnQueryBuilder._
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
@@ -75,12 +73,61 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case QueryVector.Indexed(indexedQueryVector) => rewriteIndexed(context, indexedQueryVector)
       case QueryVector.Given(elastiKnnVector) =>
         query.queryOptions match {
+          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, elastiKnnVector)
           case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, elastiKnnVector)
-          case QueryOptions.Lsh(lshQueryOptions)     => new LshQueryBuilder(lshQueryOptions, elastiKnnVector)
           case QueryOptions.Empty                    => throw illArgEx("Query options cannot be empty")
         }
       case QueryVector.Empty => throw illArgEx("Query vector cannot be empty")
     }
+
+  /**
+    * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster cache them.
+    * Then use the [[ProcessorOptions]] to instantiate a new [[KnnLshQueryBuilder]].
+    */
+  private def rewriteLsh(context: QueryRewriteContext, lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector): QueryBuilder = {
+    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
+    if (cached != null) new KnnLshQueryBuilder(cached, elastiKnnVector)
+    else {
+      // Put all the dangerous stuff in one place.
+      def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
+        Try {
+          val processorOptsMap = response
+            .pipelines()
+            .asScala
+            .find(_.getId == lshQueryOptions.pipelineId)
+            .getOrElse(throw illArgEx(s"Couldn't find pipeline with id ${lshQueryOptions.pipelineId}"))
+            .getConfigAsMap
+            .get("processors")
+            .asInstanceOf[util.List[util.Map[String, AnyRef]]]
+            .asScala
+            .find(_.containsKey(ELASTIKNN_NAME))
+            .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
+            .get(ELASTIKNN_NAME)
+            .asInstanceOf[util.Map[String, AnyRef]]
+          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(mapEncoder))
+        }.recoverWith {
+          case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${lshQueryOptions.pipelineId}", Some(t)))
+        }
+
+      val supplier = new SetOnce[KnnLshQueryBuilder]()
+      context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
+        c.execute(
+          GetPipelineAction.INSTANCE,
+          new GetPipelineRequest(lshQueryOptions.pipelineId),
+          new ActionListener[GetPipelineResponse] {
+            override def onResponse(response: GetPipelineResponse): Unit = {
+              val procOpts = parseResponse(response).get
+              supplier.set(new KnnLshQueryBuilder(procOpts, elastiKnnVector))
+              processorOptionsCache.put(lshQueryOptions, procOpts)
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
+            }
+            override def onFailure(e: Exception): Unit = l.onFailure(e)
+          }
+        )
+      })
+      RewriteLater(_ => supplier.get())
+    }
+  }
 
   /** Fetches the indexed vector from the cluster and rewrites the query as a given vector query. */
   private def rewriteIndexed(context: QueryRewriteContext, qv: IndexedQueryVector): QueryBuilder = {
@@ -90,9 +137,9 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
         GetAction.INSTANCE,
         new GetRequest(qv.index, qv.id),
         new ActionListener[GetResponse] {
-          def onResponse(res: GetResponse): Unit = {
+          def onResponse(response: GetResponse): Unit = {
             val pth = s"${qv.field}."
-            val map = pth.split('.').foldLeft(res.getSourceAsMap) {
+            val map = pth.split('.').foldLeft(response.getSourceAsMap) {
               case (m, k) =>
                 m.get(k).asInstanceOf[util.Map[String, AnyRef]]
             }
@@ -123,11 +170,11 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
 
 object KnnExactQueryBuilder {
 
-  val NAME = s"${ELASTIKNN_NAME}_knn_exact"
+  val NAME = s"${KnnQueryBuilder.NAME}_exact"
 
   object Parser extends QueryParser[KnnExactQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnExactQueryBuilder =
-      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query directly")
+      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query instead")
   }
 
   object Reader extends Writeable.Reader[KnnExactQueryBuilder] {
@@ -187,17 +234,46 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val e
   def getWriteableName: String = KnnExactQueryBuilder.NAME
 }
 
-final class LshQueryBuilder(lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector)
-    extends AbstractQueryBuilder[LshQueryBuilder] {
-  override def doWriteTo(out: StreamOutput): Unit = ???
+object KnnLshQueryBuilder {
 
-  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+  val NAME = s"${KnnQueryBuilder.NAME}_exact"
 
-  override def doToQuery(context: QueryShardContext): Query = ???
+  object Parser extends QueryParser[KnnLshQueryBuilder] {
+    override def fromXContent(parser: XContentParser): KnnLshQueryBuilder =
+      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query instead")
+  }
 
-  override def doEquals(other: LshQueryBuilder): Boolean = ???
+  object Reader extends Writeable.Reader[KnnLshQueryBuilder] {
+    override def read(in: StreamInput): KnnLshQueryBuilder = {
+      in.readFloat()
+      in.readOptionalString()
+      new KnnLshQueryBuilder(
+        ProcessorOptions.parseBase64(in.readString()),
+        ElastiKnnVector.parseBase64(in.readString())
+      )
+    }
+  }
 
-  override def doHashCode(): Int = ???
+}
 
-  override def getWriteableName: String = ???
+final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions, val elastiKnnVector: ElastiKnnVector)
+    extends AbstractQueryBuilder[KnnLshQueryBuilder] {
+
+  def doWriteTo(out: StreamOutput): Unit = {
+    out.writeString(processorOptions.toBase64)
+    out.writeString(elastiKnnVector.toBase64)
+  }
+
+  def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+
+  def doToQuery(context: QueryShardContext): Query = {
+    ???
+  }
+
+  def doEquals(other: KnnLshQueryBuilder): Boolean =
+    processorOptions == other.processorOptions && elastiKnnVector == other.elastiKnnVector
+
+  def doHashCode(): Int = Objects.hash(processorOptions, elastiKnnVector)
+
+  def getWriteableName: String = KnnLshQueryBuilder.NAME
 }

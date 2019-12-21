@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.models
 
-import com.google.common.cache.{CacheBuilder, CacheLoader}
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn._
@@ -78,9 +78,10 @@ object VectorModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache = CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
-    def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
-  })
+  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
+    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
+      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
+    })
 
   def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = (popts.modelOptions, vec) match {
     case (Exact(mopts), _)   => ExactModel(popts, mopts, vec).map(_ => Json.fromJsonObject(JsonObject.empty))
