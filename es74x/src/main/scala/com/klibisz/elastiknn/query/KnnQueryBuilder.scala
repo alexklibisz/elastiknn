@@ -13,6 +13,7 @@ import com.klibisz.elastiknn.utils.ProtobufUtils._
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.syntax._
+import io.circe.parser._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
@@ -88,7 +89,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
     */
   private def rewriteLsh(context: QueryRewriteContext, lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector): QueryBuilder = {
     val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
-    if (cached != null) new KnnLshQueryBuilder(cached, elastiKnnVector)
+    if (cached != null) KnnLshQueryBuilder(cached, elastiKnnVector)
     else {
       // Put all the dangerous stuff in one place.
       def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
@@ -119,7 +120,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
           new ActionListener[GetPipelineResponse] {
             override def onResponse(response: GetPipelineResponse): Unit = {
               val procOpts = parseResponse(response).get
-              supplier.set(new KnnLshQueryBuilder(procOpts, elastiKnnVector))
+              supplier.set(KnnLshQueryBuilder(procOpts, elastiKnnVector))
               processorOptionsCache.put(lshQueryOptions, procOpts)
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             }
@@ -251,40 +252,54 @@ object KnnLshQueryBuilder {
       in.readOptionalString()
       new KnnLshQueryBuilder(
         ProcessorOptions.parseBase64(in.readString()),
-        ElastiKnnVector.parseBase64(in.readString())
+        decode[Map[String, String]](in.readString()).toTry.get
       )
     }
   }
 
+  /**
+    * Instantiate a [[KnnLshQueryBuilder]] such that the given [[ElastiKnnVector]] is only hashed once.
+    * Otherwise it would have to be hashed inside the [[KnnLshQueryBuilder]], which could happen on each node.
+    * @param processorOptions
+    * @param elastiKnnVector
+    * @return
+    */
+  def apply(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): KnnLshQueryBuilder = {
+    val hashed = VectorModel
+      .hash(processorOptions, elastiKnnVector)
+      .recover {
+        case t: Throwable => throw illArgEx(s"$elastiKnnVector could not be hashed", Some(t))
+      }
+      .get
+    new KnnLshQueryBuilder(processorOptions, hashed)
+  }
+
 }
 
-final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions, val elastiKnnVector: ElastiKnnVector)
+final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions, val hashed: Map[String, String])
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(processorOptions.toBase64)
-    out.writeString(elastiKnnVector.toBase64)
+    out.writeString(hashed.asJson.noSpaces)
   }
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  def doToQuery(context: QueryShardContext): Query = {
-    val fieldProc = processorOptions.modelOptions.fieldProc
-      .getOrElse(throw illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
-    val hashed = VectorModel.hash(processorOptions, elastiKnnVector).recover {
-      case t: Throwable => throw illArgEx(s"$elastiKnnVector could not be hashed", Some(t))
-    }
-    hashed.get
+  private lazy val fieldProc: String = processorOptions.modelOptions.fieldProc
+    .getOrElse(throw illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
+
+  def doToQuery(context: QueryShardContext): Query =
+    hashed
       .foldLeft(new BoolQueryBuilder()) {
         case (b, (k, v)) => b.should(new TermQueryBuilder(s"$fieldProc.$k", v))
       }
       .toQuery(context)
-  }
 
   def doEquals(other: KnnLshQueryBuilder): Boolean =
-    processorOptions == other.processorOptions && elastiKnnVector == other.elastiKnnVector
+    processorOptions == other.processorOptions && hashed == other.hashed
 
-  def doHashCode(): Int = Objects.hash(processorOptions, elastiKnnVector)
+  def doHashCode(): Int = Objects.hash(processorOptions, hashed)
 
   def getWriteableName: String = KnnLshQueryBuilder.NAME
 }
