@@ -6,10 +6,12 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.Similarity._
+import com.klibisz.elastiknn.models.VectorModel
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn.{KNearestNeighborsQuery, _}
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -267,7 +269,16 @@ final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions, val elast
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
   def doToQuery(context: QueryShardContext): Query = {
-    ???
+    val fieldProc = processorOptions.modelOptions.fieldProc
+      .getOrElse(throw illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
+    val hashed = VectorModel.hash(processorOptions, elastiKnnVector).recover {
+      case t: Throwable => throw illArgEx(s"$elastiKnnVector could not be hashed", Some(t))
+    }
+    hashed.get
+      .foldLeft(new BoolQueryBuilder()) {
+        case (b, (k, v)) => b.should(new TermQueryBuilder(s"$fieldProc.$k", v))
+      }
+      .toQuery(context)
   }
 
   def doEquals(other: KnnLshQueryBuilder): Boolean =

@@ -2,8 +2,9 @@ package com.klibisz.elastiknn.utils
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions, SparseBoolVector}
-import io.circe.Json
+import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
+import com.klibisz.elastiknn.{ElastiKnnVector, SparseBoolVector}
+import io.circe.syntax._
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
@@ -55,8 +56,6 @@ object Implicits {
   }
 
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
-    import io.circe.syntax._
-    import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
     def from(m: java.util.Map[String, AnyRef]): Try[ElastiKnnVector] = Try(JsonFormat.fromJson[ElastiKnnVector](m.asJson(mapEncoder)))
   }
 

@@ -83,11 +83,14 @@ object VectorModel {
       def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
     })
 
-  def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = (popts.modelOptions, vec) match {
-    case (Exact(mopts), _)   => ExactModel(popts, mopts, vec).map(_ => Json.fromJsonObject(JsonObject.empty))
-    case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(vec).map(_.asJson)
-    case _                   => ???
-  }
+  def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[Map[String, String]] =
+    (processorOptions.modelOptions, elastiKnnVector) match {
+      case (Exact(mopts), _)   => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => Map.empty)
+      case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(elastiKnnVector)
+      case _                   => ???
+    }
+
+  def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = hash(popts, vec).map(_.asJson)
 
   @tailrec
   private[models] def fastfor(i: Int, pred: Int => Boolean, inc: Int => Int)(f: Int => Unit): Unit =
