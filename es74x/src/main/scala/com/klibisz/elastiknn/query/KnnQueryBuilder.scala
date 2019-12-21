@@ -238,7 +238,7 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val e
 
 object KnnLshQueryBuilder {
 
-  val NAME = s"${KnnQueryBuilder.NAME}_exact"
+  val NAME = s"${KnnQueryBuilder.NAME}_lsh"
 
   object Parser extends QueryParser[KnnLshQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnLshQueryBuilder =

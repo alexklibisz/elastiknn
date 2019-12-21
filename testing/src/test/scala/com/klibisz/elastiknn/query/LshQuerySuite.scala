@@ -16,7 +16,10 @@ class LshQuerySuite
     with ElasticAsyncClient {
 
   private val simToOpts: Map[Similarity, Seq[ModelOptions]] = Map[Similarity, Seq[ModelOptions]](
-    SIMILARITY_JACCARD -> Seq(ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 1, 10, 1)))
+    SIMILARITY_JACCARD -> Seq(
+      ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 1, 10, 1)),
+      ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 3, 20, 1)),
+    )
   ).withDefault((other: Similarity) => Seq.empty[ModelOptions])
 
   for {
@@ -30,7 +33,14 @@ class LshQuerySuite
     test(s"approximate search given vector: ($dim, $sim, $opt)") {
       support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
         case queriesAndResponses =>
-          ???
+          // TODO: Requirements are very loose.
+          forAtLeast(1, queriesAndResponses.silent) {
+            case (query, res) =>
+              res.hits.hits should have length query.similarities.length
+              val correctCorpusIds = query.indices.map(support.corpusId).toSet
+              val returnedCorpusIds = res.hits.hits.map(_.id).toSet
+              correctCorpusIds.intersect(returnedCorpusIds) should not be empty
+          }
       }
     }
 

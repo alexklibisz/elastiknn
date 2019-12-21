@@ -41,8 +41,8 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     val queryVectorIdPrefix: String = "q"
     val corpusVectorIdPrefix: String = "c"
 
-    private def corpusId(i: Int): String = s"$corpusVectorIdPrefix$i"
-    private def queryId(i: Int): String = s"$queryVectorIdPrefix$i"
+    def corpusId(i: Int): String = s"$corpusVectorIdPrefix$i"
+    def queryId(i: Int): String = s"$queryVectorIdPrefix$i"
 
     private lazy val setupIndexCorpus: Future[TestData] = for {
       testData <- Future.fromTry(readTestData(sim, dim))
