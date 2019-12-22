@@ -1,5 +1,7 @@
 .gradle
 build
+.mk/*
+!.mk/.keep
 
 # Ignore Gradle GUI config
 gradle-app.setting
