@@ -130,4 +130,4 @@ dmypy.json
 
 .idea
 elastiknn/elastiknn_pb2.py
-scalapb/scala_pb2.py
+scalapb/scalapb_pb2.py
