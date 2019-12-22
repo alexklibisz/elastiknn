@@ -1,0 +1,2 @@
+
+ELASTIKNN_NAME = "elastiknn"

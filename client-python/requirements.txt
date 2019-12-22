@@ -1,0 +1,5 @@
+http://com-klibisz-elastiknn-builds.s3-website-us-east-1.amazonaws.com/elastiknn-client-0.0.0.tar.gz
+scikit-learn==0.22
+elasticsearch==7.1.0
+dataclasses==0.7
+dataclasses-json==0.3.7
