@@ -50,7 +50,7 @@ clean:
 	cd client-python && $(vpy) setup.py sdist && ls dist
 	touch $@
 
-.mk/client-python-publish-s3: .mk/gradle-publish-local .mk/client-python-publish-local
+.mk/publish-s3: .mk/gradle-publish-local .mk/client-python-publish-local
 	aws s3 sync $(eslatest)/build/distributions $(build_bucket)
 	aws s3 sync client-python/dist $(build_bucket)
 	aws s3 ls $(build_bucket)
