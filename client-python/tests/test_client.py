@@ -1,7 +1,3 @@
-from time import sleep
-
-import pytest
-
 from elastiknn.client import ElastiKnnClient
 from elastiknn.elastiknn_pb2 import ProcessorOptions, ExactModelOptions, SIMILARITY_JACCARD
 
