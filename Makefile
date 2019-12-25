@@ -15,6 +15,9 @@ clean:
 	cd testing && $(dc) down
 	rm -rf .mk/*
 
+.mk/sudo:
+	sudo -v
+
 .mk/python3-installed:
 	python3 --version > /dev/null
 	python3 -m pip install -q virtualenv
@@ -63,13 +66,21 @@ clean:
 	aws s3 ls $(build_bucket)
 	touch $@
 
-testing/cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
+.mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
 	cd testing \
 		&& $(dc) down \
 		&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
 		&& python3 cluster_ready.py
+	touch $@
 
-testing/debug:
+run/cluster: .mk/run-cluster
+
+run/debug:
 	cd testing && $(dc) down
 	$(gradle) clean run --debug-jvm
+
+test: clean .mk/client-python-compile run/cluster
+	$(gradle) build
+	cd client-python && ./venv/bin/python3 -m pytest
+
