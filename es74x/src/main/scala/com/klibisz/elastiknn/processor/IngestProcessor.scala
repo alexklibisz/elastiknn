@@ -2,34 +2,32 @@ package com.klibisz.elastiknn.processor
 
 import java.util
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.models.{ExactModel, JaccardLshModel, VectorModel}
+import com.klibisz.elastiknn.models.VectorModel
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.Json
 import io.circe.syntax._
 import org.apache.logging.log4j.{LogManager, Logger}
 import org.elasticsearch.client.node.NodeClient
-import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContent, XContentParser, XContentType}
+import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 class IngestProcessor private (tag: String, client: NodeClient, popts: ProcessorOptions) extends AbstractProcessor(tag) {
 
-  import IngestProcessor._
   import popts._
 
-  private def parseVector(doc: IngestDocument): Try[ElastiKnnVector] =
+  private val bulkFieldRaw = s"doc.$fieldRaw"
+
+  private def parseVector(doc: IngestDocument, field: String = fieldRaw): Try[ElastiKnnVector] =
     (for {
-      srcMap <- Try(doc.getFieldValue(fieldRaw, classOf[util.Map[String, AnyRef]]))
+      srcMap <- Try(doc.getFieldValue(field, classOf[util.Map[String, AnyRef]]))
       ekv <- ElastiKnnVector.from(srcMap)
     } yield ekv).recoverWith {
-      case ex => Failure(ParseVectorException(Some(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from $fieldRaw: $ex")))
+      case ex => Failure(ParseVectorException(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from $fieldRaw", Some(ex)))
     }
 
   private def setField(doc: IngestDocument, field: String, json: Json): Unit = {
@@ -37,28 +35,25 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
     val dep = DeprecationHandler.THROW_UNSUPPORTED_OPERATION
     val parser = XContentType.JSON.xContent.createParser(reg, dep, json.noSpaces)
     doc.setFieldValue(field, parser.map())
+    doc
   }
 
   override def getType: String = IngestProcessor.TYPE
 
-  /** This is the method that gets invoked when someone adds a document that uses an elastiknn pipeline. */
-  override def execute(doc: IngestDocument): IngestDocument = {
-
-    // Check if the raw vector is present.
-    require(doc.hasField(fieldRaw), s"$TYPE expected to find vector at $fieldRaw")
-
-    // Attempt to parse and process vector.
-    val docTry: Try[IngestDocument] = for {
-      vecRaw <- parseVector(doc)
-      vecProc <- VectorModel.toJson(popts, vecRaw)
+  private def process(doc: IngestDocument, fieldPrefix: String): Try[IngestDocument] =
+    for {
+      raw <- parseVector(doc, s"$fieldPrefix$fieldRaw")
+      proc <- VectorModel.toJson(popts, raw)
     } yield {
-      // If the model options prescribe a processed field, set it here.
-      modelOptions.fieldProc.foreach(fieldProc => setField(doc, fieldProc, vecProc))
-      // Return the doc, which may or may not be modified.
+      modelOptions.fieldProc.foreach(fieldProc => setField(doc, s"$fieldPrefix$fieldProc", proc))
       doc
     }
 
-    docTry.get
+  /** This is the method that gets invoked when someone adds a document that uses an elastiknn pipeline. */
+  override def execute(doc: IngestDocument): IngestDocument = {
+    // The official python client puts bulk-indexed docs under a `doc` key. elastic4s doesn't seem to do this.
+    // Still, it's safest to try both no prefix and the `doc.` prefix.
+    process(doc, "").orElse(process(doc, "doc.")).get
   }
 
 }

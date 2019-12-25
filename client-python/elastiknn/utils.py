@@ -1,10 +1,11 @@
 
 from random import Random
-from typing import List
+from typing import List, Iterator
 
+import numpy as np
 from scipy.sparse import csr_matrix
 
-from elastiknn.elastiknn_pb2 import SparseBoolVector
+from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector
 
 _rng = Random(0)
 
@@ -21,11 +22,19 @@ def sparse_bool_vectors_to_csr(sbvs: List[SparseBoolVector]) -> csr_matrix:
             cols.append(col)
             rows.append(row)
             data.append(True)
-    return csr_matrix((data, (rows, cols)), shape=(len(sbvs), sbvs[0].total_indices))
+    return csr_matrix((data, (rows, cols)), shape=(len(sbvs), sbvs[0].total_indices), dtype=np.bool)
 
 
-def csr_to_sparse_bool_vectors(csr: csr_matrix) -> List[SparseBoolVector]:
-    return [
-        SparseBoolVector(true_indices=list(row.indices), total_indices=row.shape[-1])
-        for row in csr
-    ]
+def csr_to_sparse_bool_vectors(csr: csr_matrix) -> Iterator[SparseBoolVector]:
+    return map(lambda row: SparseBoolVector(true_indices=list(row.indices), total_indices=row.shape[-1]), csr)
+
+
+def float_vectors_to_ndarray(fvs: List[FloatVector]) -> np.ndarray:
+    arr = np.zeros(shape=(len(fvs), len(fvs[0].values)))
+    for i, fv in enumerate(fvs):
+        arr[i] = list(fv.values)
+    return arr
+
+
+def ndarray_to_float_vectors(arr: np.ndarray) -> Iterator[FloatVector]:
+    return map(lambda row: FloatVector(values=list(row)), arr)

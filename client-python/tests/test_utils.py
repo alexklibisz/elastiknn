@@ -1,6 +1,11 @@
 from random import Random
 
-from elastiknn.utils import random_sparse_bool_vector, sparse_bool_vectors_to_csr, csr_to_sparse_bool_vectors
+import numpy as np
+from scipy.sparse import csr_matrix
+
+from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector
+from elastiknn.utils import random_sparse_bool_vector, sparse_bool_vectors_to_csr, csr_to_sparse_bool_vectors, \
+    float_vectors_to_ndarray, ndarray_to_float_vectors
 
 
 class TestUtils:
@@ -13,9 +18,32 @@ class TestUtils:
             assert len(sbv.true_indices) < 20
             assert sbv.total_indices == 20
 
-    def test_sparse_bool_vector_to_csr(self):
-        sbvs = [random_sparse_bool_vector(128, 0.5) for _ in range(50)]
+    def test_sparse_bool_vector_conversion(self):
+        sbvs = [
+            SparseBoolVector(true_indices=[0, 2, 3], total_indices=8),
+            SparseBoolVector(true_indices=[1, 4, 7], total_indices=8),
+            SparseBoolVector(true_indices=[0, 1], total_indices=8)
+        ]
         csr = sparse_bool_vectors_to_csr(sbvs)
-        assert csr.shape == (50, 128)
+        cmp = np.array([
+            [i in sbv.true_indices for i in range(8)]
+            for sbv in sbvs
+        ])
+        assert np.all(csr.toarray() == cmp)
+        assert csr.shape == (3, 8)
         sbvs2 = csr_to_sparse_bool_vectors(csr)
-        assert sbvs2 == sbvs
+        assert list(sbvs2) == sbvs
+
+    def test_float_vector_conversion(self):
+        fvs = [FloatVector(values=row) for row in [
+            [0.0, 1.0, 2.0],
+            [2.0, 2.5, 3.0],
+            [3.0, 3.3, 3.7]
+        ]]
+        arr = float_vectors_to_ndarray(fvs)
+        cmp = np.array([v.values for v in fvs])
+        assert np.all(arr == cmp)
+        fvs2 = list(ndarray_to_float_vectors(arr))
+        assert fvs2 == fvs
+
+

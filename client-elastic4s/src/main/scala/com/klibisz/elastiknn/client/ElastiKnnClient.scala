@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQ
 import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions}
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Handler}
 
@@ -66,7 +67,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                    ids: Option[Seq[String]] = None,
                    refresh: RefreshPolicy = RefreshPolicy.None): Future[BulkResponse] = {
     val reqs = vectors.map(v => indexVector(index = index, rawField = rawField, vector = v, pipeline = pipelineId))
-    val withIds = ids match {
+    val withIds: Seq[IndexRequest] = ids match {
       case Some(idsSeq) if (idsSeq.length == reqs.length) =>
         reqs.zip(idsSeq).map {
           case (req, id) => req.id(id)
