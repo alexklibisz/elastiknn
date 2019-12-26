@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 
 from . import ELASTIKNN_NAME
 from .elastiknn_pb2 import *
-from .utils import ndarray_to_float_vectors, csr_to_sparse_bool_vectors
+from .utils import ndarray_to_float_vectors, csr_to_sparse_bool_vectors, canonical_vectors_to_elastiknn
 
 
 @dataclass_json
@@ -47,10 +47,8 @@ class ElastiKnnClient(object):
             vectors = [ElastiKnnVector(sparse_bool_vector=v) for v in vectors]
         elif isinstance(vectors[0], FloatVector):
             vectors = [ElastiKnnVector(float_vector=v) for v in vectors]
-        elif isinstance(vectors, csr_matrix):
-            vectors = [ElastiKnnVector(sparse_bool_vector=v) for v in csr_to_sparse_bool_vectors(vectors)]
-        elif isinstance(vectors, np.ndarray):
-            vectors = [ElastiKnnVector(float_vector=v) for v in ndarray_to_float_vectors(vectors)]
+        else:
+            vectors = canonical_vectors_to_elastiknn(vectors)
 
         # So that the zip works.
         if ids is None or ids == []:

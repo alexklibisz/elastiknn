@@ -1,13 +1,22 @@
 
 from random import Random
-from typing import List, Iterator
+from typing import List, Iterator, Union
 
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector
+from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector, ElastiKnnVector
 
 _rng = Random(0)
+
+valid_metrics_algorithms = [
+    ('l1', 'exact'),
+    ('l2', 'exact'),
+    ('angular', 'exact'),
+    ('hamming', 'exact'),
+    ('jaccard', 'exact'),
+    ('jaccard', 'lsh')
+]
 
 
 def random_sparse_bool_vector(total_indices: int, p:float = 0.5, rng: Random = _rng):
@@ -38,6 +47,22 @@ def float_vectors_to_ndarray(fvs: List[FloatVector]) -> np.ndarray:
 
 def ndarray_to_float_vectors(arr: np.ndarray) -> Iterator[FloatVector]:
     return map(lambda row: FloatVector(values=list(row)), arr)
+
+
+def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[SparseBoolVector]:
+    return map(lambda row: SparseBoolVector(true_indices=list(np.nonzero(row)[0])), arr)
+
+
+def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> Iterator[ElastiKnnVector]:
+    if isinstance(canonical, np.ndarray):
+        if canonical.dtype == np.bool:
+            return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), ndarray_to_sparse_bool_vectors(canonical))
+        else:
+            return map(lambda fv: ElastiKnnVector(float_vector=fv), ndarray_to_float_vectors(canonical))
+    elif isinstance(canonical, csr_matrix):
+        return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), csr_to_sparse_bool_vectors(canonical))
+    else:
+        raise TypeError(f"Expected a numpy array or a csr matrix but got {type(canonical)}")
 
 
 def default_mapping(field_raw: str) -> dict:
