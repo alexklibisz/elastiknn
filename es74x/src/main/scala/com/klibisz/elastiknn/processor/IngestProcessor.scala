@@ -35,7 +35,6 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
     val dep = DeprecationHandler.THROW_UNSUPPORTED_OPERATION
     val parser = XContentType.JSON.xContent.createParser(reg, dep, json.noSpaces)
     doc.setFieldValue(field, parser.map())
-    doc
   }
 
   override def getType: String = IngestProcessor.TYPE

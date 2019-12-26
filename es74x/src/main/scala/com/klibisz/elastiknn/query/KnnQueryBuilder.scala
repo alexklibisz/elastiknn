@@ -29,7 +29,7 @@ import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Try, Success}
 
 object KnnQueryBuilder {
 
@@ -58,6 +58,7 @@ object KnnQueryBuilder {
     }
   }
 
+  /** Used to store [[ProcessorOptions]] needed for LSH queries. */
   private val processorOptionsCache: Cache[LshQueryOptions, ProcessorOptions] =
     CacheBuilder.newBuilder.softValues.build[LshQueryOptions, ProcessorOptions]()
 
@@ -199,27 +200,14 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val e
   import exactQueryOptions._
 
   override def doToQuery(context: QueryShardContext): Query = {
-    import ElastiKnnVector.Vector._
-    (similarity, elastiKnnVector.vector) match {
-      case (SIMILARITY_ANGULAR, dvec: FloatVector) =>
-        scriptScoreQuery(context, fieldRaw, StoredScripts.exactAngular.script(fieldRaw, dvec))
-      case (SIMILARITY_L1, dvec: FloatVector) =>
-        scriptScoreQuery(context, fieldRaw, StoredScripts.exactL1.script(fieldRaw, dvec))
-      case (SIMILARITY_L2, dvec: FloatVector) =>
-        scriptScoreQuery(context, fieldRaw, StoredScripts.exactL2.script(fieldRaw, dvec))
-      case (SIMILARITY_HAMMING, bvec: SparseBoolVector) =>
-        scriptScoreQuery(context, fieldRaw, StoredScripts.exactHamming.script(fieldRaw, bvec))
-      case (SIMILARITY_JACCARD, bvec: SparseBoolVector) =>
-        scriptScoreQuery(context, fieldRaw, StoredScripts.exactJaccard.script(fieldRaw, bvec))
-      case (_, Empty) => throw illArgEx("Must provide vector")
-      case (_, _)     => throw SimilarityAndTypeException(similarity, elastiKnnVector)
+    val queryTry: Try[ScriptScoreQuery] = for {
+      script <- StoredScripts.exact(similarity, fieldRaw, elastiKnnVector)
+    } yield {
+      val exists = new ExistsQueryBuilder(fieldRaw).toQuery(context)
+      val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
+      new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
     }
-  }
-
-  private def scriptScoreQuery(context: QueryShardContext, field: String, script: Script): ScriptScoreQuery = {
-    val exists = new ExistsQueryBuilder(field).toQuery(context)
-    val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
-    new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+    queryTry.get
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
@@ -252,6 +240,7 @@ object KnnLshQueryBuilder {
       in.readOptionalString()
       new KnnLshQueryBuilder(
         ProcessorOptions.parseBase64(in.readString()),
+        ElastiKnnVector.parseBase64(in.readString()),
         decode[Map[String, String]](in.readString()).toTry.get
       )
     }
@@ -271,30 +260,62 @@ object KnnLshQueryBuilder {
         case t: Throwable => throw illArgEx(s"$elastiKnnVector could not be hashed", Some(t))
       }
       .get
-    new KnnLshQueryBuilder(processorOptions, hashed)
+    new KnnLshQueryBuilder(processorOptions, elastiKnnVector, hashed)
   }
 
 }
 
-final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions, val hashed: Map[String, String])
+final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions,
+                                        val elastiKnnVector: ElastiKnnVector,
+                                        val hashed: Map[String, String])
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(processorOptions.toBase64)
+    out.writeString(elastiKnnVector.toBase64)
     out.writeString(hashed.asJson.noSpaces)
   }
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  private lazy val fieldProc: String = processorOptions.modelOptions.fieldProc
-    .getOrElse(throw illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
+  private val fieldProc: Try[String] = processorOptions.modelOptions.fieldProc match {
+    case Some(fp) => Success(fp)
+    case None     => Failure(illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
+  }
 
-  def doToQuery(context: QueryShardContext): Query =
-    hashed
-      .foldLeft(new BoolQueryBuilder()) {
-        case (b, (k, v)) => b.should(new TermQueryBuilder(s"$fieldProc.$k", v))
-      }
-      .toQuery(context)
+  private val similarity: Try[Similarity] = processorOptions.modelOptions.similarity match {
+    case Some(sim) => Success(sim)
+    case None      => Failure(illArgEx(s"${processorOptions.modelOptions} does not correspond to any similarity."))
+  }
+
+  private val functionBuilder: Try[ScriptScoreFunctionBuilder] = for {
+    sim <- similarity
+    script <- StoredScripts.exact(sim, processorOptions.fieldRaw, elastiKnnVector)
+  } yield new ScriptScoreFunctionBuilder(script)
+
+  /**
+    * Constructs a [[org.apache.lucene.search.BooleanQuery]] for approximate searching by hashes. Then uses that query
+    * in a [[ScriptScoreQuery]] which executes an exact query to refine the approximate results.
+    * @param context
+    * @return
+    */
+  def doToQuery(context: QueryShardContext): Query = {
+    // TODO: make sure that this is computing the script over a reasonable number of vectors, and if it's not, figure
+    // out how to control the number of documents passed through.
+    val queryTry = for {
+      fp <- fieldProc
+      boolQuery = hashed
+        .foldLeft(new BoolQueryBuilder()) {
+          case (b, (k, v)) => b.should(new TermQueryBuilder(s"$fp.$k", v))
+        }
+        .toQuery(context)
+      functionBuilder <- functionBuilder
+    } yield {
+      val function = functionBuilder.toFunction(context)
+      new ScriptScoreQuery(boolQuery, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+    }
+    queryTry.get
+  }
 
   def doEquals(other: KnnLshQueryBuilder): Boolean =
     processorOptions == other.processorOptions && hashed == other.hashed

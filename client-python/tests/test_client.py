@@ -28,7 +28,7 @@ class TestClient:
         propts = ProcessorOptions(field_raw="vec_raw", dimension=dim, exact=ExactModelOptions(similarity=SIMILARITY_JACCARD))
         eknn.create_pipeline(pipeline_id, propts)
         vecs = [random_sparse_bool_vector(dim) for _ in range(n)]
-        (n_indexed, failed) = eknn.index(test_index, pipeline_id, propts.field_raw, vecs, refresh="wait_for")
+        (n_indexed, failed) = eknn.index(test_index, pipeline_id, propts.field_raw, vecs)
         assert n_indexed == n
         assert failed == []
 

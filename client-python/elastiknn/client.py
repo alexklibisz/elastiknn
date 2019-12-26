@@ -41,7 +41,7 @@ class ElastiKnnClient(object):
 
     def index(self, index: str, pipeline_id: str, field_raw: str,
               vectors: Union[Iterable[ElastiKnnVector], Iterable[SparseBoolVector], List[FloatVector], np.ndarray, csr_matrix],
-              ids: List[str] = None, refresh: str = 'false', timeout: str = '30s'):
+              ids: List[str] = None) -> (int, List):
         if isinstance(vectors[0], ElastiKnnVector):
             vectors = vectors
         elif isinstance(vectors[0], SparseBoolVector):
@@ -57,18 +57,6 @@ class ElastiKnnClient(object):
         if ids is None or ids == []:
             ids = [None for _ in vectors]
 
-        # bod = ""
-        # action = dict(index=dict(_index=index, _type="document", pipeline=pipeline_id))
-        # for vec, _id in zip(vectors, ids):
-        #     if _id:
-        #         action["index"]["id"] = _id
-        #     elif "id" in action:
-        #         del action["index"]["id"]
-        #     doc = {field_raw: MessageToDict(vec)}
-        #     bod += f"{json.dumps(action)}\n{json.dumps(doc)}\n"
-        # params = dict(refresh=refresh, timeout=timeout)
-        # return self.es.transport.perform_request("POST", "/_bulk", params=params, body=bod)
-
         def gen():
             d = dict(_op_type="index", _index=index, _type="document", pipeline=pipeline_id)
             for vec, _id in zip(vectors, ids):
@@ -79,4 +67,6 @@ class ElastiKnnClient(object):
                     del d["_id"]
                 yield d
 
-        return bulk(self.es, gen())
+        res = bulk(self.es, gen())
+        self.es.indices.refresh(index=index)
+        return res

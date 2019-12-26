@@ -81,6 +81,6 @@ run/debug:
 	$(gradle) clean run --debug-jvm
 
 test: clean .mk/client-python-compile run/cluster
-	$(gradle) build
-	cd client-python && ./venv/bin/python3 -m pytest
+	$(gradle) test
+	cd client-python && $(vpy) -m pytest
 

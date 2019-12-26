@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -70,8 +70,13 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin, UnsupervisedMixin):
     def _fit(self, X):
         self._check_X(X)
         self._eknn_setup(X)
-        self.eknn.index(X, self.pipeline_id, self.field_raw, list(range(X.shape[0])), 'wait_for')
+        self.eknn.index(
+            index=self.index,
+            pipeline_id=self.pipeline_id,
+            field_raw=self.field_raw,
+            vectors=X)
+        return self
 
-
-    def kneighbors(self, X=None, n_neighbors=None, return_distance=True):
+    def kneighbors(self, X=None, n_neighbors=None, return_distance=True) \
+            -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         pass

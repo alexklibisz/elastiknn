@@ -3,13 +3,17 @@ package com.klibisz.elastiknn.processor
 import java.util
 import java.util.Collections
 
-import com.klibisz.elastiknn.ElastiKnnVector
+import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SimilarityAndTypeException, illArgEx}
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
+import com.klibisz.elastiknn.ElastiKnnVector.Vector.{Empty, FloatVector, SparseBoolVector}
+import com.klibisz.elastiknn.Similarity.{SIMILARITY_ANGULAR, SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
 import com.klibisz.elastiknn.utils.Implicits._
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest
 import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.xcontent.XContentType
 import org.elasticsearch.script.{Script, ScriptType, StoredScriptSource}
+
+import scala.util.{Failure, Success, Try}
 
 object StoredScripts {
 
@@ -130,5 +134,21 @@ object StoredScripts {
 
   val exactScripts: Seq[ExactScript[_]] =
     Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
+
+  def exact(similarity: Similarity, fieldRaw: String, elastiKnnVector: ElastiKnnVector): Try[Script] =
+    (similarity, elastiKnnVector.vector) match {
+      case (SIMILARITY_ANGULAR, dvec: FloatVector) =>
+        Success(StoredScripts.exactAngular.script(fieldRaw, dvec))
+      case (SIMILARITY_L1, dvec: FloatVector) =>
+        Success(StoredScripts.exactL1.script(fieldRaw, dvec))
+      case (SIMILARITY_L2, dvec: FloatVector) =>
+        Success(StoredScripts.exactL2.script(fieldRaw, dvec))
+      case (SIMILARITY_HAMMING, bvec: SparseBoolVector) =>
+        Success(StoredScripts.exactHamming.script(fieldRaw, bvec))
+      case (SIMILARITY_JACCARD, bvec: SparseBoolVector) =>
+        Success(StoredScripts.exactJaccard.script(fieldRaw, bvec))
+      case (_, Empty) => Failure(illArgEx("Must provide vector"))
+      case (_, _)     => Failure(SimilarityAndTypeException(similarity, elastiKnnVector))
+    }
 
 }

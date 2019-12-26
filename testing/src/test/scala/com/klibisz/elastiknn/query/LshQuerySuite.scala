@@ -34,7 +34,7 @@ class LshQuerySuite
     test(s"approximate search given vector: ($dim, $sim, $opt)") {
       support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
         case queriesAndResponses =>
-          forAtLeast(queriesAndResponses.length / 2, queriesAndResponses.silent) {
+          forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
             case (query, res) =>
               res.hits.hits should not be empty
               val correctCorpusIds = query.indices.map(support.corpusId).toSet

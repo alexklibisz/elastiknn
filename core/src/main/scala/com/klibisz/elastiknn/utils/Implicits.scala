@@ -2,8 +2,9 @@ package com.klibisz.elastiknn.utils
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
-import com.klibisz.elastiknn.{ElastiKnnVector, SparseBoolVector}
+import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions, Similarity, SparseBoolVector}
 import io.circe.syntax._
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
@@ -62,10 +63,17 @@ object Implicits {
   implicit class ModelOptionsImplicits(mopts: ModelOptions) {
 
     /** Return the processed field name. */
-    private[elastiknn] def fieldProc: Option[String] = mopts match {
+    private[elastiknn] lazy val fieldProc: Option[String] = mopts match {
       case ModelOptions.Exact(_) | ModelOptions.Empty => None
       case ModelOptions.Jaccard(j)                    => Some(j.fieldProcessed)
     }
+
+    private[elastiknn] lazy val similarity: Option[Similarity] = mopts match {
+      case ModelOptions.Exact(eopts) => Some(eopts.similarity)
+      case ModelOptions.Jaccard(_)   => Some(SIMILARITY_JACCARD)
+      case _                         => None
+    }
+
   }
 
   implicit class TraversableImplicits[T](trv: Traversable[T]) {
