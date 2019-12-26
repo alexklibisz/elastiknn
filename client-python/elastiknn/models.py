@@ -1,12 +1,11 @@
 import json
-import pdb
 from logging import Logger
 from time import time
 from typing import List, Union, Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.neighbors._base import NeighborsBase, KNeighborsMixin, UnsupervisedMixin
+from sklearn.neighbors._base import NeighborsBase, KNeighborsMixin
 
 from . import ELASTIKNN_NAME
 from .client import ElastiKnnClient
@@ -14,7 +13,7 @@ from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, Jacc
 from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn
 
 
-class ElastiKnnModel(NeighborsBase, KNeighborsMixin, UnsupervisedMixin):
+class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
 
     def __init__(self, n_neighbors: int = None, algorithm: str = 'lsh', metric: str = 'jaccard',
                  hosts: List[str] = None, pipeline_id: str = None, index: str = None,
@@ -62,13 +61,16 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin, UnsupervisedMixin):
         self.eknn.setup_cluster()
         self.eknn.create_pipeline(self.pipeline_id, self._proc_opts(dim))
 
-    def _fit(self, X, recreate_index=False, shards: int = None, replicas: int = 0):
+    def fit(self, X, y=None, recreate_index=False, shards: int = None, replicas: int = 0):
+        if y is not None:
+            self.logger.warning(f"y was given but will be ignored")
         self._check_x(X)
         self._eknn_setup(X)
         X = list(canonical_vectors_to_elastiknn(X))
+        ids = [f"{i}" for i in range(len(X))]
         exists = self.eknn.es.indices.exists(self.index)
         if exists and not recreate_index:
-            self.logger.warning(f"Index {self.index} already exists. Old docs might still be returned for searches.")
+            raise RuntimeError(f"Index {self.index} already exists but recreate_index was set to False.")
         elif recreate_index:
             self.logger.warning(f"Deleting and re-creating existing index {self.index}.")
             if exists:
@@ -88,7 +90,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin, UnsupervisedMixin):
             pipeline_id=self.pipeline_id,
             field_raw=self.field_raw,
             vectors=X,
-            ids=[f"{i}" for i in range(len(X))])
+            ids=ids)
         return self
 
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True) \
