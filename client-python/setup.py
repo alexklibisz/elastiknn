@@ -5,5 +5,6 @@ setup(
     packages=["elastiknn", "scalapb"],
     author='Alex Klibisz',
     author_email='aklibisz@gmail.com',
-    url='https://github.com/alexklibisz/elastiknn'
+    url='https://github.com/alexklibisz/elastiknn',
+    include_package_data=True
 )

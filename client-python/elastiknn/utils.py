@@ -38,3 +38,15 @@ def float_vectors_to_ndarray(fvs: List[FloatVector]) -> np.ndarray:
 
 def ndarray_to_float_vectors(arr: np.ndarray) -> Iterator[FloatVector]:
     return map(lambda row: FloatVector(values=list(row)), arr)
+
+
+def default_mapping(field_raw: str) -> dict:
+    return {
+        "mappings": {
+            "properties": {
+                field_raw: {
+                    "type": "elastiknn_vector"
+                }
+            }
+        }
+    }

@@ -5,15 +5,14 @@ import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector, LshQueryOptions, QueryOptions, QueryVector}
-import com.klibisz.elastiknn.Similarity._
+import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.models.VectorModel
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.Implicits._
-import io.circe.syntax._
+import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.parser._
+import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
@@ -25,11 +24,10 @@ import org.elasticsearch.common.lucene.search.function.{ScriptScoreFunction, Scr
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
-import org.elasticsearch.script.Script
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try, Success}
+import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
 

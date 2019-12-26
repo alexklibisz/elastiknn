@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest._
 
@@ -20,7 +21,7 @@ class ExactQuerySuite
     with ElasticAsyncClient {
 
   for {
-    sim <- Similarity.values
+    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
     dim <- Seq(10, 128, 512)
   } yield {
 

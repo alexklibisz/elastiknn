@@ -79,4 +79,6 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin, UnsupervisedMixin):
 
     def kneighbors(self, X=None, n_neighbors=None, return_distance=True) \
             -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+        self.eknn
+
         pass

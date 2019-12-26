@@ -10,8 +10,7 @@ from google.protobuf.json_format import MessageToDict
 from scipy.sparse import csr_matrix
 
 from . import ELASTIKNN_NAME
-from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, SIMILARITY_JACCARD, SparseBoolVector, FloatVector, \
-    ElastiKnnVector
+from .elastiknn_pb2 import *
 from .utils import ndarray_to_float_vectors, csr_to_sparse_bool_vectors
 
 
@@ -58,9 +57,9 @@ class ElastiKnnClient(object):
             ids = [None for _ in vectors]
 
         def gen():
-            d = dict(_op_type="index", _index=index, _type="document", pipeline=pipeline_id)
+            d = dict(_op_type="index", _index=index, pipeline=pipeline_id)
             for vec, _id in zip(vectors, ids):
-                d["doc"] = {field_raw: MessageToDict(vec)}
+                d[field_raw] = MessageToDict(vec)
                 if _id:
                     d["_id"] = _id
                 elif "_id" in d:
@@ -70,3 +69,19 @@ class ElastiKnnClient(object):
         res = bulk(self.es, gen())
         self.es.indices.refresh(index=index)
         return res
+
+    def knn_query(self, index: str,
+                  options: Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions],
+                  vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector]):
+        exact, lsh, given, indexed = None, None, None, None
+        if isinstance(options, KNearestNeighborsQuery.ExactQueryOptions):
+            exact = options
+        elif isinstance(options, KNearestNeighborsQuery.LshQueryOptions):
+            lsh = options
+        if isinstance(vector, ElastiKnnVector):
+            given = vector
+        elif isinstance(vector, KNearestNeighborsQuery.IndexedQueryVector):
+            indexed = vector
+        query = KNearestNeighborsQuery(exact=exact, lsh=lsh, given=given, indexed=indexed)
+        body = dict(query=dict(elastiknn_knn=MessageToDict(query)))
+        return self.es.search(index, body=json.dumps(body))

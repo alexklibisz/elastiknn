@@ -8,7 +8,7 @@ eslatest = es74x
 s3 = aws s3
 build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
-src_all = $(shell git ls-files | sed 's/\ /\\ /')
+src_all = $(shell git diff --name-only --diff-filter=ACMR)
 
 clean:
 	./gradlew clean
@@ -34,7 +34,7 @@ clean:
 .mk/client-python-install: .mk/client-python-venv
 	cd client-python \
 		&& $(vpip) install -q -r requirements.txt \
-		&& $(vpip) install -q grpcio-tools pytest
+		&& $(vpip) install -q grpcio-tools pytest mypy-protobuf
 	touch $@
 
 .mk/gradle-gen-proto: $(src_all)
@@ -51,6 +51,8 @@ clean:
 			--proto_path=$(core)/src/main/proto \
 			--proto_path=$(core)/build/extracted-include-protos/main \
 			--python_out=. \
+			--plugin=protoc-gen-mypy=venv/bin/protoc-gen-mypy \
+			--mypy_out=. \
 			$(core)/src/main/proto/elastiknn/elastiknn.proto \
 			$(core)/build/extracted-include-protos/main/scalapb/scalapb.proto \
 		&& $(vpy) -c "from elastiknn.elastiknn_pb2 import Similarity; x = Similarity.values()"

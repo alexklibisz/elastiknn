@@ -79,7 +79,10 @@ object ElastiKnnDsl {
   }
 
   private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery =
-    () => XContentFactory.jsonBuilder.rawField("elastiknn_knn", JsonFormat.toJsonString(knnq))
+    () => {
+      val json = JsonFormat.toJsonString(knnq)
+      XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
+    }
 
   def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector): CustomQuery =
     knnQuery(

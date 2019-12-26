@@ -1,0 +1,2 @@
+recursive-include elastiknn *.pyi
+recursive-include elastiknn *.proto
