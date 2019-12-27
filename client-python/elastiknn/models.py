@@ -1,4 +1,6 @@
 import json
+from concurrent.futures import wait
+from concurrent.futures.thread import ThreadPoolExecutor
 from logging import Logger
 from time import time
 from typing import List, Union, Tuple
@@ -9,8 +11,9 @@ from sklearn.neighbors._base import NeighborsBase, KNeighborsMixin
 
 from . import ELASTIKNN_NAME
 from .client import ElastiKnnClient
-from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, JaccardLshOptions
-from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn
+from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, JaccardLshOptions, KNearestNeighborsQuery, \
+    SIMILARITY_JACCARD
+from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, default_mapping
 
 
 class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
@@ -24,15 +27,16 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             raise NotImplementedError(f"metric and algorithm must be one of: {valid_metrics_algorithms}")
         super(ElastiKnnModel, self).__init__(n_neighbors, None, 'auto', 0, metric, 0, None, n_jobs)
 
-        self.eknn = ElastiKnnClient(hosts)
-        self.metric = metric
-        self.algorithm = algorithm
-        self.pipeline_id = pipeline_id
-        self.field_raw = field_raw
-        self.algorithm_params = algorithm_params
-        self.index = index
-        self.n_jobs = n_jobs
-        self.logger = Logger(self.__class__.__name__)
+        self._eknn = ElastiKnnClient(hosts)
+        self._sim = Similarity.Value(f"similarity_{metric}".upper())
+        self._algorithm = algorithm
+        self._pipeline_id = pipeline_id
+        self._field_raw = field_raw
+        self._algorithm_params = algorithm_params
+        self._index = index
+        self._n_jobs = n_jobs
+        self._dataset_index_key = "dataset_index"
+        self._logger = Logger(self.__class__.__name__)
 
     @staticmethod
     def _check_x(X):
@@ -42,58 +46,87 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             raise ValueError(f"Expected X to have two dimensions but got {len(X.shape)} ({X.shape})")
 
     def _proc_opts(self, dim: int) -> ProcessorOptions:
-        sim = Similarity.Value(f"similarity_{self.metric}".upper())
-        if self.algorithm == 'exact':
-            return ProcessorOptions(field_raw=self.field_raw, dimension=dim, exact=ExactModelOptions(similarity=sim))
-        elif self.metric == 'jaccard':
-            return ProcessorOptions(field_raw=self.field_raw, dimension=dim, jaccard=JaccardLshOptions(**self.algorithm_params))
+        if self._algorithm == 'exact':
+            return ProcessorOptions(field_raw=self._field_raw, dimension=dim, exact=ExactModelOptions(similarity=self._sim))
+        elif self._sim == SIMILARITY_JACCARD:
+            return ProcessorOptions(field_raw=self._field_raw, dimension=dim, jaccard=JaccardLshOptions(**self._algorithm_params))
         else:
-            return ProcessorOptions(field_raw=self.field_raw, dimension=dim)
+            raise RuntimeError(f"Couldn't determine valid processor options")
+
+    def _query_opts(self) -> Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions]:
+        if self._algorithm == 'exact':
+            return KNearestNeighborsQuery.ExactQueryOptions(field_raw=self._field_raw, similarity=self._sim)
+        elif self._sim == SIMILARITY_JACCARD:
+            return KNearestNeighborsQuery.LshQueryOptions(pipeline_id=self._pipeline_id)
+        else:
+            raise RuntimeError(f"Couldn't determine valid query options")
 
     def _eknn_setup(self, X):
         dim = X.shape[-1]
-        if self.pipeline_id is None:
-            self.pipeline_id = f"{self.metric.lower()}-{self.algorithm.lower()}-{dim}"
-            self.logger.warning(f"pipeline id was not given, using {self.pipeline_id} instead")
-        if self.index is None:
-            self.index = f"{ELASTIKNN_NAME}-auto-{self.pipeline_id}-{int(time())}"
-            self.logger.warning(f"index was not given, using {self.index} instead")
-        self.eknn.setup_cluster()
-        self.eknn.create_pipeline(self.pipeline_id, self._proc_opts(dim))
+        if self._pipeline_id is None:
+            self._pipeline_id = f"{Similarity.Name(self._sim).lower()}-{self._algorithm.lower()}-{dim}"
+            self._logger.warning(f"pipeline id was not given, using {self._pipeline_id} instead")
+        if self._index is None:
+            self._index = f"{ELASTIKNN_NAME}-auto-{self._pipeline_id}-{int(time())}"
+            self._logger.warning(f"index was not given, using {self._index} instead")
+        self._eknn.setup_cluster()
+        self._eknn.create_pipeline(self._pipeline_id, self._proc_opts(dim))
 
-    def fit(self, X, y=None, recreate_index=False, shards: int = None, replicas: int = 0):
+    def fit(self, X: Union[np.ndarray, csr_matrix], y=None, recreate_index=True, shards: int = None, replicas: int = 0):
         if y is not None:
-            self.logger.warning(f"y was given but will be ignored")
+            self._logger.warning(f"y was given but will be ignored")
         self._check_x(X)
         self._eknn_setup(X)
         X = list(canonical_vectors_to_elastiknn(X))
-        ids = [f"{i}" for i in range(len(X))]
-        exists = self.eknn.es.indices.exists(self.index)
+        docs = [{self._dataset_index_key: i} for i in range(len(X))]
+        exists = self._eknn.es.indices.exists(self._index)
         if exists and not recreate_index:
-            raise RuntimeError(f"Index {self.index} already exists but recreate_index was set to False.")
+            raise RuntimeError(f"Index {self._index} already exists but recreate_index was set to False.")
         elif recreate_index:
-            self.logger.warning(f"Deleting and re-creating existing index {self.index}.")
+            self._logger.warning(f"Deleting and re-creating existing index {self._index}.")
             if exists:
-                self.eknn.es.indices.delete(self.index)
-                self.eknn.es.indices.refresh(self.index)
+                self._eknn.es.indices.delete(self._index)
+                self._eknn.es.indices.refresh(self._index)
             if shards is None:
-                shards = self.n_jobs
-            self.eknn.es.indices.create(self.index, body=json.dumps({
-                "settings": {
-                    "number_of_shards": shards,
-                    "number_of_replicas": replicas
-                }
-            }))
-            self.eknn.es.indices.refresh(self.index)
-        self.eknn.index(
-            index=self.index,
-            pipeline_id=self.pipeline_id,
-            field_raw=self.field_raw,
+                shards = self._n_jobs
+            body = dict(
+                settings=dict(
+                    number_of_shards=shards,
+                    number_of_replicas=replicas
+                ),
+                **default_mapping(self._field_raw)
+            )
+            self._eknn.es.indices.create(self._index, body=json.dumps(body))
+            self._eknn.es.indices.refresh(self._index)
+        self._eknn.index(
+            index=self._index,
+            pipeline_id=self._pipeline_id,
+            field_raw=self._field_raw,
             vectors=X,
-            ids=ids)
+            docs=docs)
         return self
 
-    def kneighbors(self, X=None, n_neighbors=None, return_distance=True) \
+    def kneighbors(self, X: Union[np.ndarray, csr_matrix] = None, n_neighbors: int = None, return_distance: bool = True) \
             -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
-
-        pass
+        self._check_x(X)
+        X = list(canonical_vectors_to_elastiknn(X))
+        if n_neighbors is None:
+            n_neighbors = self.n_neighbors
+        qopts = self._query_opts()
+        futures = []
+        with ThreadPoolExecutor(self._n_jobs) as tpex:
+            for x in X:
+                futures.append(tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key]))
+        indices, dists = np.zeros((len(X), n_neighbors), dtype=np.uint32), np.zeros((len(X), n_neighbors), dtype=np.float)
+        wait(futures) # To ensure same order.
+        for i, future in enumerate(futures):
+            res = future.result()
+            hits = res['hits']['hits']
+            assert len(hits) == n_neighbors, f"Expected to get {n_neighbors} hits for vector {i} but got {len(hits)}."
+            for j, hit in enumerate(hits):
+                indices[i][j] = hit['_source'][self._dataset_index_key]
+                dists[i][j] = hit['_score']
+        if return_distance:
+            return np.array(indices), np.array(dists)
+        else:
+            return np.array(indices)

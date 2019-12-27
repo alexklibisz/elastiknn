@@ -82,6 +82,10 @@ run/debug:
 	cd testing && $(dc) down
 	$(gradle) clean run --debug-jvm
 
+run/kibana:
+	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
+	docker ps | grep kibana
+
 test: clean .mk/client-python-compile run/cluster
 	$(gradle) test
 	cd client-python && $(vpy) -m pytest

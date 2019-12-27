@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 
 from . import ELASTIKNN_NAME
 from .elastiknn_pb2 import *
-from .utils import ndarray_to_float_vectors, csr_to_sparse_bool_vectors, canonical_vectors_to_elastiknn
+from .utils import canonical_vectors_to_elastiknn
 
 
 @dataclass_json
@@ -40,7 +40,7 @@ class ElastiKnnClient(object):
 
     def index(self, index: str, pipeline_id: str, field_raw: str,
               vectors: Union[Iterable[ElastiKnnVector], Iterable[SparseBoolVector], List[FloatVector], np.ndarray, csr_matrix],
-              ids: List[str] = None) -> (int, List):
+              docs: List[Dict] = None, ids: List[str] = None) -> (int, List):
         if isinstance(vectors[0], ElastiKnnVector):
             vectors = vectors
         elif isinstance(vectors[0], SparseBoolVector):
@@ -53,10 +53,12 @@ class ElastiKnnClient(object):
         # So that the zip works.
         if ids is None or ids == []:
             ids = [None for _ in vectors]
+        if docs is None or docs == []:
+            docs = [dict() for _ in vectors]
 
         def gen():
-            d = dict(_op_type="index", _index=index, pipeline=pipeline_id)
-            for vec, _id in zip(vectors, ids):
+            for vec, _id, doc in zip(vectors, ids, docs):
+                d = dict(_op_type="index", _index=index, pipeline=pipeline_id, **doc)
                 d[field_raw] = MessageToDict(vec)
                 if _id:
                     d["_id"] = _id
@@ -70,7 +72,9 @@ class ElastiKnnClient(object):
 
     def knn_query(self, index: str,
                   options: Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions],
-                  vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector]):
+                  vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector],
+                  n_neighbors: int = 10,
+                  source: List[str] = None):
         exact, lsh, given, indexed = None, None, None, None
         if isinstance(options, KNearestNeighborsQuery.ExactQueryOptions):
             exact = options
@@ -82,4 +86,6 @@ class ElastiKnnClient(object):
             indexed = vector
         query = KNearestNeighborsQuery(exact=exact, lsh=lsh, given=given, indexed=indexed)
         body = dict(query=dict(elastiknn_knn=MessageToDict(query)))
-        return self.es.search(index, body=json.dumps(body))
+        if source:
+            body["_source"] = source
+        return self.es.search(index, body=json.dumps(body), size=n_neighbors)

@@ -1,11 +1,10 @@
 from random import Random
 
 import numpy as np
-from scipy.sparse import csr_matrix
 
 from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector
 from elastiknn.utils import random_sparse_bool_vector, sparse_bool_vectors_to_csr, csr_to_sparse_bool_vectors, \
-    float_vectors_to_ndarray, ndarray_to_float_vectors
+    float_vectors_to_ndarray, ndarray_to_float_vectors, ndarray_to_sparse_bool_vectors
 
 
 class TestUtils:
@@ -33,6 +32,8 @@ class TestUtils:
         assert csr.shape == (3, 8)
         sbvs2 = csr_to_sparse_bool_vectors(csr)
         assert list(sbvs2) == sbvs
+        sbvs3 = ndarray_to_sparse_bool_vectors(csr.toarray())
+        assert list(sbvs3) == sbvs
 
     def test_float_vector_conversion(self):
         fvs = [FloatVector(values=row) for row in [

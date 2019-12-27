@@ -50,7 +50,7 @@ def ndarray_to_float_vectors(arr: np.ndarray) -> Iterator[FloatVector]:
 
 
 def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[SparseBoolVector]:
-    return map(lambda row: SparseBoolVector(true_indices=list(np.nonzero(row)[0])), arr)
+    return map(lambda row: SparseBoolVector(true_indices=list(np.nonzero(row)[0]), total_indices=len(row)), arr)
 
 
 def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> Iterator[ElastiKnnVector]:
