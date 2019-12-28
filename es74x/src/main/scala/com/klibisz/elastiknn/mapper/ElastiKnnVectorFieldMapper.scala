@@ -120,19 +120,18 @@ object ElastiKnnVectorFieldMapper {
         ekv = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()))
       } else ekv = None
 
-    override def get(i: Int): Any = ekv match {
-      case Some(ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(v))) =>
-        v.values(i)
-      case Some(ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(v))) =>
-        v.values(i)
-      case _ =>
-        throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
+    override def get(i: Int): Any = ekv.map(_.vector) match {
+      case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values(i)
+      case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) => v.values(i)
+      case _                                                => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
     }
 
-    override def size(): Int = ekv match {
-      case Some(_) => 1
-      case None    => 0
+    override def size(): Int = ekv.map(_.vector) match {
+      case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values.length
+      case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) => v.trueIndices.size
+      case None                                             => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
     }
+
   }
 
 }

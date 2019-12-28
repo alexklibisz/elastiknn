@@ -13,6 +13,7 @@ import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.xcontent.XContentType
 import org.elasticsearch.script.{Script, ScriptType, StoredScriptSource}
 
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 object StoredScripts {
@@ -48,8 +49,7 @@ object StoredScripts {
         ScriptType.STORED,
         null,
         id,
-        // TODO: change exact scripts to use sparse representation.
-        util.Map.of("field", field, "other", other.value.denseArray)
+        util.Map.of("field", field, "other", other.value.trueIndices.asJava)
       )
   }
 
@@ -120,15 +120,10 @@ object StoredScripts {
         |def a = doc[params.field];
         |def b = params.other;
         |double isec = 0;
-        |double asum = 0;
-        |double bsum = 0;
-        |for (int i = 0; i < b.length; i++) {
-        |  if (a[i] && b[i]) isec += 1;
-        |  if (a[i]) asum += 1;
-        |  if (b[i]) bsum += 1;
+        |for (i in b) {
+        |  if (a.get(i)) isec += 1;
         |}
-        |double sim = isec / (asum + bsum - isec);
-        |return sim;
+        |return isec / (a.length + b.size() - isec);
         |""".stripMargin
     )
 

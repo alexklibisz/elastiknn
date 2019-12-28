@@ -82,6 +82,10 @@ publish/s3: .mk/publish-s3
 
 run/cluster: .mk/run-cluster
 
+run/gradle:
+	cd testing && $(dc) down
+	$(gradle) clean run
+
 run/debug:
 	cd testing && $(dc) down
 	$(gradle) clean run --debug-jvm

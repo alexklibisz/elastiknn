@@ -41,7 +41,7 @@ object Implicits {
 
     def denseArray(): Array[Boolean] = (0 until sbv.totalIndices).toArray.map(sbv.trueIndices)
 
-    def values(i: Int): Boolean = sbv.trueIndices(i)
+    def values(i: Int): Boolean = sbv.trueIndices.contains(i)
 
   }
 
