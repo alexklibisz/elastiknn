@@ -61,8 +61,18 @@ def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> 
             return map(lambda fv: ElastiKnnVector(float_vector=fv), ndarray_to_float_vectors(canonical))
     elif isinstance(canonical, csr_matrix):
         return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), csr_to_sparse_bool_vectors(canonical))
+    elif isinstance(canonical, list) and isinstance(canonical[0], SparseBoolVector):
+        return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), canonical)
+    elif isinstance(canonical, list) and isinstance(canonical[0], FloatVector):
+        return map(lambda fv: ElastiKnnVector(float_vector=fv), canonical)
+    elif isinstance(canonical, list) and isinstance(canonical[0], ElastiKnnVector):
+        return canonical
     else:
         raise TypeError(f"Expected a numpy array or a csr matrix but got {type(canonical)}")
+
+
+def elastiknn_vector_length(ekv: ElastiKnnVector) -> int:
+    return max(ekv.sparse_bool_vector.total_indices, len(ekv.float_vector.values))
 
 
 def default_mapping(field_raw: str) -> dict:

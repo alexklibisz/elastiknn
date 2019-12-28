@@ -12,8 +12,8 @@ from sklearn.neighbors._base import NeighborsBase, KNeighborsMixin
 from . import ELASTIKNN_NAME
 from .client import ElastiKnnClient
 from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, JaccardLshOptions, KNearestNeighborsQuery, \
-    SIMILARITY_JACCARD
-from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, default_mapping
+    SIMILARITY_JACCARD, ElastiKnnVector, SparseBoolVector, FloatVector
+from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, default_mapping, elastiknn_vector_length
 
 
 class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
@@ -38,13 +38,6 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         self._dataset_index_key = "dataset_index"
         self._logger = Logger(self.__class__.__name__)
 
-    @staticmethod
-    def _check_x(X):
-        if type(X) not in (np.ndarray, csr_matrix):
-            raise TypeError(f"Expected X to be either a numpy ndarray or scipy csr_matrix but got {type(X)}")
-        if len(X.shape) != 2:
-            raise ValueError(f"Expected X to have two dimensions but got {len(X.shape)} ({X.shape})")
-
     def _proc_opts(self, dim: int) -> ProcessorOptions:
         if self._algorithm == 'exact':
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim, exact=ExactModelOptions(similarity=self._sim))
@@ -61,8 +54,8 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 
-    def _eknn_setup(self, X):
-        dim = X.shape[-1]
+    def _eknn_setup(self, X: List[ElastiKnnVector]):
+        dim = elastiknn_vector_length(X[0])
         if self._pipeline_id is None:
             self._pipeline_id = f"{Similarity.Name(self._sim).lower()}-{self._algorithm.lower()}-{dim}"
             self._logger.warning(f"pipeline id was not given, using {self._pipeline_id} instead")
@@ -72,12 +65,12 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         self._eknn.setup_cluster()
         self._eknn.create_pipeline(self._pipeline_id, self._proc_opts(dim))
 
-    def fit(self, X: Union[np.ndarray, csr_matrix], y=None, recreate_index=True, shards: int = None, replicas: int = 0):
+    def fit(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]],
+            y=None, recreate_index=True, shards: int = None, replicas: int = 0):
         if y is not None:
             self._logger.warning(f"y was given but will be ignored")
-        self._check_x(X)
-        self._eknn_setup(X)
         X = list(canonical_vectors_to_elastiknn(X))
+        self._eknn_setup(X)
         docs = [{self._dataset_index_key: i} for i in range(len(X))]
         exists = self._eknn.es.indices.exists(self._index)
         if exists and not recreate_index:
@@ -106,9 +99,8 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             docs=docs)
         return self
 
-    def kneighbors(self, X: Union[np.ndarray, csr_matrix] = None, n_neighbors: int = None, return_distance: bool = True) \
-            -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
-        self._check_x(X)
+    def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]] = None,
+                   n_neighbors: int = None, return_distance: bool = True) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         X = list(canonical_vectors_to_elastiknn(X))
         if n_neighbors is None:
             n_neighbors = self.n_neighbors

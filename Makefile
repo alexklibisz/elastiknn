@@ -59,7 +59,7 @@ clean:
 	touch $@
 
 .mk/client-python-publish-local: .mk/client-python-compile
-	cd client-python && $(vpy) setup.py sdist && ls dist
+	cd client-python && $(vpy) setup.py bdist_wheel && ls dist
 	touch $@
 
 .mk/publish-s3: .mk/gradle-publish-local .mk/client-python-publish-local
@@ -67,6 +67,10 @@ clean:
 	aws s3 sync client-python/dist $(build_bucket)
 	aws s3 ls $(build_bucket)
 	touch $@
+
+publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
+
+publish/s3: .mk/publish-s3
 
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
