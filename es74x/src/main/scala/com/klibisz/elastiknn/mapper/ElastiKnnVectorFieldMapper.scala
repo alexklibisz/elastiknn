@@ -116,9 +116,10 @@ object ElastiKnnVectorFieldMapper {
     private var ekv: Option[ElastiKnnVector] = None
 
     override def setNextDocId(docId: Int): Unit =
-      if (in.advanceExact(docId)) {
-        ekv = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()))
-      } else ekv = None
+      ekv =
+        if (in.advanceExact(docId))
+          Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()))
+        else None
 
     override def get(i: Int): Any = ekv.map(_.vector) match {
       case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values(i)
@@ -129,7 +130,7 @@ object ElastiKnnVectorFieldMapper {
     override def size(): Int = ekv.map(_.vector) match {
       case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values.length
       case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) => v.trueIndices.size
-      case None                                             => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
+      case _                                                => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
     }
 
   }
