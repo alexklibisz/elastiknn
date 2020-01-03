@@ -20,14 +20,12 @@ class IngestProcessor private (tag: String, client: NodeClient, popts: Processor
 
   import popts._
 
-  private val bulkFieldRaw = s"doc.$fieldRaw"
-
   private def parseVector(doc: IngestDocument, field: String = fieldRaw): Try[ElastiKnnVector] =
     (for {
       srcMap <- Try(doc.getFieldValue(field, classOf[util.Map[String, AnyRef]]))
       ekv <- ElastiKnnVector.from(srcMap)
     } yield ekv).recoverWith {
-      case ex => Failure(ParseVectorException(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from $fieldRaw", Some(ex)))
+      case ex => Failure(ParseVectorException(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from field: $field", Some(ex)))
     }
 
   private def setField(doc: IngestDocument, field: String, json: Json): Unit = {
@@ -69,7 +67,8 @@ object IngestProcessor {
     override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
       val configJson = config.asJson
       val popts = JsonFormat.fromJson[ProcessorOptions](configJson)
-      require(!popts.modelOptions.isEmpty, "Model options are not defined")
+      require(!popts.modelOptions.isEmpty, "model_options cannot be empty")
+      popts.modelOptions.fieldProc.foreach(fieldProc => require(fieldProc.nonEmpty, "field_processed cannot be empty"))
       config.clear() // Need to do this otherwise ES thinks parsing didn't work!
       new IngestProcessor(tag, client, popts)
     }
