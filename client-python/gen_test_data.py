@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import List, Callable
 
 import numpy as np
+import sys
 from dataclasses_json import dataclass_json, config
 from google.protobuf.json_format import MessageToDict
 from sklearn.neighbors import NearestNeighbors
@@ -40,7 +41,7 @@ def bool_vector(bools: List[bool]) -> SparseBoolVector:
     return SparseBoolVector(total_indices=len(bools), true_indices=set([i for i, b in enumerate(bools) if b]))
 
 
-def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, output_path: str) -> TestData:
+def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, output_path: str):
     np.random.seed(dim)
 
     boolean = metric in {"hamming", "jaccard"}
@@ -77,7 +78,7 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
 
 
 def main(argv: List[str]):
-    output_dir = argv[1] if len(argv) == 2 else "../src/test/resources"
+    output_dir = argv[1] if len(argv) == 2 else "../testing/src/test/resources"
     metrics = ['l1', 'l2', 'angular', 'hamming', 'jaccard']
     dims = [10, 128, 512]
 

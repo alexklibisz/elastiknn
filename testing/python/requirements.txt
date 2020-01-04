@@ -1,7 +1,0 @@
--e .
-google
-protobuf
-scikit-learn
-numpy
-dataclasses-json
-marshmallow
