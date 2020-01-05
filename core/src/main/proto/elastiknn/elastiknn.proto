@@ -18,7 +18,7 @@ message ProcessorOptions {
     // Path to the field where the raw vector is stored.
     string field_raw = 1;
     // Dimensionality of the raw floating-point vector.
-    int32 dimension = 2;
+    uint32 dimension = 2;
     // The model options which will determine how the vector gets preprocessed and stored.
     oneof model_options {
         ExactModelOptions exact = 3;
@@ -34,9 +34,9 @@ message ExactModelOptions {
 message JaccardLshOptions {
     int64 seed = 1;
     string field_processed = 2;
-    int32 num_tables = 3;
-    int32 num_bands = 4;
-    int32 num_rows = 5;
+    uint32 num_tables = 3;
+    uint32 num_bands = 4;
+    uint32 num_rows = 5;
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.
@@ -46,8 +46,8 @@ message FloatVector {
 
 // A sparse vector of booleans, represented by the true indices and total number of indices.
 message SparseBoolVector {
-    repeated int32 true_indices = 1 [(scalapb.field).collection_type="Set"];
-    int32 total_indices = 2;
+    repeated uint32 true_indices = 1 [(scalapb.field).collection_type="Set"];
+    uint32 total_indices = 2;
 }
 
 // Generic representation of a vector.

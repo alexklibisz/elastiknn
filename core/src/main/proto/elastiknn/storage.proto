@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package klibisz.elastiknn;
+
+option java_package = "com.klibisz.elastiknn.storage";
+
+import "scalapb/scalapb.proto";
+
+message StoredSparseBoolVector {
+    bytes guava_bloom_filter_repr = 1;
+    repeated uint32 sorted_true_indices = 2 [(scalapb.field).collection_type="Array"];
+    uint32 total_indices = 3;
+}

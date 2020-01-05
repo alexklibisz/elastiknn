@@ -3,9 +3,9 @@ package com.klibisz.elastiknn.mapper
 import java.util
 
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
 import com.klibisz.elastiknn.utils.ProtobufUtils._
-import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._

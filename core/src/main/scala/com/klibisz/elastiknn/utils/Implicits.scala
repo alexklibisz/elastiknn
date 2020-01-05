@@ -1,10 +1,16 @@
 package com.klibisz.elastiknn.utils
 
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import java.util
+
 import com.google.common.collect.MinMaxPriorityQueue
+import com.google.common.hash.{BloomFilter, Funnels}
+import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
+import com.klibisz.elastiknn.storage.StoredSparseBoolVector
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
-import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions, Similarity, SparseBoolVector}
+import com.klibisz.elastiknn.{ElastiKnnVector, InternalSparseBoolVector, ProcessorOptions, Similarity, SparseBoolVector}
 import io.circe.syntax._
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
@@ -54,6 +60,29 @@ object Implicits {
       from((0 until totalIndices).map(_ => rng.nextDouble() <= bias))
     def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[SparseBoolVector] =
       (0 until n).map(_ => random(totalIndices, bias)).toVector
+  }
+
+  implicit class StoredSparseBoolVectorImplicits(ssbv: StoredSparseBoolVector) {
+    private lazy val bf = {
+      val bais = new ByteArrayInputStream(ssbv.guavaBloomFilterRepr.toByteArray)
+      try BloomFilter.readFrom[Integer](bais, Funnels.integerFunnel())
+      finally bais.close()
+    }
+    def contains(i: Int): Boolean = bf.mightContain(i) && util.Arrays.binarySearch(ssbv.sortedTrueIndices, i) >= 0
+  }
+
+  implicit class StoredSparseBoolVectorCompanionImplicits(ssbvc: GeneratedMessageCompanion[StoredSparseBoolVector]) {
+    def apply(sbv: SparseBoolVector): StoredSparseBoolVector = {
+      val bf = BloomFilter.create[Integer](Funnels.integerFunnel(), sbv.totalIndices.toLong, 0.05)
+      sbv.trueIndices.foreach(bf.put(_))
+      val bfbarr = {
+        val baos = new ByteArrayOutputStream()
+        bf.writeTo(baos)
+        try baos.toByteArray
+        finally baos.close()
+      }
+      StoredSparseBoolVector(ByteString.copyFrom(bfbarr), sbv.trueIndices.toArray.sorted, sbv.totalIndices)
+    }
   }
 
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
