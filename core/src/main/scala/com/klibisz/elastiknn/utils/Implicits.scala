@@ -70,6 +70,7 @@ trait Implicits extends ProtobufImplicits {
       finally bais.close()
     }
     def contains(i: Int): Boolean = bf.mightContain(i) && util.Arrays.binarySearch(ssbv.sortedTrueIndices, i) >= 0
+//    def contains(i: Int): Boolean = util.Arrays.binarySearch(ssbv.sortedTrueIndices, i) >= 0
   }
 
   implicit class StoredSparseBoolVectorCompanionImplicits(ssbvc: GeneratedMessageCompanion[StoredSparseBoolVector]) {

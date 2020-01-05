@@ -116,19 +116,18 @@ object ElastiKnnVectorFieldMapper {
     private var stored: Option[StoredElastiKnnVector.Vector] = None
     private var storedGet: Int => Any = identity[Int]
     private var storedSize: Int = 0
-    private def exc: IllegalStateException = new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
 
     override def setNextDocId(docId: Int): Unit =
       if (in.advanceExact(docId)) {
-        stored = Some(StoredElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()).vector)
+        stored = Some(StoredElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
         stored match {
           case Some(StoredElastiKnnVector.Vector.FloatVector(v)) =>
             storedGet = v.values
             storedSize = v.values.length
           case Some(StoredElastiKnnVector.Vector.SparseBoolVector(v)) =>
             storedGet = v.contains
-            storedSize = v.totalIndices
-          case _ => throw exc
+            storedSize = v.sortedTrueIndices.length
+          case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
         }
       } else None
 
