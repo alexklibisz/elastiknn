@@ -3,9 +3,9 @@ package com.klibisz.elastiknn.mapper
 import java.util
 
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.storage.StoredElastiKnnVector
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
-import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._
@@ -113,25 +113,28 @@ object ElastiKnnVectorFieldMapper {
 
   class ScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
-    private var ekv: Option[ElastiKnnVector] = None
+    private var stored: Option[StoredElastiKnnVector.Vector] = None
+    private var storedGet: Int => Any = identity[Int]
+    private var storedSize: Int = 0
+    private def exc: IllegalStateException = new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
 
     override def setNextDocId(docId: Int): Unit =
-      ekv =
-        if (in.advanceExact(docId))
-          Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()))
-        else None
+      if (in.advanceExact(docId)) {
+        stored = Some(StoredElastiKnnVector.parseBase64(in.binaryValue.utf8ToString()).vector)
+        stored match {
+          case Some(StoredElastiKnnVector.Vector.FloatVector(v)) =>
+            storedGet = v.values
+            storedSize = v.values.length
+          case Some(StoredElastiKnnVector.Vector.SparseBoolVector(v)) =>
+            storedGet = v.contains
+            storedSize = v.totalIndices
+          case _ => throw exc
+        }
+      } else None
 
-    override def get(i: Int): Any = ekv.map(_.vector) match {
-      case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values(i)
-      case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) => v.values(i)
-      case _                                                => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
-    }
+    override def get(i: Int): Any = storedGet(i)
 
-    override def size(): Int = ekv.map(_.vector) match {
-      case Some(ElastiKnnVector.Vector.FloatVector(v))      => v.values.length
-      case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) => v.trueIndices.size
-      case _                                                => throw new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector, found: $ekv")
-    }
+    override def size(): Int = storedSize
 
   }
 
@@ -151,7 +154,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     val name = fieldType.name()
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
     // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
-    val field = new BinaryDocValuesField(name, new BytesRef(ekv.toBase64))
+    val field = new BinaryDocValuesField(name, new BytesRef(StoredElastiKnnVector.from(ekv).toBase64))
     context.doc.addWithKey(name, field)
   }
 

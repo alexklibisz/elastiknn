@@ -10,7 +10,6 @@ import com.klibisz.elastiknn.models.VectorModel
 import com.klibisz.elastiknn.processor.StoredScripts
 import com.klibisz.elastiknn.utils.CirceUtils._
 import com.klibisz.elastiknn.utils.Implicits._
-import com.klibisz.elastiknn.utils.ProtobufUtils._
 import io.circe.parser._
 import io.circe.syntax._
 import org.apache.lucene.search.Query

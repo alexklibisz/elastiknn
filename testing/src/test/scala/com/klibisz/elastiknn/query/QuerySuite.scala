@@ -86,6 +86,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
                 eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
               case QueryOptions.Lsh(opts) =>
                 eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
+              case _ => ???
             }
         })
       } yield fun(queriesAndResponses)

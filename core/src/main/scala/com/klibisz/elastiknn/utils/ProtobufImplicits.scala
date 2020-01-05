@@ -6,9 +6,9 @@ import scalapb.descriptors._
 
 import scala.collection.JavaConverters._
 
-object ProtobufUtils {
+trait ProtobufImplicits {
 
-  implicit class RichGeneratedMessage(gm: GeneratedMessage) {
+  implicit class GeneratedMessageImplicits(gm: GeneratedMessage) {
 
     /** Convert to a weakly typed map. Convenient for Elasticsearch APIs which use java.util.Map[String,Object]. */
     def asJavaMap: java.util.Map[String, Any] = {
@@ -39,8 +39,10 @@ object ProtobufUtils {
 
   }
 
-  implicit class RichGeneratedCompanion[M <: GeneratedMessage with Message[M]](cmp: GeneratedMessageCompanion[M]) {
+  implicit class GeneratedCompanionImplicits[M <: GeneratedMessage with Message[M]](cmp: GeneratedMessageCompanion[M]) {
     def parseBase64(s: String): M = cmp.parseFrom(BaseEncoding.base64.decode(s))
   }
 
 }
+
+object ProtobufImplicits extends ProtobufImplicits

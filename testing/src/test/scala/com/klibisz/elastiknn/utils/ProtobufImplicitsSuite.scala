@@ -4,13 +4,13 @@ import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Jaccard
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.utils.ProtobufUtils._
+import com.klibisz.elastiknn.utils.ProtobufImplicits._
 import com.klibisz.elastiknn.{JaccardLshOptions, KNearestNeighborsQuery, ProcessorOptions}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 
-class ProtobufUtilsSuite extends FunSuite with Matchers {
+class ProtobufImplicitsSuite extends FunSuite with Matchers {
 
   test("converting a pb message to a java map") {
 

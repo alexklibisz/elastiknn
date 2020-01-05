@@ -13,8 +13,8 @@ class StoredRepresentationSuite extends FunSuite with Inspectors with Matchers {
 
   test("sparse bool vector serialization and contains") {
     val sbv = SparseBoolVector.random(1000)
-    val ssbv1 = StoredSparseBoolVector(sbv)
-    val ssbv2 = StoredSparseBoolVector.parseFrom(ssbv1.toByteArray)
+    val ssbv1 = StoredSparseBoolVector.from(sbv)
+    val ssbv2 = StoredSparseBoolVector.parseBase64(ssbv1.toBase64)
     forAll(0 until sbv.totalIndices) { i =>
       ssbv1.contains(i) shouldBe sbv.trueIndices.contains(i)
       ssbv2.contains(i) shouldBe sbv.trueIndices.contains(i)

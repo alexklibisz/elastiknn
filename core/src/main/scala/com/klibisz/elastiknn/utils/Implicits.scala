@@ -5,19 +5,20 @@ import java.util
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.google.common.hash.{BloomFilter, Funnels}
+import com.google.common.io.BaseEncoding
 import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
-import com.klibisz.elastiknn.storage.StoredSparseBoolVector
+import com.klibisz.elastiknn.storage.{StoredElastiKnnVector, StoredSparseBoolVector}
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
-import com.klibisz.elastiknn.{ElastiKnnVector, InternalSparseBoolVector, ProcessorOptions, Similarity, SparseBoolVector}
+import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVector}
 import io.circe.syntax._
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
 import scala.util.{Random, Try}
 
-object Implicits {
+trait Implicits extends ProtobufImplicits {
 
   implicit class SparseBoolVectorImplicits(sbv: SparseBoolVector) {
 
@@ -63,8 +64,8 @@ object Implicits {
   }
 
   implicit class StoredSparseBoolVectorImplicits(ssbv: StoredSparseBoolVector) {
-    private lazy val bf = {
-      val bais = new ByteArrayInputStream(ssbv.guavaBloomFilterRepr.toByteArray)
+    private val bf = {
+      val bais = new ByteArrayInputStream(BaseEncoding.base64.decode(ssbv.guavaBloomFilterBase64))
       try BloomFilter.readFrom[Integer](bais, Funnels.integerFunnel())
       finally bais.close()
     }
@@ -72,17 +73,26 @@ object Implicits {
   }
 
   implicit class StoredSparseBoolVectorCompanionImplicits(ssbvc: GeneratedMessageCompanion[StoredSparseBoolVector]) {
-    def apply(sbv: SparseBoolVector): StoredSparseBoolVector = {
+    def from(sbv: SparseBoolVector): StoredSparseBoolVector = {
       val bf = BloomFilter.create[Integer](Funnels.integerFunnel(), sbv.totalIndices.toLong, 0.05)
       sbv.trueIndices.foreach(bf.put(_))
-      val bfbarr = {
+      val bfb64 = {
         val baos = new ByteArrayOutputStream()
         bf.writeTo(baos)
-        try baos.toByteArray
+        try BaseEncoding.base64.encode(baos.toByteArray)
         finally baos.close()
       }
-      StoredSparseBoolVector(ByteString.copyFrom(bfbarr), sbv.trueIndices.toArray.sorted, sbv.totalIndices)
+      StoredSparseBoolVector(bfb64, sbv.trueIndices.toArray.sorted, sbv.totalIndices)
     }
+  }
+
+  implicit class StoredElastiKnnVectorCompanionImplicits(sekvc: GeneratedMessageCompanion[StoredElastiKnnVector]) {
+    def from(ekv: ElastiKnnVector): StoredElastiKnnVector =
+      StoredElastiKnnVector(ekv.vector match {
+        case ElastiKnnVector.Vector.SparseBoolVector(sbv) => StoredElastiKnnVector.Vector.SparseBoolVector(StoredSparseBoolVector.from(sbv))
+        case ElastiKnnVector.Vector.FloatVector(fv)       => StoredElastiKnnVector.Vector.FloatVector(fv)
+        case ElastiKnnVector.Vector.Empty                 => StoredElastiKnnVector.Vector.Empty
+      })
   }
 
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
@@ -133,3 +143,5 @@ object Implicits {
   }
 
 }
+
+object Implicits extends Implicits
