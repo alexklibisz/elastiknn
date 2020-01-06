@@ -49,7 +49,7 @@ object StoredScripts {
         ScriptType.STORED,
         null,
         id,
-        util.Map.of("field", field, "other", other.value.trueIndices.asJava)
+        util.Map.of("field", field, "bTrueIndices", other.value.trueIndices.asJava)
       )
   }
 
@@ -104,12 +104,14 @@ object StoredScripts {
       "elastiknn-exact-hamming",
       """
         |def a = doc[params.field];
-        |def b = params.other;
-        |double eq = 0;
-        |for (int i = 0; i < b.length; i++) {
-        |  if (a[i] == b[i]) eq += 1;
-        |}
-        |return eq / b.length;
+        |def bTrueIndices = params.bTrueIndices;
+        |int totalCount = a.size();
+        |int aTrueCount = a.get(-1);
+        |int bTrueCount = bTrueIndices.size();
+        |int eqTrueCount = 0;
+        |for (i in bTrueIndices) if (a.get(i)) eqTrueCount += 1;
+        |double neqTrueCount = Math.max(aTrueCount - eqTrueCount, 0) + Math.max(bTrueCount - eqTrueCount, 0);
+        |return (totalCount - neqTrueCount) / totalCount;
         |""".stripMargin
     )
 

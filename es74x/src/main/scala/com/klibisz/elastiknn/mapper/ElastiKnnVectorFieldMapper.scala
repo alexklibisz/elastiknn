@@ -125,8 +125,10 @@ object ElastiKnnVectorFieldMapper {
             storedGet = v.values
             storedSize = v.values.length
           case Some(StoredElastiKnnVector.Vector.SparseBoolVector(v)) =>
-            storedGet = v.contains
-            storedSize = v.sortedTrueIndices.length
+            // Calling .get(-1) will return the number of true indices.
+            // TODO: is there another way to expose a custom script method?
+            storedGet = (i: Int) => if (i == -1) v.sortedTrueIndices.length else v.contains(i)
+            storedSize = v.totalIndices
           case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
         }
       } else None

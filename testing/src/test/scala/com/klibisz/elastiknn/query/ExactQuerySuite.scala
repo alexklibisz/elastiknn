@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest._
 
@@ -21,7 +20,7 @@ class ExactQuerySuite
     with ElasticAsyncClient {
 
   for {
-    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
+    sim <- Similarity.values
     dim <- Seq(10, 128, 512)
   } yield {
 
@@ -55,25 +54,25 @@ class ExactQuerySuite
         }
       }
     }
-    test(s"exact $dim-dimensional ${sim.name} search with an indexed vector") {
-      support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
-        forAll(queriesAndResults.silent) {
-          case (query, id, res) =>
-            val hits = res.hits.hits
-            hits.length shouldBe >=(query.similarities.length)
-            // The top hit should be the query vector itself.
-            val self = hits.find(_.id == id)
-            self shouldBe defined
-            self.map(_.score) shouldBe Some(hits.map(_.score).max)
-
-            // The remaining hits have the right scores. Only consider the corpus vectors.
-            val scores = hits.filter(_.id.startsWith(support.corpusVectorIdPrefix)).map(_.score).take(query.similarities.length)
-            forAll(query.similarities.zip(scores).silent) {
-              case (sim, score) => score shouldBe sim +- 1e-6f
-            }
-        }
-      }
-    }
+//    test(s"exact $dim-dimensional ${sim.name} search with an indexed vector") {
+//      support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
+//        forAll(queriesAndResults.silent) {
+//          case (query, id, res) =>
+//            val hits = res.hits.hits
+//            hits.length shouldBe >=(query.similarities.length)
+//            // The top hit should be the query vector itself.
+//            val self = hits.find(_.id == id)
+//            self shouldBe defined
+//            self.map(_.score) shouldBe Some(hits.map(_.score).max)
+//
+//            // The remaining hits have the right scores. Only consider the corpus vectors.
+//            val scores = hits.filter(_.id.startsWith(support.corpusVectorIdPrefix)).map(_.score).take(query.similarities.length)
+//            forAll(query.similarities.zip(scores).silent) {
+//              case (sim, score) => score shouldBe sim +- 1e-6f
+//            }
+//        }
+//      }
+//    }
   }
 
 }
