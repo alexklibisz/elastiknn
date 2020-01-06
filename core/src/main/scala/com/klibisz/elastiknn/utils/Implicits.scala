@@ -1,15 +1,8 @@
 package com.klibisz.elastiknn.utils
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.util
-
 import com.google.common.collect.MinMaxPriorityQueue
-import com.google.common.hash.{BloomFilter, Funnels}
-import com.google.common.io.BaseEncoding
-import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
-import com.klibisz.elastiknn.storage.{StoredElastiKnnVector, StoredSparseBoolVector}
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVector}
 import io.circe.syntax._
@@ -61,39 +54,6 @@ trait Implicits extends ProtobufImplicits {
       from((0 until totalIndices).map(_ => rng.nextDouble() <= bias))
     def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[SparseBoolVector] =
       (0 until n).map(_ => random(totalIndices, bias)).toVector
-  }
-
-  implicit class StoredSparseBoolVectorImplicits(ssbv: StoredSparseBoolVector) {
-    private val bf = {
-      val bais = new ByteArrayInputStream(BaseEncoding.base64.decode(ssbv.guavaBloomFilterBase64))
-      try BloomFilter.readFrom[Integer](bais, Funnels.integerFunnel())
-      finally bais.close()
-    }
-    def contains(i: Int): Boolean = bf.mightContain(i) && util.Arrays.binarySearch(ssbv.sortedTrueIndices, i) >= 0
-//    def contains(i: Int): Boolean = util.Arrays.binarySearch(ssbv.sortedTrueIndices, i) >= 0
-  }
-
-  implicit class StoredSparseBoolVectorCompanionImplicits(ssbvc: GeneratedMessageCompanion[StoredSparseBoolVector]) {
-    def from(sbv: SparseBoolVector): StoredSparseBoolVector = {
-      val bf = BloomFilter.create[Integer](Funnels.integerFunnel(), sbv.totalIndices.toLong, 0.05)
-      sbv.trueIndices.foreach(bf.put(_))
-      val bfb64 = {
-        val baos = new ByteArrayOutputStream()
-        bf.writeTo(baos)
-        try BaseEncoding.base64.encode(baos.toByteArray)
-        finally baos.close()
-      }
-      StoredSparseBoolVector(bfb64, sbv.trueIndices.toArray.sorted, sbv.totalIndices)
-    }
-  }
-
-  implicit class StoredElastiKnnVectorCompanionImplicits(sekvc: GeneratedMessageCompanion[StoredElastiKnnVector]) {
-    def from(ekv: ElastiKnnVector): StoredElastiKnnVector =
-      StoredElastiKnnVector(ekv.vector match {
-        case ElastiKnnVector.Vector.SparseBoolVector(sbv) => StoredElastiKnnVector.Vector.SparseBoolVector(StoredSparseBoolVector.from(sbv))
-        case ElastiKnnVector.Vector.FloatVector(fv)       => StoredElastiKnnVector.Vector.FloatVector(fv)
-        case ElastiKnnVector.Vector.Empty                 => StoredElastiKnnVector.Vector.Empty
-      })
   }
 
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {

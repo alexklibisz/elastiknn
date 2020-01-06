@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.mapper
 import java.util
 
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.storage.StoredElastiKnnVector
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
 import io.circe.syntax._
@@ -113,21 +112,21 @@ object ElastiKnnVectorFieldMapper {
 
   class ScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
-    private var stored: Option[StoredElastiKnnVector.Vector] = None
+    private var stored: Option[ElastiKnnVector.Vector] = None
     private var storedGet: Int => Any = identity[Int]
     private var storedSize: Int = 0
 
     override def setNextDocId(docId: Int): Unit =
       if (in.advanceExact(docId)) {
-        stored = Some(StoredElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
+        stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
         stored match {
-          case Some(StoredElastiKnnVector.Vector.FloatVector(v)) =>
+          case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
             storedGet = v.values
             storedSize = v.values.length
-          case Some(StoredElastiKnnVector.Vector.SparseBoolVector(v)) =>
+          case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
             // Calling .get(-1) will return the number of true indices.
             // TODO: is there another way to expose a custom script method?
-            storedGet = (i: Int) => if (i == -1) v.sortedTrueIndices.length else v.contains(i)
+            storedGet = (i: Int) => if (i == -1) v.trueIndices.size else v.trueIndices.contains(i)
             storedSize = v.totalIndices
           case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
         }
@@ -155,7 +154,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     val name = fieldType.name()
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
     // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
-    val field = new BinaryDocValuesField(name, new BytesRef(StoredElastiKnnVector.from(ekv).toBase64))
+    val field = new BinaryDocValuesField(name, new BytesRef(ekv.toBase64))
     context.doc.addWithKey(name, field)
   }
 
