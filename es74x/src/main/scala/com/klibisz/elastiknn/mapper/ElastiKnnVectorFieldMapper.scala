@@ -2,6 +2,8 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
+import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.LshQueryOptions
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
@@ -118,7 +120,7 @@ object ElastiKnnVectorFieldMapper {
 
     override def setNextDocId(docId: Int): Unit =
       if (in.advanceExact(docId)) {
-        stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
+        stored = Some(ScriptDocValues.ekvCache.get((docId, in.binaryValue)).vector)
         stored match {
           case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
             storedGet = v.values
@@ -136,6 +138,13 @@ object ElastiKnnVectorFieldMapper {
 
     override def size(): Int = storedSize
 
+  }
+
+  object ScriptDocValues {
+    val ekvCache: LoadingCache[(Int, BytesRef), ElastiKnnVector] =
+      CacheBuilder.newBuilder.softValues.build[(Int, BytesRef), ElastiKnnVector](new CacheLoader[(Int, BytesRef), ElastiKnnVector] {
+        def load(key: (Int, BytesRef)): ElastiKnnVector = ElastiKnnVector.parseBase64(key._2.utf8ToString)
+      })
   }
 
 }
