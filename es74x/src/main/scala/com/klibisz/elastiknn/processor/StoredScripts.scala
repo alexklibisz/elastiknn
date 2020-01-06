@@ -3,11 +3,10 @@ package com.klibisz.elastiknn.processor
 import java.util
 import java.util.Collections
 
-import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SimilarityAndTypeException, illArgEx}
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
 import com.klibisz.elastiknn.ElastiKnnVector.Vector.{Empty, FloatVector, SparseBoolVector}
 import com.klibisz.elastiknn.Similarity.{SIMILARITY_ANGULAR, SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SimilarityAndTypeException, illArgEx}
 import org.elasticsearch.action.admin.cluster.storedscripts.PutStoredScriptRequest
 import org.elasticsearch.common.bytes.BytesArray
 import org.elasticsearch.common.xcontent.XContentType
@@ -120,12 +119,10 @@ object StoredScripts {
       "elastiknn-exact-jaccard",
       """
         |def a = doc[params.field];
-        |def b = params.other;
+        |def bTrueIndices = params.bTrueIndices;
         |double isec = 0;
-        |for (i in b) {
-        |  if (a.get(i)) isec += 1;
-        |}
-        |return isec / (a.length + b.size() - isec);
+        |for (i in bTrueIndices) if (a.get(i)) isec += 1;
+        |return isec / (a.get(-1) + bTrueIndices.size() - isec);
         |""".stripMargin
     )
 
