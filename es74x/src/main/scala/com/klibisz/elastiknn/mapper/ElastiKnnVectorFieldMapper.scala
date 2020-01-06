@@ -2,8 +2,6 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import com.klibisz.elastiknn.KNearestNeighborsQuery.LshQueryOptions
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
@@ -120,7 +118,7 @@ object ElastiKnnVectorFieldMapper {
 
     override def setNextDocId(docId: Int): Unit =
       if (in.advanceExact(docId)) {
-        stored = Some(ScriptDocValues.ekvCache.get((docId, in.binaryValue)).vector)
+        stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
         stored match {
           case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
             storedGet = v.values
@@ -128,8 +126,8 @@ object ElastiKnnVectorFieldMapper {
           case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
             // Calling .get(-1) will return the number of true indices.
             // TODO: is there another way to expose a custom script method?
-            storedGet = (i: Int) => if (i == -1) v.trueIndices.size else v.trueIndices.contains(i)
-            storedSize = v.totalIndices
+            storedGet = (i: Int) => if (i == -1) v.totalIndices else v.trueIndices(i)
+            storedSize = v.trueIndices.length
           case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
         }
       } else None
@@ -138,13 +136,6 @@ object ElastiKnnVectorFieldMapper {
 
     override def size(): Int = storedSize
 
-  }
-
-  object ScriptDocValues {
-    val ekvCache: LoadingCache[(Int, BytesRef), ElastiKnnVector] =
-      CacheBuilder.newBuilder.softValues.build[(Int, BytesRef), ElastiKnnVector](new CacheLoader[(Int, BytesRef), ElastiKnnVector] {
-        def load(key: (Int, BytesRef)): ElastiKnnVector = ElastiKnnVector.parseBase64(key._2.utf8ToString)
-      })
   }
 
 }
@@ -159,12 +150,16 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
 
   override def parse(context: ParseContext): Unit = {
     val json = context.parser.map.asJson(mapEncoder)
-    val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
-    val name = fieldType.name()
+    val ekv = JsonFormat.fromJson[ElastiKnnVector](json) match {
+      // Make sure that sparse vector indices are unique. TODO: test this validation.
+      case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
+        ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.copy(sbv.trueIndices.distinct)))
+      case other => other
+    }
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
     // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
-    val field = new BinaryDocValuesField(name, new BytesRef(ekv.toBase64))
-    context.doc.addWithKey(name, field)
+    val field = new BinaryDocValuesField(fieldType.name(), new BytesRef(ekv.toBase64))
+    context.doc.addWithKey(fieldType.name(), field)
   }
 
   override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =

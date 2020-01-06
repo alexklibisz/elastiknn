@@ -46,7 +46,7 @@ message FloatVector {
 
 // A sparse vector of booleans, represented by the true indices and total number of indices.
 message SparseBoolVector {
-    repeated uint32 true_indices = 1 [(scalapb.field).collection_type="Set"];
+    repeated uint32 true_indices = 1 [(scalapb.field).collection_type="Array"];
     uint32 total_indices = 2;
 }
 

@@ -21,9 +21,9 @@ trait Implicits extends ProtobufImplicits {
 
     lazy val isEmpty: Boolean = length == 0
 
-    lazy val lengthTrue: Int = sbv.trueIndices.size
+    lazy val lengthTrue: Int = sbv.trueIndices.length
 
-    lazy val lengthFalse: Int = sbv.totalIndices - sbv.trueIndices.size
+    lazy val lengthFalse: Int = sbv.totalIndices - sbv.trueIndices.length
 
     def compatibleWith(other: SparseBoolVector): Boolean = sbv.totalIndices == other.totalIndices
 
@@ -39,7 +39,11 @@ trait Implicits extends ProtobufImplicits {
 
     def jaccardDist(other: SparseBoolVector): Double = 1 - jaccardSim(other)
 
-    def denseArray(): Array[Boolean] = (0 until sbv.totalIndices).toArray.map(sbv.trueIndices)
+    def denseArray(): Array[Boolean] = {
+      val arr = Array.fill(sbv.totalIndices)(false)
+      sbv.trueIndices.foreach(i => arr.update(i, true))
+      arr
+    }
 
     def values(i: Int): Boolean = sbv.trueIndices.contains(i)
 
@@ -47,7 +51,7 @@ trait Implicits extends ProtobufImplicits {
 
   implicit class SparseBoolVectorCompanionImplicits(sbvc: GeneratedMessageCompanion[SparseBoolVector]) {
     def from(v: Iterable[Boolean]): SparseBoolVector = SparseBoolVector(
-      trueIndices = v.zipWithIndex.filter(_._1).map(_._2).toSet,
+      trueIndices = v.zipWithIndex.filter(_._1).map(_._2).toArray,
       totalIndices = v.size
     )
     def random(totalIndices: Int, bias: Double = 0.5)(implicit rng: Random): SparseBoolVector =

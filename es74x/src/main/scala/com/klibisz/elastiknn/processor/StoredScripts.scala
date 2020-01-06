@@ -48,7 +48,7 @@ object StoredScripts {
         ScriptType.STORED,
         null,
         id,
-        util.Map.of("field", field, "bTrueIndices", other.value.trueIndices.asJava)
+        util.Map.of("field", field, "bTrueIndices", other.value.trueIndices.map(_.toString -> null).toMap.asJava)
       )
   }
 
@@ -103,12 +103,12 @@ object StoredScripts {
       "elastiknn-exact-hamming",
       """
         |def a = doc[params.field];
-        |def bTrueIndices = params.bTrueIndices;
-        |int totalCount = a.size();
-        |int aTrueCount = a.get(-1);
+        |Map bTrueIndices = params.bTrueIndices;
+        |int totalCount = a.get(-1);
+        |int aTrueCount = a.size();
         |int bTrueCount = bTrueIndices.size();
         |int eqTrueCount = 0;
-        |for (i in bTrueIndices) if (a.get(i)) eqTrueCount += 1;
+        |for (i in a) if (bTrueIndices.containsKey(i.toString())) eqTrueCount += 1;
         |double neqTrueCount = Math.max(aTrueCount - eqTrueCount, 0) + Math.max(bTrueCount - eqTrueCount, 0);
         |return (totalCount - neqTrueCount) / totalCount;
         |""".stripMargin
@@ -119,10 +119,10 @@ object StoredScripts {
       "elastiknn-exact-jaccard",
       """
         |def a = doc[params.field];
-        |def bTrueIndices = params.bTrueIndices;
+        |Map bTrueIndices = params.bTrueIndices;
         |double isec = 0;
-        |for (i in bTrueIndices) if (a.get(i)) isec += 1;
-        |return isec / (a.get(-1) + bTrueIndices.size() - isec);
+        |for (i in a) if (bTrueIndices.containsKey(i.toString())) isec += 1;
+        |return isec / (a.size() + bTrueIndices.size() - isec);
         |""".stripMargin
     )
 

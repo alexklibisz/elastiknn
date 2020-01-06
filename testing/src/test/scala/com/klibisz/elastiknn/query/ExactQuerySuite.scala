@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.Similarity.SIMILARITY_HAMMING
 import com.klibisz.elastiknn._
 import org.scalatest._
 
@@ -20,8 +21,8 @@ class ExactQuerySuite
     with ElasticAsyncClient {
 
   for {
-    sim <- Similarity.values
-    dim <- Seq(10, 128, 512)
+    sim <- Similarity.values.filter(_ == SIMILARITY_HAMMING)
+    dim <- Seq(10, 128, 512).take(1)
   } yield {
 
     test(s"parsing test data for $dim-dimensional $sim") {

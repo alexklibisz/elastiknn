@@ -121,33 +121,6 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
                           ))
                 .string()))
 
-    val score: Float = 22.2f // has to be float because that's the search response score type.
-
-    def scriptSearch(i: Int): SearchRequest = {
-      search(indexName).query(
-        scriptScoreQuery(requests.script.Script(
-          s"""
-             |boolean b = (boolean) doc[params.field][params.i];
-             |double score = params.score;
-             |if (b) {
-             |  return score;
-             |} else {
-             |  return 1.0;
-             |}
-             |""".stripMargin,
-          params = Map("score" -> score, "field" -> fieldName, "i" -> i)
-        )))
-    }
-
-    def check(r: Response[SearchResponse], i: Int): Assertion = {
-      val a = r.result.hits.hits.map(_.score).sorted
-      val b = boolVectors
-        .map(bvec => if (bvec.values(i)) score else 1.0f)
-        .sorted
-        .toArray
-      a shouldBe b
-    }
-
     for {
       _ <- client.execute(deleteIndex(indexName))
 
@@ -161,14 +134,21 @@ class ElastiKnnVectorFieldMapperSuite extends AsyncFunSuite with Matchers with I
       _ = indexRes.shouldBeSuccess
       _ = indexRes.result.errors shouldBe false
 
-      scriptSearches = boolVectors.indices.map(i => client.execute(scriptSearch(i)))
-      scriptResponses <- Future.sequence(scriptSearches)
-
-      _ = forAll(scriptResponses) { _.shouldBeSuccess }
-      _ = check(scriptResponses(0), 0)
-      _ = check(scriptResponses(1), 1)
-      _ = check(scriptResponses(2), 2)
-
+      query = scriptScoreQuery(
+        requests.script.Script(
+          s"""
+           |def a = doc[params.field];
+           |double n = 0.0;
+           |for (i in a) n += 1;
+           |return n;
+           |""".stripMargin,
+          params = Map("field" -> fieldName)
+        ))
+      searchRes <- client.execute(search(indexName).query(query))
+      _ = searchRes.shouldBeSuccess
+      scores = searchRes.result.hits.hits.map(_.score).sorted
+      correctScores = boolVectors.map(_.trueIndices.length).sorted.toArray
+      _ = scores shouldBe correctScores
     } yield Succeeded
   }
 
