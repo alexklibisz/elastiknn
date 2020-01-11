@@ -58,7 +58,7 @@ dependencies {
 esplugin {
     name 'elastiknn'
     description 'Ingest processor and queries for exact and approximate nearest neighbors search'
-    classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
+    classname 'org.elasticsearch.elastiknn.ElastiKnnPlugin'
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }

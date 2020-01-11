@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package klibisz.elastiknn;
 
-option java_package = "com.klibisz.elastiknn";
+option java_package = "org.elasticsearch.elastiknn";
 
 import "scalapb/scalapb.proto";
 
