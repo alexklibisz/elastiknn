@@ -1,7 +1,9 @@
 package com.klibisz.elastiknn.mapper
 
+import java.nio.charset.StandardCharsets
 import java.util
 
+import com.google.protobuf.ByteString
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
@@ -9,7 +11,7 @@ import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
-import org.apache.lucene.util.BytesRef
+import org.apache.lucene.util.{BytesRef, UnicodeUtil}
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData
@@ -21,6 +23,8 @@ import org.elasticsearch.index.{Index, IndexSettings, fielddata}
 import org.elasticsearch.indices.breaker.CircuitBreakerService
 import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
+
+import scala.util.Random
 
 /**
   * Custom "elastiknn_vector" type which stores ElastiKnnVectors without modifying their order.
@@ -118,13 +122,15 @@ object ElastiKnnVectorFieldMapper {
 
     override def setNextDocId(docId: Int): Unit =
       if (in.advanceExact(docId)) {
+        // Spent a while figuring out if there's a way to decode this without converting to a string. Quite confused by
+        // whatever is happening in Lucene that modifies the bytes when they're stored.
         stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
         stored match {
           case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
             storedGet = v.values
             storedSize = v.values.length
           case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
-            // Calling .get(-1) will return the number of true indices.
+            // Calling .get(-1) on a sparse bool vector will return the number of true indices.
             // TODO: is there another way to expose a custom script method?
             storedGet = (i: Int) => if (i == -1) v.totalIndices else v.trueIndices(i)
             storedSize = v.trueIndices.length
@@ -158,8 +164,8 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     }
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
     // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
-    val field = new BinaryDocValuesField(fieldType.name(), new BytesRef(ekv.toBase64))
-    context.doc.addWithKey(fieldType.name(), field)
+    val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toBase64Bytes))
+    context.doc.addWithKey(fieldType.name, field)
   }
 
   override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
@@ -167,5 +173,15 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
 
   override def contentType(): String = {
     ElastiKnnVectorFieldMapper.CONTENT_TYPE
+  }
+}
+
+object Test {
+  def main(args: Array[String]): Unit = {
+    implicit val rng = new Random(1)
+    val ekv1 = SparseBoolVector.random(10)
+    val bs1 = ekv1.toByteString.toStringUtf8
+    val ekv2 = SparseBoolVector.parseFrom(bs1.getBytes)
+    print(ekv1.trueIndices.toVector, ekv2.trueIndices.toVector)
   }
 }
