@@ -1,9 +1,7 @@
 package com.klibisz.elastiknn.mapper
 
-import java.nio.charset.StandardCharsets
 import java.util
 
-import com.google.protobuf.ByteString
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.mapEncoder
 import com.klibisz.elastiknn.utils.Implicits._
@@ -11,7 +9,7 @@ import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
-import org.apache.lucene.util.{BytesRef, UnicodeUtil}
+import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData
