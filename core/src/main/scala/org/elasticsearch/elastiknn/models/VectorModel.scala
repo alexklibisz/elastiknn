@@ -3,12 +3,12 @@ package org.elasticsearch.elastiknn.models
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import io.circe._
 import io.circe.syntax._
+import org.elasticsearch.elastiknn.utils.fastfor
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions._
 import org.elasticsearch.elastiknn.Similarity.{SIMILARITY_ANGULAR, SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
 import org.elasticsearch.elastiknn.utils.Implicits._
 import org.elasticsearch.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, SparseBoolVector, _}
 
-import scala.annotation.tailrec
 import scala.util._
 import scala.util.hashing.MurmurHash3
 
@@ -91,14 +91,5 @@ object VectorModel {
     }
 
   def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = hash(popts, vec).map(_.asJson)
-
-  @tailrec
-  private[models] def fastfor(i: Int, pred: Int => Boolean, inc: Int => Int)(f: Int => Unit): Unit =
-    if (pred(i)) {
-      f(i)
-      fastfor(inc(i), pred, inc)(f)
-    } else ()
-
-  private[models] def fastfor(i: Int, pred: Int => Boolean)(f: Int => Unit): Unit = fastfor(i, pred, _ + 1)(f)
 
 }

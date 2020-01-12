@@ -119,14 +119,16 @@ object StoredScripts {
   val exactJaccard: ExactBoolScript =
     ExactBoolScript(
       "elastiknn-exact-jaccard",
-      """
-        |def a = doc[params.field];
-        |Map bTrueIndices = params.bTrueIndices;
-        |double isec = 0;
-        |for (i in a) if (bTrueIndices.containsKey(i.toString())) isec += 1;
-        |return isec / (a.size() + bTrueIndices.size() - isec);
-        |""".stripMargin
+      "return elastiKnnJaccard(doc[params.field], params.bTrueIndices);"
     )
+
+  """
+    |def a = doc[params.field];
+    |Map bTrueIndices = params.bTrueIndices;
+    |double isec = 0;
+    |for (i in a) if (bTrueIndices.containsKey(i.toString())) isec += 1;
+    |return isec / (a.size() + bTrueIndices.size() - isec);
+    |""".stripMargin
 
   val exactScripts: Seq[ExactScript[_]] =
     Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)

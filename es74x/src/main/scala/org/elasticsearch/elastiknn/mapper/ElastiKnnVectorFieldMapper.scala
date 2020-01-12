@@ -121,6 +121,20 @@ class ElastiKnnVectorScriptDocValues(in: BinaryDocValues) extends fielddata.Scri
   private var storedGet: Int => Any = identity[Int]
   private var storedSize: Int = 0
 
+  private[elastiknn] def getSparseBoolVector: SparseBoolVector = stored match {
+    case Some(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
+      sbv
+    case Some(_) => throw new IllegalStateException(s"Expected a ${SparseBoolVector.getClass.getName} but got $stored")
+    case None    => throw new IllegalStateException("Vector hasn't been initialized")
+  }
+
+  private[elastiknn] def getFloatVector: FloatVector = stored match {
+    case Some(ElastiKnnVector.Vector.FloatVector(fv)) =>
+      fv
+    case Some(_) => throw new IllegalStateException(s"Expected a ${FloatVector.getClass.getName} but got $stored")
+    case None    => throw new IllegalStateException("Vector hasn't been initialized")
+  }
+
   override def setNextDocId(docId: Int): Unit =
     if (in.advanceExact(docId)) {
       // Spent a while figuring out if there's a way to decode this without converting to a string. Quite confused by

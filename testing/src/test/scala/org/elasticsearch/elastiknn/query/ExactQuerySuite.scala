@@ -2,6 +2,7 @@ package org.elasticsearch.elastiknn.query
 
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery._
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
+import org.elasticsearch.elastiknn.Similarity.SIMILARITY_JACCARD
 import org.elasticsearch.elastiknn._
 import org.scalatest._
 
@@ -20,8 +21,8 @@ class ExactQuerySuite
     with ElasticAsyncClient {
 
   for {
-    sim <- Similarity.values
-    dim <- Seq(10, 128, 512)
+    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
+    dim <- Seq(10, 128, 512).take(1)
   } yield {
 
     test(s"parsing test data for $dim-dimensional $sim") {
