@@ -103,7 +103,7 @@ object ElastiKnnVectorFieldMapper {
     private lazy val bdv: BinaryDocValues = DocValues.getBinary(reader, field)
 
     override def getScriptValues: fielddata.ScriptDocValues[_] =
-      new ScriptDocValues(bdv)
+      new ElastiKnnVectorScriptDocValues(bdv)
 
     override def getBytesValues: fielddata.SortedBinaryDocValues =
       throw new UnsupportedOperationException("String representation of doc values for elastiknn_vector fields is not supported")
@@ -113,35 +113,35 @@ object ElastiKnnVectorFieldMapper {
     override def close(): Unit = ()
   }
 
-  class ScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
+}
 
-    private var stored: Option[ElastiKnnVector.Vector] = None
-    private var storedGet: Int => Any = identity[Int]
-    private var storedSize: Int = 0
+class ElastiKnnVectorScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
-    override def setNextDocId(docId: Int): Unit =
-      if (in.advanceExact(docId)) {
-        // Spent a while figuring out if there's a way to decode this without converting to a string. Quite confused by
-        // whatever is happening in Lucene that modifies the bytes when they're stored.
-        stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
-        stored match {
-          case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
-            storedGet = v.values
-            storedSize = v.values.length
-          case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
-            // Calling .get(-1) on a sparse bool vector will return the number of true indices.
-            // TODO: is there another way to expose a custom script method?
-            storedGet = (i: Int) => if (i == -1) v.totalIndices else v.trueIndices(i)
-            storedSize = v.trueIndices.length
-          case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
-        }
-      } else None
+  private var stored: Option[ElastiKnnVector.Vector] = None
+  private var storedGet: Int => Any = identity[Int]
+  private var storedSize: Int = 0
 
-    override def get(i: Int): Any = storedGet(i)
+  override def setNextDocId(docId: Int): Unit =
+    if (in.advanceExact(docId)) {
+      // Spent a while figuring out if there's a way to decode this without converting to a string. Quite confused by
+      // whatever is happening in Lucene that modifies the bytes when they're stored.
+      stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
+      stored match {
+        case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
+          storedGet = v.values
+          storedSize = v.values.length
+        case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
+          // Calling .get(-1) on a sparse bool vector will return the number of true indices.
+          // TODO: is there another way to expose a custom script method?
+          storedGet = (i: Int) => if (i == -1) v.totalIndices else v.trueIndices(i)
+          storedSize = v.trueIndices.length
+        case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
+      }
+    } else None
 
-    override def size(): Int = storedSize
+  override def get(i: Int): Any = storedGet(i)
 
-  }
+  override def size(): Int = storedSize
 
 }
 

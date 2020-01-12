@@ -14,7 +14,7 @@ GET /test-similarity_jaccard-10/_search
             },
             "script" : {
                 "source" : """
-return elastiKnnJaccard(params.bTrueIndices, params.field);
+return elastiKnnJaccard(doc[params.field], params.bTrueIndices);
                 """,
                 "params": {
                   "field": "vec_raw",
@@ -28,7 +28,7 @@ return elastiKnnJaccard(params.bTrueIndices, params.field);
 }
  */
 
-class PainlessJaccard(scoreScript: ScoreScript, queryVector: java.util.Map[String, Any], indexedVector: String) {
+class PainlessJaccard(scoreScript: ScoreScript, indexedVector: ElastiKnnVectorScriptDocValues, queryVector: java.util.Map[String, Any]) {
 
   def elastiKnnJaccard(): Double = 99d
 
