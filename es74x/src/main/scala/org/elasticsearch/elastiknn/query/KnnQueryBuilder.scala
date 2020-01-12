@@ -4,13 +4,6 @@ import java.util
 import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
-import org.elasticsearch.elastiknn.KNearestNeighborsQuery.{
-  ExactQueryOptions,
-  IndexedQueryVector,
-  LshQueryOptions,
-  QueryOptions,
-  QueryVector
-}
 import org.elasticsearch.elastiknn._
 import org.elasticsearch.elastiknn.models.VectorModel
 import org.elasticsearch.elastiknn.processor.StoredScripts
@@ -25,7 +18,7 @@ import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest, GetPipelineResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.common.lucene.search.function.{ScriptScoreFunction, ScriptScoreQuery}
+import org.elasticsearch.common.lucene.search.function.{FunctionScoreQuery, ScriptScoreFunction, ScriptScoreQuery}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery.{
   ExactQueryOptions,
@@ -211,12 +204,13 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val e
   import exactQueryOptions._
 
   override def doToQuery(context: QueryShardContext): Query = {
-    val queryTry: Try[ScriptScoreQuery] = for {
+    val queryTry: Try[FunctionScoreQuery] = for {
       script <- StoredScripts.exact(similarity, fieldRaw, elastiKnnVector)
     } yield {
       val exists = new ExistsQueryBuilder(fieldRaw).toQuery(context)
-      val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
-      new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+//      val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
+//      new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
+      new FunctionScoreQuery(exists, new KnnExactScoreFunction())
     }
     queryTry.get
   }
