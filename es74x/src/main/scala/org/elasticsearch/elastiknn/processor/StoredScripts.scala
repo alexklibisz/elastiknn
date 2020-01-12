@@ -119,9 +119,6 @@ object StoredScripts {
   val exactJaccard: ExactBoolScript =
     ExactBoolScript(
       "elastiknn-exact-jaccard",
-//      """
-//        |return elastiKnnJaccard();
-//        |""".stripMargin
       """
         |def a = doc[params.field];
         |Map bTrueIndices = params.bTrueIndices;

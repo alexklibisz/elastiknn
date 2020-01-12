@@ -2,22 +2,19 @@ package org.elasticsearch.elastiknn.processor
 
 import java.util
 
-import org.elasticsearch.elastiknn._
+import io.circe.Json
+import io.circe.syntax._
+import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
+import org.elasticsearch.elastiknn.{ProcessorOptions, _}
 import org.elasticsearch.elastiknn.models.VectorModel
 import org.elasticsearch.elastiknn.utils.CirceUtils._
 import org.elasticsearch.elastiknn.utils.Implicits._
-import io.circe.Json
-import io.circe.syntax._
-import org.apache.logging.log4j.{LogManager, Logger}
-import org.elasticsearch.client.node.NodeClient
-import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
-import org.elasticsearch.elastiknn.ProcessorOptions
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
 import scala.util.{Failure, Try}
 
-class IngestProcessor private (tag: String, client: NodeClient, popts: ProcessorOptions) extends AbstractProcessor(tag) {
+class IngestProcessor private (tag: String, popts: ProcessorOptions) extends AbstractProcessor(tag) {
 
   import popts._
 
@@ -60,9 +57,7 @@ object IngestProcessor {
 
   lazy val TYPE: String = ELASTIKNN_NAME
 
-  class Factory(client: NodeClient) extends Processor.Factory {
-
-    private val logger: Logger = LogManager.getLogger(getClass)
+  class Factory() extends Processor.Factory {
 
     /** This is the method that gets invoked when someone creates an elastiknn pipeline. */
     override def create(registry: util.Map[String, Processor.Factory], tag: String, config: util.Map[String, Object]): IngestProcessor = {
@@ -71,7 +66,7 @@ object IngestProcessor {
       require(!popts.modelOptions.isEmpty, "model_options cannot be empty")
       popts.modelOptions.fieldProc.foreach(fieldProc => require(fieldProc.nonEmpty, "field_processed cannot be empty"))
       config.clear() // Need to do this otherwise ES thinks parsing didn't work!
-      new IngestProcessor(tag, client, popts)
+      new IngestProcessor(tag, popts)
     }
 
   }

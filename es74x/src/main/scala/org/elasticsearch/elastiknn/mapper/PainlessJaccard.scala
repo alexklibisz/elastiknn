@@ -2,10 +2,34 @@ package org.elasticsearch.elastiknn.mapper
 
 import org.elasticsearch.script.ScoreScript
 
-object PainlessJaccard {
+/*
+GET /test-similarity_jaccard-10/_search
+{
+    "query" : {
+        "script_score" : {
+            "query" : {
+                "match": {
+                  "_id": "c6"
+                }
+            },
+            "script" : {
+                "source" : """
+return elastiKnnJaccard(params.bTrueIndices, params.field);
+                """,
+                "params": {
+                  "field": "vec_raw",
+                  "bTrueIndices": {
+                    "3": null, "6": null, "7": null
+                  }
+                }
+            }
+        }
+     }
+}
+ */
 
-//  def elastiKnnJaccard(scoreScript: ScoreScript, queryVector: Map[String, Any], indexedVectorField: String): Double = 99d
+class PainlessJaccard(scoreScript: ScoreScript, queryVector: java.util.Map[String, Any], indexedVector: String) {
 
-  def elastiKnnJaccard(scoreScript: ScoreScript): Double = 99d
+  def elastiKnnJaccard(): Double = 99d
 
 }

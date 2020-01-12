@@ -1,0 +1,5 @@
+class org.elasticsearch.script.ScoreScript @no_import {
+}
+static_import {
+    double elastiKnnJaccard(org.elasticsearch.script.ScoreScript, Map, String) bound_to org.elasticsearch.elastiknn.mapper.PainlessJaccard
+}

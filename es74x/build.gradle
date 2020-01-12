@@ -52,6 +52,8 @@ dependencies {
     implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
+    // implementation "org.codelibs.elasticsearch.module:lang-painless:${esVersion}"
+    compileOnly "org.elasticsearch.plugin:elasticsearch-scripting-painless-spi:${esVersion}"
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }
 
@@ -59,14 +61,7 @@ esplugin {
     name 'elastiknn'
     description 'Ingest processor and queries for exact and approximate nearest neighbors search'
     classname 'org.elasticsearch.elastiknn.ElastiKnnPlugin'
+    extendedPlugins = ['lang-painless']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
-}
-
-test {
-    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
-}
-
-integTestRunner {
-    jvmArgs '-Dtests.security.manager=false', '-Des.foreground=true'
 }

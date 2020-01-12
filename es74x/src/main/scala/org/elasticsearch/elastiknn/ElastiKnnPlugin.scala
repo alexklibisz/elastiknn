@@ -4,51 +4,22 @@ import java.util
 import java.util.Collections.singletonMap
 import java.util.function.Supplier
 
-import org.elasticsearch.elastiknn
-import org.elasticsearch.elastiknn.mapper.ElastiKnnVectorFieldMapper
-import org.elasticsearch.elastiknn.processor.IngestProcessor
-import org.elasticsearch.elastiknn.query.{KnnExactQueryBuilder, KnnLshQueryBuilder, KnnQueryBuilder, RadiusQueryBuilder}
-import org.elasticsearch.client.Client
-import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
 import org.elasticsearch.cluster.node.DiscoveryNodes
-import org.elasticsearch.cluster.service.ClusterService
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry
 import org.elasticsearch.common.settings.{ClusterSettings, IndexScopedSettings, Settings, SettingsFilter}
-import org.elasticsearch.common.xcontent.NamedXContentRegistry
 import org.elasticsearch.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import org.elasticsearch.elastiknn.processor.IngestProcessor
 import org.elasticsearch.elastiknn.query.{KnnExactQueryBuilder, KnnLshQueryBuilder, KnnQueryBuilder, RadiusQueryBuilder}
-import org.elasticsearch.env.{Environment, NodeEnvironment}
 import org.elasticsearch.index.mapper.Mapper
 import org.elasticsearch.ingest.Processor
 import org.elasticsearch.plugins.SearchPlugin.QuerySpec
-import org.elasticsearch.plugins.{ActionPlugin, IngestPlugin, MapperPlugin, Plugin, SearchPlugin}
+import org.elasticsearch.plugins._
 import org.elasticsearch.rest.{RestController, RestHandler}
-import org.elasticsearch.script.ScriptService
-import org.elasticsearch.threadpool.ThreadPool
-import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin with MapperPlugin {
 
-  /** This gets called at some point in the startup loop and might be a good place to do some initialization. */
-  override def createComponents(client: Client,
-                                clusterService: ClusterService,
-                                threadPool: ThreadPool,
-                                resourceWatcherService: ResourceWatcherService,
-                                scriptService: ScriptService,
-                                xContentRegistry: NamedXContentRegistry,
-                                environment: Environment,
-                                nodeEnvironment: NodeEnvironment,
-                                namedWriteableRegistry: NamedWriteableRegistry): util.Collection[Object] = {
-    util.Collections.emptyList[Object]()
-  }
-
-  override def getProcessors(parameters: Processor.Parameters): util.Map[String, Processor.Factory] = {
-    val threadPool = new ThreadPool(parameters.env.settings())
-    val client = new NodeClient(parameters.env.settings(), threadPool)
-    singletonMap(IngestProcessor.TYPE, new IngestProcessor.Factory(client))
-  }
+  override def getProcessors(parameters: Processor.Parameters): util.Map[String, Processor.Factory] =
+    singletonMap(IngestProcessor.TYPE, new IngestProcessor.Factory)
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
