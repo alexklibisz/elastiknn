@@ -25,7 +25,7 @@ object ExactModel {
 }
 
 class JaccardLshModel(opts: JaccardLshOptions) {
-  import VectorModel._
+  import VectorHashingModel._
   import opts._
 
   private val rng: Random = new Random(seed)
@@ -74,7 +74,7 @@ class JaccardLshModel(opts: JaccardLshOptions) {
   }
 }
 
-object VectorModel {
+object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 

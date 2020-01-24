@@ -27,18 +27,6 @@ trait Implicits extends ProtobufImplicits {
 
     def compatibleWith(other: SparseBoolVector): Boolean = sbv.totalIndices == other.totalIndices
 
-    def intersection(other: SparseBoolVector): SparseBoolVector =
-      SparseBoolVector(sbv.trueIndices.intersect(other.trueIndices), sbv.totalIndices.min(other.totalIndices))
-
-    def jaccardSim(other: SparseBoolVector): Double = {
-      val isec: Int = sbv.intersection(other).lengthTrue
-      val asum: Int = sbv.lengthTrue
-      val bsum: Int = other.lengthTrue
-      isec.toDouble / (asum + bsum - isec)
-    }
-
-    def jaccardDist(other: SparseBoolVector): Double = 1 - jaccardSim(other)
-
     def denseArray(): Array[Boolean] = {
       val arr = Array.fill(sbv.totalIndices)(false)
       sbv.trueIndices.foreach(i => arr.update(i, true))
@@ -46,6 +34,9 @@ trait Implicits extends ProtobufImplicits {
     }
 
     def values(i: Int): Boolean = sbv.trueIndices.contains(i)
+
+    /** Return a copy of the vector with its indices sorted. */
+    def sorted(): SparseBoolVector = sbv.copy(trueIndices = sbv.trueIndices.sorted)
 
   }
 
@@ -104,6 +95,31 @@ trait Implicits extends ProtobufImplicits {
     def bottomK(k: Int)(implicit ev: Ordering[T]): Traversable[T] = topK(k)(ev.reverse)
 
     def bottomK[U](k: Int, by: T => U)(implicit ord: Ordering[U]): Traversable[T] = topK(k, by)(ord.reverse)
+
+  }
+
+  implicit class IndexedSeqImplicits[T](arr: IndexedSeq[T]) {
+
+    /** O(n) intersection assuming both arrays are sorted in ascending order. */
+    def sortedIntersection(other: IndexedSeq[T])(implicit ord: Ordering[T]): IndexedSeq[T] = {
+      val (a, b) = (arr, other)
+      val c = new Array[T](a.length.min(b.length))
+      var ia = 0
+      var ib = 0
+      var ic = 0
+      while (ia < a.length && ib < b.length) {
+        val cmp = ord.compare(a(ia), b(ia))
+        if (cmp < 0) ia += 1
+        else if (cmp > 0) ib += 1
+        else {
+          c.update(ic, a(ia))
+          ia += 1
+          ib += 1
+          ic += 1
+        }
+      }
+      c.take(ic)
+    }
 
   }
 

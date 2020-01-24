@@ -6,7 +6,7 @@ import io.circe.Json
 import io.circe.syntax._
 import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
 import org.elasticsearch.elastiknn.{ProcessorOptions, _}
-import org.elasticsearch.elastiknn.models.VectorModel
+import org.elasticsearch.elastiknn.models.VectorHashingModel
 import org.elasticsearch.elastiknn.utils.CirceUtils._
 import org.elasticsearch.elastiknn.utils.Implicits._
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
@@ -38,7 +38,7 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
   private def process(doc: IngestDocument, fieldPrefix: String = ""): Try[IngestDocument] =
     for {
       raw <- parseVector(doc, s"$fieldPrefix$fieldRaw")
-      proc <- VectorModel.toJson(popts, raw)
+      proc <- VectorHashingModel.toJson(popts, raw)
     } yield {
       modelOptions.fieldProc.foreach(fieldProc => setField(doc, s"$fieldPrefix$fieldProc", proc))
       doc

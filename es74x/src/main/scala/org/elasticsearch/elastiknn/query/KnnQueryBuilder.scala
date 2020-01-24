@@ -5,7 +5,7 @@ import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import org.elasticsearch.elastiknn._
-import org.elasticsearch.elastiknn.models.VectorModel
+import org.elasticsearch.elastiknn.models.VectorHashingModel
 import org.elasticsearch.elastiknn.processor.StoredScripts
 import org.elasticsearch.elastiknn.utils.CirceUtils._
 import org.elasticsearch.elastiknn.utils.Implicits._
@@ -27,7 +27,10 @@ import org.elasticsearch.elastiknn.KNearestNeighborsQuery.{
   QueryOptions,
   QueryVector
 }
+import org.elasticsearch.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import org.elasticsearch.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity}
+import org.elasticsearch.index.fielddata.IndexNumericFieldData
+import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
 import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import scalapb_circe.JsonFormat
@@ -68,7 +71,8 @@ object KnnQueryBuilder {
 
 }
 
-final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+final class KnnQueryBuilder(val query: KNearestNeighborsQuery, vectorWasIndexed: Boolean = false)
+    extends AbstractQueryBuilder[KnnQueryBuilder] {
 
   import KnnQueryBuilder._
 
@@ -81,12 +85,22 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case QueryVector.Indexed(indexedQueryVector) => rewriteIndexed(context, indexedQueryVector)
       case QueryVector.Given(elastiKnnVector) =>
         query.queryOptions match {
-          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, elastiKnnVector)
-          case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, elastiKnnVector)
+          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, ensureSorted(elastiKnnVector))
+          case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, ensureSorted(elastiKnnVector))
           case QueryOptions.Empty                    => throw illArgEx("Query options cannot be empty")
         }
       case QueryVector.Empty => throw illArgEx("Query vector cannot be empty")
     }
+
+  /**
+    * Ensures that a SparseBoolVector which wasn't indexed (i.e. was given by the user) has sorted indices.
+    * This is an important optimization for computing similarities in O(d) time.
+    * Otherwise assume that an indexed vector was already sorted when it was stored.
+    */
+  private def ensureSorted(ekv: ElastiKnnVector): ElastiKnnVector = (vectorWasIndexed, ekv.vector) match {
+    case (false, ElastiKnnVector.Vector.SparseBoolVector(sbv)) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
+    case _                                                     => ekv
+  }
 
   /**
     * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster cache them.
@@ -153,7 +167,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
             }
             val json = map.asJson(mapEncoder)
             val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
-            supplier.set(new KnnQueryBuilder(query.withGiven(ekv)))
+            supplier.set(new KnnQueryBuilder(query.withGiven(ekv), vectorWasIndexed = true))
             l.asInstanceOf[ActionListener[Any]].onResponse(null)
           }
           def onFailure(e: Exception): Unit = l.onFailure(e)
@@ -204,15 +218,10 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val e
   import exactQueryOptions._
 
   override def doToQuery(context: QueryShardContext): Query = {
-    val queryTry: Try[FunctionScoreQuery] = for {
-      script <- StoredScripts.exact(similarity, fieldRaw, elastiKnnVector)
-    } yield {
-      val exists = new ExistsQueryBuilder(fieldRaw).toQuery(context)
-//      val function = new ScriptScoreFunctionBuilder(script).toFunction(context)
-//      new ScriptScoreQuery(exists, function.asInstanceOf[ScriptScoreFunction], 0.0f)
-      new FunctionScoreQuery(exists, new KnnExactScoreFunction())
-    }
-    queryTry.get
+    val exists = new ExistsQueryBuilder(fieldRaw).toQuery(context)
+    val fieldType: MappedFieldType = context.getMapperService.fullName(fieldRaw)
+    val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
+    new FunctionScoreQuery(exists, new KnnExactScoreFunction(similarity, elastiKnnVector, fieldData))
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
@@ -259,7 +268,7 @@ object KnnLshQueryBuilder {
     * @return
     */
   def apply(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): KnnLshQueryBuilder = {
-    val hashed = VectorModel
+    val hashed = VectorHashingModel
       .hash(processorOptions, elastiKnnVector)
       .recover {
         case t: Throwable => throw illArgEx(s"$elastiKnnVector could not be hashed", Some(t))

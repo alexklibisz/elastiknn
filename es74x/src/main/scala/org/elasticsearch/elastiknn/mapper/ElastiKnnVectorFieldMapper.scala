@@ -23,7 +23,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService
 import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
 
-import scala.util.Random
+import scala.util.{Random, Success, Try, Failure}
 
 /**
   * Custom "elastiknn_vector" type which stores ElastiKnnVectors without modifying their order.
@@ -102,6 +102,11 @@ object ElastiKnnVectorFieldMapper {
 
     private lazy val bdv: BinaryDocValues = DocValues.getBinary(reader, field)
 
+    final def getElastiKnnVector(docId: Int): Try[ElastiKnnVector] =
+      if (bdv.advanceExact(docId))
+        Success(ElastiKnnVector.parseBase64(bdv.binaryValue.utf8ToString))
+      else Failure(new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector for document id: $docId"))
+
     override def getScriptValues: fielddata.ScriptDocValues[_] =
       new ElastiKnnVectorScriptDocValues(bdv)
 
@@ -115,7 +120,7 @@ object ElastiKnnVectorFieldMapper {
 
 }
 
-class ElastiKnnVectorScriptDocValues(in: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
+class ElastiKnnVectorScriptDocValues(bdv: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
   private var stored: Option[ElastiKnnVector.Vector] = None
   private var storedGet: Int => Any = identity[Int]
@@ -135,11 +140,12 @@ class ElastiKnnVectorScriptDocValues(in: BinaryDocValues) extends fielddata.Scri
     case None    => throw new IllegalStateException("Vector hasn't been initialized")
   }
 
+  // TODO: deduplicate this advanceExact and parsing logic with the logic in AtomicFieldData above.
   override def setNextDocId(docId: Int): Unit =
-    if (in.advanceExact(docId)) {
+    if (bdv.advanceExact(docId)) {
       // Spent a while figuring out if there's a way to decode this without converting to a string. Quite confused by
       // whatever is happening in Lucene that modifies the bytes when they're stored.
-      stored = Some(ElastiKnnVector.parseBase64(in.binaryValue.utf8ToString).vector)
+      stored = Some(ElastiKnnVector.parseBase64(bdv.binaryValue.utf8ToString).vector)
       stored match {
         case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
           storedGet = v.values
@@ -170,9 +176,9 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
   override def parse(context: ParseContext): Unit = {
     val json = context.parser.map.asJson(mapEncoder)
     val ekv = JsonFormat.fromJson[ElastiKnnVector](json) match {
-      // Make sure that sparse vector indices are unique. TODO: test this validation.
+      // Make sure that sparse vector indices are sorted. TODO: test this validation.
       case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
-        ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.copy(sbv.trueIndices.distinct)))
+        ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.copy(sbv.trueIndices.sorted)))
       case other => other
     }
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
