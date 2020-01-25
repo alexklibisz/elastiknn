@@ -17,7 +17,18 @@ object ExactSimilarity {
       Success((sim, sim))
     }
 
-  def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] = ???
+  def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
+    if (sbv1.totalIndices != sbv2.totalIndices)
+      Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
+    else {
+      val totalCount = sbv1.totalIndices
+      val sbv1TrueCount = sbv1.trueIndices.length
+      val sbv2TrueCount = sbv2.trueIndices.length
+      val eqTrueCount = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
+      val neqTrueCount = (sbv1TrueCount - eqTrueCount).max(0) + (sbv2TrueCount - eqTrueCount).max(0)
+      val sim = (totalCount - neqTrueCount).toDouble / totalCount
+      Success((sim, sim))
+    }
 
   def l1(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] = ???
 

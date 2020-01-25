@@ -100,38 +100,8 @@ object StoredScripts {
       |""".stripMargin
   )
 
-  val exactHamming: ExactBoolScript =
-    ExactBoolScript(
-      "elastiknn-exact-hamming",
-      """
-        |def a = doc[params.field];
-        |Map bTrueIndices = params.bTrueIndices;
-        |int totalCount = a.get(-1);
-        |int aTrueCount = a.size();
-        |int bTrueCount = bTrueIndices.size();
-        |int eqTrueCount = 0;
-        |for (i in a) if (bTrueIndices.containsKey(i.toString())) eqTrueCount += 1;
-        |double neqTrueCount = Math.max(aTrueCount - eqTrueCount, 0) + Math.max(bTrueCount - eqTrueCount, 0);
-        |return (totalCount - neqTrueCount) / totalCount;
-        |""".stripMargin
-    )
-
-  val exactJaccard: ExactBoolScript =
-    ExactBoolScript(
-      "elastiknn-exact-jaccard",
-      "return elastiKnnJaccard(doc[params.field], params.bTrueIndices);"
-    )
-
-  """
-    |def a = doc[params.field];
-    |Map bTrueIndices = params.bTrueIndices;
-    |double isec = 0;
-    |for (i in a) if (bTrueIndices.containsKey(i.toString())) isec += 1;
-    |return isec / (a.size() + bTrueIndices.size() - isec);
-    |""".stripMargin
-
   val exactScripts: Seq[ExactScript[_]] =
-    Seq(exactL1, exactL2, exactAngular, exactHamming, exactJaccard)
+    Seq(exactL1, exactL2, exactAngular)
 
   def exact(similarity: Similarity, fieldRaw: String, elastiKnnVector: ElastiKnnVector): Try[Script] =
     (similarity, elastiKnnVector.vector) match {
@@ -141,10 +111,6 @@ object StoredScripts {
         Success(StoredScripts.exactL1.script(fieldRaw, dvec))
       case (SIMILARITY_L2, dvec: FloatVector) =>
         Success(StoredScripts.exactL2.script(fieldRaw, dvec))
-      case (SIMILARITY_HAMMING, bvec: SparseBoolVector) =>
-        Success(StoredScripts.exactHamming.script(fieldRaw, bvec))
-      case (SIMILARITY_JACCARD, bvec: SparseBoolVector) =>
-        Success(StoredScripts.exactJaccard.script(fieldRaw, bvec))
       case (_, Empty) => Failure(illArgEx("Must provide vector"))
       case (_, _)     => Failure(SimilarityAndTypeException(similarity, elastiKnnVector))
     }

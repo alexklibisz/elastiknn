@@ -2,7 +2,7 @@ package org.elasticsearch.elastiknn.query
 
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery._
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
-import org.elasticsearch.elastiknn.Similarity.SIMILARITY_JACCARD
+import org.elasticsearch.elastiknn.Similarity.{SIMILARITY_HAMMING, SIMILARITY_JACCARD}
 import org.elasticsearch.elastiknn._
 import org.scalatest._
 
@@ -20,8 +20,10 @@ class ExactQuerySuite
     with Elastic4sMatchers
     with ElasticAsyncClient {
 
+  val working = Set(SIMILARITY_JACCARD, SIMILARITY_HAMMING)
+
   for {
-    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
+    sim <- Similarity.values.filter(working.contains)
     dim <- Seq(10, 128, 512)
   } yield {
 
