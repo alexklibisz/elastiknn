@@ -178,7 +178,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     val ekv = JsonFormat.fromJson[ElastiKnnVector](json) match {
       // Make sure that sparse vector indices are sorted. TODO: test this validation.
       case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
-        ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.copy(sbv.trueIndices.sorted)))
+        ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
       case other => other
     }
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
@@ -192,15 +192,5 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
 
   override def contentType(): String = {
     ElastiKnnVectorFieldMapper.CONTENT_TYPE
-  }
-}
-
-object Test {
-  def main(args: Array[String]): Unit = {
-    implicit val rng = new Random(1)
-    val ekv1 = SparseBoolVector.random(10)
-    val bs1 = ekv1.toByteString.toStringUtf8
-    val ekv2 = SparseBoolVector.parseFrom(bs1.getBytes)
-    print(ekv1.trueIndices.toVector, ekv2.trueIndices.toVector)
   }
 }

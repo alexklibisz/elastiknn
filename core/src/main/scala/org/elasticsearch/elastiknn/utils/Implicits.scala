@@ -9,6 +9,7 @@ import org.elasticsearch.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVecto
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
+import scala.reflect.ClassTag
 import scala.util.{Random, Try}
 
 trait Implicits extends ProtobufImplicits {
@@ -98,27 +99,23 @@ trait Implicits extends ProtobufImplicits {
 
   }
 
-  implicit class IndexedSeqImplicits[T](arr: IndexedSeq[T]) {
+  implicit class IndexedSeqImplicits[T: ClassTag](arr: IndexedSeq[T]) {
 
-    /** O(n) intersection assuming both arrays are sorted in ascending order. */
-    def sortedIntersection(other: IndexedSeq[T])(implicit ord: Ordering[T]): IndexedSeq[T] = {
+    /** O(d) intersection assuming both Seq's are sorted in ascending order. */
+    def sortedIntersectionCount(other: IndexedSeq[T])(implicit ord: Ordering[T]): Int = {
       val (a, b) = (arr, other)
-      val c = new Array[T](a.length.min(b.length))
-      var ia = 0
-      var ib = 0
-      var ic = 0
+      var (ia, ib, n) = (0, 0, 0)
       while (ia < a.length && ib < b.length) {
-        val cmp = ord.compare(a(ia), b(ia))
+        val cmp = ord.compare(a(ia), b(ib))
         if (cmp < 0) ia += 1
         else if (cmp > 0) ib += 1
         else {
-          c.update(ic, a(ia))
           ia += 1
           ib += 1
-          ic += 1
+          n += 1
         }
       }
-      c.take(ic)
+      n
     }
 
   }

@@ -153,6 +153,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, vectorWasIndexed:
 
   /** Fetches the indexed vector from the cluster and rewrites the query as a given vector query. */
   private def rewriteIndexed(context: QueryRewriteContext, qv: IndexedQueryVector): QueryBuilder = {
+    // TODO: is there a way to read the binary version of the document? Similar to what
     val supplier = new SetOnce[KnnQueryBuilder]()
     context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
       c.execute(

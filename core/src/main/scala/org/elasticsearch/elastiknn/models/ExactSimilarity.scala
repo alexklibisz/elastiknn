@@ -12,7 +12,7 @@ object ExactSimilarity {
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
     else {
-      val isec: Int = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersection(sbv2.trueIndices).length
+      val isec: Int = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
       val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
       Success((sim, sim))
     }

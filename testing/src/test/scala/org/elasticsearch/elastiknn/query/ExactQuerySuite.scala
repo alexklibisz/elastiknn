@@ -22,7 +22,7 @@ class ExactQuerySuite
 
   for {
     sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
-    dim <- Seq(10, 128, 512).take(1)
+    dim <- Seq(10, 128, 512)
   } yield {
 
     test(s"parsing test data for $dim-dimensional $sim") {
@@ -43,6 +43,7 @@ class ExactQuerySuite
     }
 
     val support = new Support("vec_raw", sim, dim, ModelOptions.Exact(ExactModelOptions(sim)))
+
     test(s"exact $dim-dimensional ${sim.name} search given a vector") {
       support.testGiven(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
@@ -55,6 +56,7 @@ class ExactQuerySuite
         }
       }
     }
+
     test(s"exact $dim-dimensional ${sim.name} search with an indexed vector") {
       support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
