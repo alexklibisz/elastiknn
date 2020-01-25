@@ -35,25 +35,12 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
 
   override def getType: String = IngestProcessor.TYPE
 
-  /**
-    * Ensures that a SparseBoolVector has sorted indices.
-    * This is an important optimization for computing similarities in O(d) time.
-    *
-    * TODO: this is an inadequate solution because the JSON can be modified independent of the IngestProcessor.
-    * Need to figure out how to make the KnnQueryBuilder read the stored version of the vector, not the JSON.
-    */
-  private def processRaw(ekv: ElastiKnnVector): ElastiKnnVector = ekv.vector match {
-    case ElastiKnnVector.Vector.SparseBoolVector(sbv) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
-    case _                                            => ekv
-  }
-
   private def process(doc: IngestDocument, fieldPrefix: String = ""): Try[IngestDocument] =
     for {
       raw <- parseVector(doc, s"$fieldPrefix$fieldRaw")
       proc <- VectorHashingModel.toJson(popts, raw)
     } yield {
       modelOptions.fieldProc.foreach(fieldProc => setField(doc, s"$fieldPrefix$fieldProc", proc))
-      setField(doc, s"$fieldPrefix$fieldRaw", JsonFormat.toJson(processRaw(raw)))
       doc
     }
 
