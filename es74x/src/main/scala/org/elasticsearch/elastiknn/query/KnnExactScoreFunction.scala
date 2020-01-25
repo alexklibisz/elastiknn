@@ -24,8 +24,8 @@ case class KnnExactScoreFunction(similarity: Similarity, queryVector: ElastiKnnV
     new LeafScoreFunction {
       override def score(docId: Int, subQueryScore: Float): Double = {
         val storedVector = atomicFieldData.getElastiKnnVector(docId).get
-        val (_, score) = ExactSimilarity(similarity, queryVector, storedVector).get
-        score
+        val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
+        sim
       }
 
       override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = ???

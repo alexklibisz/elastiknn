@@ -2,7 +2,7 @@ package org.elasticsearch.elastiknn.query
 
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery._
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
-import org.elasticsearch.elastiknn.Similarity.{SIMILARITY_HAMMING, SIMILARITY_JACCARD}
+import org.elasticsearch.elastiknn.Similarity.{SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
 import org.elasticsearch.elastiknn._
 import org.scalatest._
 
@@ -20,7 +20,7 @@ class ExactQuerySuite
     with Elastic4sMatchers
     with ElasticAsyncClient {
 
-  val working = Set(SIMILARITY_JACCARD, SIMILARITY_HAMMING)
+  val working = Set(SIMILARITY_JACCARD, SIMILARITY_HAMMING, SIMILARITY_L1, SIMILARITY_L2)
 
   for {
     sim <- Similarity.values.filter(working.contains)
@@ -53,7 +53,7 @@ class ExactQuerySuite
             res.hits.hits should have length query.similarities.length
             // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
             forAll(query.similarities.zip(res.hits.hits.map(_.score)).silent) {
-              case (sim, score) => score shouldBe sim +- 1e-6f
+              case (sim, score) => score shouldBe sim +- 1e-5f
             }
         }
       }
@@ -73,7 +73,7 @@ class ExactQuerySuite
             // The remaining hits have the right scores. Only consider the corpus vectors.
             val scores = hits.filter(_.id.startsWith(support.corpusVectorIdPrefix)).map(_.score).take(query.similarities.length)
             forAll(query.similarities.zip(scores).silent) {
-              case (sim, score) => score shouldBe sim +- 1e-6f
+              case (sim, score) => score shouldBe sim +- 1e-5f
             }
         }
       }

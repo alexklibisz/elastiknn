@@ -3,6 +3,7 @@ package org.elasticsearch.elastiknn.models
 import org.elasticsearch.elastiknn.Similarity._
 import org.elasticsearch.elastiknn._
 import org.elasticsearch.elastiknn.utils.Implicits._
+import org.elasticsearch.elastiknn.utils.fastfor
 
 import scala.util.{Failure, Success, Try}
 
@@ -14,7 +15,7 @@ object ExactSimilarity {
     else {
       val isec: Int = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
       val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
-      Success((sim, sim))
+      Success((sim, 1 - sim))
     }
 
   def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
@@ -27,12 +28,31 @@ object ExactSimilarity {
       val eqTrueCount = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
       val neqTrueCount = (sbv1TrueCount - eqTrueCount).max(0) + (sbv2TrueCount - eqTrueCount).max(0)
       val sim = (totalCount - neqTrueCount).toDouble / totalCount
-      Success((sim, sim))
+      Success((sim, 1 - sim))
     }
 
-  def l1(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] = ???
+  def l1(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+    if (fv1.values.length != fv2.values.length)
+      Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
+    else {
+      var sumAbsDiff: Double = 0.0
+      fastfor(0, _ < fv1.values.length) { i =>
+        sumAbsDiff += (fv1.values(i) - fv2.values(i)).abs
+      }
+      Success(1.0 / sumAbsDiff.max(1e-6), sumAbsDiff)
+    }
 
-  def l2(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] = ???
+  def l2(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+    if (fv1.values.length != fv2.values.length)
+      Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
+    else {
+      var sumSqrDiff: Double = 0.0
+      fastfor(0, _ < fv1.values.length) { i =>
+        sumSqrDiff += Math.pow(fv1.values(i) - fv2.values(i), 2)
+      }
+      val dist = Math.sqrt(sumSqrDiff)
+      Success(1.0 / dist.max(1e-6), sumSqrDiff)
+    }
 
   def angular(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] = ???
 

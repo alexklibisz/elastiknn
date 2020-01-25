@@ -54,34 +54,6 @@ object StoredScripts {
       )
   }
 
-  val exactL1: ExactDoubleScript = ExactDoubleScript(
-    "elastiknn-exact-l1",
-    """
-      |def a = doc[params.field];
-      |def b = params.other;
-      |double sumabsdiff = 0.0;
-      |for (int i = 0; i < b.length; i++) {
-      |  sumabsdiff += Math.abs(a[i] - b[i]);
-      |}
-      |return 1.0 / (sumabsdiff + 1e-6);
-      |""".stripMargin
-  )
-
-  val exactL2: ExactDoubleScript =
-    ExactDoubleScript(
-      "elastiknn-exact-l2",
-      """
-        |def a = doc[params.field];
-        |def b = params.other;
-        |double sumsqdiff = 0.0;
-        |for (int i = 0; i < b.length; i++) {
-        |  sumsqdiff += Math.pow(a[i] - b[i], 2);
-        |}
-        |double dist = Math.sqrt(sumsqdiff);
-        |return 1.0 / (dist + 1e-6);
-        |""".stripMargin
-    )
-
   val exactAngular: ExactDoubleScript = ExactDoubleScript(
     "elastiknn-exact-angular",
     """
@@ -101,16 +73,12 @@ object StoredScripts {
   )
 
   val exactScripts: Seq[ExactScript[_]] =
-    Seq(exactL1, exactL2, exactAngular)
+    Seq(exactAngular)
 
   def exact(similarity: Similarity, fieldRaw: String, elastiKnnVector: ElastiKnnVector): Try[Script] =
     (similarity, elastiKnnVector.vector) match {
       case (SIMILARITY_ANGULAR, dvec: FloatVector) =>
         Success(StoredScripts.exactAngular.script(fieldRaw, dvec))
-      case (SIMILARITY_L1, dvec: FloatVector) =>
-        Success(StoredScripts.exactL1.script(fieldRaw, dvec))
-      case (SIMILARITY_L2, dvec: FloatVector) =>
-        Success(StoredScripts.exactL2.script(fieldRaw, dvec))
       case (_, Empty) => Failure(illArgEx("Must provide vector"))
       case (_, _)     => Failure(SimilarityAndTypeException(similarity, elastiKnnVector))
     }
