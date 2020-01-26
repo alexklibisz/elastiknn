@@ -54,7 +54,21 @@ object ExactSimilarity {
       Success(1.0 / dist.max(1e-6), sumSqrDiff)
     }
 
-  def angular(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] = ???
+  def angular(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+    if (fv1.values.length != fv2.values.length)
+      Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
+    else {
+      var dotProd: Double = 0
+      var fv1SqrSum: Double = 0
+      var fv2SqrSum: Double = 0
+      fastfor(0, _ < fv1.values.length) { i =>
+        dotProd += fv1.values(i) * fv2.values(i)
+        fv1SqrSum += math.pow(fv1.values(i), 2)
+        fv2SqrSum += math.pow(fv2.values(i), 2)
+      }
+      val sim = dotProd / (math.sqrt(fv1SqrSum) * math.sqrt(fv2SqrSum))
+      Success((1 + sim, 1 - sim))
+    }
 
   def apply(similarity: Similarity, ekv1: ElastiKnnVector, ekv2: ElastiKnnVector): Try[(Double, Double)] = {
     import ElastiKnnVector.Vector.{SparseBoolVector, FloatVector}
