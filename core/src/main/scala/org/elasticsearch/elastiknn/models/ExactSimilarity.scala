@@ -2,7 +2,7 @@ package org.elasticsearch.elastiknn.models
 
 import org.elasticsearch.elastiknn.Similarity._
 import org.elasticsearch.elastiknn._
-import org.elasticsearch.elastiknn.utils.Implicits._
+import org.elasticsearch.elastiknn.utils.Implicits.TraversableImplicits
 import org.elasticsearch.elastiknn.utils.fastfor
 
 import scala.util.{Failure, Success, Try}
@@ -12,24 +12,24 @@ object ExactSimilarity {
   def jaccard(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
-    else {
-      val isec: Int = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
-      val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
-      Success((sim, 1 - sim))
-    }
+    else
+      TraversableImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices).map { isec =>
+        val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
+        (sim, 1 - sim)
+      }
 
   def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
-    else {
-      val totalCount = sbv1.totalIndices
-      val sbv1TrueCount = sbv1.trueIndices.length
-      val sbv2TrueCount = sbv2.trueIndices.length
-      val eqTrueCount = IndexedSeqImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices)
-      val neqTrueCount = (sbv1TrueCount - eqTrueCount).max(0) + (sbv2TrueCount - eqTrueCount).max(0)
-      val sim = (totalCount - neqTrueCount).toDouble / totalCount
-      Success((sim, 1 - sim))
-    }
+    else
+      TraversableImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices).map { eqTrueCount =>
+        val totalCount = sbv1.totalIndices
+        val sbv1TrueCount = sbv1.trueIndices.length
+        val sbv2TrueCount = sbv2.trueIndices.length
+        val neqTrueCount = (sbv1TrueCount - eqTrueCount).max(0) + (sbv2TrueCount - eqTrueCount).max(0)
+        val sim = (totalCount - neqTrueCount).toDouble / totalCount
+        (sim, 1 - sim)
+      }
 
   def l1(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
     if (fv1.values.length != fv2.values.length)
