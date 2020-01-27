@@ -13,18 +13,16 @@ import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest, GetPipelineResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.common.lucene.search.function.{FunctionScoreQuery, ScriptScoreFunction, ScriptScoreQuery}
+import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, ScriptScoreQuery}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery._
 import org.elasticsearch.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import org.elasticsearch.elastiknn.models.VectorHashingModel
-import org.elasticsearch.elastiknn.processor.StoredScripts
 import org.elasticsearch.elastiknn.utils.CirceUtils._
 import org.elasticsearch.elastiknn.utils.Implicits._
 import org.elasticsearch.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, _}
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
-import org.elasticsearch.index.query.functionscore.ScriptScoreFunctionBuilder
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
@@ -76,7 +74,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case QueryVector.Indexed(indexedQueryVector) => rewriteIndexed(context, indexedQueryVector)
       case QueryVector.Given(elastiKnnVector) =>
         query.queryOptions match {
-          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, elastiKnnVector)
+          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, ensureSorted(elastiKnnVector))
           case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, ensureSorted(elastiKnnVector))
           case QueryOptions.Empty                    => throw illArgEx("Query options cannot be empty")
         }
@@ -96,6 +94,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
   /**
     * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster cache them.
     * Then use the [[ProcessorOptions]] to instantiate a new [[KnnLshQueryBuilder]].
+    * TODO: this should probably get moved into an apply method in KnnLshQueryBuilder companion object.
     */
   private def rewriteLsh(context: QueryRewriteContext, lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector): QueryBuilder = {
     val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
@@ -204,15 +203,15 @@ object KnnExactQueryBuilder {
 
 }
 
-final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions,
-                                 val queryVector: ElastiKnnVector,
-                                 val subQueryBuilder: Option[QueryBuilder] = None)
+final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val queryVector: ElastiKnnVector)
     extends AbstractQueryBuilder[KnnExactQueryBuilder] {
 
   import exactQueryOptions._
 
+  private lazy val defaultSubQuery = new ExistsQueryBuilder(fieldRaw)
+
   override def doToQuery(context: QueryShardContext): Query = {
-    val subQuery: Query = subQueryBuilder.getOrElse(new ExistsQueryBuilder(fieldRaw)).toQuery(context)
+    val subQuery: Query = defaultSubQuery.toQuery(context)
     val fieldType: MappedFieldType = context.getMapperService.fullName(fieldRaw)
     val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
     new FunctionScoreQuery(subQuery, KnnExactScoreFunction(similarity, queryVector, fieldData))
@@ -312,8 +311,13 @@ final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions,
         }
       similarity <- this.similarity
     } yield {
-      val exactOpts = ExactQueryOptions(processorOptions.fieldRaw, similarity)
-      new KnnExactQueryBuilder(exactOpts, queryVector, Some(boolQuery)).toQuery(context)
+      val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
+      val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
+      new FunctionScoreQuery(boolQuery.toQuery(context),
+                             KnnExactScoreFunction(similarity, queryVector, fieldData),
+                             CombineFunction.REPLACE,
+                             0.0f,
+                             Float.MaxValue)
     }
     queryTry.get
   }

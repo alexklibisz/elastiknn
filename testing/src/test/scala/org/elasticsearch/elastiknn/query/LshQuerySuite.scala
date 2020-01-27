@@ -4,7 +4,6 @@ import org.elasticsearch.elastiknn.KNearestNeighborsQuery.{LshQueryOptions, Quer
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
 import org.elasticsearch.elastiknn.Similarity.SIMILARITY_JACCARD
 import org.elasticsearch.elastiknn._
-import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
 
 class LshQuerySuite
@@ -22,7 +21,7 @@ class LshQuerySuite
       ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 1, 10, 3)),
       ModelOptions.Jaccard(JaccardLshOptions(0, "vec_proc", 2, 20, 3))
     )
-  ).withDefault((other: Similarity) => Seq.empty[ModelOptions])
+  ).withDefault((_: Similarity) => Seq.empty[ModelOptions])
 
   for {
     sim <- Similarity.values
@@ -33,29 +32,27 @@ class LshQuerySuite
     val support = new Support("vec_raw", sim, dim, opt)
 
     test(s"approximate search given vector: ($dim, $sim, $opt)") {
-      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
-        case queriesAndResponses =>
-          forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
-            case (query, res) =>
-              res.hits.hits should not be empty
-              val correctCorpusIds = query.indices.map(support.corpusId).toSet
-              val returnedCorpusIds = res.hits.hits.map(_.id).toSet
-              correctCorpusIds.intersect(returnedCorpusIds) should not be empty
-          }
+      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) { queriesAndResponses =>
+        forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
+          case (query, res) =>
+            res.hits.hits should not be empty
+            val correctCorpusIds = query.indices.map(support.corpusId).toSet
+            val returnedCorpusIds = res.hits.hits.map(_.id).toSet
+            correctCorpusIds.intersect(returnedCorpusIds) should not be empty
+        }
       }
     }
 
     test(s"approximate search with indexed vector: ($dim, $sim, $opt)") {
-      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) {
-        case queriesAndResponses =>
-          forAll(queriesAndResponses.silent) {
-            case (query, id, res) =>
-              res.hits.hits should not be empty
-              // Top hit should be the query vector itself.
-              val self = res.hits.hits.find(_.id == id)
-              self shouldBe defined
-              self.map(_.score) shouldBe Some(res.hits.hits.map(_.score).max)
-          }
+      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) { queriesAndResponses =>
+        forAll(queriesAndResponses.silent) {
+          case (_, id, res) =>
+            res.hits.hits should not be empty
+            // Top hit should be the query vector itself.
+            val self = res.hits.hits.find(_.id == id)
+            self shouldBe defined
+            self.map(_.score) shouldBe Some(res.hits.hits.map(_.score).max)
+        }
       }
     }
 
