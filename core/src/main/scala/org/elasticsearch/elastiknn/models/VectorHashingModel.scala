@@ -48,7 +48,7 @@ class JaccardLshModel(opts: JaccardLshOptions) {
     h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
   } yield (s"$ti,$bi", h.toString)).toMap
 
-  private def minHash(hashFunc: Int => Long, indices: Array[Int]): Long = {
+  private def minHash(hashFunc: Int => Long, indices: IndexedSeq[Int]): Long = {
     var min = Long.MaxValue
     fastfor(0, _ < indices.length) { i =>
       val h = hashFunc(indices(i))

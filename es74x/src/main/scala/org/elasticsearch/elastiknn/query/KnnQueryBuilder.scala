@@ -37,7 +37,7 @@ object KnnQueryBuilder {
     /** This is the first method that gets hit when you run this query. */
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       // TODO: why does parser.map() work here, but parser.text() throws an exception?
-      val json = parser.map.asJson(mapEncoder)
+      val json = parser.map.asJson(javaMapEncoder)
       val query = JsonFormat.fromJson[KNearestNeighborsQuery](json)
       new KnnQueryBuilder(query)
     }
@@ -100,7 +100,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
               case (m, k) =>
                 m.get(k).asInstanceOf[util.Map[String, AnyRef]]
             }
-            val json = map.asJson(mapEncoder)
+            val json = map.asJson(javaMapEncoder)
             val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
             supplier.set(new KnnQueryBuilder(query.withGiven(ekv)))
             l.asInstanceOf[ActionListener[Any]].onResponse(null)
@@ -225,7 +225,7 @@ object KnnLshQueryBuilder {
             .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
             .get(ELASTIKNN_NAME)
             .asInstanceOf[util.Map[String, AnyRef]]
-          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(mapEncoder))
+          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(javaMapEncoder))
         }.recoverWith {
           case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${lshQueryOptions.pipelineId}", Some(t)))
         }

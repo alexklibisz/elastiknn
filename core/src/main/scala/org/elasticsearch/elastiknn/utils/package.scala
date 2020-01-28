@@ -17,7 +17,7 @@ package object utils {
   private def unsortedException(little: Int, big: Int): Unit =
     throw new IllegalArgumentException(s"Called on unsorted array: $little came after $big")
 
-  private[elastiknn] def sortedIntersectionCount(xs: Array[Int], ys: Array[Int]): Try[Int] = Try {
+  private[elastiknn] def sortedIntersectionCount(xs: IndexedSeq[Int], ys: IndexedSeq[Int]): Try[Int] = Try {
     var (n, xi, yi, xmax, ymax) = (0, 0, 0, Int.MinValue, Int.MinValue)
     while (xi < xs.length && yi < ys.length) {
       val (x, y) = (xs(xi), ys(yi))

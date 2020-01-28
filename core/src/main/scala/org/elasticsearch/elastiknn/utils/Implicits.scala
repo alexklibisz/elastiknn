@@ -4,13 +4,12 @@ import com.google.common.collect.MinMaxPriorityQueue
 import io.circe.syntax._
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions
 import org.elasticsearch.elastiknn.Similarity.SIMILARITY_JACCARD
-import org.elasticsearch.elastiknn.utils.CirceUtils.mapEncoder
-import org.elasticsearch.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVector}
+import org.elasticsearch.elastiknn.utils.CirceUtils.javaMapEncoder
+import org.elasticsearch.elastiknn.{ElastiKnnVector, FloatVector, Similarity, SparseBoolVector}
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
-import scala.annotation.tailrec
-import scala.util.{Failure, Random, Success, Try}
+import scala.util.{Random, Try}
 
 trait Implicits extends ProtobufImplicits {
 
@@ -52,8 +51,17 @@ trait Implicits extends ProtobufImplicits {
       (0 until n).map(_ => random(totalIndices, bias)).toVector
   }
 
+  implicit class FloatVectorCompanionImplicits(fvc: GeneratedMessageCompanion[FloatVector]) {
+    def random(length: Int, scale: Double = 1.0)(implicit rng: Random): FloatVector =
+      FloatVector((0 until length).map(_ => rng.nextDouble() * scale).toArray)
+    def randoms(length: Int, n: Int, scale: Double = 1.0)(implicit rng: Random): Vector[FloatVector] =
+      (0 until n).map(_ => random(length, scale)).toVector
+  }
+
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
-    def from(m: java.util.Map[String, AnyRef]): Try[ElastiKnnVector] = Try(JsonFormat.fromJson[ElastiKnnVector](m.asJson(mapEncoder)))
+    def apply(fv: FloatVector): ElastiKnnVector = ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))
+    def apply(sbv: SparseBoolVector): ElastiKnnVector = ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))
+    def from(m: java.util.Map[String, AnyRef]): Try[ElastiKnnVector] = Try(JsonFormat.fromJson[ElastiKnnVector](m.asJson(javaMapEncoder)))
   }
 
   implicit class ModelOptionsImplicits(mopts: ModelOptions) {
@@ -101,4 +109,4 @@ trait Implicits extends ProtobufImplicits {
 
 }
 
-object Implicits extends Implicits
+object Implicits extends Implicits with TryImplicits with ProtobufImplicits

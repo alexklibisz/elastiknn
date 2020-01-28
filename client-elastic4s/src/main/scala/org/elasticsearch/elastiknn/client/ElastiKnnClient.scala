@@ -59,7 +59,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                    vectors: Seq[ElastiKnnVector],
                    ids: Option[Seq[String]] = None,
                    refresh: RefreshPolicy = RefreshPolicy.None): Future[BulkResponse] = {
-    val reqs = vectors.map(v => indexVector(index = index, rawField = rawField, vector = v, pipeline = pipelineId))
+    val reqs = vectors.map(v => indexVector(index = index, rawField = rawField, vector = v, pipeline = Some(pipelineId)))
     val withIds: Seq[IndexRequest] = ids match {
       case Some(idsSeq) if (idsSeq.length == reqs.length) =>
         reqs.zip(idsSeq).map {

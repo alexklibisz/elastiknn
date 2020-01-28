@@ -3,6 +3,7 @@ package org.elasticsearch.elastiknn.client
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
+import com.sksamuel.elastic4s.requests.mappings.BasicField
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query, QueryBuilderFn}
@@ -17,6 +18,8 @@ import scalapb_circe.JsonFormat
   * otherwise you get runtime errors for Jackson decoding.
   */
 object ElastiKnnDsl {
+
+  def elastiKnnVectorField(name: String): BasicField = BasicField(name, "elastiknn_vector")
 
   case class Processor(name: String, configuration: String)
 
@@ -50,10 +53,14 @@ object ElastiKnnDsl {
     }
   }
 
-  def indexVector(index: String, rawField: String, vector: ElastiKnnVector, pipeline: String): IndexRequest = {
+  def indexVector(index: String,
+                  rawField: String,
+                  vector: ElastiKnnVector,
+                  id: Option[String] = None,
+                  pipeline: Option[String] = None): IndexRequest = {
     val xcb = XContentFactory.jsonBuilder
       .rawField(rawField, JsonFormat.toJsonString(vector))
-    indexInto(index).source(xcb.string()).pipeline(pipeline)
+    IndexRequest(index, source = Some(xcb.string()), id = id, pipeline = pipeline)
   }
 
   private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery =
@@ -90,4 +97,5 @@ object ElastiKnnDsl {
         .autofield("params", script.params)
         .endObject()
         .endObject()
+
 }

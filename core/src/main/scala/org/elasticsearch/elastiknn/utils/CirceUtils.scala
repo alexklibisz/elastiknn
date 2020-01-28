@@ -29,8 +29,12 @@ object CirceUtils {
     encode _
   }
 
-  implicit def mapEncoder: Encoder[util.Map[lang.String, Object]] = {
-    case h: util.Map[String, Object] => h.asScala.asJson
+  implicit def javaMapEncoder: Encoder[util.Map[lang.String, Object]] = {
+    case m: util.Map[String, Object] => m.asScala.asJson
+  }
+
+  implicit def scalaMapEncoder: Encoder[Map[String, AnyRef]] = {
+    case m: Map[String, AnyRef] => m.asInstanceOf[Map[String, Object]].asJson
   }
 
 }

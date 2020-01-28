@@ -3,7 +3,7 @@ package org.elasticsearch.elastiknn.mapper
 import java.util
 
 import org.elasticsearch.elastiknn._
-import org.elasticsearch.elastiknn.utils.CirceUtils.mapEncoder
+import org.elasticsearch.elastiknn.utils.CirceUtils.javaMapEncoder
 import org.elasticsearch.elastiknn.utils.Implicits._
 import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
@@ -174,7 +174,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     extends FieldMapper(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo) {
 
   override def parse(context: ParseContext): Unit = {
-    val json = context.parser.map.asJson(mapEncoder)
+    val json = context.parser.map.asJson(javaMapEncoder)
     val ekv = JsonFormat.fromJson[ElastiKnnVector](json) match {
       // Make sure that sparse vector indices are sorted. TODO: test this validation.
       case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
