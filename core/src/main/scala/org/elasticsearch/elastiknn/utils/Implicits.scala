@@ -10,7 +10,6 @@ import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
 import scala.annotation.tailrec
-import scala.reflect.ClassTag
 import scala.util.{Failure, Random, Success, Try}
 
 trait Implicits extends ProtobufImplicits {
@@ -128,27 +127,6 @@ trait Implicits extends ProtobufImplicits {
     }
 
   }
-
-//  implicit class IndexedSeqImplicits[T: ClassTag](arr: IndexedSeq[T]) {
-//
-//    /** O(d) intersection assuming both Seq's are sorted in ascending order. */
-//    def sortedIntersectionCount(other: IndexedSeq[T])(implicit ord: Ordering[T]): Int = {
-//      val (a, b) = (arr, other)
-//      var (ia, ib, n) = (0, 0, 0)
-//      while (ia < a.length && ib < b.length) {
-//        val cmp = ord.compare(a(ia), b(ib))
-//        if (cmp < 0) ia += 1
-//        else if (cmp > 0) ib += 1
-//        else {
-//          ia += 1
-//          ib += 1
-//          n += 1
-//        }
-//      }
-//      n
-//    }
-//
-//  }
 
 }
 

@@ -55,15 +55,9 @@ object KnnQueryBuilder {
     }
   }
 
-  /** Used to store [[ProcessorOptions]] needed for LSH queries. */
-  private val processorOptionsCache: Cache[LshQueryOptions, ProcessorOptions] =
-    CacheBuilder.newBuilder.softValues.build[LshQueryOptions, ProcessorOptions]()
-
 }
 
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
-
-  import KnnQueryBuilder._
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
@@ -74,7 +68,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case QueryVector.Indexed(indexedQueryVector) => rewriteIndexed(context, indexedQueryVector)
       case QueryVector.Given(elastiKnnVector) =>
         query.queryOptions match {
-          case QueryOptions.Lsh(lshQueryOptions)     => rewriteLsh(context, lshQueryOptions, ensureSorted(elastiKnnVector))
+          case QueryOptions.Lsh(lshQueryOptions)     => KnnLshQueryBuilder.rewrite(context, lshQueryOptions, ensureSorted(elastiKnnVector))
           case QueryOptions.Exact(exactQueryOptions) => new KnnExactQueryBuilder(exactQueryOptions, ensureSorted(elastiKnnVector))
           case QueryOptions.Empty                    => throw illArgEx("Query options cannot be empty")
         }
@@ -89,56 +83,6 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
   private def ensureSorted(ekv: ElastiKnnVector): ElastiKnnVector = ekv.vector match {
     case ElastiKnnVector.Vector.SparseBoolVector(sbv) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
     case _                                            => ekv
-  }
-
-  /**
-    * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster cache them.
-    * Then use the [[ProcessorOptions]] to instantiate a new [[KnnLshQueryBuilder]].
-    * TODO: this should probably get moved into an apply method in KnnLshQueryBuilder companion object.
-    */
-  private def rewriteLsh(context: QueryRewriteContext, lshQueryOptions: LshQueryOptions, elastiKnnVector: ElastiKnnVector): QueryBuilder = {
-    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
-    if (cached != null) KnnLshQueryBuilder(cached, elastiKnnVector)
-    else {
-      // Put all the dangerous stuff in one place.
-      def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
-        Try {
-          val processorOptsMap = response
-            .pipelines()
-            .asScala
-            .find(_.getId == lshQueryOptions.pipelineId)
-            .getOrElse(throw illArgEx(s"Couldn't find pipeline with id ${lshQueryOptions.pipelineId}"))
-            .getConfigAsMap
-            .get("processors")
-            .asInstanceOf[util.List[util.Map[String, AnyRef]]]
-            .asScala
-            .find(_.containsKey(ELASTIKNN_NAME))
-            .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
-            .get(ELASTIKNN_NAME)
-            .asInstanceOf[util.Map[String, AnyRef]]
-          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(mapEncoder))
-        }.recoverWith {
-          case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${lshQueryOptions.pipelineId}", Some(t)))
-        }
-
-      val supplier = new SetOnce[KnnLshQueryBuilder]()
-      context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
-        c.execute(
-          GetPipelineAction.INSTANCE,
-          new GetPipelineRequest(lshQueryOptions.pipelineId),
-          new ActionListener[GetPipelineResponse] {
-            override def onResponse(response: GetPipelineResponse): Unit = {
-              val procOpts = parseResponse(response).get
-              supplier.set(KnnLshQueryBuilder(procOpts, elastiKnnVector))
-              processorOptionsCache.put(lshQueryOptions, procOpts)
-              l.asInstanceOf[ActionListener[Any]].onResponse(null)
-            }
-            override def onFailure(e: Exception): Unit = l.onFailure(e)
-          }
-        )
-      })
-      RewriteLater(_ => supplier.get())
-    }
   }
 
   /** Fetches the indexed vector from the cluster and rewrites the query as a given vector query. */
@@ -253,11 +197,62 @@ object KnnLshQueryBuilder {
     }
   }
 
+  /** Used to store [[ProcessorOptions]] needed for LSH queries. */
+  private val processorOptionsCache: Cache[LshQueryOptions, ProcessorOptions] =
+    CacheBuilder.newBuilder.softValues.build[LshQueryOptions, ProcessorOptions]()
+
+  /**
+    * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster and cache them.
+    * Then use the [[ProcessorOptions]] to instantiate a new [[KnnLshQueryBuilder]].
+    */
+  def rewrite(context: QueryRewriteContext, lshQueryOptions: LshQueryOptions, queryVector: ElastiKnnVector): QueryBuilder = {
+    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
+    if (cached != null) KnnLshQueryBuilder(cached, queryVector)
+    else {
+      // Put all the sketchy stuff in one place.
+      def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
+        Try {
+          val processorOptsMap = response
+            .pipelines()
+            .asScala
+            .find(_.getId == lshQueryOptions.pipelineId)
+            .getOrElse(throw illArgEx(s"Couldn't find pipeline with id ${lshQueryOptions.pipelineId}"))
+            .getConfigAsMap
+            .get("processors")
+            .asInstanceOf[util.List[util.Map[String, AnyRef]]]
+            .asScala
+            .find(_.containsKey(ELASTIKNN_NAME))
+            .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
+            .get(ELASTIKNN_NAME)
+            .asInstanceOf[util.Map[String, AnyRef]]
+          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(mapEncoder))
+        }.recoverWith {
+          case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${lshQueryOptions.pipelineId}", Some(t)))
+        }
+
+      val supplier = new SetOnce[KnnLshQueryBuilder]()
+      context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
+        c.execute(
+          GetPipelineAction.INSTANCE,
+          new GetPipelineRequest(lshQueryOptions.pipelineId),
+          new ActionListener[GetPipelineResponse] {
+            override def onResponse(response: GetPipelineResponse): Unit = {
+              val procOpts = parseResponse(response).get
+              supplier.set(KnnLshQueryBuilder(procOpts, queryVector))
+              processorOptionsCache.put(lshQueryOptions, procOpts)
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
+            }
+            override def onFailure(e: Exception): Unit = l.onFailure(e)
+          }
+        )
+      })
+      RewriteLater(_ => supplier.get())
+    }
+  }
+
   /**
     * Instantiate a [[KnnLshQueryBuilder]] such that the given [[ElastiKnnVector]] is only hashed once.
     * Otherwise it would have to be hashed inside the [[KnnLshQueryBuilder]], which could happen on each node.
-    * @param processorOptions
-    * @param queryVector
     * @return
     */
   def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector): KnnLshQueryBuilder = {
@@ -302,7 +297,7 @@ final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions,
     * @return
     */
   def doToQuery(context: QueryShardContext): Query = {
-    // TODO: is there a way to control the number of documents pass through from the bool query to the exact query?
+    // TODO: is there a way to control the number of documents passed through from the bool query to the exact query?
     val queryTry = for {
       fp <- fieldProc
       boolQuery = hashed
@@ -313,11 +308,7 @@ final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions,
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
       val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
-      new FunctionScoreQuery(boolQuery.toQuery(context),
-                             KnnExactScoreFunction(similarity, queryVector, fieldData),
-                             CombineFunction.REPLACE,
-                             0.0f,
-                             Float.MaxValue)
+      new FunctionScoreQuery(boolQuery.toQuery(context), KnnExactScoreFunction(similarity, queryVector, fieldData))
     }
     queryTry.get
   }

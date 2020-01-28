@@ -7,6 +7,7 @@ import org.apache.spark.ml.feature.MinHashLSH
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.elasticsearch.elastiknn.SparseBoolVector
+import org.elasticsearch.elastiknn.models.ExactSimilarity
 
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
@@ -25,7 +26,7 @@ object ExactJaccardModel extends JaccardModel {
       yield
         corpus.zipWithIndex
           .map {
-            case (v, i) => i -> v.jaccardSim(query)
+            case (v, i) => i -> ExactSimilarity.jaccard(v, query).get
           }
           .topK(k, _._2)
           .map(_._1)
@@ -94,7 +95,7 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       } yield c
 
       // Compute the actual distance to each candidate.
-      val candidateSims = candidateIndices.distinct.map(i => i -> corpus(i).jaccardSim(q))
+      val candidateSims = candidateIndices.distinct.map(i => i -> ExactSimilarity.jaccard(corpus(i), q).get)
 
       candidateSims.topK(k, _._2).map(_._1).toVector
     }
@@ -134,7 +135,7 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
           case (t, i) => sameBucket(transformedQuery, t)
         }
         .map(_._2)
-      candidateIndices.map(i => i -> corpus(i).jaccardSim(q)).topK(k, _._2).map(_._1).toVector
+      candidateIndices.map(i => i -> ExactSimilarity.jaccard(corpus(i), q).get).topK(k, _._2).map(_._1).toVector
     }
   }
 }

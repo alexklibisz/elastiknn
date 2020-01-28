@@ -10,8 +10,7 @@ import org.elasticsearch.elastiknn.models.ExactSimilarity
 import org.elasticsearch.elastiknn.{ElastiKnnVector, Similarity}
 
 /**
-  * Query function which scores vectors in an index against the given ElastiKnnVector.
-  * Might be useful to base this on FieldValueFactorFunction.
+  * Query function which exact similarity scores for indexed vectors against the given query vector.
   * @param similarity The similarity function to use.
   * @param fieldData Object providing access to stored ElastiKnnVectors.
   * @param queryVector The query vector.
@@ -28,7 +27,9 @@ case class KnnExactScoreFunction(similarity: Similarity, queryVector: ElastiKnnV
         sim
       }
 
-      override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = ???
+      override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
+        Explanation.`match`(100,
+                            "The KnnExactScoreFunction computes exact similarity scores for indexed vectors against a given query vector.")
     }
   }
 

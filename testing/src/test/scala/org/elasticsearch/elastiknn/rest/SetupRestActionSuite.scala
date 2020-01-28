@@ -28,18 +28,4 @@ class SetupRestActionSuite
     }
   }
 
-  test("installs stored scripts") {
-    val distances: Seq[String] =
-      Similarity.values.tail.map(_.name.toLowerCase.replace("similarity_", ""))
-
-    for {
-      setupRes <- client.execute(ElastiKnnSetupRequest())
-      getScriptRequests = distances.map(d => client.execute(GetScriptRequest(s"elastiknn-exact-$d")))
-      getScriptResults <- Future.sequence(getScriptRequests)
-    } yield {
-      setupRes.shouldBeSuccess
-      forAll(getScriptResults)(_.shouldBeSuccess)
-    }
-  }
-
 }
