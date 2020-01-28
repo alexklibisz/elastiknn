@@ -1,9 +1,8 @@
 package org.elasticsearch.elastiknn.models
 
 import org.elasticsearch.elastiknn.Similarity._
+import org.elasticsearch.elastiknn.utils.{fastfor, sortedIntersectionCount}
 import org.elasticsearch.elastiknn._
-import org.elasticsearch.elastiknn.utils.Implicits.TraversableImplicits
-import org.elasticsearch.elastiknn.utils.fastfor
 
 import scala.util.{Failure, Success, Try}
 
@@ -13,7 +12,7 @@ object ExactSimilarity {
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
     else
-      TraversableImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices).map { isec =>
+      sortedIntersectionCount(sbv1.trueIndices, sbv2.trueIndices).map { isec =>
         val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
         (sim, 1 - sim)
       }
@@ -22,7 +21,7 @@ object ExactSimilarity {
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
     else
-      TraversableImplicits(sbv1.trueIndices).sortedIntersectionCount(sbv2.trueIndices).map { eqTrueCount =>
+      sortedIntersectionCount(sbv1.trueIndices, sbv2.trueIndices).map { eqTrueCount =>
         val totalCount = sbv1.totalIndices
         val sbv1TrueCount = sbv1.trueIndices.length
         val sbv2TrueCount = sbv2.trueIndices.length

@@ -97,47 +97,8 @@ trait Implicits extends ProtobufImplicits {
 
     def bottomK[U](k: Int, by: T => U)(implicit ord: Ordering[U]): Traversable[T] = topK(k, by)(ord.reverse)
 
-    /** Compute number of equivalent elements in O(d) time assuming both traversables are sorted. Returns a Failure
-      * if either of the Traversables is unsorted. */
-    def sortedIntersectionCount(other: Traversable[T])(implicit ord: Ordering[T]): Try[Int] = {
-
-      def unsorted(little: T, big: T): Failure[Int] =
-        Failure(new IllegalArgumentException(s"Called on unsorted Traversable: $little came after $big"))
-
-      @tailrec
-      def impl(xs: Traversable[T], xmax: T, ys: Traversable[T], ymax: T, acc: Int): Try[Int] = (xs.headOption, ys.headOption) match {
-        case (Some(xh), Some(yh)) =>
-          lazy val xcmp = ord.compare(xh, xmax)
-          lazy val ycmp = ord.compare(yh, ymax)
-          lazy val xycmp = ord.compare(xh, yh)
-          if (xcmp < 0) unsorted(xh, xmax)
-          else if (ycmp < 0) unsorted(yh, ymax)
-          else if (xycmp < 0) impl(xs.tail, xh, ys, ymax, acc)
-          else if (xycmp > 0) impl(xs, xmax, ys.tail, yh, acc)
-          else impl(xs.tail, xh, ys.tail, yh, acc + 1)
-        case (Some(xh), None) => if (ord.compare(xh, xmax) < 0) unsorted(xh, xmax) else Success(acc)
-        case (None, Some(yh)) => if (ord.compare(yh, ymax) < 0) unsorted(yh, ymax) else Success(acc)
-        case _                => Success(acc)
-      }
-
-      (trv.headOption, other.headOption) match {
-        case (Some(xh), Some(yh)) => impl(trv, xh, other, yh, 0)
-        case _                    => Success(0)
-      }
-    }
-
   }
 
 }
 
 object Implicits extends Implicits
-
-object Test {
-  def main(args: Array[String]): Unit = {
-    val xs = Seq(1, 2, 2, 3)
-    val ys = Seq(2, 2, 3, 4)
-    println(xs)
-    println(ys)
-    println(Implicits.TraversableImplicits(xs).sortedIntersectionCount(ys))
-  }
-}

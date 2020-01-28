@@ -1,19 +1,15 @@
 package org.elasticsearch.elastiknn.utils
 
 import com.google.protobuf.ByteString
-import org.elasticsearch.elastiknn.KNearestNeighborsQuery.ExactQueryOptions
+import org.elasticsearch.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
 import org.elasticsearch.elastiknn.ProcessorOptions.ModelOptions.Jaccard
-import org.elasticsearch.elastiknn.Similarity._
-import org.elasticsearch.elastiknn.utils.ProtobufImplicits._
-import org.elasticsearch.elastiknn.{JaccardLshOptions, KNearestNeighborsQuery, ProcessorOptions}
-import org.elasticsearch.elastiknn.KNearestNeighborsQuery
-import org.elasticsearch.elastiknn.KNearestNeighborsQuery.QueryOptions
 import org.elasticsearch.elastiknn.Similarity.SIMILARITY_ANGULAR
+import org.elasticsearch.elastiknn.{JaccardLshOptions, KNearestNeighborsQuery, ProcessorOptions}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 
-class ProtobufImplicitsSuite extends FunSuite with Matchers {
+class ProtobufImplicitsSuite extends FunSuite with Matchers with ProtobufImplicits {
 
   test("converting a pb message to a java map") {
 
