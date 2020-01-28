@@ -61,7 +61,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
-    out.writeString(query.toBase64String)
+    out.writeString(query.toBase64)
 
   override def doRewrite(context: QueryRewriteContext): QueryBuilder =
     query.queryVector match {
@@ -162,8 +162,8 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val q
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
-    out.writeString(exactQueryOptions.toBase64String)
-    out.writeString(queryVector.toBase64String)
+    out.writeString(exactQueryOptions.toBase64)
+    out.writeString(queryVector.toBase64)
   }
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -273,8 +273,8 @@ final class KnnLshQueryBuilder private (val processorOptions: ProcessorOptions,
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
-    out.writeString(processorOptions.toBase64String)
-    out.writeString(queryVector.toBase64String)
+    out.writeString(processorOptions.toBase64)
+    out.writeString(queryVector.toBase64)
     out.writeString(hashed.asJson.noSpaces)
   }
 

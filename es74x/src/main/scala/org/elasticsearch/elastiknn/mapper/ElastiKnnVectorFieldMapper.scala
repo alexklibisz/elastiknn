@@ -183,7 +183,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     }
     // IMPORTANT: for some reason if you just use the regular protobuf bytes (not base64) then you get an error like:
     // "protocol message contained an invalid tag (zero)" when decoding. using base64 encoding fixes this.
-    val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toBase64Bytes))
+    val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toBase64))
     context.doc.addWithKey(fieldType.name, field)
   }
 

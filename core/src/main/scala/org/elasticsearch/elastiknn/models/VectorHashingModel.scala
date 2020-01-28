@@ -48,6 +48,15 @@ class JaccardLshModel(opts: JaccardLshOptions) {
     h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
   } yield (s"$ti,$bi", h.toString)).toMap
 
+  private def minHash(hashFunc: Int => Long, indices: Array[Int]): Long = {
+    var min = Long.MaxValue
+    fastfor(0, _ < indices.length) { i =>
+      val h = hashFunc(indices(i))
+      if (h < min) min = h
+    }
+    min
+  }
+
   def hash(sbv: SparseBoolVector): Map[String, String] =
     if (sbv.isEmpty) emptyHash
     else {
@@ -58,8 +67,7 @@ class JaccardLshModel(opts: JaccardLshOptions) {
       fastfor(0, _ < numTables) { ti =>
         fastfor(0, _ < numBands) { bi =>
           fastfor(0, _ < numRows) { ri =>
-            val h = hashFuncs(hi)
-            rh.update(ri, h(sbv.trueIndices.minBy(h)))
+            rh.update(ri, minHash(hashFuncs(hi), sbv.trueIndices))
             hi += 1
           }
           hh += (s"$ti,$bi" -> MurmurHash3.orderedHash(rh).toString)
