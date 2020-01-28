@@ -94,7 +94,13 @@ run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
 	docker ps | grep kibana
 
-test: clean .mk/client-python-compile run/cluster
-	$(gradle) test
+test/python:
 	cd client-python && $(vpy) -m pytest
+
+test/gradle:
+	$(gradle) test
+
+test: clean .mk/client-python-compile run/cluster
+	$(MAKE) test/gradle
+	$(MAKE) test/python
 

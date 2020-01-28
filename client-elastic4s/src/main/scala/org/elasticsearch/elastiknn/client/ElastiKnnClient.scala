@@ -27,13 +27,6 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     } yield ret
 
   /**
-    * Sets up the cluster usage with ElastiKnn. Only need to run this once after installing the plugin, but it's
-    * idempotent and fast, so there's no harm in running it multiple times.
-    * @return
-    */
-  def setupCluster(): Future[ElastiKnnSetupResponse] = execute(ElastiKnnSetupRequest())
-
-  /**
     * Create a pipeline for ingesting vectors.
     * @param pipelineId Id for the pipeline. You'll need to use this same id when ingesting vectors via this pipeline.
     * @param processorOptions See [[ProcessorOptions]].

@@ -1,6 +1,5 @@
 package org.elasticsearch.elastiknn.client
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
@@ -18,28 +17,6 @@ import scalapb_circe.JsonFormat
   * otherwise you get runtime errors for Jackson decoding.
   */
 object ElastiKnnDsl {
-
-  case class ElastiKnnSetupRequest(endpointPrefix: String = "_elastiknn")
-
-  case class ElastiKnnSetupResponse(acknowledged: Boolean)
-
-  object ElastiKnnSetupRequest {
-    implicit object ElastiknnSetupRequestHandler extends Handler[ElastiKnnSetupRequest, ElastiKnnSetupResponse] {
-      override def build(t: ElastiKnnSetupRequest): ElasticRequest =
-        ElasticRequest("POST", s"${t.endpointPrefix}/setup")
-    }
-  }
-
-  case class GetScriptRequest(id: String)
-
-  case class GetScriptResponse(@JsonProperty("_id") id: String, found: Boolean, script: Script)
-
-  object GetScriptRequest {
-    implicit object GetScriptRequestHandler extends Handler[GetScriptRequest, GetScriptResponse] {
-      override def build(t: GetScriptRequest): ElasticRequest =
-        ElasticRequest("GET", s"_scripts/${t.id}")
-    }
-  }
 
   case class Processor(name: String, configuration: String)
 

@@ -29,10 +29,6 @@ class ElastiKnnClient(object):
         self.hosts = hosts
         self.es = Elasticsearch(self.hosts)
 
-    def setup_cluster(self):
-        # URL argument has to start with a /.
-        return self.es.transport.perform_request("POST", f"/_{ELASTIKNN_NAME}/setup")
-
     def create_pipeline(self, pipeline_id: str, processor_options: ProcessorOptions, description: str = None):
         proc = {ELASTIKNN_NAME: MessageToDict(processor_options)}
         bod = PutPipelineRequest(description=description, processors=[proc]).to_json()

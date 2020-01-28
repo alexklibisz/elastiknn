@@ -10,9 +10,6 @@ field_raw = "vec_raw"
 
 class TestClient:
 
-    def test_setup_cluster(self):
-        eknn.setup_cluster()
-
     def test_search_exact_jaccard(self):
         test_index = pipeline_id = "python-test-exact-jaccard"
         n, dim = 1200, 128

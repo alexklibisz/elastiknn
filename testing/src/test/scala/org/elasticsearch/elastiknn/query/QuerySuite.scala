@@ -50,7 +50,6 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     private lazy val setupIndexCorpus: Future[TestData] = for {
       testData <- Future.fromTry(readTestData(sim, dim))
       _ <- client.execute(deleteIndex(index))
-      _ <- eknn.setupCluster()
       _ <- eknn.createPipeline(pipelineId, popts)
       _ <- client.execute(createIndex(index).mapping(mapDef))
       corpusIds = testData.corpus.indices.map(corpusId)

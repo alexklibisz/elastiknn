@@ -64,7 +64,6 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         if self._index is None:
             self._index = f"{ELASTIKNN_NAME}-auto-{self._pipeline_id}-{int(time())}"
             self._logger.warning(f"index was not given, using {self._index} instead")
-        self._eknn.setup_cluster()
         self._eknn.create_pipeline(self._pipeline_id, self._proc_opts(dim))
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]],
