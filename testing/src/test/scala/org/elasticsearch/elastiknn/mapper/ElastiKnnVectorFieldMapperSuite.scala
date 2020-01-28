@@ -45,7 +45,7 @@ class ElastiKnnVectorFieldMapperSuite
   test("index and retrieve float vectors") {
 
     val indexName = "test-index-retrieve-float-vectors"
-    val ekvs: Seq[ElastiKnnVector] = FloatVector.randoms(10, 5).map(ElastiKnnVector.apply(_))
+    val ekvs: Seq[ElastiKnnVector] = FloatVector.randoms(10, 5).map(ElastiKnnVector(_))
 
     for {
       _ <- client.execute(deleteIndex(indexName))
@@ -77,13 +77,9 @@ class ElastiKnnVectorFieldMapperSuite
 
     } yield {
       ekvsFromSource should have length ekvs.length
-      val aa = ekvs.map(_.vector.floatVector.get.values)
-      val bb = ekvsFromSource.map(_.vector.floatVector.get.values)
-      val cc = aa.zip(bb).map {
-        case (v1, v2) => v1 == v2
+      forAll(ekvs) { v1 =>
+        ekvsFromSource.find(v2 => ElastiKnnVector.equal(v1, v2)) shouldBe defined
       }
-
-      ekvs.toSet shouldBe ekvsFromSource.toSet
     }
 
   }
