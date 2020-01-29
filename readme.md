@@ -79,3 +79,11 @@ Not super sure of the feasability of this yet. There are some notes in benchmark
 ## Development
 
 ## References
+
+In no particular order:
+
+- The original implementation of this idea: https://github.com/alexklibisz/elastik-nearest-neighbors
+- Alex Reelsen has several open-source plugins which were useful examples for the general structure of a plugin project: https://github.com/spinscale
+- [Mining of Massive Datasets (MMDS) by Leskovec, et. al](http://www.mmds.org/), particularly chapter 3, is a great reference for approximate similarity search.
+- Much of the Gradle setup and testing setup is based on ideas from the [Read Only Rest Plugin](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin)
+- The [Scalable Data Science Lectures on Youtube](https://www.youtube.com/playlist?list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul) were helpful for better understanding LSH. I think much of that content is also based on the MMDS book.
