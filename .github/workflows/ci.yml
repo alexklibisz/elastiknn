@@ -15,6 +15,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Setup java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 12.0.2
     - name: Run a multi-line script
       run: |
         which java
