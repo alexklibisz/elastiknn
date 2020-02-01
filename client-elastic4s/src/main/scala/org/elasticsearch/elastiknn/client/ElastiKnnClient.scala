@@ -1,16 +1,19 @@
 package org.elasticsearch.elastiknn.client
 
+import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Handler}
+import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Executor, Handler}
+import org.apache.http.HttpHost
+import org.elasticsearch.client.RestClient
 import org.elasticsearch.elastiknn.KNearestNeighborsQuery._
 import org.elasticsearch.elastiknn.{ElastiKnnVector, ProcessorOptions}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) {
+final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) extends AutoCloseable {
 
   import ElastiKnnDsl._
   import ElasticDsl._
@@ -82,4 +85,19 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   def knnQuery(index: String, options: LshQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
     execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Indexed(vector))).size(k))
 
+  def close(): Unit = elastic4sClient.close()
+}
+
+object ElastiKnnClient {
+
+  def apply(host: HttpHost)(implicit ec: ExecutionContext): ElastiKnnClient = {
+    implicit def fex: Executor[Future] = Executor.FutureExecutor(ec)
+    val rc: RestClient = RestClient.builder(host).build()
+    val jc: JavaClient = new JavaClient(rc)
+    implicit val es: ElasticClient = ElasticClient(jc)
+    new ElastiKnnClient()
+  }
+
+  def apply(hostname: String, port: Int)(implicit ec: ExecutionContext): ElastiKnnClient =
+    ElastiKnnClient(new HttpHost(hostname, port))
 }

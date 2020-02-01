@@ -6,6 +6,9 @@ scalaVersion := "2.12.10"
 
 resolvers += Resolver.mavenLocal
 
+val pluginVersion = IO.readLines(new File("../../version")).head.strip()
+
 libraryDependencies ++= Seq(
-  "org.elasticsearch.elastiknn" %% "core" % "0.1.0-RC0"
+  "org.elasticsearch.elastiknn" %% "core" % pluginVersion,
+  "org.elasticsearch.elastiknn" %% "client-elastic4s" % pluginVersion
 )

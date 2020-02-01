@@ -46,7 +46,7 @@ clean:
 	touch $@
 
 .mk/gradle-publish-local: $(src_all)
-	$(gradle) assemble
+	$(gradle) assemble publishToMavenLocal
 	touch $@
 
 .mk/client-python-compile: .mk/client-python-install .mk/gradle-gen-proto
@@ -80,6 +80,10 @@ clean:
 		&& python3 cluster_ready.py
 	touch $@
 
+.mk/example-scala-sbt-client-usage: $(src_all)
+	cd examples/scala-sbt-client-usage && sbt run
+	touch $@
+
 compile/gradle: .mk/gradle-compile
 
 compile/python: .mk/client-python-compile
@@ -109,6 +113,8 @@ test/gradle:
 test: clean compile/python run/cluster
 	$(MAKE) test/gradle
 	$(MAKE) test/python
+
+examples: .mk/example-scala-sbt-client-usage
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 

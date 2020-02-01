@@ -1,7 +1,3 @@
-//plugins {
-//    id "org.shipkit.java" version "2.3.0"
-//}
-
 allprojects {
     version = rootProject.file('version').getText().strip()
 

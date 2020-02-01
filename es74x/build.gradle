@@ -31,18 +31,18 @@ configurations {
 dependencies {
     runtime project(':core')
     implementation project(':core')
-    runtime 'org.scala-lang:scala-library:2.12.8'
-    implementation 'org.scala-lang:scala-library:2.12.8'
-    runtime "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
-    implementation "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
-    implementation 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
-    runtime 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
-    implementation 'io.circe:circe-generic_2.12:0.12.2'
-    implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
-    implementation 'com.google.guava:guava:28.1-jre'
-    runtime 'com.google.guava:guava:28.1-jre'
+    runtime "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+    runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
+    implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
+    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
+    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
+    implementation "io.circe:circe-generic_${scalaVersion}:0.12.2"
+    implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.3.1"
+    implementation "com.google.guava:guava:28.1-jre"
+    runtime "com.google.guava:guava:28.1-jre"
     compileOnly "org.elasticsearch.plugin:elasticsearch-scripting-painless-spi:${esVersion}"
-    testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
+    testImplementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
 }
 
 esplugin {
