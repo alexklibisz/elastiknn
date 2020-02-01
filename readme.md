@@ -2,6 +2,8 @@
 
 ElastiKnn is an Elasticsearch plugin for exact and approximate nearest neighbors search in high-dimensional vector spaces.
 
+![](https://github.com/actions/alexklibisz/elastiknn/CI/badge.svg)
+
 ## Work in Progress
 
 This project is very much a work-in-progress. I've decided to go ahead and make the repo public since
