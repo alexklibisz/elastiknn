@@ -1,14 +1,3 @@
-apply plugin: 'scala'
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    jcenter()
-}
-
-group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion']
-
 dependencies {
     implementation project(':core')
     runtime 'org.scala-lang:scala-library:2.12.8'

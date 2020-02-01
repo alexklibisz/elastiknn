@@ -9,6 +9,7 @@ import org.elasticsearch.elastiknn.{ElastiKnnVector, FloatVector, Similarity, Sp
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 
+import scala.language.implicitConversions
 import scala.util.{Random, Try}
 
 trait Implicits extends ProtobufImplicits {
@@ -58,6 +59,9 @@ trait Implicits extends ProtobufImplicits {
       (0 until n).map(_ => random(length, scale)).toVector
   }
 
+  implicit def seqFvsToSeqEkv(fvs: Seq[FloatVector]): Seq[ElastiKnnVector] = fvs.map(ElastiKnnVector(_))
+  implicit def seqSbvsToSeqEkv(sbvs: Seq[SparseBoolVector]): Seq[ElastiKnnVector] = sbvs.map(ElastiKnnVector(_))
+
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
     def apply(fv: FloatVector): ElastiKnnVector = ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))
     def apply(sbv: SparseBoolVector): ElastiKnnVector = ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))
@@ -70,7 +74,6 @@ trait Implicits extends ProtobufImplicits {
         sbv1.trueIndices.sameElements(sbv2.trueIndices) && sbv1.totalIndices == sbv2.totalIndices
       case _ => false
     }
-
   }
 
   implicit class ModelOptionsImplicits(mopts: ModelOptions) {

@@ -1,6 +1,6 @@
 # ElastiKnn 
 
-ElastiKnn is an Elasticsearch plugin for exact and approximate nearest neighbors search in high-dimensional vector spaces.
+ElastiKnn is an Elasticsearch plugin for exact and approximate K-nearest-neighbors search in high-dimensional vector spaces.
 
 |CI|
 |---|

@@ -1,0 +1,18 @@
+allprojects {
+    version = rootProject.file('version').getText().strip()
+
+    apply plugin: 'scala'
+    apply plugin: 'java'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    repositories {
+        jcenter()
+        mavenCentral()
+        mavenLocal()
+    }
+
+}
