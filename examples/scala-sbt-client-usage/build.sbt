@@ -9,6 +9,6 @@ resolvers += Resolver.mavenLocal
 val pluginVersion = IO.readLines(new File("../../version")).head.strip()
 
 libraryDependencies ++= Seq(
-  "org.elasticsearch.elastiknn" %% "core" % pluginVersion,
-  "org.elasticsearch.elastiknn" %% "client-elastic4s" % pluginVersion
+  "com.klibisz.elastiknn" %% "core" % pluginVersion,
+  "com.klibisz.elastiknn" %% "client-elastic4s" % pluginVersion
 )

@@ -1,5 +1,5 @@
-import org.elasticsearch.elastiknn.SparseBoolVector
-import org.elasticsearch.elastiknn.client.ElastiKnnClient
+import com.klibisz.elastiknn.SparseBoolVector
+import com.klibisz.elastiknn.client.ElastiKnnClient
 
 import scala.concurrent._
 
