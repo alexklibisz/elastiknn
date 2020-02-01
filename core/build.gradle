@@ -13,15 +13,9 @@ plugins {
     id 'com.google.protobuf' version '0.8.8'
 }
 
-apply plugin: 'scala'
-apply plugin: 'java'
-
 repositories {
     jcenter()
 }
-
-group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion']
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8

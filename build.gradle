@@ -1,0 +1,18 @@
+//plugins {
+//    id "org.shipkit.java" version "2.3.0"
+//}
+
+allprojects {
+    group = rootProject.properties['group']
+    version = rootProject.file('version').getText().strip()
+
+    apply plugin: 'scala'
+    apply plugin: 'java'
+
+    repositories {
+        jcenter()
+        mavenCentral()
+        mavenLocal()
+    }
+
+}

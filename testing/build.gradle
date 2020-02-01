@@ -10,7 +10,6 @@ buildscript {
     }
 }
 
-apply plugin: 'scala'
 apply plugin: 'com.github.maiflai.scalatest'
 
 repositories {
@@ -20,9 +19,6 @@ repositories {
     maven { url 'https://jitpack.io' }
     maven { url 'https://artifacts.elastic.co/maven' }
 }
-
-group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion']
 
 test {
     outputs.upToDateWhen { false }
