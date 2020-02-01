@@ -15,8 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Run a one-line script
-      run: echo Hello, world!
+    - name: Start the local cluster
+      run: make run/cluster
     - name: Run a multi-line script
       run: |
         docker-compose --version
