@@ -29,4 +29,6 @@ jobs:
       run: make test/gradle
     - name: Test Python
       run: make test/python
+    - name: Clean
+      run: make clean
         
