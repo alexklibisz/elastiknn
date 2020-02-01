@@ -3,9 +3,12 @@ from setuptools import setup
 with open("requirements.txt") as fp:
     reqs = fp.read().strip().split("\n")
 
+with open("../version") as fp:
+    version = fp.read().strip()
+
 setup(
     name='elastiknn-client',
-    version='0.0.0',
+    version=version,
     packages=["elastiknn", "scalapb"],
     author='Alex Klibisz',
     author_email='aklibisz@gmail.com',

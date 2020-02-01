@@ -15,7 +15,7 @@ repositories {
 }
 
 group = rootProject.properties['group']
-version = rootProject.properties['pluginVersion'] + '_es' + esVersion
+version = "${rootProject.file("version").getText().strip()}_es${esVersion}"
 
 ext {
     scalapbVersion = '0.9.0-M5'
