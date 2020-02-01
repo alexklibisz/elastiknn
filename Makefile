@@ -80,7 +80,7 @@ clean:
 		&& python3 cluster_ready.py
 	touch $@
 
-.mk/example-scala-sbt-client-usage: $(src_all)
+.mk/example-scala-sbt-client-usage: .mk/gradle-publish-local
 	cd examples/scala-sbt-client-usage && sbt run
 	touch $@
 
