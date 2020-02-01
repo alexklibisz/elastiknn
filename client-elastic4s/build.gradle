@@ -7,11 +7,17 @@ dependencies {
     compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
 }
 
+task sourceJar(type: Jar) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
             artifactId = "${project.name}_${scalaVersion}"
             from components.java
+            artifact tasks.sourceJar
         }
     }
 }

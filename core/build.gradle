@@ -11,6 +11,7 @@ buildscript {
 
 plugins {
     id 'com.google.protobuf' version '0.8.8'
+    id 'java-library'
     id 'maven-publish'
 }
 
@@ -61,11 +62,18 @@ sourceSets {
     }
 }
 
+task sourceJar(type: Jar) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+    from sourceSets.main.proto
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
             artifactId = "${project.name}_${scalaVersion}"
             from components.java
+            artifact tasks.sourceJar
         }
     }
 }
