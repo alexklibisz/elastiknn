@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Gradle compile
-      run: gradle compileScala compileTestScala
+      run: ./gradlew compileScala compileTestScala
 #     - name: Start the local cluster
 #       run: make run/cluster
     - name: Run a multi-line script
