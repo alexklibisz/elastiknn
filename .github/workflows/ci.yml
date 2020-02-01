@@ -15,10 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Gradle compile
-      run: ./gradlew compileScala compileTestScala
-#     - name: Start the local cluster
-#       run: make run/cluster
     - name: Run a multi-line script
       run: |
-        docker-compose --version
+        which java
+        java -version
+        ./gradlew compileScala compileTestScala
