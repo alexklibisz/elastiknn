@@ -37,6 +37,10 @@ clean:
 		&& $(vpip) install -q grpcio-tools pytest mypy-protobuf
 	touch $@
 
+.mk/gradle-compile: $(src_all)
+	$(gradle) compileScala compileJava compileTestScala compileTestJava
+	touch $@
+
 .mk/gradle-gen-proto: $(src_all)
 	$(gradle) generateProto
 	touch $@
@@ -68,10 +72,6 @@ clean:
 	aws s3 ls $(build_bucket)
 	touch $@
 
-publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
-
-publish/s3: .mk/publish-s3
-
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
 	cd testing \
@@ -79,6 +79,12 @@ publish/s3: .mk/publish-s3
 		&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
 		&& python3 cluster_ready.py
 	touch $@
+
+compile/gradle: .mk/gradle-compile
+
+compile/python: .mk/client-python-compile
+
+compile: compile/gradle compile/python
 
 run/cluster: .mk/run-cluster
 
@@ -100,7 +106,10 @@ test/python:
 test/gradle:
 	$(gradle) test
 
-test: clean .mk/client-python-compile run/cluster
+test: clean compile/python run/cluster
 	$(MAKE) test/gradle
 	$(MAKE) test/python
 
+publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
+
+publish/s3: .mk/publish-s3
