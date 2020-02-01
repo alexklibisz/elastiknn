@@ -108,7 +108,7 @@ object ElastiKnnVectorFieldMapper {
       else Failure(new IllegalStateException(s"Couldn't parse a valid ElastiKnnVector for document id: $docId"))
 
     override def getScriptValues: fielddata.ScriptDocValues[_] =
-      new ElastiKnnVectorScriptDocValues(bdv)
+      new ScriptDocValues(bdv)
 
     override def getBytesValues: fielddata.SortedBinaryDocValues =
       throw new UnsupportedOperationException("String representation of doc values for elastiknn_vector fields is not supported")
@@ -120,25 +120,13 @@ object ElastiKnnVectorFieldMapper {
 
 }
 
-class ElastiKnnVectorScriptDocValues(bdv: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
+class ScriptDocValues(bdv: BinaryDocValues) extends fielddata.ScriptDocValues[Any] {
 
+  // The vector gets initialized _after_ the class is initialized (in the setNextDocId method).
+  // These vars will get defined in that method, and they're different for float and sparse bool vectors.
   private var stored: Option[ElastiKnnVector.Vector] = None
   private var storedGet: Int => Any = identity[Int]
   private var storedSize: Int = 0
-
-  private[elastiknn] def getSparseBoolVector: SparseBoolVector = stored match {
-    case Some(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
-      sbv
-    case Some(_) => throw new IllegalStateException(s"Expected a ${SparseBoolVector.getClass.getName} but got $stored")
-    case None    => throw new IllegalStateException("Vector hasn't been initialized")
-  }
-
-  private[elastiknn] def getFloatVector: FloatVector = stored match {
-    case Some(ElastiKnnVector.Vector.FloatVector(fv)) =>
-      fv
-    case Some(_) => throw new IllegalStateException(s"Expected a ${FloatVector.getClass.getName} but got $stored")
-    case None    => throw new IllegalStateException("Vector hasn't been initialized")
-  }
 
   // TODO: deduplicate this advanceExact and parsing logic with the logic in AtomicFieldData above.
   override def setNextDocId(docId: Int): Unit =
@@ -148,12 +136,11 @@ class ElastiKnnVectorScriptDocValues(bdv: BinaryDocValues) extends fielddata.Scr
       stored = Some(ElastiKnnVector.parseBase64(bdv.binaryValue.utf8ToString).vector)
       stored match {
         case Some(ElastiKnnVector.Vector.FloatVector(v)) =>
-          storedGet = v.values
+          storedGet = (i: Int) => v.values(i)
           storedSize = v.values.length
         case Some(ElastiKnnVector.Vector.SparseBoolVector(v)) =>
-          // Calling .get(-1) on a sparse bool vector will return the number of true indices.
-          // TODO: is there another way to expose a custom script method?
-          storedGet = (i: Int) => if (i == -1) v.totalIndices else v.trueIndices(i)
+          // Bit of a quirk, but calling .get(-1) will return the total number of indices.
+          storedGet = (i: Int) => if (i < 0) v.totalIndices else v.trueIndices(i)
           storedSize = v.trueIndices.length
         case _ => throw new IllegalStateException(s"Couldn't parse a valid vector, found: $stored")
       }
