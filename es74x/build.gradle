@@ -10,19 +10,8 @@ buildscript {
     }
 }
 
-repositories {
-    jcenter()
-}
+version = "${version}_es${esVersion}"
 
-group = rootProject.properties['group']
-version = "${rootProject.file("version").getText().strip()}_es${esVersion}"
-
-ext {
-    scalapbVersion = '0.9.0-M5'
-}
-
-apply plugin: 'java'
-apply plugin: 'scala'
 apply plugin: 'elasticsearch.esplugin'
 
 licenseFile = rootProject.file("LICENSE.txt")
@@ -52,7 +41,6 @@ dependencies {
     implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     implementation 'com.google.guava:guava:28.1-jre'
     runtime 'com.google.guava:guava:28.1-jre'
-    // implementation "org.codelibs.elasticsearch.module:lang-painless:${esVersion}"
     compileOnly "org.elasticsearch.plugin:elasticsearch-scripting-painless-spi:${esVersion}"
     testImplementation 'org.scalatest:scalatest_2.12:3.0.8'
 }

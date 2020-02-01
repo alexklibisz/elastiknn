@@ -3,7 +3,6 @@
 //}
 
 allprojects {
-    group = rootProject.properties['group']
     version = rootProject.file('version').getText().strip()
 
     apply plugin: 'scala'
