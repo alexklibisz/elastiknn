@@ -25,4 +25,8 @@ jobs:
       run: make compile/python
     - name: Start Testing Cluster
       run: make run/cluster
+    - name: Test JVM
+      run: make test/gradle
+    - name: Test Python
+      run: make test/python
         
