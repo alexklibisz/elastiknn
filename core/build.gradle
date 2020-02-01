@@ -11,28 +11,20 @@ buildscript {
 
 plugins {
     id 'com.google.protobuf' version '0.8.8'
-}
-
-repositories {
-    jcenter()
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    id 'maven-publish'
 }
 
 dependencies {
-    runtime 'org.scala-lang:scala-library:2.12.8'
-    implementation 'org.scala-lang:scala-library:2.12.8'
-    runtime "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
-    implementation "com.thesamet.scalapb:scalapb-runtime_2.12:${scalapbVersion}"
-    implementation 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
-    runtime 'io.github.scalapb-json:scalapb-circe_2.12:0.5.1'
-    implementation 'io.circe:circe-generic_2.12:0.12.2'
-    implementation 'com.google.guava:guava:28.1-jre'
-    runtime 'com.google.guava:guava:28.1-jre'
-    implementation 'com.typesafe.scala-logging:scala-logging_2.12:3.9.2'
+    runtime "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+    runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
+    implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
+    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
+    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
+    implementation "io.circe:circe-generic_${scalaVersion}:0.12.2"
+    implementation "com.google.guava:guava:28.1-jre"
+    runtime "com.google.guava:guava:28.1-jre"
+    implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
 }
 
 protobuf {
@@ -41,9 +33,7 @@ protobuf {
     }
     plugins {
         scalapb {
-            artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
-                    "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:windows@bat" :
-                    "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:unix@sh"
+            artifact = "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:unix@sh"
         }
     }
 
@@ -67,6 +57,15 @@ sourceSets {
     main {
         scala {
             srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
+        }
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "${project.name}_${scalaVersion}"
+            from components.java
         }
     }
 }
