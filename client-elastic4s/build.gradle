@@ -1,6 +1,19 @@
-apply plugin: 'scala'
-apply plugin: 'java-library'
-apply plugin: "maven-publish"
+
+buildscript {
+    repositories {
+        mavenLocal()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "org.shipkit:shipkit:2.3.0"
+    }
+}
+
+apply plugin: "scala"
+apply plugin: "java-library"
+apply plugin: "org.shipkit.single-project"
 
 group = rootProject.properties['group']
 version = rootProject.file("version").getText().strip()
@@ -8,14 +21,4 @@ version = rootProject.file("version").getText().strip()
 dependencies {
     api project(':core')
     api 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
-}
-
-publishing {
-    publications {
-        maven(MavenPublication) {
-            groupId = group
-            artifactId = project.name
-            version = version
-        }
-    }
 }
