@@ -74,6 +74,30 @@ publishing {
             artifactId = "${project.name}_${scalaVersion}"
             from components.java
             artifact tasks.sourceJar
+            pom {
+                name = 'ElastiKnn Core'
+                description = 'Schema objects and algorithms for the ElastiKnn Elasticsearch plugin'
+                url = 'https://github.com/alexklibisz/elastiknn'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'alexklibisz'
+                        name = 'Alex Klibisz'
+                        email = 'aklibisz@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
+                    developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
+                    url = 'https://github.com/alexklibisz/elastiknn'
+                }
+            }
+
         }
     }
 }
