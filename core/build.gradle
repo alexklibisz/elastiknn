@@ -13,6 +13,7 @@ plugins {
     id 'com.google.protobuf' version '0.8.8'
     id 'java-library'
     id 'maven-publish'
+    id 'signing'
 }
 
 dependencies {
@@ -68,14 +69,20 @@ task sourceJar(type: Jar) {
     from sourceSets.main.proto
 }
 
+task javadocJar(type: Jar) {
+    classifier 'javadoc'
+    from javadoc.destinationDir
+}
+
 publishing {
     publications {
         maven(MavenPublication) {
             artifactId = "${project.name}_${scalaVersion}"
             from components.java
             artifact tasks.sourceJar
+            artifact tasks.javadocJar
             pom {
-                name = 'ElastiKnn Core'
+                name = "${rootProject.group}:${artifactId}"
                 description = 'Schema objects and algorithms for the ElastiKnn Elasticsearch plugin'
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
@@ -100,4 +107,23 @@ publishing {
 
         }
     }
+
+    repositories {
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+            credentials {
+                username project.hasProperty('sonatypeUsername')
+                        ? project.getProperty('sonatypeUsername')
+                        : ''
+                password project.hasProperty('sonatypePassword')
+                        ? project.getProperty('sonatypePassword')
+                        : ''
+            }
+        }
+    }
+
+}
+
+signing {
+    sign publishing.publications
 }

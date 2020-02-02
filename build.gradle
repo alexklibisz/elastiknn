@@ -15,4 +15,7 @@ allprojects {
         mavenLocal()
     }
 
+    // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
+    ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
+
 }
