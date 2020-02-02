@@ -1,5 +1,6 @@
 plugins {
     id 'maven-publish'
+    id 'signing'
 }
 
 dependencies {
@@ -49,4 +50,18 @@ publishing {
             }
         }
     }
+
+    repositories {
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications
 }
