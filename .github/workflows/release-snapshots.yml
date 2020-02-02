@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
-    - name: Setup java
-      uses: actions/setup-java@v1
-      with:
-        java-version: 12.0.2
+#     - name: Setup java
+#       uses: actions/setup-java@v1
+#       with:
+#         java-version: 12.0.2
     - name: Setup GPG Key
-      run: echo ${{ secrets.GPG_SECRET_B64 }} | base64 --decode | md5sum
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+      run: echo $GPG_SECRET_B64 | base64 --decode | md5sum
