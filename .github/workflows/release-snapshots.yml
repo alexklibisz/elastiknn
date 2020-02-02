@@ -14,6 +14,4 @@ jobs:
       with:
         java-version: 12.0.2
     - name: Setup GPG Key
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-      run: echo $GPG_SECRET_B64 | md5sum
+      run: echo ${{ secrets.GPG_SECRET_B64 }} | base64 --decode | md5sum
