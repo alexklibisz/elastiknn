@@ -16,4 +16,4 @@ jobs:
     - name: Import GPG Key
       env: # Or as an environment variable
         TEST: ${{ secrets.TEST }}
-      run: echo ${{ env.TEST }}
+      run: echo $TEST | md5sum
