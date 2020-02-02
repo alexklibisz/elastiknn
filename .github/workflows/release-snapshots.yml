@@ -16,4 +16,4 @@ jobs:
     - name: Import GPG Key
       env: # Or as an environment variable
         TEST: ${{ secrets.TEST }}
-      run: printenv
+      run: echo $TEST
