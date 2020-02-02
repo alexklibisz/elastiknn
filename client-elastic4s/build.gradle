@@ -55,8 +55,12 @@ publishing {
         maven {
             url 'https://oss.sonatype.org/content/repositories/snapshots/'
             credentials {
-                username sonatypeUsername
-                password sonatypePassword
+                username project.hasProperty('sonatypeUsername')
+                        ? project.getProperty('sonatypeUsername')
+                        : ''
+                password project.hasProperty('sonatypePassword')
+                        ? project.getProperty('sonatypePassword')
+                        : ''
             }
         }
     }

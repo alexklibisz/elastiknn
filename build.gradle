@@ -1,14 +1,6 @@
 allprojects {
     version = rootProject.file('version').getText().strip()
 
-    sonatypeUsername = project.hasProperty('sonatypeUsername')
-            ? project.getProperty('sonatypeUsername')
-            : ''
-
-    sonatypePassword = project.hasProperty('sonatypeUsername')
-            ? project.getProperty('sonatypeUsername')
-            : ''
-
     apply plugin: 'scala'
     apply plugin: 'java'
 
