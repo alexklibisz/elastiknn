@@ -5,12 +5,11 @@ on:
   push:
     branches:
       - master
-  issue_comment:
-    types: [created]
+  issue_comment: {}
 
 jobs:
   check_comments:
-    runs-on: [ubuntu-18.04]
+    runs-on: ubuntu-18.04
     name: Check comments for /test
     steps:
       - name: Check for Command
