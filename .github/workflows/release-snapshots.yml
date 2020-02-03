@@ -1,13 +1,13 @@
 # Release snapshots for every push to master and for specific slash-commands on PR comments.
 name: Release Snapshots
 on:
-  push:
-    branches: 
-      - master
-  pull_request:
-    branches: 
-      - master
-    types: [opened]
+#   push:
+#     branches: 
+#       - master
+#   pull_request:
+#     branches: 
+#       - master
+#     types: [opened]
   issue_comment:
     types: [created]
 
