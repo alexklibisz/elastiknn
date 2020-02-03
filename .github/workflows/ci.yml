@@ -21,7 +21,7 @@ jobs:
           JOB_CONTEXT: ${{ toJson(job) }}
         run: echo "$JOB_CONTEXT"
       - name: PR Number
-        run: echo ${{ github.event.pull_request.number }}
+        run: echo PR${{ github.event.pull_request.number }}-SNAPSHOT
   build:
     runs-on: ubuntu-18.04
     steps:
