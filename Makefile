@@ -118,4 +118,7 @@ examples: .mk/example-scala-sbt-client-usage
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
+publish/snapshot/sonatype: .mk/gradle-publish-local
+	$(gradle) publish
+
 publish/s3: .mk/publish-s3

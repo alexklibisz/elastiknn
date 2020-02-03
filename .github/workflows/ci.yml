@@ -10,9 +10,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-18.04
-
     steps:
     - uses: actions/checkout@v2
     - name: Setup Secrets
@@ -36,6 +34,8 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
+    - name: Publish Snapshots to Sonatype
+      run: make publish/snapshot/sonatype
     - name: Clean
       run: make clean
         
