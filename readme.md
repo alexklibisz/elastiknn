@@ -5,7 +5,6 @@ ElastiKnn is an Elasticsearch plugin for exact and approximate K-nearest-neighbo
 |Item|Status|
 |:--|:--|
 |Github CI|![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge)|
-|[Snapshot, Core Library, Scala 2.12](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/core_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
 |[Snapshot, Client Library, Scala 2.12](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
 
 ## Work in Progress
@@ -88,13 +87,7 @@ Not super sure of the feasability of this yet. There are some notes in benchmark
 
 In no particular order:
 
-- The original implementation of this idea: https://github.com/alexklibisz/elastik-nearest-neighbors
-- Alex Reelsen has several open-source plugins which were useful examples for the general structure of a plugin project: https://github.com/spinscale
+- [Alex Reelsen](https://github.com/spinscale) has several open-source plugins which were useful examples for the general structure of a plugin project: 
 - [Mining of Massive Datasets (MMDS) by Leskovec, et. al](http://www.mmds.org/), particularly chapter 3, is a great reference for approximate similarity search.
-- Much of the Gradle setup and testing setup is based on ideas from the [Read Only Rest Plugin](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin)
-- The [Scalable Data Science Lectures on Youtube](https://www.youtube.com/playlist?list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul) were helpful for better understanding LSH. I think much of that content is also based on the MMDS book.
-
-
-[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/dev/zio/zio_2.12/ "Sonatype Releases"
-[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/dev/zio/zio_2.12/ "Sonatype Snapshots"
-
+- [The Read Only Rest Plugin](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin) served as an example for much of the Gradle and testing setup.
+- [The Scalable Data Science Lectures on Youtube](https://www.youtube.com/playlist?list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul) were helpful for better understanding LSH. I think much of that content is also based on the MMDS book.
