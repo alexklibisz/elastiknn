@@ -9,6 +9,13 @@ on:
       - master
 
 jobs:
+  context:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Show GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: echo "$GITHUB_CONTEXT"
   build:
     runs-on: ubuntu-18.04
     steps:
