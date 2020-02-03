@@ -7,16 +7,33 @@ on:
   pull_request:
     branches: 
       - master
+    types: [opened]
+  issue_comment:
+    types: [created]
 
 jobs:
   release:
-    runs-on: ubuntu-18.04
+    runs-on: [ubuntu-18.04]
     steps:
-      - uses: actions/checkout@v2
-      - name: Check for /release-snapshots commands
+      - uses: khan/pull-request-comment-trigger@master
+        id: check
+        with:
+          trigger: '/release-snapshots'
+          reaction: rocket
         env:
-          GHCTXT: ${{ toJson(github) }}
-        run: echo "::set-env name=MATCHING::$(echo $GHCTXT | python3 .github/scripts/check-slash-cmd.py /release-snapshots)"
-      - name: Run Release
-        if: env.MATCHING > 0
-        run: echo "Releasing snapshots..."
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      - run: echo Found It!
+        if: steps.check.outputs.triggered == 'true'
+
+# jobs:
+#   release:
+#     runs-on: ubuntu-18.04
+#     steps:
+#       - uses: actions/checkout@v2
+#       - name: Check for /release-snapshots commands
+#         env:
+#           GHCTXT: ${{ toJson(github) }}
+#         run: echo "::set-env name=MATCHING::$(echo $GHCTXT | python3 .github/scripts/check-slash-cmd.py /release-snapshots)"
+#       - name: Run Release
+#         if: env.MATCHING > 0
+#         run: echo "Releasing snapshots..."
