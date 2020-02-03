@@ -4,9 +4,6 @@ on:
   pull_request:
     branches: 
       - master
-  push:
-    branches: 
-      - master
 
 jobs:
   context:
@@ -41,10 +38,13 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
-    - name: Publish Snapshots to Sonatype
+    - name: Set Version (PR)
       if: github.event_name == 'pull_request'
-      run: |
-        echo PR${{ github.event.pull_request.number }}-SNAPSHOT > version
-        make publish/snapshot/sonatype
+      run: echo PR-${{ github.event.pull_request.number }}-SNAPSHOT > version
+    - name: Set Version (Master)
+      if: github.event_name == 'push'
+      run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
+    - name: Publish Snapshot to Sonatype
+      run: make publish/snapshot/sonatype
     - name: Clean
       run: make clean
