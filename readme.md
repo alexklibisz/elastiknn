@@ -5,7 +5,8 @@ ElastiKnn is an Elasticsearch plugin for exact and approximate K-nearest-neighbo
 |Item|Status|
 |:--|:--|
 |Github CI|![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge)|
-|Sonatype Releases|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/core_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
+|[Snapshot, Core Library, Scala 2.12](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/core_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
+|[Snapshot, Client Library, Scala 2.12](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
 
 ## Work in Progress
 
