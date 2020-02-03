@@ -2,10 +2,11 @@
 # and for specific slash-commands on PRs.
 name: Release Snapshots
 on:
-  push:
-    branches:
-      - master
-  issue_comment: {}
+#   push:
+#     branches:
+#       - master
+  issue_comment: 
+    types: [created]
 
 jobs:
   check_comments:
