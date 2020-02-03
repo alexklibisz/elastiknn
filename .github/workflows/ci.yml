@@ -15,7 +15,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup java
+    - name: Setup Secrets
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+      run: ./.github/scripts/setup-secrets.sh
+    - name: Setup Java
       uses: actions/setup-java@v1
       with:
         java-version: 12.0.2
