@@ -15,7 +15,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check for /release-snapshots commands
         run: |
-          echo "::set-env name=MATCHING::$(echo ${{ toJson(github) }} | python3 .github/scripts/check-slash-cmd.py /release-snapshots)"
+          echo ${{ toJson(github) }} > /tmp/context.json
+          echo cat /tmp/context.json | python3 .github/scripts/check-slash-cmd.py /release-snapshots
+#          echo "::set-env name=MATCHING::$(echo ${{ toJson(github) }} | python3 .github/scripts/check-slash-cmd.py /release-snapshots)"
       - name: Run Release
         if: env.MATCHING > 0
         run: echo "Releasing snapshots..."
