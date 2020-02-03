@@ -10,5 +10,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
-    - name: Run a one-line script
-      run: echo Hello, release!
+    - name: Check if version file changed
+      run: echo "::set-env name=CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
+    - name: Release if version changed
+      if: env.CHANGED == 1
+      run: echo "Run the release"
