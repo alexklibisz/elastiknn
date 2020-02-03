@@ -1,10 +1,9 @@
-# Placeholder for running a release when a PR is merged into the release branch.
-# This seems to be the only way you can manually invoke a release.
+# Placeholder for running a release when a PR is merged and the version file has changed.
 name: Release
 on:
   push:
     branches: 
-      - release
+      - master
 jobs:
   release:
     runs-on: ubuntu-18.04
