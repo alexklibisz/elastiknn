@@ -13,4 +13,4 @@ jobs:
   release-snapshots:
     runs-on: ubuntu-18.04
     steps:
-      - run: echo ${{ github }}
+      - run: echo ${{ toJson(github) }}
