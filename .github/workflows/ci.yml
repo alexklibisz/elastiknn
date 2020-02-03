@@ -13,21 +13,17 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 12.0.2
     - name: Setup Secrets
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
       run: ./.github/scripts/setup-secrets.sh
-    - name: Setup Java
-      uses: actions/setup-java@v1
-      with:
-        java-version: 12.0.2
     - name: Set Version
-      run: |
-        echo PR${{ github.event.pull_request.number }}-SNAPSHOT > version
-        cat version
-    - name: Publish Snapshots to Sonatype
-      run: make publish/snapshot/sonatype
+      run: echo PR${{ github.event.pull_request.number }}-SNAPSHOT > version
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
@@ -40,6 +36,7 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
+    - name: Publish Snapshots to Sonatype
+      run: make publish/snapshot/sonatype
     - name: Clean
       run: make clean
-        
