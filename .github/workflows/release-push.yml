@@ -5,18 +5,7 @@ on:
   push:
     branches: 
       - release
-  pull_request:
-    branches:
-      - release
 jobs:
-  check:
-    runs-on: ubuntu-18.04
-    steps:
-    - name: Ensure PRs can only come from master
-      if: github.event_name == 'pull_request' && github.head_ref != 'master'
-      run: |
-        echo "You can only merge to the release branch from the master branch"
-        exit 1
   release:
     runs-on: ubuntu-18.04
     steps:
