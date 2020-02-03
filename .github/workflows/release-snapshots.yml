@@ -15,9 +15,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check for /release-snapshots commands
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          export MATCHING=$(echo $GITHUB_CONTEXT | python3 .github/scripts/check-slash-cmd.py /release-snapshots)
+          GHCTXT: ${{ toJson(github) }}
+        run: echo "::set-env name=MATCHING::$(echo $GHCTXT | python3 .github/scripts/check-slash-cmd.py $SLASH_CMD)"
       - name: Run Release
         if: env.MATCHING > 0
         run: echo "Releasing snapshots..."
