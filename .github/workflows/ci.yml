@@ -9,19 +9,6 @@ on:
       - master
 
 jobs:
-  inspect:
-    runs-on: ubuntu-16.04
-    steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - name: Dump job context
-        env:
-          JOB_CONTEXT: ${{ toJson(job) }}
-        run: echo "$JOB_CONTEXT"
-      - name: PR Number
-        run: echo PR${{ github.event.pull_request.number }}-SNAPSHOT
   build:
     runs-on: ubuntu-18.04
     steps:
@@ -35,6 +22,10 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 12.0.2
+    - name: Set Version
+      run: |
+        echo PR${{ github.event.pull_request.number }}-SNAPSHOT > version
+        cat version
     - name: Publish Snapshots to Sonatype
       run: make publish/snapshot/sonatype
     - name: Compile JVM
