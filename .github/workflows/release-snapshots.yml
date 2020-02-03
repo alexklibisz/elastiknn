@@ -1,19 +1,26 @@
+# Releases snapshots of the plugin and client libraries for every push to master
+# and for specific slash-commands on PRs.
 name: Release Snapshots
 on:
   push:
-    branches: 
+    branches:
       - master
-      - release-snapshots
+  issue_comment:
+    types: [created]
+
 jobs:
-  build:
-    runs-on: ubuntu-18.04
-    steps:
-    - uses: actions/checkout@v2
-#     - name: Setup java
-#       uses: actions/setup-java@v1
-#       with:
-#         java-version: 12.0.2 
-    - name: Setup GPG Key
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-      run: echo $GPG_SECRET_B64 | base64 --decode | md5sum
+  check_comments:
+    name: Check comments for /test
+      steps:
+        - name: Check for Command
+          id: command
+          uses: xt0rted/slash-command-action@v1
+          with:
+            repo-token: ${{ secrets.GITHUB_TOKEN }}
+            command: test
+            reaction: "true"
+            reaction-type: "eyes"
+            allow-edits: "false"
+            permission-level: admin
+        - name: Act on the command
+          run: echo "The command was '${{ steps.command.outputs.command-name }}' with arguments '${{ steps.command.outputs.command-arguments }}'"
