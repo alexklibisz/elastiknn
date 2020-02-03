@@ -35,7 +35,7 @@ jobs:
     - name: Run Examples
       run: make examples
     - name: Publish Snapshots to Sonatype
-      if: ${{ github.event_name == 'pull_request' }}
+      if: github.event_name == 'pull_request'
       run: |
         echo PR${{ github.event.pull_request.number }}-SNAPSHOT > version
         make publish/snapshot/sonatype
