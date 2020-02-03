@@ -12,6 +12,7 @@ jobs:
   release:
     runs-on: ubuntu-18.04
     steps:
+      - uses: actions/checkout@v2
       - name: Check for /release-snapshots commands
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
