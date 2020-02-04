@@ -13,7 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Check if version file changed
-      run: echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
+      run: |
+        git diff --name-only HEAD~1 HEAD | grep version | wc -l
+        echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
     - name: Print if version changed
       run: echo ${{ env.VERSION_CHANGED }}
     - name: Release if version changed (on push)
