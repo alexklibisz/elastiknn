@@ -20,6 +20,6 @@ jobs:
     - name: Will release run?
       if: env.VERSION_CHANGED == 1
       run: echo Yes
-    - name: Release if version changed (on push)
+    - name: Release if version changed (on push to master)
       if: github.event_name == 'push' && env.VERSION_CHANGED == 1
       run: echo "Run the release"
