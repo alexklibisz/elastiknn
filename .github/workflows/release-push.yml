@@ -14,7 +14,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: Check if version file changed
       run: |
-        git fetch master
+        git fetch --prune --unshallow
+        git diff --name-only master~1 HEAD
         git diff --name-only master~1 HEAD | grep version | wc -l
         echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
     - name: Print if version changed
