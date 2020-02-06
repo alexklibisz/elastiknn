@@ -1,0 +1,25 @@
+# Placeholder for running a release when a PR is merged and the version file has changed.
+name: Release
+on:
+  push:
+    branches: 
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  release:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check if version file changed
+      run: |
+        git fetch --prune --unshallow
+        git diff --name-only HEAD~1 HEAD
+        echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
+    - name: Will release run?
+      if: env.VERSION_CHANGED == 1
+      run: echo Yes
+    - name: Release if version changed (on push to master)
+      if: github.event_name == 'push' && env.VERSION_CHANGED == 1
+      run: echo "Run the release"
