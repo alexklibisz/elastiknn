@@ -18,4 +18,9 @@ allprojects {
     // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
     ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
 
+    // Sonatype settings.
+    ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
+    ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : ""
+    ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
+
 }

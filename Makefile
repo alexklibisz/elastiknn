@@ -121,4 +121,7 @@ publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 publish/snapshot/sonatype: .mk/gradle-publish-local
 	$(gradle) publish
 
+publish/release/sonatype: .mk/gradle-publish-local
+	SONATYPE_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2" $(gradle) publish
+
 publish/s3: .mk/publish-s3
