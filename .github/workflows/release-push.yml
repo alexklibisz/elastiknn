@@ -12,10 +12,9 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
+      run: git fetch --prune --unshallow
     - name: Check if version file changed
       run: |
-        git fetch --prune --unshallow
-        git diff --name-only master~1 HEAD
         git diff --name-only master~1 HEAD | grep version | wc -l
         echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
     - name: Print if version changed
