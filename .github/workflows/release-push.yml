@@ -17,8 +17,9 @@ jobs:
         git fetch --prune --unshallow
         git diff --name-only HEAD~1 HEAD
         echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
-    - name: Print if version changed
-      run: echo ${{ env.VERSION_CHANGED }}
+    - name: Will release run?
+      if: env.VERSION_CHANGED == 1
+      run: echo Yes
     - name: Release if version changed (on push)
       if: github.event_name == 'push' && env.VERSION_CHANGED == 1
       run: echo "Run the release"
