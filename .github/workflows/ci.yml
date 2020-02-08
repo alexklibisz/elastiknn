@@ -35,7 +35,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
-        bin/hub release delete $(cat version) || true
+        hub release delete $(cat version) || true
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
