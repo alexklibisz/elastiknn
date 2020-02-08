@@ -18,7 +18,7 @@ jobs:
         echo "::set-env name=GET_RELEASE::$(cat status)"
         rm status
     - name: Will release run?
-#       if: env.GET_RELEASE == '404'
+      if: env.GET_RELEASE == '404'
       run: echo ${{ env.GET_RELEASE }}
 #    - name: Setup Secrets
 #      env:
