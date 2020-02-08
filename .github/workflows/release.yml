@@ -12,21 +12,25 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
-    - name: Check if version file changed
+    - name: Check if release exists for this version
       run: |
-        git fetch --prune --unshallow
-        git diff --name-only HEAD~1 HEAD
-        echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
-    - name: Setup Secrets
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-      run: ./.github/scripts/setup-secrets.sh
+        curl -s -o /dev/null -w "%{http_code}" https://github.com/alexklibisz/elastiknn/releases/tag/$(cat version) > status
+        echo "::set-env name=GET_RELEASE::$(cat status)
     - name: Will release run?
-      if: env.VERSION_CHANGED == 1
+      if: env.GET_RELEASE == 404
       run: echo Yes
-    - name: Release if version changed (on push to master)
-      if: github.event_name == 'push' && env.VERSION_CHANGED == 1
-      run: |
-        make publish/release/sonatype
-        make publish/release/plugin
+#    - name: Setup Secrets
+#      env:
+#        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+#        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+#      run: ./.github/scripts/setup-secrets.sh
+#    - name: Setup Java
+#      uses: actions/setup-java@v1
+#      if: github.event_name == 'push' && env.VERSION_CHANGED == 1
+#      with:
+#        java-version: 12.0.2
+#    - name: Release if version changed (on push to master)
+#      if: github.event_name == 'push' && env.VERSION_CHANGED == 1
+#      run: |
+#        make publish/release/sonatype
+#        make publish/release/plugin
