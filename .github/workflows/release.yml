@@ -29,6 +29,7 @@ jobs:
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       if: github.event_name == 'push' && env.GET_RELEASE == '404'
       run: |

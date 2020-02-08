@@ -35,7 +35,7 @@ clean:
 .mk/client-python-install: .mk/client-python-venv
 	cd client-python \
 		&& $(vpip) install -q -r requirements.txt \
-		&& $(vpip) install -q grpcio-tools pytest mypy-protobuf
+		&& $(vpip) install -q grpcio-tools pytest mypy-protobuf twine
 	touch $@
 
 .mk/gradle-compile: $(src_all)
@@ -46,7 +46,7 @@ clean:
 	$(gradle) generateProto
 	touch $@
 
-.mk/gradle-publish-local: $(src_all)
+.mk/gradle-publish-local: version $(src_all)
 	$(gradle) assemble publishToMavenLocal
 	touch $@
 
@@ -64,16 +64,16 @@ clean:
 		&& $(vpy) -c "from elastiknn.elastiknn_pb2 import Similarity; x = Similarity.values()"
 	touch $@
 
-.mk/client-python-publish-local: .mk/client-python-compile
+.mk/client-python-publish-local: version .mk/client-python-compile
 	cd client-python && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
 	cd testing \
-		&& $(dc) down \
-		&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
-		&& python3 cluster_ready.py
+	&& $(dc) down \
+	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
+	&& python3 cluster_ready.py
 	touch $@
 
 .mk/example-scala-sbt-client-usage: .mk/gradle-publish-local
@@ -112,7 +112,7 @@ test: clean compile/python run/cluster
 
 examples: .mk/example-scala-sbt-client-usage
 
-publish/local: version .mk/gradle-publish-local .mk/client-python-publish-local
+publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
 publish/snapshot/sonatype: .mk/gradle-publish-local
 	$(gradle) publish
@@ -129,3 +129,7 @@ publish/release/plugin: .mk/gradle-publish-local
 	echo "" >> release.md
 	cat changelog.md | python .github/scripts/latestchanges.py >> release.md
 	hub release create -p -F release.md -a $(eslatest)/build/distributions/elastiknn-$(version)*.zip $(version)
+
+publish/snapshot/python: .mk/client-python-publish-local
+	cd client-python \
+	&& $(vpy) -m twine upload -r testpypi dist/*
