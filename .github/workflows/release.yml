@@ -19,7 +19,7 @@ jobs:
         rm status
     - name: Will release run?
       if: env.GET_RELEASE == '404'
-      run: echo ${{ env.GET_RELEASE }}
+      run: echo Yes
     - name: Setup Java
       uses: actions/setup-java@v1
       if: github.event_name == 'push' && env.VERSION_CHANGED == 1
@@ -34,5 +34,3 @@ jobs:
         ./.github/scripts/setup-secrets.sh
         make publish/release/sonatype
         make publish/release/plugin
-
-
