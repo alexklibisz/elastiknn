@@ -3,6 +3,7 @@ build
 .mk/*
 !.mk/.keep
 target
+release.md
 
 # Ignore Gradle GUI config
 gradle-app.setting
