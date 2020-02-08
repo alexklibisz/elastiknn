@@ -1,2 +1,4 @@
+- Releasing versioned python client library to PyPi.
+---
 - Releasing versioned elastiknn plugin zip file.
 ---

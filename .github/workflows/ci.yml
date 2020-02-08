@@ -53,7 +53,7 @@ jobs:
       run: |
         echo $(cat version)-dev${{ github.run_number }} > version-python
         echo $(cat version)-MASTER${{ github.run_number }}-SNAPSHOT > version-sonatype
-    - name: Publish Python Libraries to Test PyPi
+    - name: Publish Python Libraries to PyPi
       run: |
         cp version-python version
         make publish/snapshot/python

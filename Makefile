@@ -132,4 +132,8 @@ publish/release/plugin: .mk/gradle-publish-local
 
 publish/snapshot/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r testpypi dist/*
+	&& $(vpy) -m twine upload -r pypi dist/*
+
+publish/release/python: .mk/client-python-publish-local
+	cd client-python \
+	&& $(vpy) -m twine upload -r pypi dist/*

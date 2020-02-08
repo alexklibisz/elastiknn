@@ -2,7 +2,7 @@
 
 An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in high-dimensional vector spaces.
 
-## Build and Release Information
+## Builds and Releases
 
 |Item|Status|
 |:--|:--|
@@ -10,6 +10,7 @@ An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in 
 |[Github Release Workflow](https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ARelease)|![Github Release Workflow](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/Release?style=for-the-badge)|
 |[Plugin Zip File, Release](https://github.com/alexklibisz/elastiknn/releases/latest)|![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=for-the-badge)|
 |[Plugin Zip File, Snapshot](https://github.com/alexklibisz/elastiknn/releases)|![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=for-the-badge)|
+|[Client Library, Python](https://pypi.org/project/elastiknn-client/)|![PyPI](https://img.shields.io/pypi/v/elastiknn-client?style=for-the-badge)|
 |[Client Library, Scala 2.12, Release](https://search.maven.org/search?q=g:com.klibisz.elastiknn)|![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
 |[Client Library, Scala 2.12, Snapshot](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
 
