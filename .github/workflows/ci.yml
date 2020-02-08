@@ -48,7 +48,13 @@ jobs:
     - name: Set Version (Master)
       if: github.event_name == 'push'
       run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
-    - name: Publish Snapshot to Sonatype
+    - name: Publish Scala Libraries to Sonatype
       run: make publish/snapshot/sonatype
+    - name: Publish Plugin Zip to Github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        sudo snap install hub --classic
+        make publish/snapshot/plugin
     - name: Clean
       run: make clean
