@@ -65,7 +65,7 @@ clean:
 	touch $@
 
 .mk/client-python-publish-local: version .mk/client-python-compile
-	cd client-python && $(vpy) setup.py sdist bdist_wheel && ls dist
+	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local

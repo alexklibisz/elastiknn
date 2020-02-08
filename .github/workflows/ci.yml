@@ -31,12 +31,6 @@ jobs:
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
       run: ./.github/scripts/setup-secrets.sh
-    - name: Set Version (PR)
-      if: github.event_name == 'pull_request'
-      run: echo PR-${{ github.event.pull_request.number }}-${{ github.run_number }}-SNAPSHOT > version
-    - name: Set Version (Master)
-      if: github.event_name == 'push'
-      run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
@@ -49,14 +43,29 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
-    - name: Publish Scala Libraries to Sonatype
-      run: make publish/snapshot/sonatype
+    - name: Set Version (PR)
+      if: github.event_name == 'pull_request'
+      run: |
+        echo $(cat version)-dev${{ github.run_number }} > version-python
+        echo $(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT > version-sonatype
+    - name: Set Version (Master)
+      if: github.event_name == 'push'
+      run: |
+        echo $(cat version)-dev${{ github.run_number }} > version-python
+        echo $(cat version)-MASTER${{ github.run_number }}-SNAPSHOT > version-sonatype
     - name: Publish Python Libraries to Test PyPi
-      run: make publish/snapshot/python
+      run: |
+        cp version-python version
+        make publish/snapshot/python
+    - name: Publish Scala Libraries to Sonatype
+      run: |
+        cp version-sonatype version
+        make publish/snapshot/sonatype
     - name: Publish Plugin Zip to Github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        cp version-sonatype version
         sudo snap install hub --classic
         make publish/snapshot/plugin
     - name: Clean
