@@ -45,7 +45,7 @@ jobs:
       run: make examples
     - name: Set Version (PR)
       if: github.event_name == 'pull_request'
-      run: echo PR-${{ github.event.pull_request.number }}.${{ github.run_number }}-SNAPSHOT > version
+      run: echo PR-${{ github.event.pull_request.number }}-${{ github.run_number }}-SNAPSHOT > version
     - name: Set Version (Master)
       if: github.event_name == 'push'
       run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
