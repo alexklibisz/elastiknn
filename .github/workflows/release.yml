@@ -29,3 +29,4 @@ jobs:
       if: github.event_name == 'push' && env.VERSION_CHANGED == 1
       run: |
         make publish/release/sonatype
+        make publish/release/plugin
