@@ -67,12 +67,6 @@ clean:
 	cd client-python && $(vpy) setup.py bdist_wheel && ls dist
 	touch $@
 
-.mk/publish-s3: .mk/gradle-publish-local .mk/client-python-publish-local
-	aws s3 sync $(eslatest)/build/distributions $(build_bucket)
-	aws s3 sync client-python/dist $(build_bucket)
-	aws s3 ls $(build_bucket)
-	touch $@
-
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
 	cd testing \
@@ -129,4 +123,8 @@ publish/snapshot/plugin: .mk/gradle-publish-local
 publish/release/sonatype: .mk/gradle-publish-local
 	SONATYPE_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2" $(gradle) publish
 
-publish/s3: .mk/publish-s3
+publish/release/plugin: .mk/gradle-publish-local
+	cp version release.md
+	echo "" >> release.md
+	cat changelog.md | python .github/scripts/latestchanges.py >> release.md
+	hub release create -p -F release.md -a $(eslatest)/build/distributions/elastiknn-$(version)*.zip $(version)

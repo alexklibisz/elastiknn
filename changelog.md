@@ -1,0 +1,2 @@
+- Releasing versioned elastiknn plugin zip file.
+---
