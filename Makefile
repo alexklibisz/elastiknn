@@ -8,6 +8,7 @@ eslatest = es74x
 s3 = aws s3
 build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
+version = $(shell cat version)
 src_all = $(shell git diff --name-only --diff-filter=ACMR)
 
 clean:
@@ -116,10 +117,14 @@ test: clean compile/python run/cluster
 
 examples: .mk/example-scala-sbt-client-usage
 
-publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
+publish/local: version .mk/gradle-publish-local .mk/client-python-publish-local
 
 publish/snapshot/sonatype: .mk/gradle-publish-local
 	$(gradle) publish
+
+publish/snapshot/plugin: .mk/gradle-publish-local
+	hub release delete $(version) || true
+	hub release create -p -m $(version) -a $(eslatest)/build/distributions/elastiknn-$(version)*.zip $(version)
 
 publish/release/sonatype: .mk/gradle-publish-local
 	SONATYPE_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2" $(gradle) publish
