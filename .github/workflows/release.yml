@@ -17,6 +17,11 @@ jobs:
         git fetch --prune --unshallow
         git diff --name-only HEAD~1 HEAD
         echo "::set-env name=VERSION_CHANGED::$(git diff --name-only HEAD~1 HEAD | grep version | wc -l)"
+    - name: Setup Secrets
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+      run: ./.github/scripts/setup-secrets.sh
     - name: Will release run?
       if: env.VERSION_CHANGED == 1
       run: echo Yes
