@@ -124,7 +124,7 @@ publish/snapshot/sonatype: .mk/gradle-publish-local
 
 publish/snapshot/plugin: .mk/gradle-publish-local
 	hub release delete $(version) || true
-	hub release create -p -m $(version) -a $(eslatest)/build/distributions/elastiknn-*.zip $(version)
+	hub release create -p -m $(version) -a $(eslatest)/build/distributions/elastiknn-$(version)*.zip $(version)
 
 publish/release/sonatype: .mk/gradle-publish-local
 	SONATYPE_URL="https://oss.sonatype.org/service/local/staging/deploy/maven2" $(gradle) publish
