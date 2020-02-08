@@ -29,3 +29,13 @@ jobs:
       if: github.event_name == 'push' && env.VERSION_CHANGED == 1
       run: |
         make publish/release/sonatype
+    - name: Update Status
+      uses: geekodour/gh-actions-custom-status@v0.0.4
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        LAST_COMMIT_SHA: ${{ github.event.client_payload.LAST_COMMIT_SHA }}
+      with:
+        args: >-
+          --state=pending
+          --context=foo-status-update
+          --target_url=https://github.com/${{ github.repository }}/actions
