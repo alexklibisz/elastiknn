@@ -30,6 +30,10 @@ jobs:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
       run: ./.github/scripts/setup-secrets.sh
+    - name: Publish Plugin Zip to Github
+      run: |
+        curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
+        bin/hub release delete $(cat version) || true
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
@@ -48,7 +52,7 @@ jobs:
     - name: Set Version (Master)
       if: github.event_name == 'push'
       run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
-    - name: Publish Snapshot to Sonatype
+    - name: Publish Scala Libraries to Sonatype
       run: make publish/snapshot/sonatype
     - name: Clean
       run: make clean
