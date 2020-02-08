@@ -35,6 +35,6 @@ jobs:
       run: |
         sudo snap install hub --classic
         ./.github/scripts/setup-secrets.sh
-        make publish/release/pyton
+        make publish/release/python
         make publish/release/sonatype
         make publish/release/plugin
