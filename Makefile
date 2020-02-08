@@ -52,6 +52,7 @@ clean:
 
 .mk/client-python-compile: .mk/client-python-install .mk/gradle-gen-proto
 	cd client-python \
+		&& cp $(core)/src/main/proto/elastiknn/elastiknn.proto elastiknn \
 		&& $(vpy) -m grpc_tools.protoc \
 			--proto_path=$(core)/src/main/proto \
 			--proto_path=$(core)/build/extracted-include-protos/main \
@@ -64,7 +65,7 @@ clean:
 	touch $@
 
 .mk/client-python-publish-local: .mk/client-python-compile
-	cd client-python && $(vpy) setup.py bdist_wheel && ls dist
+	cd client-python && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
 .mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
