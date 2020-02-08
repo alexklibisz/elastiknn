@@ -6,13 +6,13 @@ An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in 
 
 |Item|Status|
 |:--|:--|
-|[Github CI Workflow](https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI)|![GitHub CI Workflow](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge)|
-|[Github Release Workflow](https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ARelease)|![Github Release Workflow](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/Release?style=for-the-badge)|
-|[Plugin Zip File, Release](https://github.com/alexklibisz/elastiknn/releases/latest)|![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=for-the-badge)|
-|[Plugin Zip File, Snapshot](https://github.com/alexklibisz/elastiknn/releases)|![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=for-the-badge)|
-|[Client Library, Python](https://pypi.org/project/elastiknn-client/)|![PyPI](https://img.shields.io/pypi/v/elastiknn-client?style=for-the-badge)|
-|[Client Library, Scala 2.12, Release](https://search.maven.org/search?q=g:com.klibisz.elastiknn)|![Sonatype Nexus (Releases)](https://img.shields.io/nexus/r/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
-|[Client Library, Scala 2.12, Snapshot](https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn)|![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge)|
+|Github CI Build| [![Github CI Status][Badge-Github-CI]][Link-Github-CI]|
+|Github Release Build| [![Github Release Status][Badge-Github-Release]][Link-Github-Release]|
+|Plugin Release| [![Plugin Release Status][Badge-Plugin-Release]][Link-Plugin-Release]|
+|Plugin Snapshot| [![Plugin Snapshot Status][Badge-Plugin-Snapshot]][Link-Plugin-Snapshot]|
+|Python Client, Release| [![Python Client Release Status][Badge-Python-Release]][Link-Python-Release]|
+|Scala 2.12 Client, Release| [![Scala Client Release Status][Badge-Scala-Release]][Link-Scala-Release]|
+|Scala 2.12 Client, Snapshot| [![Scala Client Snapshot Status][Badge-Scala-Snapshot]][Link-Scala-Snapshot]|
 
 ## Work in Progress
 
@@ -90,6 +90,20 @@ Not super sure of the feasability of this yet. There are some notes in benchmark
 
 ## Development
 
+### Builds and Releases
+
+There are three main artifacts produced by this project:
+
+1. The actual plugin, which is a zip file published to Github releases.
+2. The python client library, which gets published to PyPi.
+3. The scala client library, which gets published to Sonatype.
+
+All three artifacts are built and published as "snapshots" on every PR commit and every push/merge to master. All three
+artifacts are released on every push/merge to master in which the `version` file has changed. We detect a change in the
+version file by checking if a release tag exists with the same name as the version.
+
+All of this is handled by Github Workflows with all steps defined in the yaml files in `.github/workflows`.
+
 ## References
 
 In no particular order:
@@ -98,3 +112,21 @@ In no particular order:
 - [Mining of Massive Datasets (MMDS) by Leskovec, et. al](http://www.mmds.org/), particularly chapter 3, is a great reference for approximate similarity search.
 - [The Read Only Rest Plugin](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin) served as an example for much of the Gradle and testing setup.
 - [The Scalable Data Science Lectures on Youtube](https://www.youtube.com/playlist?list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul) were helpful for better understanding LSH. I think much of that content is also based on the MMDS book.
+
+<!-- Links -->
+
+[Link-Github-CI]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI
+[Link-Github-Release]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ARelease
+[Link-Plugin-Release]: https://github.com/alexklibisz/elastiknn/releases/latest
+[Link-Plugin-Snapshot]: https://github.com/alexklibisz/elastiknn/releases
+[Link-Python-Release]: https://pypi.org/project/elastiknn-client/
+[Link-Scala-Release]: https://search.maven.org/search?q=g:com.klibisz.elastiknn
+[Link-Scala-Snapshot]: https://oss.sonatype.org/#nexus-search;quick~com.klibisz.elastiknn
+
+[Badge-Github-CI]: https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge "Github CI Workflow"
+[Badge-Github-Release]: https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/Release?style=for-the-badge "Github Release Workflow"
+[Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=for-the-badge "Plugin Release"
+[Badge-Plugin-Snapshot]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=for-the-badge "Plugin Snapshot"
+[Badge-Python-Release]: https://img.shields.io/pypi/v/elastiknn-client?style=for-the-badge "Python Release"
+[Badge-Scala-Release]: https://img.shields.io/nexus/r/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge
+[Badge-Scala-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge
