@@ -14,7 +14,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Check if release exists for this version
       run: |
+        cat version
         curl -s -o /dev/null -w "%{http_code}" https://github.com/alexklibisz/elastiknn/releases/tag/$(cat version) > status
+        cat status
         echo "::set-env name=GET_RELEASE::$(cat status)
     - name: Will release run?
       if: env.GET_RELEASE == 404
