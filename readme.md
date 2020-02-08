@@ -2,6 +2,8 @@
 
 An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in high-dimensional vector spaces.
 
+## Build and Release Information
+
 |Item|Status|
 |:--|:--|
 |[Github CI Workflow](https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI)|![GitHub CI Workflow](https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge)|
