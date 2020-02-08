@@ -17,7 +17,7 @@ jobs:
         cat version
         curl -s -o /dev/null -w "%{http_code}" https://github.com/alexklibisz/elastiknn/releases/tag/$(cat version) > status
         cat status
-        echo "::set-env name=GET_RELEASE::$(cat status)
+        echo "::set-env name=GET_RELEASE::$(cat status)"
     - name: Will release run?
       if: env.GET_RELEASE == 404
       run: echo Yes
