@@ -31,6 +31,8 @@ jobs:
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
       run: ./.github/scripts/setup-secrets.sh
     - name: Publish Plugin Zip to Github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
         bin/hub release delete $(cat version) || true
