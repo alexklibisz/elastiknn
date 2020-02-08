@@ -31,6 +31,12 @@ jobs:
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
       run: ./.github/scripts/setup-secrets.sh
+    - name: Set Version (PR)
+      if: github.event_name == 'pull_request'
+      run: echo PR-${{ github.event.pull_request.number }}-${{ github.run_number }}-SNAPSHOT > version
+    - name: Set Version (Master)
+      if: github.event_name == 'push'
+      run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
@@ -43,12 +49,6 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
-    - name: Set Version (PR)
-      if: github.event_name == 'pull_request'
-      run: echo PR-${{ github.event.pull_request.number }}-${{ github.run_number }}-SNAPSHOT > version
-    - name: Set Version (Master)
-      if: github.event_name == 'push'
-      run: echo MASTER-${{ github.run_number }}-SNAPSHOT > version
     - name: Publish Scala Libraries to Sonatype
       run: make publish/snapshot/sonatype
     - name: Publish Python Libraries to Test PyPi
