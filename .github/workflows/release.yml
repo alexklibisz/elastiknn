@@ -19,8 +19,8 @@ jobs:
         cat status
         echo "::set-env name=GET_RELEASE::$(cat status)"
     - name: Will release run?
-      if: env.GET_RELEASE == '404'
-      run: echo Yes
+#       if: env.GET_RELEASE == '404'
+      run: echo ${{ env.GET_RELEASE }}
 #    - name: Setup Secrets
 #      env:
 #        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
