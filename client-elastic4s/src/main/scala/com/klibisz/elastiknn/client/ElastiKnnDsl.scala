@@ -68,22 +68,59 @@ object ElastiKnnDsl {
       XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
     }
 
-  def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector): CustomQuery =
+  trait ConvertsToQueryVector[T] {
+    def apply(t: T): KNearestNeighborsQuery.QueryVector
+  }
+
+  object ConvertsToQueryVector {
+    implicit val id: ConvertsToQueryVector[KNearestNeighborsQuery.QueryVector] = (t: KNearestNeighborsQuery.QueryVector) => t
+    implicit val ekv: ConvertsToQueryVector[ElastiKnnVector] = (t: ElastiKnnVector) => KNearestNeighborsQuery.QueryVector.Given(t)
+    implicit val idx: ConvertsToQueryVector[IndexedQueryVector] = (t: IndexedQueryVector) => KNearestNeighborsQuery.QueryVector.Indexed(t)
+
+  }
+
+  trait ConvertsToQueryOptions[T] {
+    def apply(t: T): KNearestNeighborsQuery.QueryOptions
+  }
+
+  object ConvertsToQueryOptions {
+    implicit val id: ConvertsToQueryOptions[KNearestNeighborsQuery.QueryOptions] = (t: KNearestNeighborsQuery.QueryOptions) => t
+    implicit val exact: ConvertsToQueryOptions[KNearestNeighborsQuery.ExactQueryOptions] = (t: KNearestNeighborsQuery.ExactQueryOptions) =>
+      KNearestNeighborsQuery.QueryOptions.Exact(t)
+    implicit val lsh: ConvertsToQueryOptions[KNearestNeighborsQuery.LshQueryOptions] = (t: KNearestNeighborsQuery.LshQueryOptions) =>
+      KNearestNeighborsQuery.QueryOptions.Lsh(t)
+
+  }
+
+  def knnQuery[O: ConvertsToQueryOptions, V: ConvertsToQueryVector](options: O, vector: V, useInMemoryCache: Boolean = false): CustomQuery =
     knnQuery(
       elastiknn.KNearestNeighborsQuery(
-        KNearestNeighborsQuery.QueryOptions.Exact(options),
-        KNearestNeighborsQuery.QueryVector.Indexed(vector)
-      ))
+        useInMemoryCache,
+        implicitly[ConvertsToQueryOptions[O]].apply(options),
+        implicitly[ConvertsToQueryVector[V]].apply(vector)
+      )
+    )
 
-  def knnQuery(options: ExactQueryOptions, vector: ElastiKnnVector): CustomQuery =
-    knnQuery(
-      elastiknn.KNearestNeighborsQuery(
-        KNearestNeighborsQuery.QueryOptions.Exact(options),
-        KNearestNeighborsQuery.QueryVector.Given(vector)
-      ))
-
-  def knnQuery(options: KNearestNeighborsQuery.QueryOptions, vector: KNearestNeighborsQuery.QueryVector): CustomQuery =
-    knnQuery(elastiknn.KNearestNeighborsQuery(options, vector))
+//  def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector, useInMemoryCache: Boolean = false): CustomQuery =
+//    knnQuery(
+//      elastiknn.KNearestNeighborsQuery(
+//        useInMemoryCache,
+//        KNearestNeighborsQuery.QueryOptions.Exact(options),
+//        KNearestNeighborsQuery.QueryVector.Indexed(vector)
+//      ))
+//
+//  def knnQuery(options: ExactQueryOptions, vector: ElastiKnnVector, useInMemoryCache: Boolean = false): CustomQuery =
+//    knnQuery(
+//      elastiknn.KNearestNeighborsQuery(
+//        useInMemoryCache,
+//        KNearestNeighborsQuery.QueryOptions.Exact(options),
+//        KNearestNeighborsQuery.QueryVector.Given(vector)
+//      ))
+//
+//  def knnQuery(options: KNearestNeighborsQuery.QueryOptions,
+//               vector: KNearestNeighborsQuery.QueryVector,
+//               useInMemoryCache: Boolean = false): CustomQuery =
+//    knnQuery(elastiknn.KNearestNeighborsQuery(useInMemoryCache, options, vector))
 
   def scriptScoreQuery(script: Script, filter: Option[Query] = None): CustomQuery =
     () =>

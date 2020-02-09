@@ -91,4 +91,8 @@ message KNearestNeighborsQuery {
         ElastiKnnVector given = 3;
         IndexedQueryVector indexed = 4;
     }
+
+    // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
+    // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
+    bool use_in_memory_cache = 5;
 }

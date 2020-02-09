@@ -73,17 +73,24 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     execute(bulk(withIds).refresh(refresh))
   }
 
-  def knnQuery(index: String, options: ExactQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
+  def knnQuery[O: ConvertsToQueryOptions, V: ConvertsToQueryVector](index: String,
+                                                                    options: O,
+                                                                    vector: V,
+                                                                    k: Int,
+                                                                    useInMemoryCache: Boolean = false): Future[SearchResponse] =
+    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector, useInMemoryCache)).size(k))
 
-  def knnQuery(index: String, options: ExactQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
-
-  def knnQuery(index: String, options: LshQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Given(vector))).size(k))
-
-  def knnQuery(index: String, options: LshQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Indexed(vector))).size(k))
+//  def knnQuery(index: String, options: ExactQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
+//    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
+//
+//  def knnQuery(index: String, options: ExactQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
+//    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
+//
+//  def knnQuery(index: String, options: LshQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
+//    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Given(vector))).size(k))
+//
+//  def knnQuery(index: String, options: LshQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
+//    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Indexed(vector))).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }
