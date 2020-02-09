@@ -35,6 +35,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         self._algorithm_params = algorithm_params
         self._index = index
         self._n_jobs = n_jobs
+        self._tpex = ThreadPoolExecutor(self._n_jobs)
         self._field_proc = "vec_proc"
         self._dataset_index_key = "dataset_index"
         self._logger = Logger(self.__class__.__name__)
@@ -107,9 +108,8 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             n_neighbors = self.n_neighbors
         qopts = self._query_opts()
         futures = []
-        with ThreadPoolExecutor(self._n_jobs) as tpex:
-            for x in X:
-                futures.append(tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key]))
+        for x in X:
+            futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key]))
         indices, dists = np.zeros((len(X), n_neighbors), dtype=np.uint32), np.zeros((len(X), n_neighbors), dtype=np.float)
         wait(futures) # To ensure same order.
         for i, future in enumerate(futures):
