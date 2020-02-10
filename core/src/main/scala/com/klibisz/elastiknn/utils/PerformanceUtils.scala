@@ -1,18 +1,18 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.utils
 
 import scala.annotation.tailrec
 import scala.util.Try
 
-package object utils {
+trait PerformanceUtils {
 
   @tailrec
-  private[elastiknn] def fastfor(i: Int, pred: Int => Boolean, inc: Int => Int)(f: Int => Unit): Unit =
+  final def fastfor(i: Int, pred: Int => Boolean, inc: Int => Int)(f: Int => Unit): Unit =
     if (pred(i)) {
       f(i)
       fastfor(inc(i), pred, inc)(f)
     } else ()
 
-  private[elastiknn] def fastfor(i: Int, pred: Int => Boolean)(f: Int => Unit): Unit = fastfor(i, pred, _ + 1)(f)
+  final def fastfor(i: Int, pred: Int => Boolean)(f: Int => Unit): Unit = fastfor(i, pred, _ + 1)(f)
 
   private def unsortedException(little: Int, big: Int): Unit =
     throw new IllegalArgumentException(s"Called on unsorted array: $little came after $big")
@@ -43,3 +43,5 @@ package object utils {
   }
 
 }
+
+object PerformanceUtils extends PerformanceUtils

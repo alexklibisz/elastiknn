@@ -1,8 +1,7 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, IndexedQueryVector}
-import com.klibisz.elastiknn.{ElastiKnnVector, KNearestNeighborsQuery}
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.BasicField
@@ -52,75 +51,30 @@ object ElastiKnnDsl {
     }
   }
 
-  def indexVector(index: String,
-                  rawField: String,
-                  vector: ElastiKnnVector,
-                  id: Option[String] = None,
-                  pipeline: Option[String] = None): IndexRequest = {
-    val xcb = XContentFactory.jsonBuilder
-      .rawField(rawField, JsonFormat.toJsonString(vector))
+  def indexVector[V: ElastiKnnVectorLike](index: String,
+                                          rawField: String,
+                                          vector: V,
+                                          id: Option[String] = None,
+                                          pipeline: Option[String] = None): IndexRequest = {
+    val ekv = implicitly[ElastiKnnVectorLike[V]].apply(vector)
+    val xcb = XContentFactory.jsonBuilder.rawField(rawField, JsonFormat.toJsonString(ekv))
     IndexRequest(index, source = Some(xcb.string()), id = id, pipeline = pipeline)
   }
 
-  private def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery =
+  def knnQuery(knnq: KNearestNeighborsQuery): CustomQuery =
     () => {
       val json = JsonFormat.toJsonString(knnq)
       XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
     }
 
-  trait ConvertsToQueryVector[T] {
-    def apply(t: T): KNearestNeighborsQuery.QueryVector
-  }
-
-  object ConvertsToQueryVector {
-    implicit val id: ConvertsToQueryVector[KNearestNeighborsQuery.QueryVector] = (t: KNearestNeighborsQuery.QueryVector) => t
-    implicit val ekv: ConvertsToQueryVector[ElastiKnnVector] = (t: ElastiKnnVector) => KNearestNeighborsQuery.QueryVector.Given(t)
-    implicit val idx: ConvertsToQueryVector[IndexedQueryVector] = (t: IndexedQueryVector) => KNearestNeighborsQuery.QueryVector.Indexed(t)
-
-  }
-
-  trait ConvertsToQueryOptions[T] {
-    def apply(t: T): KNearestNeighborsQuery.QueryOptions
-  }
-
-  object ConvertsToQueryOptions {
-    implicit val id: ConvertsToQueryOptions[KNearestNeighborsQuery.QueryOptions] = (t: KNearestNeighborsQuery.QueryOptions) => t
-    implicit val exact: ConvertsToQueryOptions[KNearestNeighborsQuery.ExactQueryOptions] = (t: KNearestNeighborsQuery.ExactQueryOptions) =>
-      KNearestNeighborsQuery.QueryOptions.Exact(t)
-    implicit val lsh: ConvertsToQueryOptions[KNearestNeighborsQuery.LshQueryOptions] = (t: KNearestNeighborsQuery.LshQueryOptions) =>
-      KNearestNeighborsQuery.QueryOptions.Lsh(t)
-
-  }
-
-  def knnQuery[O: ConvertsToQueryOptions, V: ConvertsToQueryVector](options: O, vector: V, useInMemoryCache: Boolean = false): CustomQuery =
+  def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](options: O, vector: V, useInMemoryCache: Boolean = false): CustomQuery =
     knnQuery(
-      elastiknn.KNearestNeighborsQuery(
-        useInMemoryCache,
-        implicitly[ConvertsToQueryOptions[O]].apply(options),
-        implicitly[ConvertsToQueryVector[V]].apply(vector)
+      KNearestNeighborsQuery(
+        implicitly[QueryOptionsLike[O]].apply(options),
+        implicitly[QueryVectorLike[V]].apply(vector),
+        useInMemoryCache
       )
     )
-
-//  def knnQuery(options: ExactQueryOptions, vector: IndexedQueryVector, useInMemoryCache: Boolean = false): CustomQuery =
-//    knnQuery(
-//      elastiknn.KNearestNeighborsQuery(
-//        useInMemoryCache,
-//        KNearestNeighborsQuery.QueryOptions.Exact(options),
-//        KNearestNeighborsQuery.QueryVector.Indexed(vector)
-//      ))
-//
-//  def knnQuery(options: ExactQueryOptions, vector: ElastiKnnVector, useInMemoryCache: Boolean = false): CustomQuery =
-//    knnQuery(
-//      elastiknn.KNearestNeighborsQuery(
-//        useInMemoryCache,
-//        KNearestNeighborsQuery.QueryOptions.Exact(options),
-//        KNearestNeighborsQuery.QueryVector.Given(vector)
-//      ))
-//
-//  def knnQuery(options: KNearestNeighborsQuery.QueryOptions,
-//               vector: KNearestNeighborsQuery.QueryVector,
-//               useInMemoryCache: Boolean = false): CustomQuery =
-//    knnQuery(elastiknn.KNearestNeighborsQuery(useInMemoryCache, options, vector))
 
   def scriptScoreQuery(script: Script, filter: Option[Query] = None): CustomQuery =
     () =>

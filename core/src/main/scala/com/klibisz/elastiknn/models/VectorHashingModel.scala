@@ -3,10 +3,10 @@ package com.klibisz.elastiknn.models
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import io.circe._
 import io.circe.syntax._
-import com.klibisz.elastiknn.utils.fastfor
+import com.klibisz.elastiknn.utils.PerformanceUtils._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
-import com.klibisz.elastiknn.Similarity.{SIMILARITY_ANGULAR, SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.Similarity._
+import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, SparseBoolVector, _}
 
 import scala.util._
@@ -16,9 +16,9 @@ object ExactModel {
   import com.klibisz.elastiknn.ElastiKnnVector.Vector.{FloatVector, SparseBoolVector}
 
   def apply(popts: ProcessorOptions, mopts: ExactModelOptions, vec: ElastiKnnVector): Try[Unit] = (mopts.similarity, vec) match {
-    case (SIMILARITY_ANGULAR | SIMILARITY_L1 | SIMILARITY_L2, ElastiKnnVector(FloatVector(fv))) =>
+    case (SIMILARITY_ANGULAR | SIMILARITY_L1 | SIMILARITY_L2, ElastiKnnVector(FloatVector(fv), _)) =>
       if (fv.values.length == popts.dimension) Success(()) else Failure(VectorDimensionException(fv.values.length, popts.dimension))
-    case (SIMILARITY_HAMMING | SIMILARITY_JACCARD, ElastiKnnVector(SparseBoolVector(sbv))) =>
+    case (SIMILARITY_HAMMING | SIMILARITY_JACCARD, ElastiKnnVector(SparseBoolVector(sbv), _)) =>
       if (sbv.totalIndices == popts.dimension) Success(()) else Failure(VectorDimensionException(sbv.totalIndices, popts.dimension))
     case _ => Failure(SimilarityAndTypeException(mopts.similarity, vec))
   }
@@ -77,8 +77,8 @@ class JaccardLshModel(opts: JaccardLshOptions) {
     }
 
   def hash(vec: ElastiKnnVector): Try[Map[String, String]] = vec match {
-    case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(hash(sbv))
-    case _                                                             => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
+    case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv), _) => Success(hash(sbv))
+    case _                                                                => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
   }
 }
 

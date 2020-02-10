@@ -8,7 +8,7 @@ import io.circe.{Encoder, Json}
 
 import scala.collection.JavaConverters._
 
-object CirceUtils {
+trait CirceUtils {
 
   // This is a hack around not being able to figure out XContentParser and the related garbage for Json parsing.
   implicit def objectEncoder: Encoder[Object] = {
@@ -38,3 +38,5 @@ object CirceUtils {
   }
 
 }
+
+object CirceUtils extends CirceUtils

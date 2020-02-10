@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.utils.{fastfor, sortedIntersectionCount}
+import com.klibisz.elastiknn.utils.PerformanceUtils._
 import com.klibisz.elastiknn._
 
 import scala.util.{Failure, Success, Try}

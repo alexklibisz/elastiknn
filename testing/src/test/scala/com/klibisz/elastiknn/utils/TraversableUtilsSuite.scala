@@ -4,7 +4,7 @@ import org.scalatest.{FunSpec, Matchers}
 
 import scala.util.Random
 
-class TraversableImplicitsSuite extends FunSpec with Matchers with Implicits {
+class TraversableUtilsSuite extends FunSpec with Matchers with TraversableUtils {
 
   val rng = new Random(0)
   val ints: Seq[Int] = (0 until 1000).map(_ => rng.nextInt(Int.MaxValue))

@@ -2,20 +2,19 @@ package com.klibisz.elastiknn.processor
 
 import java.util
 
+import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.models.VectorHashingModel
+import com.klibisz.elastiknn.utils.CirceUtils
+import com.klibisz.elastiknn.utils.Utils._
 import io.circe.Json
 import io.circe.syntax._
 import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
-import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.models.VectorHashingModel
-import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.utils.Implicits._
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
 import scala.util.{Failure, Try}
 
-class IngestProcessor private (tag: String, popts: ProcessorOptions) extends AbstractProcessor(tag) {
+class IngestProcessor private (tag: String, popts: ProcessorOptions) extends AbstractProcessor(tag) with CirceUtils {
 
   import popts._
 

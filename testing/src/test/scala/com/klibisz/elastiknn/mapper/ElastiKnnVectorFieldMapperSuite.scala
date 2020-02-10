@@ -6,7 +6,7 @@ import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
 import com.sksamuel.elastic4s.requests.mappings.BasicField
 import com.sksamuel.elastic4s.{Indexes, Response, requests}
 import io.circe.parser._
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.client.ElastiKnnDsl._
 import com.klibisz.elastiknn.{ElasticAsyncClient, SparseBoolVector, _}
 import org.scalatest._

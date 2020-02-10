@@ -17,9 +17,12 @@ enum Similarity {
 message ProcessorOptions {
     // Path to the field where the raw vector is stored.
     string field_raw = 1;
+
     // Dimensionality of the raw floating-point vector.
     uint32 dimension = 2;
+
     // The model options which will determine how the vector gets preprocessed and stored.
+    // TODO: switch to sealed oneof. It simplifies the scala code a lot and doesn't really affect the other langs.
     oneof model_options {
         ExactModelOptions exact = 3;
         JaccardLshOptions jaccard = 4;
@@ -52,6 +55,7 @@ message SparseBoolVector {
 
 // Generic representation of a vector.
 message ElastiKnnVector {
+    // TODO: switch to sealed oneof. It simplifies the scala code a lot and doesn't really affect the other langs.
     oneof vector {
         FloatVector float_vector = 1;
         SparseBoolVector sparse_bool_vector = 2;
@@ -82,11 +86,13 @@ message KNearestNeighborsQuery {
         string id = 3;
     }
 
+    // Options defining how the exact or LSH query should be executed.
     oneof query_options {
         ExactQueryOptions exact = 1;
         LshQueryOptions lsh = 2;
     }
 
+    // The query vector, either given explicitly or as a reference to an already-indexed vector.
     oneof query_vector {
         ElastiKnnVector given = 3;
         IndexedQueryVector indexed = 4;
@@ -94,5 +100,6 @@ message KNearestNeighborsQuery {
 
     // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
     // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
+    // TODO: why is this places _before_ the other members in the generated case class?
     bool use_in_memory_cache = 5;
 }

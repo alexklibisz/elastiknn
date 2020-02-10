@@ -1,17 +1,14 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{IndexedQueryVector, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.{ProcessorOptions, _}
+import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy.Immediate
 import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import io.circe.parser.decode
-import com.klibisz.elastiknn.ProcessorOptions
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.client.ElastiKnnClient
 import org.scalatest.{Assertion, AsyncTestSuite}
 
 import scala.concurrent.Future
@@ -66,8 +63,8 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
         numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           queryOptions match {
-            case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q.vector, numHits).map(r => q -> r)
-            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q.vector, numHits).map(r => q -> r)
+            case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q, numHits).map(r => q -> r)
+            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q, numHits).map(r => q -> r)
             case _                        => Future.failed(illArgEx("query options must be exact or lsh"))
           }
         })
@@ -79,7 +76,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
         testData <- setupIndexCorpus
         numHits <- numHits.map(_ + testData.queries.length + 1)
         queryIds = testData.queries.indices.map(queryId)
-        _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.queries.map(_.vector), ids = Some(queryIds), Immediate)
+        _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.queries, ids = Some(queryIds), Immediate)
         queriesAndResponses <- Future.sequence(testData.queries.zipWithIndex.map {
           case (q, i) =>
             val iqv = IndexedQueryVector(index, rawField, queryId(i))

@@ -6,7 +6,7 @@ import scalapb.{GeneratedMessage, GeneratedMessageCompanion, Message}
 
 import scala.collection.JavaConverters._
 
-trait ProtobufImplicits {
+trait ProtobufUtils {
 
   // Also tried using java.util.Base64 but found it caused a lot more GC.
   private lazy val b64 = BaseEncoding.base64
@@ -42,10 +42,10 @@ trait ProtobufImplicits {
 
   }
 
-  implicit class GeneratedCompanionImplicits[M <: GeneratedMessage with Message[M]](cmp: GeneratedMessageCompanion[M]) {
+  implicit class GeneratedCompanionImplicits[M <: GeneratedMessage](cmp: GeneratedMessageCompanion[M]) {
     def parseBase64(s: String): M = cmp.parseFrom(b64.decode(s))
   }
 
 }
 
-object ProtobufImplicits extends ProtobufImplicits
+object ProtobufUtils extends ProtobufUtils

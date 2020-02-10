@@ -4,7 +4,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.language.higherKinds
 import scala.util.{Failure, Success, Try}
 
-trait TryImplicits {
+trait TryUtils {
 
   implicit class TraversableOnceOfTry[A, M[X] <: TraversableOnce[X]](trv: M[Try[A]]) {
 
@@ -25,3 +25,5 @@ trait TryImplicits {
   }
 
 }
+
+object TryUtils extends TryUtils

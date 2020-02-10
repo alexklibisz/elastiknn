@@ -8,8 +8,7 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper.FieldData
 import com.klibisz.elastiknn.models.VectorHashingModel
-import com.klibisz.elastiknn.utils.CirceUtils._
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, _}
 import io.circe.parser._
 import io.circe.syntax._
