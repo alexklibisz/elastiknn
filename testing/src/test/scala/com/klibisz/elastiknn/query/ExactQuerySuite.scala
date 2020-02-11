@@ -2,11 +2,8 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
 import org.scalatest._
-
-import scala.concurrent.Future
 
 /**
   * Tests for the exact query functionality, using test data generated via Python and scikit-learn.
