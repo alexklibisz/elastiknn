@@ -1,10 +1,14 @@
 package com.klibisz.elastiknn.utils
 
-object Utils
-    extends ModelOptionsUtils
-    with TryUtils
+trait Utils
+    extends CirceUtils
+    with ElastiKnnVectorUtils
+    with KNearestNeighborsQueryUtils
+    with ModelOptionsUtils
+    with PerformanceUtils
     with ProtobufUtils
     with SparseBoolVectorUtils
-    with ElastiKnnVectorUtils
     with TraversableUtils
-    with CirceUtils
+    with TryUtils
+
+object Utils extends Utils

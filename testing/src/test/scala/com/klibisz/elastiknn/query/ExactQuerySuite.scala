@@ -28,15 +28,15 @@ class ExactQuerySuite
     test(s"parsing test data for $dim-dimensional $sim") {
       for (testData <- Future.fromTry(readTestData(sim, dim))) yield {
         forAll(testData.corpus.silent) {
-          case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv), _)       => fv.values should have length dim
-          case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv), _) => sbv.totalIndices shouldBe dim
-          case _                                                                => Assertions.fail()
+          case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
+          case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
+          case _                                                             => Assertions.fail()
         }
         forAll(testData.queries.silent) {
           _.vector match {
-            case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv), _)       => fv.values should have length dim
-            case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv), _) => sbv.totalIndices shouldBe dim
-            case _                                                                => Assertions.fail()
+            case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
+            case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
+            case _                                                             => Assertions.fail()
           }
         }
       }

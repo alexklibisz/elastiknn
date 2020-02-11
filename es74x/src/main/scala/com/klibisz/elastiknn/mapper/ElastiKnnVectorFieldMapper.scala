@@ -164,7 +164,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     val json = context.parser.map.asJson(javaMapEncoder)
     val ekv = JsonFormat.fromJson[ElastiKnnVector](json) match {
       // Make sure that sparse vector indices are sorted. TODO: test this validation.
-      case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv), _) =>
+      case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
         ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
       case other => other
     }

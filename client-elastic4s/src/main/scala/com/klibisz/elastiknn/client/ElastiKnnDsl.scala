@@ -70,9 +70,9 @@ object ElastiKnnDsl {
   def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](options: O, vector: V, useInMemoryCache: Boolean = false): CustomQuery =
     knnQuery(
       KNearestNeighborsQuery(
+        useInMemoryCache,
         implicitly[QueryOptionsLike[O]].apply(options),
-        implicitly[QueryVectorLike[V]].apply(vector),
-        useInMemoryCache
+        implicitly[QueryVectorLike[V]].apply(vector)
       )
     )
 

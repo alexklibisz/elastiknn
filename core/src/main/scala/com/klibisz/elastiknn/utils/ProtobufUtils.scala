@@ -42,7 +42,7 @@ trait ProtobufUtils {
 
   }
 
-  implicit class GeneratedCompanionImplicits[M <: GeneratedMessage](cmp: GeneratedMessageCompanion[M]) {
+  implicit class GeneratedCompanionImplicits[M <: GeneratedMessage with Message[M]](cmp: GeneratedMessageCompanion[M]) {
     def parseBase64(s: String): M = cmp.parseFrom(b64.decode(s))
   }
 
