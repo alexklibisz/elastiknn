@@ -6,6 +6,7 @@ import scalapb.GeneratedMessageCompanion
 trait KNearestNeighborsQueryUtils {
 
   implicit class KNearestNeighborsQueryCompanionImplicits(cmp: GeneratedMessageCompanion[KNearestNeighborsQuery]) {
+    // TODO: switch to newer version of scalapb (>= 0.10.0) once scalapb circe has caught up.
     def apply(
         queryOptions: com.klibisz.elastiknn.KNearestNeighborsQuery.QueryOptions =
           com.klibisz.elastiknn.KNearestNeighborsQuery.QueryOptions.Empty,
