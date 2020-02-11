@@ -70,7 +70,8 @@ class ElastiKnnClient(object):
                   options: Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions],
                   vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector],
                   n_neighbors: int = 10,
-                  source: List[str] = None):
+                  source: List[str] = None,
+                  use_cache: bool = False):
         exact, lsh, given, indexed = None, None, None, None
         if isinstance(options, KNearestNeighborsQuery.ExactQueryOptions):
             exact = options
@@ -80,7 +81,7 @@ class ElastiKnnClient(object):
             given = vector
         elif isinstance(vector, KNearestNeighborsQuery.IndexedQueryVector):
             indexed = vector
-        query = KNearestNeighborsQuery(exact=exact, lsh=lsh, given=given, indexed=indexed)
+        query = KNearestNeighborsQuery(exact=exact, lsh=lsh, given=given, indexed=indexed, use_cache=use_cache)
         body = dict(query=dict(elastiknn_knn=MessageToDict(query)))
         if source:
             body["_source"] = source

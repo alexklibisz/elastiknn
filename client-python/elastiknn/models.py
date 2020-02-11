@@ -102,7 +102,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         return self
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]] = None,
-                   n_neighbors: int = None, return_distance: bool = True) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+                   n_neighbors: int = None, return_distance: bool = True, use_cache: bool = False) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         X = list(canonical_vectors_to_elastiknn(X))
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
