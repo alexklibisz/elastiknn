@@ -69,9 +69,9 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQ
       case QueryVector.Given(elastiKnnVector) =>
         query.queryOptions match {
           case QueryOptions.Lsh(lshQueryOptions) =>
-            KnnLshQueryBuilder.rewrite(context, lshQueryOptions, ensureSorted(elastiKnnVector), query.useInMemoryCache)
+            KnnLshQueryBuilder.rewrite(context, lshQueryOptions, ensureSorted(elastiKnnVector), query.useCache)
           case QueryOptions.Exact(exactQueryOptions) =>
-            new KnnExactQueryBuilder(exactQueryOptions, ensureSorted(elastiKnnVector), query.useInMemoryCache)
+            new KnnExactQueryBuilder(exactQueryOptions, ensureSorted(elastiKnnVector), query.useCache)
           case QueryOptions.Empty => throw illArgEx("Query options cannot be empty")
         }
       case QueryVector.Empty => throw illArgEx("Query vector cannot be empty")
@@ -150,7 +150,7 @@ object KnnExactQueryBuilder {
 
 }
 
-final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVector: ElastiKnnVector, useInMemoryCache: Boolean)
+final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVector: ElastiKnnVector, useCache: Boolean)
     extends AbstractQueryBuilder[KnnExactQueryBuilder] {
 
   import exactQueryOptions._
@@ -161,13 +161,13 @@ final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVect
     val subQuery: Query = defaultSubQuery.toQuery(context)
     val fieldType: MappedFieldType = context.getMapperService.fullName(fieldRaw)
     val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
-    new FunctionScoreQuery(subQuery, KnnExactScoreFunction(similarity, queryVector, fieldData, useInMemoryCache))
+    new FunctionScoreQuery(subQuery, KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(exactQueryOptions.toBase64)
     out.writeString(queryVector.toBase64)
-    out.writeBoolean(useInMemoryCache)
+    out.writeBoolean(useCache)
   }
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -212,9 +212,9 @@ object KnnLshQueryBuilder {
   def rewrite(context: QueryRewriteContext,
               lshQueryOptions: LshQueryOptions,
               queryVector: ElastiKnnVector,
-              useInMemoryCache: Boolean): QueryBuilder = {
+              useCache: Boolean): QueryBuilder = {
     val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
-    if (cached != null) KnnLshQueryBuilder(cached, queryVector, useInMemoryCache)
+    if (cached != null) KnnLshQueryBuilder(cached, queryVector, useCache)
     else {
       // Put all the sketchy stuff in one place.
       def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
@@ -245,7 +245,7 @@ object KnnLshQueryBuilder {
           new ActionListener[GetPipelineResponse] {
             override def onResponse(response: GetPipelineResponse): Unit = {
               val procOpts = parseResponse(response).get
-              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, useInMemoryCache))
+              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, useCache))
               processorOptionsCache.put(lshQueryOptions, procOpts)
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             }
@@ -262,14 +262,14 @@ object KnnLshQueryBuilder {
     * Otherwise it would have to be hashed inside the [[KnnLshQueryBuilder]], which could happen on each node.
     * @return
     */
-  def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector, useInMemoryCache: Boolean): KnnLshQueryBuilder = {
+  def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector, useCache: Boolean): KnnLshQueryBuilder = {
     val hashed = VectorHashingModel
       .hash(processorOptions, queryVector)
       .recover {
         case t: Throwable => throw illArgEx(s"$queryVector could not be hashed", Some(t))
       }
       .get
-    new KnnLshQueryBuilder(processorOptions, queryVector, hashed, useInMemoryCache)
+    new KnnLshQueryBuilder(processorOptions, queryVector, hashed, useCache)
   }
 
 }
@@ -277,14 +277,14 @@ object KnnLshQueryBuilder {
 final class KnnLshQueryBuilder private (processorOptions: ProcessorOptions,
                                         queryVector: ElastiKnnVector,
                                         hashed: Map[String, String],
-                                        useInMemoryCache: Boolean)
+                                        useCache: Boolean)
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(processorOptions.toBase64)
     out.writeString(queryVector.toBase64)
     out.writeString(hashed.asJson.noSpaces)
-    out.writeBoolean(useInMemoryCache)
+    out.writeBoolean(useCache)
   }
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -317,14 +317,14 @@ final class KnnLshQueryBuilder private (processorOptions: ProcessorOptions,
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
       val fieldData: FieldData = context.getForField(fieldType)
-      new FunctionScoreQuery(boolQuery.toQuery(context), KnnExactScoreFunction(similarity, queryVector, fieldData, useInMemoryCache))
+      new FunctionScoreQuery(boolQuery.toQuery(context), KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
     }
     queryTry.get
   }
 
   def doEquals(other: KnnLshQueryBuilder): Boolean = this.hashCode() == other.hashCode()
 
-  def doHashCode(): Int = (processorOptions, queryVector, hashed, useInMemoryCache).hashCode()
+  def doHashCode(): Int = (processorOptions, queryVector, hashed, useCache).hashCode()
 
   def getWriteableName: String = KnnLshQueryBuilder.NAME
 }

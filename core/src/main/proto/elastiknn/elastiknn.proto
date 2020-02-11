@@ -100,6 +100,5 @@ message KNearestNeighborsQuery {
 
     // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
     // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
-    // TODO: why is this places _before_ the other members in the generated case class?
-    bool use_in_memory_cache = 5;
+    bool use_cache = 5;
 }

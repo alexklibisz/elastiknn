@@ -57,21 +57,22 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
       yield testData.queries.head.similarities.length
 
     /** Runs a test for queries which just take an [[ElastiKnnVector]]. Passes the query and response to an assertion. */
-    def testGiven(queryOptions: QueryOptions)(fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
+    def testGiven(queryOptions: QueryOptions, useCache: Boolean)(fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
       for {
         testData <- setupIndexCorpus
         numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           queryOptions match {
-            case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q, numHits).map(r => q -> r)
-            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q, numHits).map(r => q -> r)
+            case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
+            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
             case _                        => Future.failed(illArgEx("query options must be exact or lsh"))
           }
         })
       } yield fun(queriesResponses)
 
     /** Run tests for queries which take an [[IndexedQueryVector]]. Passes the query, query vector ID, and response to an assertion. */
-    def testIndexed(queryOptions: QueryOptions)(fun: Seq[(Query, String, SearchResponse)] => Assertion): Future[Assertion] =
+    def testIndexed(queryOptions: QueryOptions, useCache: Boolean)(
+        fun: Seq[(Query, String, SearchResponse)] => Assertion): Future[Assertion] =
       for {
         testData <- setupIndexCorpus
         numHits <- numHits.map(_ + testData.queries.length + 1)
@@ -82,9 +83,9 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
             val iqv = IndexedQueryVector(index, rawField, queryId(i))
             queryOptions match {
               case QueryOptions.Exact(opts) =>
-                eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
+                eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))
               case QueryOptions.Lsh(opts) =>
-                eknn.knnQuery(index, opts, iqv, numHits).map(r => (q, queryId(i), r))
+                eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))
               case _ => ???
             }
         })

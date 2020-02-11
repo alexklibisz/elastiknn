@@ -22,30 +22,14 @@ class ExactQuerySuite
 
   for {
     sim <- Similarity.values
-    dim <- Seq(10, 128, 512)
+    dim <- testDataDims
+    cache <- Seq(true, false)
   } yield {
-
-    test(s"parsing test data for $dim-dimensional $sim") {
-      for (testData <- Future.fromTry(readTestData(sim, dim))) yield {
-        forAll(testData.corpus.silent) {
-          case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
-          case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
-          case _                                                             => Assertions.fail()
-        }
-        forAll(testData.queries.silent) {
-          _.vector match {
-            case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => fv.values should have length dim
-            case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => sbv.totalIndices shouldBe dim
-            case _                                                             => Assertions.fail()
-          }
-        }
-      }
-    }
 
     val support = new Support("vec_raw", sim, dim, ModelOptions.Exact(ExactModelOptions(sim)))
 
-    test(s"exact $dim-dimensional ${sim.name} search given a vector") {
-      support.testGiven(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
+    test(s"$dim, ${sim.name}, $cache, given") {
+      support.testGiven(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim)), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, res) =>
             res.hits.hits should have length query.similarities.length
@@ -57,8 +41,8 @@ class ExactQuerySuite
       }
     }
 
-    test(s"exact $dim-dimensional ${sim.name} search with an indexed vector") {
-      support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim))) { queriesAndResults =>
+    test(s"$dim, ${sim.name}, $cache, indexed") {
+      support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim)), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, id, res) =>
             val hits = res.hits.hits
