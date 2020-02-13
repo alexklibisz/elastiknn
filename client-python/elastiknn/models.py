@@ -109,7 +109,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         qopts = self._query_opts()
         futures = []
         for x in X:
-            futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key]))
+            futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key], use_cache))
         indices, dists = np.zeros((len(X), n_neighbors), dtype=np.uint32), np.zeros((len(X), n_neighbors), dtype=np.float)
         wait(futures) # To ensure same order.
         for i, future in enumerate(futures):
