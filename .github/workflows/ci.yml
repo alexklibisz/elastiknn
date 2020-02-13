@@ -31,6 +31,10 @@ jobs:
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
       run: ./.github/scripts/setup-secrets.sh
+    - name: Why is python broken?
+      run: |
+        python3 --version
+        python3 -m pip install virtualenv
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
