@@ -150,7 +150,7 @@ object KnnExactQueryBuilder {
 
 }
 
-final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVector: ElastiKnnVector, useCache: Boolean)
+final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val queryVector: ElastiKnnVector, val useCache: Boolean)
     extends AbstractQueryBuilder[KnnExactQueryBuilder] {
 
   import exactQueryOptions._
@@ -161,7 +161,7 @@ final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVect
     val subQuery: Query = defaultSubQuery.toQuery(context)
     val fieldType: MappedFieldType = context.getMapperService.fullName(fieldRaw)
     val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
-    new FunctionScoreQuery(subQuery, KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
+    new FunctionScoreQuery(subQuery, new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
@@ -172,9 +172,12 @@ final class KnnExactQueryBuilder(exactQueryOptions: ExactQueryOptions, queryVect
 
   def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  def doEquals(other: KnnExactQueryBuilder): Boolean = this.hashCode() == other.hashCode()
+  def doEquals(that: KnnExactQueryBuilder): Boolean =
+    this.exactQueryOptions == that.exactQueryOptions &&
+      this.queryVector == that.queryVector &&
+      this.useCache == that.useCache
 
-  def doHashCode(): Int = this.hashCode()
+  def doHashCode(): Int = Objects.hash(exactQueryOptions, queryVector, useCache.asInstanceOf[AnyRef])
 
   def getWriteableName: String = KnnExactQueryBuilder.NAME
 }
@@ -274,10 +277,10 @@ object KnnLshQueryBuilder {
 
 }
 
-final class KnnLshQueryBuilder private (processorOptions: ProcessorOptions,
-                                        queryVector: ElastiKnnVector,
-                                        hashed: Map[String, String],
-                                        useCache: Boolean)
+final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
+                               val queryVector: ElastiKnnVector,
+                               val hashed: Map[String, String],
+                               val useCache: Boolean)
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
@@ -317,14 +320,18 @@ final class KnnLshQueryBuilder private (processorOptions: ProcessorOptions,
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
       val fieldData: FieldData = context.getForField(fieldType)
-      new FunctionScoreQuery(boolQuery.toQuery(context), KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
+      new FunctionScoreQuery(boolQuery.toQuery(context), new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
     }
     queryTry.get
   }
 
-  def doEquals(other: KnnLshQueryBuilder): Boolean = this.hashCode() == other.hashCode()
+  def doEquals(that: KnnLshQueryBuilder): Boolean =
+    this.processorOptions == that.processorOptions &&
+      this.queryVector == that.queryVector &&
+      this.hashed == that.hashed &&
+      this.useCache == that.useCache
 
-  def doHashCode(): Int = (processorOptions, queryVector, hashed, useCache).hashCode()
+  def doHashCode(): Int = Objects.hash(processorOptions, queryVector, hashed, useCache.asInstanceOf[AnyRef])
 
   def getWriteableName: String = KnnLshQueryBuilder.NAME
 }

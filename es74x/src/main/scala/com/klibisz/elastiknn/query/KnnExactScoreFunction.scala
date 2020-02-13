@@ -15,12 +15,12 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafSco
   * @param similarity The similarity function to use.
   * @param fieldData Object providing access to stored ElastiKnnVectors.
   * @param queryVector The query vector.
-  * @param useInMemoryCache Use a cache keyed on leaf reader context and doc id to avoid re-parsing vectors.
+  * @param useCache Use a cache keyed on leaf reader context and doc id to avoid re-parsing vectors.
   */
-case class KnnExactScoreFunction(similarity: Similarity,
-                                 queryVector: ElastiKnnVector,
-                                 fieldData: ElastiKnnVectorFieldMapper.FieldData,
-                                 useInMemoryCache: Boolean)
+class KnnExactScoreFunction(val similarity: Similarity,
+                            val queryVector: ElastiKnnVector,
+                            val fieldData: ElastiKnnVectorFieldMapper.FieldData,
+                            val useCache: Boolean)
     extends ScoreFunction(CombineFunction.REPLACE) {
 
   import KnnExactScoreFunction.vectorCache
@@ -28,7 +28,7 @@ case class KnnExactScoreFunction(similarity: Similarity,
   override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
     new LeafScoreFunction {
       override def score(docId: Int, subQueryScore: Float): Double = {
-        lazy val storedVector = if (useInMemoryCache) {
+        lazy val storedVector = if (useCache) {
           vectorCache.get((ctx, docId), () => fieldData.load(ctx).getElastiKnnVector(docId).get)
         } else fieldData.load(ctx).getElastiKnnVector(docId).get
         val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
@@ -44,11 +44,15 @@ case class KnnExactScoreFunction(similarity: Similarity,
   override def needsScores(): Boolean = false
 
   override def doEquals(other: ScoreFunction): Boolean = other match {
-    case kesf: KnnExactScoreFunction => this == kesf
-    case _                           => false
+    case that: KnnExactScoreFunction =>
+      this.similarity == that.similarity &&
+        this.queryVector == that.queryVector &&
+        this.fieldData == that.fieldData &&
+        this.useCache == that.useCache
+    case _ => false
   }
 
-  override def doHashCode(): Int = this.hashCode()
+  override def doHashCode(): Int = Objects.hash(similarity, queryVector, fieldData, useCache.asInstanceOf[AnyRef])
 }
 
 object KnnExactScoreFunction {
