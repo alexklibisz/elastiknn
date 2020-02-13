@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
+
+    # Secrets used for publishing.
     - name: Setup Secrets
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
