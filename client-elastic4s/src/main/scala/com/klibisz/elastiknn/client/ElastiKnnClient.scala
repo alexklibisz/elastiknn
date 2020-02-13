@@ -8,11 +8,18 @@ import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Executor, Handler}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
-import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.{ElastiKnnVector, ProcessorOptions}
+import com.klibisz.elastiknn._
 
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+  * Client used to prepare, store, and search vectors using the ElastiKnn plugin.
+  * This uses elastic4s under the hood and is slightly more "opinionated" than the methods in [[ElastiKnnDsl]].
+  * So if you want lower-level methods, see [[ElastiKnnDsl]].
+  *
+  * @param elastic4sClient A client provided by the elastic4s library.
+  * @param executionContext The execution context where [[Future]]s are executed.
+  */
 final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) extends AutoCloseable {
 
   import ElastiKnnDsl._
@@ -47,24 +54,26 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
       ))
 
   /**
-    * Index a set of vectors.
-    * @param index
-    * @param pipelineId
-    * @param rawField
-    * @param vectors
+    * Index a set of vectors. It's better to use this with batches of vectors rather than single vectors.
+    *
+    * @param index The index where vectors are stored.
+    * @param pipelineId The pipeline used to process the vectors. Corresponds to the pipelineId used for [[ElastiKnnClient.createPipeline]].
+    * @param rawField The name of the field where raw vector data is stored in each document.
+    * @param vectors A seq of vector-like objects.
     * @param ids optional list of ids. There should be one per vector, otherwise they'll be ignored.
     * @param refresh if you want to immediately query for the vectors, set this to [[RefreshPolicy.Immediate]].
-    * @return
+    * @tparam V A vector-like type implementing the [[ElastiKnnVectorLike]] typeclass.
+    * @return Returns the elastic4s [[BulkResponse]] resulting from indexing the vectors.
     */
-  def indexVectors(index: String,
-                   pipelineId: String,
-                   rawField: String,
-                   vectors: Seq[ElastiKnnVector],
-                   ids: Option[Seq[String]] = None,
-                   refresh: RefreshPolicy = RefreshPolicy.None): Future[BulkResponse] = {
+  def indexVectors[V: ElastiKnnVectorLike](index: String,
+                                           pipelineId: String,
+                                           rawField: String,
+                                           vectors: Seq[V],
+                                           ids: Option[Seq[String]] = None,
+                                           refresh: RefreshPolicy = RefreshPolicy.None): Future[BulkResponse] = {
     val reqs = vectors.map(v => indexVector(index = index, rawField = rawField, vector = v, pipeline = Some(pipelineId)))
     val withIds: Seq[IndexRequest] = ids match {
-      case Some(idsSeq) if (idsSeq.length == reqs.length) =>
+      case Some(idsSeq) if idsSeq.length == reqs.length =>
         reqs.zip(idsSeq).map {
           case (req, id) => req.id(id)
         }
@@ -73,17 +82,27 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     execute(bulk(withIds).refresh(refresh))
   }
 
-  def knnQuery(index: String, options: ExactQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
-
-  def knnQuery(index: String, options: ExactQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, vector)).size(k))
-
-  def knnQuery(index: String, options: LshQueryOptions, vector: ElastiKnnVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Given(vector))).size(k))
-
-  def knnQuery(index: String, options: LshQueryOptions, vector: IndexedQueryVector, k: Int): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(QueryOptions.Lsh(options), QueryVector.Indexed(vector))).size(k))
+  /**
+    * Run a K-Nearest-Neighbor query.
+    *
+    * @param index The index against which you're searching.
+    * @param options An query-option-like object implementing the [[QueryOptionsLike]] typeclass. This defines some
+    *                elastiknn-specific options about your search request, like whether it's an exact or LSH search.
+    * @param queryVector A query-vector-like object implementing the [[QueryVectorLike]] typeclass. This is typically
+    *                    a vector given explicitly (using [[KNearestNeighborsQuery.QueryVector.Given]] or a reference to
+    *                    an already-indexed vector (using [[KNearestNeighborsQuery.QueryVector.Indexed]].
+    * @param k The number of search hits to return.
+    * @param useInMemoryCache Correspons to [[KNearestNeighborsQuery.useInMemoryCache]].
+    * @tparam O A query-option-like type implementing the [[QueryOptionsLike]] typeclass.
+    * @tparam V A query-vector-like type implementing the [[QueryVectorLike]] typeclass.
+    * @return Returns the elastic4s [[SearchResponse]].
+    */
+  def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](index: String,
+                                                        options: O,
+                                                        queryVector: V,
+                                                        k: Int,
+                                                        useInMemoryCache: Boolean = false): Future[SearchResponse] =
+    execute(search(index).query(ElastiKnnDsl.knnQuery(options, queryVector, useInMemoryCache)).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }
@@ -98,6 +117,6 @@ object ElastiKnnClient {
     new ElastiKnnClient()
   }
 
-  def apply(hostname: String, port: Int)(implicit ec: ExecutionContext): ElastiKnnClient =
+  def apply(hostname: String = "localhost", port: Int = 9200)(implicit ec: ExecutionContext): ElastiKnnClient =
     ElastiKnnClient(new HttpHost(hostname, port))
 }

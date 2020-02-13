@@ -3,10 +3,9 @@ package com.klibisz.elastiknn.models
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import io.circe._
 import io.circe.syntax._
-import com.klibisz.elastiknn.utils.fastfor
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
-import com.klibisz.elastiknn.Similarity.{SIMILARITY_ANGULAR, SIMILARITY_HAMMING, SIMILARITY_JACCARD, SIMILARITY_L1, SIMILARITY_L2}
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.Similarity._
+import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, SparseBoolVector, _}
 
 import scala.util._

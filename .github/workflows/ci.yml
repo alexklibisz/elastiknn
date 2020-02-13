@@ -21,16 +21,53 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
-    - name: Setup Java
-      uses: actions/setup-java@v1
-      with:
-        java-version: 12.0.2
+
+    # Secrets used for publishing.
     - name: Setup Secrets
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
       run: ./.github/scripts/setup-secrets.sh
+
+    # Language Setup
+    - name: Setup Python
+      run: |
+        python3 --version
+        sudo apt-get install -y python3-setuptools
+
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: 12.0.2
+
+    # Caching Setup
+    - name: Cache Gradle
+      uses: actions/cache@v1
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    - name: Cache Pip
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip
+    - name: Cache SBT ivy cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.ivy2/cache
+        key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
+    - name: Cache SBT
+      uses: actions/cache@v1
+      with:
+        path: ~/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+
+    # Actual Build
     - name: Compile JVM
       run: make compile/gradle
     - name: Compile Python
@@ -43,6 +80,8 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
+
+    # Snapshot Releases
     - name: Set Version (PR)
       if: github.event_name == 'pull_request'
       run: |
@@ -68,5 +107,7 @@ jobs:
         cp version-sonatype version
         sudo snap install hub --classic
         make publish/snapshot/plugin
+
+    # Cleanup
     - name: Clean
       run: make clean

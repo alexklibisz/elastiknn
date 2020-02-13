@@ -4,7 +4,7 @@ import org.scalatest.{FunSpec, Matchers}
 
 import scala.util.{Failure, Random, Success}
 
-class PackageObjectSuite extends FunSpec with Matchers {
+class PerformanceUtilsSuite extends FunSpec with Matchers with PerformanceUtils {
 
   describe("sorted intersection count") {
     val rng = new Random(0)

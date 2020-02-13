@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn
 
-import io.circe.{Decoder, DecodingFailure, HCursor}
+import io.circe._
 import io.circe.generic.semiauto._
-import scalapb.{GeneratedMessage, GeneratedMessageCompanion, Message}
+import scalapb._
 import scalapb_circe.JsonFormat
 
 import scala.util.{Failure, Success, Try}
@@ -20,6 +20,7 @@ package object query {
   case class Query(vector: ElastiKnnVector, similarities: Vector[Float], indices: Vector[Int])
   object Query {
     implicit def decQuery: Decoder[Query] = deriveDecoder[Query]
+    implicit val ekvLike: ElastiKnnVectorLike[Query] = (a: Query) => a.vector
   }
 
   case class TestData(corpus: Vector[ElastiKnnVector], queries: Vector[Query])

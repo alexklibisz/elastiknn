@@ -27,12 +27,13 @@ class LshQuerySuite
     sim <- Similarity.values
     opt <- simToOpts(sim)
     dim <- testDataDims
+    useCache <- Seq(true, false)
   } {
 
     val support = new Support("vec_raw", sim, dim, opt)
 
-    test(s"approximate search given vector: ($dim, $sim, $opt)") {
-      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) { queriesAndResponses =>
+    test(s"$dim, $sim, $opt, $useCache, given") {
+      support.testGiven(QueryOptions.Lsh(LshQueryOptions(support.pipelineId)), useCache) { queriesAndResponses =>
         forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
           case (query, res) =>
             res.hits.hits should not be empty
@@ -43,8 +44,8 @@ class LshQuerySuite
       }
     }
 
-    test(s"approximate search with indexed vector: ($dim, $sim, $opt)") {
-      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId))) { queriesAndResponses =>
+    test(s"$dim, $sim, $opt, $useCache, indexed") {
+      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId)), useCache) { queriesAndResponses =>
         forAll(queriesAndResponses.silent) {
           case (_, id, res) =>
             res.hits.hits should not be empty

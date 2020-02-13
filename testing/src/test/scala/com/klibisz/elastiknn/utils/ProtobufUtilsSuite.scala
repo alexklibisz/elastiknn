@@ -4,12 +4,12 @@ import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Jaccard
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
-import com.klibisz.elastiknn.{JaccardLshOptions, KNearestNeighborsQuery, ProcessorOptions}
+import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 
-class ProtobufImplicitsSuite extends FunSuite with Matchers with ProtobufImplicits {
+class ProtobufUtilsSuite extends FunSuite with Matchers with Utils {
 
   test("converting a pb message to a java map") {
 
@@ -46,8 +46,7 @@ class ProtobufImplicitsSuite extends FunSuite with Matchers with ProtobufImplici
   test("query serialization and deserialization") {
     val knnq1 = KNearestNeighborsQuery(QueryOptions.Exact(ExactQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
     val s1 = knnq1.toByteString.toStringUtf8
-    val knnq2 =
-      KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
+    val knnq2 = KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
     knnq2 shouldBe knnq1
   }
 

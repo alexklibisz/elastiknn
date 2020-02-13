@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
-import com.klibisz.elastiknn.utils.Implicits._
+import com.klibisz.elastiknn.utils.Utils._
 import io.circe.syntax._
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._

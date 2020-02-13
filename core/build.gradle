@@ -16,14 +16,15 @@ plugins {
     id 'signing'
 }
 
+
 dependencies {
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
     implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
-    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
-    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:0.5.1"
-    implementation "io.circe:circe-generic_${scalaVersion}:0.12.2"
+    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
+    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
+    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     implementation "com.google.guava:guava:28.1-jre"
     runtime "com.google.guava:guava:28.1-jre"
     implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
@@ -31,11 +32,13 @@ dependencies {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.7.1'
+        artifact = 'com.google.protobuf:protoc:3.10.0'
     }
     plugins {
         scalapb {
-            artifact = "com.thesamet.scalapb:protoc-gen-scalapb:${scalapbVersion}:unix@sh"
+            artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
+                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:windows@bat" :
+                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:unix@sh"
         }
     }
 
