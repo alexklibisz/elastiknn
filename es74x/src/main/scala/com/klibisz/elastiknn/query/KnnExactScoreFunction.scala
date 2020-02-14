@@ -26,11 +26,14 @@ class KnnExactScoreFunction(val similarity: Similarity,
   import KnnExactScoreFunction.vectorCache
 
   override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
+    // This .load call is expensive so it's important to only instantiate once.
+    lazy val atomicFieldData = fieldData.load(ctx)
+
     new LeafScoreFunction {
       override def score(docId: Int, subQueryScore: Float): Double = {
         lazy val storedVector = if (useCache) {
-          vectorCache.get((ctx, docId), () => fieldData.load(ctx).getElastiKnnVector(docId).get)
-        } else fieldData.load(ctx).getElastiKnnVector(docId).get
+          vectorCache.get((ctx, docId), () => atomicFieldData.getElastiKnnVector(docId).get)
+        } else atomicFieldData.getElastiKnnVector(docId).get
         val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
         sim
       }
