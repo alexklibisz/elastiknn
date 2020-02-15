@@ -1,3 +1,10 @@
+- Improved exact Jaccard performance by implementing a critical path in Java so that it uses primitive `int []` arrays instead of boxed integers in scala.
+---
+- Fixed performance regression.
+---
+- Client and core library interface improvements.
+- Added use_cache parameter to KNearestNeighborsQuery which signals that the vectors should only be read once from Lucene and then cached in memory.
+---
 - Releasing versioned python client library to PyPi.
 ---
 - Releasing versioned elastiknn plugin zip file.
