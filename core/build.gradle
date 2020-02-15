@@ -51,6 +51,7 @@ protobuf {
                 scalapb {
                     // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
                     option 'flat_package'
+                    option 'no_lenses'
                 }
             }
         }
