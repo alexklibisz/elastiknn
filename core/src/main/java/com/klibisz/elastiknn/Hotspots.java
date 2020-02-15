@@ -1,5 +1,8 @@
 package com.klibisz.elastiknn;
 
+/**
+ * Java implementations of some particularly performance-critical code paths.
+ */
 public class Hotspots {
 
     private static void unsortedException(int lit, int big) {
