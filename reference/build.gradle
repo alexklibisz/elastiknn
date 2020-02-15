@@ -4,5 +4,4 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation 'org.apache.commons:commons-math3:3.6.1'
     implementation 'org.apache.spark:spark-mllib_2.12:2.4.4'
-    implementation 'com.carrotsearch:hppc:0.8.1'
 }

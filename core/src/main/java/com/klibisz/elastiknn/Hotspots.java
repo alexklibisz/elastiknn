@@ -1,15 +1,12 @@
-package com.klibisz.elastiknn.reference;
+package com.klibisz.elastiknn;
 
-import java.util.Arrays;
-import java.util.Random;
-
-public class BenchmarkSortedIntersectionJava {
+public class Hotspots {
 
     private static void unsortedException(int lit, int big) {
         throw new IllegalArgumentException(String.format("Called on unsorted array: %d came after %d", lit, big));
     }
 
-    private static int sortedIntersectionCount(int [] xs, int [] ys) {
+    public static int sortedIntersectionCount(int [] xs, int [] ys) {
         int n = 0;
         int xi = 0;
         int yi = 0;
@@ -41,34 +38,5 @@ public class BenchmarkSortedIntersectionJava {
         return n;
     }
 
-    public static void main(String[] args) throws InterruptedException {
-
-        Random rng = new Random(0L);
-        int n = 5000000;
-
-        int[] xs = new int[1000];
-        int[] ys = new int[1000];
-
-        for (int i = 0; i < xs.length; i++) {
-            xs[i] = rng.nextInt(10000);
-            ys[i] = rng.nextInt(10000);
-        }
-
-        Arrays.sort(xs);
-        Arrays.sort(ys);
-        System.out.println(sortedIntersectionCount(xs, ys));
-        System.out.println(sortedIntersectionCount(ys, xs));
-
-        Thread.sleep(5000);
-
-        long t0 = System.currentTimeMillis();
-
-        for (int i = 0; i < n; i++) {
-            if (i % 2 == 0) sortedIntersectionCount(xs, ys);
-            else sortedIntersectionCount(ys, xs);
-        }
-
-        System.out.println((System.currentTimeMillis() - t0) / 1000.0);
-    }
 
 }
