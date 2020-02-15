@@ -14,37 +14,49 @@ An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in 
 |Scala 2.12 Client, Release| [![Scala Client Release Status][Badge-Scala-Release]][Link-Scala-Release]|
 |Scala 2.12 Client, Snapshot| [![Scala Client Snapshot Status][Badge-Scala-Snapshot]][Link-Scala-Snapshot]|
 
-## Work in Progress
-
-This project is very much a work-in-progress. I've decided to go ahead and make the repo public since
-some people have expressed interest through emails and LinkedIn messages. 
-
-The "Features" section below is a good picture of my high level goals for this project. As of late January, I've
-completed an ingest processor, custom queries, a custom mapper to store `ElastiKnnVector`s, exact
-similarity queries for all five similarity functions, MinHash LSH for Jaccard similarity, and setup a
-fairly robust testing harness. The testing harness took a surprising amount of work.
-
-If you want to contribute, you'll have to dig around quite a bit for now. The Makefile is a good place to start. 
-Generally speaking, there are several Gradle projects: the plugin (currently on ES 7.4x); a "core" project 
-containing protobuf definitions, models, and some utilities; a scala client based on the Elastic4s library;
-a reference project which compares elastiknn implementations to others (e.g. spark). There's also a Python
-client which provides a client roughly equivalent to the Scala one and a scikit-learn-style client.
-
-Feel free to open issues and PRs, but I don't plan to initially spend a lot of time documenting or coordinating
-contributions until the code churn decreases. I'll do my best to keep the readme updated and I've made
-a Github project board to track ongoing work. 
-
 ## Features
 
-1. Exact nearest neighbors search. This should only be used for testing and on relatively small datasets.
-1. Approximate nearest neighbors search using Locality Sensitive Hashing (LSH) and Multiprobe LSH. This scales well for large datasets; see the Performance section below for details.
-1. Supports dense floating point vectors and sparse boolean vectors.
-1. Supports five distance functions: L1, L2, Angular, Hamming, and Jaccard.
-1. Supports the two most common nearest neighbors queries: 
-	- k nearest neighbors - i.e. _"give me the k nearest neighbors to some query vector"_
-	- fixed-radius nearest neighbors - i.e. _"give me all neighbors within some radius of a query vector"_
-1. Integrates nearest neighbor queries with existing Elasticsearch queries.
-1. Horizontal scalability. Vectors are stored as regular Elasticsearch documents and queries are implemented using standard Elasticsearch constructs.
+### Completed
+
+**Exact KNN search for five distance functions: L1, L2, Angular, Hamming, and Jaccard.**
+
+This is fairly thoroughly profiled and optimized, but it's still an n^2 algorithm so it should only be used for testing 
+and on relatively small datasets.
+
+**Approximate KNN using Locality Sensitive Hashing; currently only works for Jaccard similarity**
+
+This should scale much better for large datasets. I'm working on implementations for the other similarity functions as
+well as a multiprobe-LSH variant where possible.
+
+**Pipeline Processors for ingesting vectors**
+
+The plugin uses [pipeline processors](https://www.elastic.co/guide/en/elasticsearch/reference/current/pipeline-processor.html) 
+to validate, pre-process, and index vectors. This means you can just pass in the vectors as JSON documents.
+
+**Integrates KNN queries seamlessly with existing Elasticsearch queries**
+
+The exact and approximate KNN searches are implemented as Elasticsearch queries. This means you can store your vectors
+inside of existing documents and mix your queries into existing queries. The semantics resemble 
+[GeoShape queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-geo-shape-query.html).
+Under the hood, the queries are implemented using standard Elasticsearch constructs, specifically 
+[Function Score Queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
+and [Boolean Queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html).
+
+### Forthcoming
+
+**Approximate KNN for L1, L2, Angular and Hamming similarities**
+
+The API will be the same as it is for Jaccard. It's just a matter of implementing and optimizing the internals.
+
+**Multiprobe LSH Queries**
+
+Multiprobe LSH has been shown to improve performance. I'm planning to implement this for the similarity functions where
+it makes sense. The API should be a simple extension of the existing approximate queries.
+
+**Fixed radius KNN queries**
+
+Instead of returning the nearest vectors, this query will return the vectors that fall within some radius of a given
+query vector.
 
 ## Usage
 
