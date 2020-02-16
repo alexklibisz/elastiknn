@@ -3,9 +3,11 @@ package com.klibisz.elastiknn.rest
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
+import com.klibisz.elastiknn.requests.{PrepareMappingRequest, AcknowledgedResponse => AckRes}
 import com.klibisz.elastiknn.utils.GeneratedMessageUtils
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
+import io.circe.syntax._
 import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient
@@ -20,10 +22,8 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
   override def getName: String = s"${ELASTIKNN_NAME}_prepare_mapping_action"
 
-  private case class Request(index: String, processorOptions: ProcessorOptions)
-
   override def prepareRequest(restReq: RestRequest, client: NodeClient): BaseRestHandler.RestChannelConsumer = {
-    val request: Request = decode[Request](restReq.content.utf8ToString())(deriveDecoder[Request])
+    val request: PrepareMappingRequest = decode[PrepareMappingRequest](restReq.content.utf8ToString())(deriveDecoder[PrepareMappingRequest])
       .getOrElse(throw new IllegalArgumentException("Failed to parse request"))
     val dynamicTemplate = request.processorOptions.modelOptions match {
       case ModelOptions.Jaccard(jacc) =>
@@ -63,7 +63,7 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         putMappingRequest,
         new RestActionListener[AcknowledgedResponse](channel) {
           override def processResponse(response: AcknowledgedResponse): Unit = channel.sendResponse(
-            new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, "{\"acknowledged\": true}")
+            new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, AckRes(true).asJson(deriveEncoder[AckRes]).noSpaces)
           )
         }
       )

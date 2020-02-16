@@ -3,7 +3,8 @@ package com.klibisz.elastiknn.processor
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.client.ElastiKnnDsl._
+import com.klibisz.elastiknn.requests._
+import com.klibisz.elastiknn.client.Elastic4sUtils._
 import org.scalatest.{AsyncFunSuite, Matchers}
 
 class IngestProcessorSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient {
