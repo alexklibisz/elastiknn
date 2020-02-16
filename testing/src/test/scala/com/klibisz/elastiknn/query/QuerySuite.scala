@@ -1,15 +1,14 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{IndexedQueryVector, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.{ProcessorOptions, _}
 import com.klibisz.elastiknn.client.ElastiKnnClient
+import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy.Immediate
-import com.sksamuel.elastic4s.requests.mappings.{BasicField, MappingDefinition}
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import io.circe.parser.decode
-import org.scalatest.{Assertion, AsyncTestSuite}
+import org.scalatest._
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -36,7 +35,6 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     val index: String = s"test-${sim.name.toLowerCase}-$dim"
     val pipelineId: String = s"$index-pipeline-${modelOptions.hashCode.abs}"
     val popts: ProcessorOptions = ProcessorOptions(rawField, dim, modelOptions)
-    val mapDef: MappingDefinition = MappingDefinition(Seq(BasicField(rawField, "elastiknn_vector")))
     val eknn: ElastiKnnClient = new ElastiKnnClient()
     val queryVectorIdPrefix: String = "q"
     val corpusVectorIdPrefix: String = "c"
@@ -47,8 +45,9 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     private lazy val setupIndexCorpus: Future[TestData] = for {
       testData <- Future.fromTry(readTestData(sim, dim))
       _ <- client.execute(deleteIndex(index))
+      _ <- client.execute(createIndex(index))
       _ <- eknn.createPipeline(pipelineId, popts)
-      _ <- client.execute(createIndex(index).mapping(mapDef))
+      _ <- eknn.prepareMapping(index, popts)
       corpusIds = testData.corpus.indices.map(corpusId)
       _ <- eknn.indexVectors(index, pipelineId, rawField, testData.corpus, Some(corpusIds), Immediate)
     } yield testData

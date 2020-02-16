@@ -13,7 +13,7 @@ from . import ELASTIKNN_NAME
 from .client import ElastiKnnClient
 from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, JaccardLshOptions, KNearestNeighborsQuery, \
     SIMILARITY_JACCARD, ElastiKnnVector, SparseBoolVector, FloatVector
-from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, default_mapping, elastiknn_vector_length
+from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, elastiknn_vector_length
 
 
 class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
@@ -57,22 +57,20 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 
-    def _eknn_setup(self, X: List[ElastiKnnVector]):
+    def fit(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]],
+            y=None, recreate_index=True, shards: int = None, replicas: int = 0):
+        if y is not None:
+            self._logger.warning(f"y was given but will be ignored")
+        X = list(canonical_vectors_to_elastiknn(X))
         dim = elastiknn_vector_length(X[0])
+        proc_opts = self._proc_opts(dim)
         if self._pipeline_id is None:
             self._pipeline_id = f"{Similarity.Name(self._sim).lower()}-{self._algorithm.lower()}-{dim}"
             self._logger.warning(f"pipeline id was not given, using {self._pipeline_id} instead")
         if self._index is None:
             self._index = f"{ELASTIKNN_NAME}-auto-{self._pipeline_id}-{int(time())}"
             self._logger.warning(f"index was not given, using {self._index} instead")
-        self._eknn.create_pipeline(self._pipeline_id, self._proc_opts(dim))
-
-    def fit(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]],
-            y=None, recreate_index=True, shards: int = None, replicas: int = 0):
-        if y is not None:
-            self._logger.warning(f"y was given but will be ignored")
-        X = list(canonical_vectors_to_elastiknn(X))
-        self._eknn_setup(X)
+        self._eknn.create_pipeline(self._pipeline_id, proc_opts)
         docs = [{self._dataset_index_key: i} for i in range(len(X))]
         exists = self._eknn.es.indices.exists(self._index)
         if exists and not recreate_index:
@@ -88,11 +86,11 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
                 settings=dict(
                     number_of_shards=shards,
                     number_of_replicas=replicas
-                ),
-                **default_mapping(self._field_raw)
+                )
             )
             self._eknn.es.indices.create(self._index, body=json.dumps(body))
             self._eknn.es.indices.refresh(self._index)
+        self._eknn.prepare_mapping(self._index, proc_opts)
         self._eknn.index(
             index=self._index,
             pipeline_id=self._pipeline_id,

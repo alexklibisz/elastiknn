@@ -37,6 +37,15 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     } yield ret
 
   /**
+    * Updates the index's mapping to support ElastiKnn types according to the given options.
+    * @param index The index.
+    * @param processorOptions The processor options.
+    * @return
+    */
+  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[AcknowledgedResponse] =
+    execute(PrepareMappingRequest(index, processorOptions))
+
+  /**
     * Create a pipeline for ingesting vectors.
     * @param pipelineId Id for the pipeline. You'll need to use this same id when ingesting vectors via this pipeline.
     * @param processorOptions See [[ProcessorOptions]].
@@ -45,7 +54,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     */
   def createPipeline(pipelineId: String,
                      processorOptions: ProcessorOptions,
-                     pipelineDescription: Option[String] = None): Future[PutPipelineResponse] =
+                     pipelineDescription: Option[String] = None): Future[AcknowledgedResponse] =
     execute(
       PutPipelineRequest(
         pipelineId,
@@ -92,7 +101,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     *                    a vector given explicitly (using [[KNearestNeighborsQuery.QueryVector.Given]] or a reference to
     *                    an already-indexed vector (using [[KNearestNeighborsQuery.QueryVector.Indexed]].
     * @param k The number of search hits to return.
-    * @param useInMemoryCache Correspons to [[KNearestNeighborsQuery.useInMemoryCache]].
+    * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache].
     * @tparam O A query-option-like type implementing the [[QueryOptionsLike]] typeclass.
     * @tparam V A query-vector-like type implementing the [[QueryVectorLike]] typeclass.
     * @return Returns the elastic4s [[SearchResponse]].
@@ -101,8 +110,8 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                                                         options: O,
                                                         queryVector: V,
                                                         k: Int,
-                                                        useInMemoryCache: Boolean = false): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, queryVector, useInMemoryCache)).size(k))
+                                                        useCache: Boolean = false): Future[SearchResponse] =
+    execute(search(index).query(ElastiKnnDsl.knnQuery(options, queryVector, useCache)).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }

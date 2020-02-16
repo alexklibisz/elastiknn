@@ -6,7 +6,7 @@ trait Utils
     with KNearestNeighborsQueryUtils
     with ModelOptionsUtils
     with PerformanceUtils
-    with ProtobufUtils
+    with GeneratedMessageUtils
     with SparseBoolVectorUtils
     with TraversableUtils
     with TryUtils

@@ -2,7 +2,7 @@ import json
 
 from elastiknn.client import ElastiKnnClient
 from elastiknn.elastiknn_pb2 import *
-from elastiknn.utils import random_sparse_bool_vector, default_mapping
+from elastiknn.utils import random_sparse_bool_vector
 
 eknn = ElastiKnnClient()
 field_raw = "vec_raw"
@@ -18,7 +18,9 @@ class TestClient:
         eknn.create_pipeline(pipeline_id, propts)
         eknn.es.indices.delete(index=test_index, ignore=[400, 404])
         eknn.es.indices.refresh()
-        eknn.es.indices.create(test_index, body=json.dumps(default_mapping(field_raw)))
+        eknn.es.indices.create(test_index)
+        eknn.es.indices.refresh()
+        eknn.prepare_mapping(test_index, propts)
         vecs = [random_sparse_bool_vector(dim) for _ in range(n)]
         (_, _) = eknn.index(test_index, pipeline_id, propts.field_raw, vecs)
         qopts = KNearestNeighborsQuery.ExactQueryOptions(field_raw=field_raw, similarity=SIMILARITY_JACCARD)
@@ -35,7 +37,9 @@ class TestClient:
         eknn.create_pipeline(pipeline_id, propts)
         eknn.es.indices.delete(index=test_index, ignore=[400, 404])
         eknn.es.indices.refresh()
-        eknn.es.indices.create(test_index, body=json.dumps(default_mapping(field_raw)))
+        eknn.es.indices.create(test_index)
+        eknn.es.indices.refresh()
+        eknn.prepare_mapping(test_index, propts)
         vecs = [random_sparse_bool_vector(dim) for _ in range(n)]
         (_, _) = eknn.index(test_index, pipeline_id, propts.field_raw, vecs)
         qopts = KNearestNeighborsQuery.LshQueryOptions(pipeline_id=pipeline_id)

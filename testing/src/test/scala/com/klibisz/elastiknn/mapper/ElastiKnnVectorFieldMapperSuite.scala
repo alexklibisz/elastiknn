@@ -1,14 +1,12 @@
 package com.klibisz.elastiknn.mapper
 
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import com.sksamuel.elastic4s.requests.indexes.CreateIndexResponse
-import com.sksamuel.elastic4s.requests.mappings.BasicField
-import com.sksamuel.elastic4s.{Indexes, Response, requests}
-import io.circe.parser._
-import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.client.ElastiKnnDsl._
+import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{ElasticAsyncClient, SparseBoolVector, _}
+import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.requests
+import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import io.circe.parser._
 import org.scalatest._
 import scalapb_circe.JsonFormat
 
@@ -24,22 +22,21 @@ class ElastiKnnVectorFieldMapperSuite
     with ElasticAsyncClient {
 
   private val fieldName = "ekv"
-  private val field = BasicField(fieldName, "elastiknn_vector")
 
   implicit val rng: Random = new Random(0)
 
-//  test("create a mapping with type elastiknn_vector") {
-//    val indexName = "test-create-ekv-mapping"
-//    for {
-//      _ <- client.execute(deleteIndex(indexName))
-//
-//      createRes: Response[CreateIndexResponse] <- client.execute(createIndex(indexName))
-//      _ = createRes.shouldBeSuccess
-//
-//      mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
-//      _ <- mappingRes.shouldBeSuccess
-//    } yield Succeeded
-//  }
+  test("create a mapping with type elastiknn_vector") {
+    val indexName = "test-create-ekv-mapping"
+    for {
+      _ <- client.execute(deleteIndex(indexName))
+
+      createRes <- client.execute(createIndex(indexName))
+      _ = createRes.shouldBeSuccess
+
+      prepMappingRes <- client.execute(PrepareMappingRequest(indexName, ProcessorOptions(fieldName)))
+      _ <- prepMappingRes.shouldBeSuccess
+    } yield Succeeded
+  }
 
   def index(ekvs: Seq[ElastiKnnVector], indexName: String): Future[Unit] =
     for {
@@ -48,8 +45,8 @@ class ElastiKnnVectorFieldMapperSuite
       createRes <- client.execute(createIndex(indexName))
       _ = createRes.shouldBeSuccess
 
-      mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(elastiKnnVectorField(fieldName)))
-      _ = mappingRes.shouldBeSuccess
+      prepMappingRes <- client.execute(PrepareMappingRequest(indexName, ProcessorOptions(fieldName)))
+      _ <- prepMappingRes.shouldBeSuccess
 
       indexReqs = ekvs.map(v => indexVector(indexName, fieldName, v))
       indexRes <- client.execute(bulk(indexReqs).refresh(RefreshPolicy.IMMEDIATE))

@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import com.sksamuel.elastic4s.requests.mappings.BasicField
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query, QueryBuilderFn}
+import io.circe.Encoder
 import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 
@@ -17,25 +16,23 @@ import scalapb_circe.JsonFormat
   */
 object ElastiKnnDsl {
 
-  def elastiKnnVectorField(name: String): BasicField = BasicField(name, "elastiknn_vector")
-
-  case class Processor(name: String, configuration: String)
+  final case class Processor(name: String, configuration: String)
 
   object Processor {
     def apply(name: String, configuration: GeneratedMessage): Processor =
       Processor(name, JsonFormat.toJsonString(configuration))
   }
 
-  case class PutPipelineRequest(id: String, description: String, processors: Seq[Processor] = Seq.empty)
+  final case class PutPipelineRequest(id: String, description: String, processors: Seq[Processor] = Seq.empty)
 
   object PutPipelineRequest {
     def apply(id: String, description: String, processor: Processor): PutPipelineRequest =
       PutPipelineRequest(id, description, Seq(processor))
   }
 
-  case class PutPipelineResponse(acknowledged: Boolean)
+  final case class AcknowledgedResponse(acknowledged: Boolean)
 
-  implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, PutPipelineResponse] {
+  implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, AcknowledgedResponse] {
     private def processorToXContent(p: Processor): XContentBuilder = {
       val xcb = XContentFactory.jsonBuilder()
       xcb.rawField(p.name, XContentFactory.parse(p.configuration))
@@ -48,6 +45,18 @@ object ElastiKnnDsl {
       xcb.array("processors", request.processors.map(processorToXContent).toArray)
       xcb.endObject()
       ElasticRequest("PUT", s"_ingest/pipeline/${request.id}", HttpEntity(xcb.string()))
+    }
+  }
+
+  final case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
+
+  implicit object PrepareMappingRequestHandler extends Handler[PrepareMappingRequest, AcknowledgedResponse] {
+    override def build(t: PrepareMappingRequest): ElasticRequest = {
+      val xcb = XContentFactory.jsonBuilder()
+      xcb.field("index", t.index)
+      xcb.rawField("processorOptions", XContentFactory.parse(JsonFormat.toJsonString(t.processorOptions)))
+      xcb.endObject()
+      ElasticRequest("PUT", s"_$ELASTIKNN_NAME/prepare_mapping", HttpEntity(xcb.string()))
     }
   }
 
