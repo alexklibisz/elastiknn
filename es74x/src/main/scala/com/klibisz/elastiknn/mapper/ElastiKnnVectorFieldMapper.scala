@@ -6,7 +6,8 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.utils.Utils._
 import io.circe.syntax._
-import org.apache.lucene.document.BinaryDocValuesField
+import org.apache.lucene.document.Field.Store
+import org.apache.lucene.document.{BinaryDocValuesField, StringField}
 import org.apache.lucene.index._
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
 import org.apache.lucene.util.BytesRef
@@ -167,8 +168,8 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
       case other => other
     }
     val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toByteArray))
-
     context.doc.addWithKey(fieldType.name, field)
+    context.doc.add(new StringField("dummy", "thevalue", Store.YES))
   }
 
   override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =

@@ -28,18 +28,18 @@ class ElastiKnnVectorFieldMapperSuite
 
   implicit val rng: Random = new Random(0)
 
-//  test("create a mapping with type elastiknn_vector") {
-//    val indexName = "test-create-ekv-mapping"
-//    for {
-//      _ <- client.execute(deleteIndex(indexName))
-//
-//      createRes: Response[CreateIndexResponse] <- client.execute(createIndex(indexName))
-//      _ = createRes.shouldBeSuccess
-//
-//      mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
-//      _ <- mappingRes.shouldBeSuccess
-//    } yield Succeeded
-//  }
+  test("create a mapping with type elastiknn_vector") {
+    val indexName = "test-create-ekv-mapping"
+    for {
+      _ <- client.execute(deleteIndex(indexName))
+
+      createRes: Response[CreateIndexResponse] <- client.execute(createIndex(indexName))
+      _ = createRes.shouldBeSuccess
+
+      mappingRes <- client.execute(putMapping(Indexes(indexName)).fields(field))
+      _ <- mappingRes.shouldBeSuccess
+    } yield Succeeded
+  }
 
   def index(ekvs: Seq[ElastiKnnVector], indexName: String): Future[Unit] =
     for {

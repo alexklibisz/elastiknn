@@ -9,7 +9,7 @@ import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 
-class ProtobufUtilsSuite extends FunSuite with Matchers with Utils {
+class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
 
   test("converting a pb message to a java map") {
 

@@ -42,10 +42,8 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     * @param processorOptions The processor options.
     * @return
     */
-  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[Unit] = {
-
-    ???
-  }
+  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[PrepareMappingResponse] =
+    execute(PrepareMappingRequest(index, processorOptions))
 
   /**
     * Create a pipeline for ingesting vectors.

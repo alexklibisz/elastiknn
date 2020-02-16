@@ -1,12 +1,15 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.common.io.BaseEncoding
+import io.circe.{Decoder, DecodingFailure, HCursor}
 import scalapb.descriptors._
 import scalapb.{GeneratedMessage, GeneratedMessageCompanion, Message}
+import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
-trait ProtobufUtils {
+trait GeneratedMessageUtils {
 
   // Also tried using java.util.Base64 but found it caused a lot more GC.
   private lazy val b64 = BaseEncoding.base64
@@ -46,6 +49,9 @@ trait ProtobufUtils {
     def parseBase64(s: String): M = cmp.parseFrom(b64.decode(s))
   }
 
+  implicit def decoder[M <: GeneratedMessage with Message[M]: GeneratedMessageCompanion]: Decoder[M] =
+    (c: HCursor) => Try(JsonFormat.fromJson(c.value)).toEither.left.map(ex => DecodingFailure(ex.getMessage, Nil))
+
 }
 
-object ProtobufUtils extends ProtobufUtils
+object GeneratedMessageUtils extends GeneratedMessageUtils
