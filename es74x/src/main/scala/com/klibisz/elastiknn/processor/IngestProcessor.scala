@@ -41,10 +41,6 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
       proc <- VectorHashingModel.toJson(popts, raw)
     } yield {
       modelOptions.fieldProc.foreach(fieldProc => setField(doc, s"$fieldPrefix$fieldProc", proc))
-      doc.setFieldValue("f1", "aaa")
-      doc.setFieldValue("f2", "bbb")
-      doc.setFieldValue("f3", "ccc")
-      doc.setFieldValue("f4", 123L)
       doc
     }
 

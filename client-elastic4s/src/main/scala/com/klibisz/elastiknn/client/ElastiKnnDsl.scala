@@ -6,6 +6,7 @@ import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query, QueryBuilderFn}
+import io.circe.Encoder
 import scalapb.GeneratedMessage
 import scalapb_circe.JsonFormat
 
@@ -15,21 +16,21 @@ import scalapb_circe.JsonFormat
   */
 object ElastiKnnDsl {
 
-  case class Processor(name: String, configuration: String)
+  final case class Processor(name: String, configuration: String)
 
   object Processor {
     def apply(name: String, configuration: GeneratedMessage): Processor =
       Processor(name, JsonFormat.toJsonString(configuration))
   }
 
-  case class PutPipelineRequest(id: String, description: String, processors: Seq[Processor] = Seq.empty)
+  final case class PutPipelineRequest(id: String, description: String, processors: Seq[Processor] = Seq.empty)
 
   object PutPipelineRequest {
     def apply(id: String, description: String, processor: Processor): PutPipelineRequest =
       PutPipelineRequest(id, description, Seq(processor))
   }
 
-  case class AcknowledgedResponse(acknowledged: Boolean)
+  final case class AcknowledgedResponse(acknowledged: Boolean)
 
   implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, AcknowledgedResponse] {
     private def processorToXContent(p: Processor): XContentBuilder = {
@@ -47,7 +48,7 @@ object ElastiKnnDsl {
     }
   }
 
-  case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
+  final case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
 
   implicit object PrepareMappingRequestHandler extends Handler[PrepareMappingRequest, AcknowledgedResponse] {
     override def build(t: PrepareMappingRequest): ElasticRequest = {
@@ -55,7 +56,7 @@ object ElastiKnnDsl {
       xcb.field("index", t.index)
       xcb.rawField("processorOptions", XContentFactory.parse(JsonFormat.toJsonString(t.processorOptions)))
       xcb.endObject()
-      ElasticRequest("POST", s"_$ELASTIKNN_NAME/prepare_mapping", HttpEntity(xcb.string()))
+      ElasticRequest("PUT", s"_$ELASTIKNN_NAME/prepare_mapping", HttpEntity(xcb.string()))
     }
   }
 

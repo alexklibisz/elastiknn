@@ -73,15 +73,3 @@ def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> 
 
 def elastiknn_vector_length(ekv: ElastiKnnVector) -> int:
     return max(ekv.sparse_bool_vector.total_indices, len(ekv.float_vector.values))
-
-
-def default_mapping(field_raw: str) -> dict:
-    return {
-        "mappings": {
-            "properties": {
-                field_raw: {
-                    "type": "elastiknn_vector"
-                }
-            }
-        }
-    }

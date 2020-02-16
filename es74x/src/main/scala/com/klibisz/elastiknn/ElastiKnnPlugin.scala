@@ -26,7 +26,7 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
                                indexNameExpressionResolver: IndexNameExpressionResolver,
                                nodesInCluster: Supplier[DiscoveryNodes]): util.List[RestHandler] = {
     val handler = new rest.PrepareMappingHandler()
-    restController.registerHandler(RestRequest.Method.POST, s"_$ELASTIKNN_NAME/prepare_mapping", handler)
+    restController.registerHandler(RestRequest.Method.PUT, s"_$ELASTIKNN_NAME/prepare_mapping", handler)
     util.Arrays.asList(handler)
   }
 
