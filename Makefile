@@ -16,9 +16,6 @@ clean:
 	cd testing && $(dc) down
 	rm -rf .mk/*
 
-.mk/sudo:
-	sudo -v
-
 .mk/python3-installed:
 	python3 --version > /dev/null
 	python3 -m pip install -q virtualenv
@@ -68,7 +65,7 @@ clean:
 	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
-.mk/run-cluster: .mk/sudo .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
+.mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
 	sudo sysctl -w vm.max_map_count=262144
 	cd testing \
 	&& $(dc) down \
