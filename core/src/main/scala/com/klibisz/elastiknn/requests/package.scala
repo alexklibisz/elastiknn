@@ -21,6 +21,6 @@ package object requests {
       PutPipelineRequest(id, description, Seq(processor))
   }
 
-  final case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
+  final case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions, _type: String = "_doc")
 
 }

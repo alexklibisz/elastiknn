@@ -41,10 +41,11 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     * Updates the index's mapping to support ElastiKnn types according to the given options.
     * @param index The index.
     * @param processorOptions The processor options.
+    * @param _type The document type.
     * @return
     */
-  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[AcknowledgedResponse] =
-    execute(PrepareMappingRequest(index, processorOptions))
+  def prepareMapping(index: String, processorOptions: ProcessorOptions, _type: String = "_doc"): Future[AcknowledgedResponse] =
+    execute(PrepareMappingRequest(index, processorOptions, _type))
 
   /**
     * Create a pipeline for ingesting vectors.

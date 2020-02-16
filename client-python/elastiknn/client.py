@@ -34,8 +34,8 @@ class ElastiKnnClient(object):
         bod = PutPipelineRequest(description=description, processors=[proc]).to_json()
         return self.es.transport.perform_request("PUT", url=f"/_ingest/pipeline/{pipeline_id}", params=None, body=bod)
 
-    def prepare_mapping(self, index: str, processor_options: ProcessorOptions):
-        bod = dict(index=index, processorOptions=MessageToDict(processor_options))
+    def prepare_mapping(self, index: str, processor_options: ProcessorOptions, _type: str = "_doc"):
+        bod = dict(index=index, processorOptions=MessageToDict(processor_options), _type=_type)
         return self.es.transport.perform_request("PUT", f"/_{ELASTIKNN_NAME}/prepare_mapping", body=bod)
 
     def index(self, index: str, pipeline_id: str, field_raw: str,
