@@ -9,20 +9,21 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Executor, Handler}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.requests._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Client used to prepare, store, and search vectors using the ElastiKnn plugin.
-  * This uses elastic4s under the hood and is slightly more "opinionated" than the methods in [[ElastiKnnDsl]].
-  * So if you want lower-level methods, see [[ElastiKnnDsl]].
+  * This uses elastic4s under the hood and is slightly more "opinionated" than the methods in [[Elastic4sUtils]].
+  * So if you want lower-level methods, see [[Elastic4sUtils]].
   *
   * @param elastic4sClient A client provided by the elastic4s library.
   * @param executionContext The execution context where [[Future]]s are executed.
   */
 final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) extends AutoCloseable {
 
-  import ElastiKnnDsl._
+  import Elastic4sUtils._
   import ElasticDsl._
 
   private def execute[T, U](req: T)(implicit
@@ -111,7 +112,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                                                         queryVector: V,
                                                         k: Int,
                                                         useCache: Boolean = false): Future[SearchResponse] =
-    execute(search(index).query(ElastiKnnDsl.knnQuery(options, queryVector, useCache)).size(k))
+    execute(search(index).query(Elastic4sUtils.knnQuery(options, queryVector, useCache)).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }

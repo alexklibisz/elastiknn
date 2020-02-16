@@ -1,8 +1,9 @@
 package com.klibisz.elastiknn.mapper
 
-import com.klibisz.elastiknn.client.ElastiKnnDsl._
+import com.klibisz.elastiknn.client.Elastic4sUtils._
 import com.klibisz.elastiknn.utils.Utils._
-import com.klibisz.elastiknn.{ElasticAsyncClient, SparseBoolVector, _}
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.requests._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
