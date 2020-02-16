@@ -53,7 +53,7 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
     val putMappingRequest = new PutMappingRequestBuilder(client, PutMappingAction.INSTANCE)
       .setIndices(request.index)
-      .setType("doc") // This stupid thing seems to be necessary.
+      .setType(request._type) // This stupid thing seems to be necessary.
       .setSource(mapping, XContentType.JSON)
       .request()
 

@@ -32,6 +32,7 @@ object Elastic4sUtils {
       val xcb = XContentFactory.jsonBuilder()
       xcb.field("index", t.index)
       xcb.rawField("processorOptions", XContentFactory.parse(JsonFormat.toJsonString(t.processorOptions)))
+      xcb.field("_type", t._type)
       xcb.endObject()
       ElasticRequest("PUT", s"$ENDPOINT_PREFIX/prepare_mapping", HttpEntity(xcb.string()))
     }
