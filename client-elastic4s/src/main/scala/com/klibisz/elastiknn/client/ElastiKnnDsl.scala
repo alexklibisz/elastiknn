@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.client
 import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import com.sksamuel.elastic4s.requests.mappings.BasicField
 import com.sksamuel.elastic4s.requests.script.Script
 import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query, QueryBuilderFn}
@@ -15,8 +14,6 @@ import scalapb_circe.JsonFormat
   * otherwise you get runtime errors for Jackson decoding.
   */
 object ElastiKnnDsl {
-
-  def elastiKnnVectorField(name: String): BasicField = BasicField(name, "elastiknn_vector")
 
   case class Processor(name: String, configuration: String)
 
@@ -32,9 +29,9 @@ object ElastiKnnDsl {
       PutPipelineRequest(id, description, Seq(processor))
   }
 
-  case class PutPipelineResponse(acknowledged: Boolean)
+  case class AcknowledgedResponse(acknowledged: Boolean)
 
-  implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, PutPipelineResponse] {
+  implicit object PutPipelineRequestHandler extends Handler[PutPipelineRequest, AcknowledgedResponse] {
     private def processorToXContent(p: Processor): XContentBuilder = {
       val xcb = XContentFactory.jsonBuilder()
       xcb.rawField(p.name, XContentFactory.parse(p.configuration))
@@ -52,9 +49,7 @@ object ElastiKnnDsl {
 
   case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
 
-  case class PrepareMappingResponse(acknowledged: Boolean)
-
-  implicit object PrepareMappingRequestHandler extends Handler[PrepareMappingRequest, PrepareMappingResponse] {
+  implicit object PrepareMappingRequestHandler extends Handler[PrepareMappingRequest, AcknowledgedResponse] {
     override def build(t: PrepareMappingRequest): ElasticRequest = {
       val xcb = XContentFactory.jsonBuilder()
       xcb.field("index", t.index)

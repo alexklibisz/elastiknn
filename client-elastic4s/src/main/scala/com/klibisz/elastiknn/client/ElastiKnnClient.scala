@@ -42,7 +42,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     * @param processorOptions The processor options.
     * @return
     */
-  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[PrepareMappingResponse] =
+  def prepareMapping(index: String, processorOptions: ProcessorOptions): Future[AcknowledgedResponse] =
     execute(PrepareMappingRequest(index, processorOptions))
 
   /**
@@ -54,7 +54,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     */
   def createPipeline(pipelineId: String,
                      processorOptions: ProcessorOptions,
-                     pipelineDescription: Option[String] = None): Future[PutPipelineResponse] =
+                     pipelineDescription: Option[String] = None): Future[AcknowledgedResponse] =
     execute(
       PutPipelineRequest(
         pipelineId,

@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.utils.GeneratedMessageUtils
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.parser._
@@ -43,7 +44,7 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         |{
         |  "properties": {
         |    "${request.processorOptions.fieldRaw}": {
-        |      "type": "keyword"
+        |      "type": "${ElastiKnnVectorFieldMapper.CONTENT_TYPE}"
         |    }
         |  },
         |  "dynamic_templates": [ $dynamicTemplate ]
