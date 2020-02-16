@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.BasicField
@@ -48,6 +47,20 @@ object ElastiKnnDsl {
       xcb.array("processors", request.processors.map(processorToXContent).toArray)
       xcb.endObject()
       ElasticRequest("PUT", s"_ingest/pipeline/${request.id}", HttpEntity(xcb.string()))
+    }
+  }
+
+  case class PrepareMappingRequest(index: String, processorOptions: ProcessorOptions)
+
+  case class PrepareMappingResponse(acknowledged: Boolean)
+
+  implicit object PrepareMappingRequestHandler extends Handler[PrepareMappingRequest, PrepareMappingResponse] {
+    override def build(t: PrepareMappingRequest): ElasticRequest = {
+      val xcb = XContentFactory.jsonBuilder()
+      xcb.field("index", t.index)
+      xcb.rawField("processorOptions", XContentFactory.parse(JsonFormat.toJsonString(t.processorOptions)))
+      xcb.endObject()
+      ElasticRequest("POST", s"_$ELASTIKNN_NAME/prepare_mapping", HttpEntity(xcb.string()))
     }
   }
 

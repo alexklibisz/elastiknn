@@ -21,6 +21,7 @@ import org.elasticsearch.index.{Index, IndexSettings, fielddata}
 import org.elasticsearch.indices.breaker.CircuitBreakerService
 import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
+import sun.jvm.hotspot.oops.BooleanField
 
 import scala.util.{Failure, Success, Try}
 
@@ -166,6 +167,7 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
       case other => other
     }
     val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toByteArray))
+
     context.doc.addWithKey(fieldType.name, field)
   }
 
