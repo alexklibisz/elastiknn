@@ -5,10 +5,11 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.requests.{PrepareMappingRequest, AcknowledgedResponse => AckRes}
 import com.klibisz.elastiknn.utils.GeneratedMessageUtils
+import io.circe.Json
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
-import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
+import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequest, PutMappingRequestBuilder}
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.common.xcontent.XContentType
@@ -22,32 +23,38 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
   override def getName: String = s"${ELASTIKNN_NAME}_prepare_mapping_action"
 
+  private val ackRes: BytesRestResponse =
+    new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, AckRes(true).asJson(deriveEncoder[AckRes]).noSpaces)
+
   override def prepareRequest(restReq: RestRequest, client: NodeClient): BaseRestHandler.RestChannelConsumer = {
     val request: PrepareMappingRequest = decode[PrepareMappingRequest](restReq.content.utf8ToString())(deriveDecoder[PrepareMappingRequest])
       .getOrElse(throw new IllegalArgumentException("Failed to parse request"))
-    val dynamicTemplate = request.processorOptions.modelOptions match {
+    val rawProp =
+      s"""
+        |"${request.processorOptions.fieldRaw}": {
+        |  "type": "${ElastiKnnVectorFieldMapper.CONTENT_TYPE}"
+        |}
+        |""".stripMargin
+
+    val procProp = request.processorOptions.modelOptions match {
       case ModelOptions.Jaccard(jacc) =>
+        // The whitespace analyzer is necessary to prevent `too_many_clauses` warnings.
         s"""
-          |{
-          |  "${ELASTIKNN_NAME}_processed": {
-          |    "path_match": "${jacc.fieldProcessed}.*",
-          |    "mapping": {
-          |      "type": "keyword"
-          |    }
-          |  }
-          |}
-          |""".stripMargin
+           |"${jacc.fieldProcessed}": {
+           |  "type": "text",
+           |  "similarity": "boolean",
+           |  "analyzer": "whitespace"
+           |}
+           |""".stripMargin
       case _ => ""
     }
+
     val mapping: String =
       s"""
         |{
         |  "properties": {
-        |    "${request.processorOptions.fieldRaw}": {
-        |      "type": "${ElastiKnnVectorFieldMapper.CONTENT_TYPE}"
-        |    }
-        |  },
-        |  "dynamic_templates": [ $dynamicTemplate ]
+        |    ${Seq(rawProp, procProp).filter(_.nonEmpty).mkString(",\n")}
+        |  }
         |}
         |""".stripMargin
 
@@ -62,9 +69,7 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         PutMappingAction.INSTANCE,
         putMappingRequest,
         new RestActionListener[AcknowledgedResponse](channel) {
-          override def processResponse(response: AcknowledgedResponse): Unit = channel.sendResponse(
-            new BytesRestResponse(RestStatus.OK, XContentType.JSON.mediaType, AckRes(true).asJson(deriveEncoder[AckRes]).noSpaces)
-          )
+          override def processResponse(response: AcknowledgedResponse): Unit = channel.sendResponse(ackRes)
         }
       )
   }

@@ -198,7 +198,7 @@ object KnnLshQueryBuilder {
       new KnnLshQueryBuilder(
         ProcessorOptions.parseBase64(in.readString()),
         ElastiKnnVector.parseBase64(in.readString()),
-        decode[Map[String, String]](in.readString()).toTry.get,
+        in.readString(),
         in.readBoolean()
       )
     }
@@ -279,14 +279,14 @@ object KnnLshQueryBuilder {
 
 final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
                                val queryVector: ElastiKnnVector,
-                               val hashed: Map[String, String],
+                               val hashed: String,
                                val useCache: Boolean)
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
 
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(processorOptions.toBase64)
     out.writeString(queryVector.toBase64)
-    out.writeString(hashed.asJson.noSpaces)
+    out.writeString(hashed)
     out.writeBoolean(useCache)
   }
 
@@ -303,24 +303,18 @@ final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
   }
 
   /**
-    * Constructs a [[org.apache.lucene.search.BooleanQuery]] for approximate searching by hashes. Then uses that query
-    * in a [[ScriptScoreQuery]] which executes an exact query to refine the approximate results.
-    * @param context
-    * @return
+    * Constructs a match query for approximate searching by hashes. Then uses that query in a [[ScriptScoreQuery]]
+    * which executes an exact query to refine the approximate results.
     */
   def doToQuery(context: QueryShardContext): Query = {
-    // TODO: is there a way to control the number of documents passed through from the bool query to the exact query?
     val queryTry = for {
       fp <- fieldProc
-      boolQuery = hashed
-        .foldLeft(new BoolQueryBuilder()) {
-          case (b, (k, v)) => b.should(new TermQueryBuilder(s"$fp.$k", v))
-        }
+      matchQuery = new MatchQueryBuilder(fp, hashed)
       similarity <- this.similarity
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
       val fieldData: FieldData = context.getForField(fieldType)
-      new FunctionScoreQuery(boolQuery.toQuery(context), new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
+      new FunctionScoreQuery(matchQuery.toQuery(context), new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
     }
     queryTry.get
   }
