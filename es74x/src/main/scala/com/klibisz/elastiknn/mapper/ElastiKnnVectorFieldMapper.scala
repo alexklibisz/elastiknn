@@ -169,7 +169,6 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
     }
     val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toByteArray))
     context.doc.addWithKey(fieldType.name, field)
-    context.doc.add(new StringField("dummy", "thevalue", Store.YES))
   }
 
   override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
