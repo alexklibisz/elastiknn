@@ -38,6 +38,7 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
     val procProp = request.processorOptions.modelOptions match {
       case ModelOptions.Jaccard(jacc) =>
+        // The whitespace analyzer is necessary to prevent `too_many_clauses` warnings.
         s"""
            |"${jacc.fieldProcessed}": {
            |  "type": "text",
