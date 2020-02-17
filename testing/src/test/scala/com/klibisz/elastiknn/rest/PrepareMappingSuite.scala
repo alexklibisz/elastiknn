@@ -22,19 +22,13 @@ class PrepareMappingSuite extends AsyncFunSuite with Matchers with Elastic4sMatc
         |{
         |  "$index": {
         |    "mappings": {
-        |      "dynamic_templates": [
-        |        {
-        |          "elastiknn_processed": {
-        |            "path_match": "$procField.*",
-        |            "mapping": {
-        |              "type": "keyword"
-        |            }
-        |          }
-        |        }
-        |      ],
         |      "properties": {
         |        "$rawField": {
         |          "type": "elastiknn_vector"
+        |        },
+        |        "$procField": {
+        |          "type": "text",
+        |          "similarity": "boolean"
         |        },
         |        "$existingField": {
         |          "type": "long"

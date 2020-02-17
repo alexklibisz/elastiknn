@@ -99,4 +99,6 @@ object VectorHashingModel {
 
   def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = hash(popts, vec).map(_.asJson)
 
+  def toText(popts: ProcessorOptions, vec: ElastiKnnVector): Try[String] = ???
+
 }
