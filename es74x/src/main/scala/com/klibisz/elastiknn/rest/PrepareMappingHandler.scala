@@ -41,7 +41,8 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         s"""
            |"${jacc.fieldProcessed}": {
            |  "type": "text",
-           |  "similarity": "boolean"
+           |  "similarity": "boolean",
+           |  "analyzer": "whitespace"
            |}
            |""".stripMargin
       case _ => ""

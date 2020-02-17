@@ -309,7 +309,7 @@ final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
   def doToQuery(context: QueryShardContext): Query = {
     val queryTry = for {
       fp <- fieldProc
-      matchQuery = new MatchQueryBuilder(fp, hashed)
+      matchQuery = new MatchQueryBuilder(fp, hashed).analyzer("whitespace")
       similarity <- this.similarity
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
