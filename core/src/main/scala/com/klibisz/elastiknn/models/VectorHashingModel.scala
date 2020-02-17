@@ -41,11 +41,13 @@ class JaccardLshModel(opts: JaccardLshOptions) {
         ((1L + i) * a + b) % HASH_PRIME
   }
 
-  private val emptyHash: Map[String, String] = (for {
-    ti <- 0 until numTables
-    bi <- 0 until numBands
-    h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
-  } yield (s"$ti,$bi", h.toString)).toMap
+  private val emptyHashes: Seq[String] = {
+    val h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
+    for {
+      ti <- 0 until numTables
+      bi <- 0 until numBands
+    } yield s"$ti,$bi,$h"
+  }
 
   private def minHash(hashFunc: Int => Long, indices: IndexedSeq[Int]): Long = {
     var min = Long.MaxValue
@@ -56,11 +58,11 @@ class JaccardLshModel(opts: JaccardLshOptions) {
     min
   }
 
-  def hash(sbv: SparseBoolVector): Map[String, String] =
-    if (sbv.isEmpty) emptyHash
+  def hash(sbv: SparseBoolVector): Seq[String] =
+    if (sbv.isEmpty) emptyHashes
     else {
       // Implemented in a way that should avoid creating any ancillary data structures in the loops.
-      var hh = Map.empty[String, String]
+      var hh = Vector.empty[String]
       val rh = Array.fill(numRows)(Long.MaxValue)
       var hi = 0
       fastfor(0, _ < numTables) { ti =>
@@ -69,13 +71,13 @@ class JaccardLshModel(opts: JaccardLshOptions) {
             rh.update(ri, minHash(hashFuncs(hi), sbv.trueIndices))
             hi += 1
           }
-          hh += (s"$ti,$bi" -> MurmurHash3.orderedHash(rh).toString)
+          hh :+= s"$ti,$bi,${MurmurHash3.orderedHash(rh)}"
         }
       }
       hh
     }
 
-  def hash(vec: ElastiKnnVector): Try[Map[String, String]] = vec match {
+  def hash(vec: ElastiKnnVector): Try[Seq[String]] = vec match {
     case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(hash(sbv))
     case _                                                             => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
   }
@@ -90,15 +92,11 @@ object VectorHashingModel {
       def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
     })
 
-  def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[Map[String, String]] =
+  def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
     (processorOptions.modelOptions, elastiKnnVector) match {
-      case (Exact(mopts), _)   => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => Map.empty)
-      case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(elastiKnnVector)
-      case _                   => ???
+      case (Exact(mopts), _)   => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
+      case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(elastiKnnVector).map(_.mkString(" "))
+      case other               => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
-
-  def toJson(popts: ProcessorOptions, vec: ElastiKnnVector): Try[Json] = hash(popts, vec).map(_.asJson)
-
-  def toText(popts: ProcessorOptions, vec: ElastiKnnVector): Try[String] = ???
 
 }

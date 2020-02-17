@@ -6,41 +6,30 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.models.VectorHashingModel
 import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.utils.Utils._
-import io.circe.Json
 import io.circe.syntax._
-import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
 import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
 import scalapb_circe.JsonFormat
 
-import scala.util.{Failure, Try}
+import scala.util.Try
 
 class IngestProcessor private (tag: String, popts: ProcessorOptions) extends AbstractProcessor(tag) with CirceUtils {
 
   import popts._
 
   private def parseVector(doc: IngestDocument, field: String = fieldRaw): Try[ElastiKnnVector] =
-    (for {
+    for {
       srcMap <- Try(doc.getFieldValue(field, classOf[util.Map[String, AnyRef]]))
       ekv <- ElastiKnnVector.from(srcMap)
-    } yield ekv).recoverWith {
-      case ex => Failure(ParseVectorException(s"Failed to parse ${ElastiKnnVector.scalaDescriptor.name} from field: $field", Some(ex)))
-    }
-
-  private def setField(doc: IngestDocument, field: String, json: Json): Unit = {
-    val reg = NamedXContentRegistry.EMPTY
-    val dep = DeprecationHandler.THROW_UNSUPPORTED_OPERATION
-    val parser = XContentType.JSON.xContent.createParser(reg, dep, json.noSpaces)
-    doc.setFieldValue(field, parser.map())
-  }
+    } yield ekv
 
   override def getType: String = IngestProcessor.TYPE
 
   private def process(doc: IngestDocument, fieldPrefix: String = ""): Try[IngestDocument] =
     for {
       raw <- parseVector(doc, s"$fieldPrefix$fieldRaw")
-      proc <- VectorHashingModel.toJson(popts, raw)
+      hashed: String <- VectorHashingModel.hash(popts, raw)
     } yield {
-      modelOptions.fieldProc.foreach(fieldProc => setField(doc, s"$fieldPrefix$fieldProc", proc))
+      modelOptions.fieldProc.foreach(fieldProc => doc.setFieldValue(s"$fieldPrefix$fieldProc", hashed))
       doc
     }
 
