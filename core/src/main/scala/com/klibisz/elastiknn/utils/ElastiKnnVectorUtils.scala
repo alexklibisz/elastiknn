@@ -1,13 +1,21 @@
 package com.klibisz.elastiknn.utils
 
-import com.klibisz.elastiknn.{ElastiKnnVector, FloatVector, SparseBoolVector}
+import com.klibisz.elastiknn.{ElastiKnnVector, FloatVector, SparseBoolVector, EmptyVectorExecption}
 import scalapb.GeneratedMessageCompanion
 import scalapb_circe.JsonFormat
 import io.circe.syntax._
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 trait ElastiKnnVectorUtils extends CirceUtils {
+
+  implicit class ElastiKnnVectorImplicits(ekv: ElastiKnnVector) {
+    def dimensions: Try[Int] = ekv match {
+      case ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))       => Success(fv.values.length)
+      case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(sbv.totalIndices)
+      case ElastiKnnVector(ElastiKnnVector.Vector.Empty)                 => Failure(EmptyVectorExecption())
+    }
+  }
 
   implicit class ElastiKnnVectorCompanionImplicits(ekvc: GeneratedMessageCompanion[ElastiKnnVector]) {
     def apply(fv: FloatVector): ElastiKnnVector = ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(fv))

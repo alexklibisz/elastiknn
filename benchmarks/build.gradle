@@ -1,0 +1,13 @@
+dependencies {
+    implementation project(':core')
+    implementation project(':client-elastic4s')
+    implementation project(':testing')
+    runtime "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "com.github.scopt:scopt_${scalaVersion}:3.7.1"
+    implementation "io.circe:circe-core_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-yaml_${scalaVersion}:0.12.0"
+    implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
+}

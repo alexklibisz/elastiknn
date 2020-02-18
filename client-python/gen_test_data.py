@@ -15,8 +15,8 @@ from elastiknn.elastiknn_pb2 import *
 @dataclass
 class Query:
     vector: ElastiKnnVector = field(metadata=config(encoder=MessageToDict))
-    similarities: List[float]
-    indices: List[int]
+    similarities: List[float] = field(metadata=config(encoder=lambda xx: list(map(float, xx))))
+    indices: List[int] = field(metadata=config(encoder=lambda xx: list(map(float, xx))))
 
 
 @dataclass_json

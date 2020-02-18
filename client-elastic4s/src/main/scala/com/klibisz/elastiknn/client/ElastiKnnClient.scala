@@ -26,9 +26,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   import Elastic4sUtils._
   import ElasticDsl._
 
-  private def execute[T, U](req: T)(implicit
-                                    handler: Handler[T, U],
-                                    manifest: Manifest[U]): Future[U] =
+  def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] =
     for {
       res <- elastic4sClient.execute(req)
       ret <- res match {
