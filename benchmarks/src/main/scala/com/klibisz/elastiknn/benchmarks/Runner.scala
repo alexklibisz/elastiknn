@@ -4,6 +4,7 @@ import java.io.{File, FileReader}
 import java.net.URL
 import java.util.UUID
 
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.utils.{ElastiKnnVectorUtils, FutureUtils}
@@ -64,6 +65,10 @@ object Runner extends LazyLogging with ElastiKnnVectorUtils with FutureUtils {
     val index = s"benchmark-${UUID.randomUUID}"
     val pipeline = s"process-$index"
     val rawField = "vec_raw"
+    val queryOpts = modelOptions match {
+      case ModelOptions.Exact(ex)  => QueryOptions.Exact(ExactQueryOptions(rawField, ex.similarity))
+      case ModelOptions.Jaccard(_) => QueryOptions.Lsh(LshQueryOptions(pipeline))
+    }
     val numShards = convertRelativeShardsQueriesToAbsolute(shards)
     val numQueries = convertRelativeShardsQueriesToAbsolute(queries)
     val ids = testData.corpus.indices.map(_.toString)
@@ -84,12 +89,9 @@ object Runner extends LazyLogging with ElastiKnnVectorUtils with FutureUtils {
         0
       )
       (searchResultsTimes, searchTotalTime) <- time {
-
         this.pipeline(testData.queries, numQueries) { query =>
-          ???
+          time(client.knnQuery(index, queryOpts, query.vector, query.similarities.length))
         }
-
-        ???
       }
       _ = logger.info(res.toString)
     } yield res
