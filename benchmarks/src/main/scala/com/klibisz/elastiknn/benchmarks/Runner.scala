@@ -68,6 +68,7 @@ object Runner extends LazyLogging with ElastiKnnVectorUtils with FutureUtils {
     val queryOpts = modelOptions match {
       case ModelOptions.Exact(ex)  => QueryOptions.Exact(ExactQueryOptions(rawField, ex.similarity))
       case ModelOptions.Jaccard(_) => QueryOptions.Lsh(LshQueryOptions(pipeline))
+      case _                       => ???
     }
     val numShards = convertRelativeShardsQueriesToAbsolute(shards)
     val numQueries = convertRelativeShardsQueriesToAbsolute(queries)
@@ -88,11 +89,11 @@ object Runner extends LazyLogging with ElastiKnnVectorUtils with FutureUtils {
         0,
         0
       )
-      (searchResultsTimes, searchTotalTime) <- time {
-        this.pipeline(testData.queries, numQueries) { query =>
-          time(client.knnQuery(index, queryOpts, query.vector, query.similarities.length))
-        }
-      }
+//      (searchResultsTimes, searchTotalTime) <- time {
+//        this.pipeline(testData.queries, numQueries) { query =>
+//          time(client.knnQuery(index, queryOpts, query.vector, query.similarities.length))
+//        }
+//      }
       _ = logger.info(res.toString)
     } yield res
   }
