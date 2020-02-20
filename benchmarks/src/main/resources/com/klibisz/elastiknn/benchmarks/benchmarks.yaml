@@ -1,8 +1,10 @@
 - dataset: kosarak
-  shards: [-1]
+  shards: [-1, 1]
   queryParallelism: [1]
-  space:
-    JaccardLSH:
-      tables: [10]
-      bands: [5]
-      rows: [1]
+  spaces:
+    - Exact:
+        similarity: similarity_jaccard
+    - JaccardLSH:
+        tables: [10, 20, 30]
+        bands: [5, 10]
+        rows: [1]

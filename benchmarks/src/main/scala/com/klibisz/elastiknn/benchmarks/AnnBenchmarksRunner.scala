@@ -8,7 +8,7 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQuery
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
-import com.klibisz.elastiknn.{JaccardLshOptions, ProcessorOptions, TestData}
+import com.klibisz.elastiknn.{ExactModelOptions, JaccardLshOptions, ProcessorOptions, Similarity, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import io.circe
@@ -16,7 +16,6 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import scalapb_circe.JsonFormat
 import zio._
-
 import kantan.csv._
 import kantan.csv.ops._
 
@@ -24,7 +23,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration => ScalaDuration}
 import scala.util.{Failure, Success, Try}
 
-object RunnerZio extends ElastiKnnVectorUtils {
+object AnnBenchmarksRunner extends ElastiKnnVectorUtils {
 
   final case class CLIArgs(host: String = "localhost",
                            port: Int = 9200,
@@ -48,6 +47,7 @@ object RunnerZio extends ElastiKnnVectorUtils {
                           corpusSize: Int,
                           indexMillisP95: Float,
                           searchMillisP95: Float,
+                          queriesPerSecond: Int,
                           aggregateRecall: Float)
 
   object Result {
@@ -57,6 +57,7 @@ object RunnerZio extends ElastiKnnVectorUtils {
               modelOptions: ModelOptions,
               testData: TestData,
               indexResultsMillis: Seq[(Long, BulkResponse)],
+              searchTotalMillis: Long,
               searchRecallMillis: Seq[(Long, Double)]): Result = Result(
       dataset,
       shards,
@@ -65,8 +66,40 @@ object RunnerZio extends ElastiKnnVectorUtils {
       testData.corpus.length,
       new Percentile().evaluate(indexResultsMillis.map(_._1.toDouble).toArray, 0.95).toFloat,
       new Percentile().evaluate(searchRecallMillis.map(_._1.toDouble).toArray, 0.95).toFloat,
+      (testData.queries.length / (searchTotalMillis / 1000)).toInt,
       searchRecallMillis.map(_._2).sum.toFloat / searchRecallMillis.length
     )
+  }
+
+  private def writeResults(results: Seq[Result], file: File): UIO[Unit] = {
+    ZIO.effectTotal(
+      file.writeCsv(
+        results.map(r =>
+          List(
+            r.dataset,
+            r.shards.toString,
+            r.queries.toString,
+            r.modelOptions match {
+              case ModelOptions.Exact(ex)     => JsonFormat.toJsonString(ex)
+              case ModelOptions.Jaccard(jlsh) => JsonFormat.toJsonString(jlsh)
+              case ModelOptions.Empty         => ""
+            },
+            r.corpusSize.toString,
+            r.indexMillisP95.toString,
+            r.searchMillisP95.toString,
+            r.queriesPerSecond.toString,
+            r.aggregateRecall.toString
+        )),
+        rfc.withHeader("dataset",
+                       "shards",
+                       "queries",
+                       "model options",
+                       "corpus size",
+                       "index millis p95",
+                       "search millis p95",
+                       "queries per second",
+                       "aggregate recall")
+      ))
   }
 
   private val annBenchmarksRoot: File = new File(s"${System.getProperty("user.home")}/.ann-benchmarks")
@@ -132,13 +165,18 @@ object RunnerZio extends ElastiKnnVectorUtils {
           recall = searchRes.hits.hits.count(h => q.indices.contains(h.id.toInt)) * 1.0 / q.indices.length
         } yield (searchMillis, recall)
       }
-      searchRecallsMillis <- ZIO.collectAllParN(queries)(searchEffects)
-      res = Result(dataset, shards, queries, modelOptions, testData, indexResultsMillis, searchRecallsMillis)
+      (searchTotalMillis, searchRecallsMillis) <- time(ZIO.collectAllParN(queries)(searchEffects))
+      res = Result(dataset, shards, queries, modelOptions, testData, indexResultsMillis, searchTotalMillis, searchRecallsMillis)
       _ <- zio.console.putStrLn(res.toString)
     } yield res
   }
 
-  private def expandParams(space: ParameterSpace): Seq[ModelOptions] = space match {
+  private def expandSpace(space: ParameterSpace): Seq[ModelOptions] = space match {
+    case ParameterSpace.Exact(similarity: String) =>
+      Similarity.values
+        .find(_.name.toLowerCase == similarity.toLowerCase)
+        .map(s => ModelOptions.Exact(ExactModelOptions(s)))
+        .toSeq
     case ParameterSpace.JaccardLSH(tables, bands, rows) =>
       for {
         t <- tables
@@ -153,7 +191,8 @@ object RunnerZio extends ElastiKnnVectorUtils {
       runs = for {
         s <- bdef.shards
         q <- bdef.queryParallelism
-        m <- expandParams(bdef.space)
+        mm <- bdef.spaces.map(expandSpace)
+        m <- mm
       } yield run(bdef.dataset, testData, interpretParallelism(s), interpretParallelism(q), m)
       results <- ZIO.collectAll(runs)
     } yield results
@@ -165,35 +204,6 @@ object RunnerZio extends ElastiKnnVectorUtils {
       jsonAdt <- ZIO.fromEither(io.circe.yaml.parser.parse(yamlStr))
       defns <- ZIO.fromEither(jsonAdt.as[Seq[BenchmarkDefinition]])
     } yield defns.filter(d => datasets.contains(d.dataset))
-
-  private def writeResults(results: Seq[Result], file: File): UIO[Unit] = {
-    ZIO.effectTotal(
-      file.writeCsv(
-        results.map(r =>
-          List(
-            r.dataset,
-            r.shards.toString,
-            r.queries.toString,
-            r.modelOptions match {
-              case ModelOptions.Exact(ex)     => JsonFormat.toJsonString(ex)
-              case ModelOptions.Jaccard(jlsh) => JsonFormat.toJsonString(jlsh)
-              case ModelOptions.Empty         => ""
-            },
-            r.corpusSize.toString,
-            r.indexMillisP95.toString,
-            r.searchMillisP95.toString,
-            r.aggregateRecall.toString
-        )),
-        rfc.withHeader("dataset",
-                       "shards",
-                       "queries",
-                       "model options",
-                       "corpus size",
-                       "index millis p95",
-                       "search millis p95",
-                       "aggregate recall")
-      ))
-  }
 
   def main(args: Array[String]): Unit = cliParser.parse(args, CLIArgs()) match {
     case Some(cliArgs) =>
