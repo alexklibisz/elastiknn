@@ -1,30 +1,28 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
-import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.{JaccardLshOptions, ProcessorOptions, TestData}
-import com.klibisz.elastiknn.benchmarks.Runner.{CLIArgs, cliParser, getClass}
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
+import com.klibisz.elastiknn.{JaccardLshOptions, ProcessorOptions, QueryOptionsLike, QueryVectorLike, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import io.circe
 import org.apache.commons.io.FileUtils
-import scalapb.FieldMaskUtil
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio._
 import zio.clock.Clock
 import zio.console._
 import zio.duration.Duration
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration => ScalaDuration}
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object RunnerZio extends ElastiKnnVectorUtils {
 
@@ -41,9 +39,14 @@ object RunnerZio extends ElastiKnnVectorUtils {
     opt[Seq[String]]('d', "datasets").action((ss, a) => a.copy(datasets = ss))
   }
 
-  final case class Result(indexMillisPerVector: Double, indexMillisP95: Double, searchMillisPerVector: Double, searchMillisP95: Double)
+  final case class Result(corpusSize: Int, indexMillisP95: Double, searchMillisP95: Double, aggregateRecall: Double)
   object Result {
-    def apply(indexTotalMillis: Long, indexResultsMillis: Seq[(Long, BulkResponse)]): Result = ???
+    def apply(testData: TestData, indexResultsMillis: Seq[(Long, BulkResponse)], searchRecallMillis: Seq[(Long, Double)]): Result = Result(
+      testData.corpus.length,
+      new Percentile().evaluate(indexResultsMillis.map(_._1.toDouble).toArray, 0.95),
+      new Percentile().evaluate(searchRecallMillis.map(_._1.toDouble).toArray, 0.95),
+      searchRecallMillis.map(_._2).sum / searchRecallMillis.length
+    )
   }
 
   private val annBenchmarksRoot: File = new File(s"${System.getProperty("user.home")}/.ann-benchmarks")
@@ -76,16 +79,17 @@ object RunnerZio extends ElastiKnnVectorUtils {
     val index = s"benchmark-${UUID.randomUUID}"
     val pipelineId = s"ingest-$index"
     val rawField = "vec_raw"
-    val procField = "vec_proc"
     val vectorIds = testData.corpus.indices.map(_.toString)
-    val queryOptsEither = modelOptions match {
-      case ModelOptions.Exact(ex)  => Right(QueryOptions.Exact(ExactQueryOptions(rawField, ex.similarity)))
-      case ModelOptions.Jaccard(_) => Right(QueryOptions.Lsh(LshQueryOptions(pipelineId)))
-      case ModelOptions.Empty      => Left(new IllegalArgumentException("Invalid empty model options"))
+    QueryOptions.Lsh
+    val queryOptsTry: Try[QueryOptions] = modelOptions match {
+      case ModelOptions.Exact(ex)  => Success(QueryOptions.Exact(ExactQueryOptions(rawField, ex.similarity)))
+      case ModelOptions.Jaccard(_) => Success(QueryOptions.Lsh(LshQueryOptions(pipelineId)))
+      case _                       => Failure(new IllegalArgumentException("Invalid or empty model options"))
     }
     val dimsTry = testData.corpus.head.dimensions
     for {
       dims <- ZIO.fromTry(dimsTry)
+      queryOpts <- ZIO.fromTry(queryOptsTry)
       procOpts = ProcessorOptions(rawField, dims, modelOptions)
       _ <- ZIO.fromFuture { implicit ec =>
         for {
@@ -98,8 +102,17 @@ object RunnerZio extends ElastiKnnVectorUtils {
         val (vecs, ids) = (pairs.map(_._1), pairs.map(_._2))
         time(ZIO.fromFuture(_ => client.indexVectors(index, pipelineId, rawField, vecs, Some(ids))))
       }
-      (indexTotalMillis, indexResultsMillis) <- time(ZIO.collectAll(indexEffects))
-    } yield Result(indexTotalMillis, indexResultsMillis)
+      indexResultsMillis <- ZIO.collectAll(indexEffects)
+      searchEffects = testData.queries.map { q =>
+        for {
+          (searchMillis, searchRes) <- time(ZIO.fromFuture { _ =>
+            client.knnQuery(index, queryOpts, q.vector, q.indices.length, fetchSource = false)
+          })
+          recall = searchRes.hits.hits.count(h => q.indices.contains(h.id.toInt)) * 1.0 / q.indices.length
+        } yield (searchMillis, recall)
+      }
+      searchRecallsMillis <- ZIO.collectAllParN(queries)(searchEffects)
+    } yield Result(testData, indexResultsMillis, searchRecallsMillis)
   }
 
   private def expandParams(space: ParameterSpace): Seq[ModelOptions] = space match {
@@ -143,27 +156,4 @@ object RunnerZio extends ElastiKnnVectorUtils {
       finally client.close()
     case None => System.exit(0)
   }
-}
-
-object SemaphoreExample {
-
-  def task(i: Int): ZIO[Console with Clock, Nothing, Int] =
-    for {
-      _ <- putStrLn(s"start $i")
-      _ <- ZIO.sleep(Duration(2, TimeUnit.SECONDS))
-      _ <- putStrLn(s"end $i")
-    } yield i
-
-  val program: ZIO[Console with Clock, Nothing, Unit] = for {
-    sem <- Semaphore.make(permits = 2)
-    seq <- ZIO.effectTotal((1 to 10).map(i => sem.withPermit(task(i))))
-    res <- ZIO.collectAllPar(seq)
-    _ <- putStrLn(res.mkString(", "))
-  } yield ()
-
-  def main(args: Array[String]): Unit = {
-    val runtime = new DefaultRuntime {}
-    runtime.unsafeRun(program)
-  }
-
 }
