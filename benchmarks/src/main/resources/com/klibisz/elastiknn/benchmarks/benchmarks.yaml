@@ -1,16 +1,8 @@
 - dataset: kosarak
-  shards: [1]
+  shards: [-1]
   queryParallelism: [1]
   space:
     JaccardLSH:
       tables: [10]
       bands: [5]
       rows: [1]
-- dataset: kosarak2
-  shards: [-1, 1, 0.75]
-  queryParallelism: [-1, 1, 20]
-  space:
-    JaccardLSH:
-      tables: [1, 5, 10, 20, 30, 40]
-      bands: [10, 20, 30, 40]
-      rows: [1, 5, 10]

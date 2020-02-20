@@ -3,22 +3,22 @@ package com.klibisz.elastiknn.benchmarks
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, LshQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
-import com.klibisz.elastiknn.{JaccardLshOptions, ProcessorOptions, QueryOptionsLike, QueryVectorLike, TestData}
+import com.klibisz.elastiknn.{JaccardLshOptions, ProcessorOptions, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import io.circe
 import org.apache.commons.io.FileUtils
 import org.apache.commons.math3.stat.descriptive.rank.Percentile
+import scalapb_circe.JsonFormat
 import zio._
-import zio.clock.Clock
-import zio.console._
-import zio.duration.Duration
+
+import kantan.csv._
+import kantan.csv.ops._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration => ScalaDuration}
@@ -30,22 +30,42 @@ object RunnerZio extends ElastiKnnVectorUtils {
                            port: Int = 9200,
                            benchmarkFile: File = new File(getClass.getResource("benchmarks.yaml").toURI),
                            datasets: Seq[String] = Seq("kosarak"),
-                           duration: ScalaDuration = ScalaDuration("8 hours"))
+                           duration: ScalaDuration = ScalaDuration("8 hours"),
+                           outputFile: File = new File("benchmark-results.csv"))
 
   private val cliParser = new scopt.OptionParser[CLIArgs]("benchmark runner") {
     opt[String]('h', "host").action((s, a) => a.copy(host = s))
     opt[Int]('p', "port").action((i, a) => a.copy(port = i))
-    opt[String]('f', "file").action((s, a) => a.copy(benchmarkFile = new File(s)))
+    opt[String]('i', "benchmarkFile").action((s, a) => a.copy(benchmarkFile = new File(s)))
     opt[Seq[String]]('d', "datasets").action((ss, a) => a.copy(datasets = ss))
+    opt[String]('o', "outputFile").action((s, a) => a.copy(outputFile = new File(s)))
   }
 
-  final case class Result(corpusSize: Int, indexMillisP95: Double, searchMillisP95: Double, aggregateRecall: Double)
+  final case class Result(dataset: String,
+                          shards: Int,
+                          queries: Int,
+                          modelOptions: ModelOptions,
+                          corpusSize: Int,
+                          indexMillisP95: Float,
+                          searchMillisP95: Float,
+                          aggregateRecall: Float)
+
   object Result {
-    def apply(testData: TestData, indexResultsMillis: Seq[(Long, BulkResponse)], searchRecallMillis: Seq[(Long, Double)]): Result = Result(
+    def apply(dataset: String,
+              shards: Int,
+              queries: Int,
+              modelOptions: ModelOptions,
+              testData: TestData,
+              indexResultsMillis: Seq[(Long, BulkResponse)],
+              searchRecallMillis: Seq[(Long, Double)]): Result = Result(
+      dataset,
+      shards,
+      queries,
+      modelOptions,
       testData.corpus.length,
-      new Percentile().evaluate(indexResultsMillis.map(_._1.toDouble).toArray, 0.95),
-      new Percentile().evaluate(searchRecallMillis.map(_._1.toDouble).toArray, 0.95),
-      searchRecallMillis.map(_._2).sum / searchRecallMillis.length
+      new Percentile().evaluate(indexResultsMillis.map(_._1.toDouble).toArray, 0.95).toFloat,
+      new Percentile().evaluate(searchRecallMillis.map(_._1.toDouble).toArray, 0.95).toFloat,
+      searchRecallMillis.map(_._2).sum.toFloat / searchRecallMillis.length
     )
   }
 
@@ -75,7 +95,8 @@ object RunnerZio extends ElastiKnnVectorUtils {
       t1 <- ZIO.effectTotal(System.currentTimeMillis())
     } yield (t1 - t0, r)
 
-  private def run(testData: TestData, shards: Int, queries: Int, modelOptions: ModelOptions)(implicit client: ElastiKnnClient) = {
+  private def run(dataset: String, testData: TestData, shards: Int, queries: Int, modelOptions: ModelOptions)(
+      implicit client: ElastiKnnClient) = {
     val index = s"benchmark-${UUID.randomUUID}"
     val pipelineId = s"ingest-$index"
     val rawField = "vec_raw"
@@ -112,7 +133,9 @@ object RunnerZio extends ElastiKnnVectorUtils {
         } yield (searchMillis, recall)
       }
       searchRecallsMillis <- ZIO.collectAllParN(queries)(searchEffects)
-    } yield Result(testData, indexResultsMillis, searchRecallsMillis)
+      res = Result(dataset, shards, queries, modelOptions, testData, indexResultsMillis, searchRecallsMillis)
+      _ <- zio.console.putStrLn(res.toString)
+    } yield res
   }
 
   private def expandParams(space: ParameterSpace): Seq[ModelOptions] = space match {
@@ -131,7 +154,7 @@ object RunnerZio extends ElastiKnnVectorUtils {
         s <- bdef.shards
         q <- bdef.queryParallelism
         m <- expandParams(bdef.space)
-      } yield run(testData, interpretParallelism(s), interpretParallelism(q), m)
+      } yield run(bdef.dataset, testData, interpretParallelism(s), interpretParallelism(q), m)
       results <- ZIO.collectAll(runs)
     } yield results
   }
@@ -143,6 +166,35 @@ object RunnerZio extends ElastiKnnVectorUtils {
       defns <- ZIO.fromEither(jsonAdt.as[Seq[BenchmarkDefinition]])
     } yield defns.filter(d => datasets.contains(d.dataset))
 
+  private def writeResults(results: Seq[Result], file: File): UIO[Unit] = {
+    ZIO.effectTotal(
+      file.writeCsv(
+        results.map(r =>
+          List(
+            r.dataset,
+            r.shards.toString,
+            r.queries.toString,
+            r.modelOptions match {
+              case ModelOptions.Exact(ex)     => JsonFormat.toJsonString(ex)
+              case ModelOptions.Jaccard(jlsh) => JsonFormat.toJsonString(jlsh)
+              case ModelOptions.Empty         => ""
+            },
+            r.corpusSize.toString,
+            r.indexMillisP95.toString,
+            r.searchMillisP95.toString,
+            r.aggregateRecall.toString
+        )),
+        rfc.withHeader("dataset",
+                       "shards",
+                       "queries",
+                       "model options",
+                       "corpus size",
+                       "index millis p95",
+                       "search millis p95",
+                       "aggregate recall")
+      ))
+  }
+
   def main(args: Array[String]): Unit = cliParser.parse(args, CLIArgs()) match {
     case Some(cliArgs) =>
       implicit val client: ElastiKnnClient = ElastiKnnClient()(ExecutionContext.global)
@@ -150,7 +202,7 @@ object RunnerZio extends ElastiKnnVectorUtils {
       val program = for {
         definitions <- parseDefinitions(cliArgs.benchmarkFile, cliArgs.datasets)
         results <- ZIO.collectAll(definitions.map(runDefinition(_)))
-        // TODO: write the results to a file.
+        _ <- writeResults(results.flatten, cliArgs.outputFile)
       } yield ()
       try runtime.unsafeRun(program)
       finally client.close()
