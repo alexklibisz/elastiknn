@@ -79,7 +79,6 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             self._logger.warning(f"Deleting and re-creating existing index {self._index}.")
             if exists:
                 self._eknn.es.indices.delete(self._index)
-                self._eknn.es.indices.refresh(self._index)
             if shards is None:
                 shards = self._n_jobs
             body = dict(
@@ -100,7 +99,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         return self
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[ElastiKnnVector], List[SparseBoolVector], List[FloatVector]] = None,
-                   n_neighbors: int = None, return_distance: bool = True, use_cache: bool = False) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
+                   n_neighbors: int = None, return_distance: bool = True, use_cache: bool = False, allow_missing: bool = False) -> Union[Tuple[np.ndarray, np.ndarray], np.ndarray]:
         X = list(canonical_vectors_to_elastiknn(X))
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
@@ -108,12 +107,13 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         futures = []
         for x in X:
             futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key], use_cache))
-        indices, dists = np.zeros((len(X), n_neighbors), dtype=np.uint32), np.zeros((len(X), n_neighbors), dtype=np.float)
-        wait(futures) # To ensure same order.
+        indices = np.ones((len(X), n_neighbors), dtype=np.uint32) * -1
+        dists = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
+        wait(futures)   # To ensure same order.
         for i, future in enumerate(futures):
             res = future.result()
             hits = res['hits']['hits']
-            assert len(hits) == n_neighbors, f"Expected to get {n_neighbors} hits for vector {i} but got {len(hits)}."
+            assert allow_missing or len(hits) == n_neighbors, f"Expected to get {n_neighbors} hits for vector {i} but got {len(hits)}."
             for j, hit in enumerate(hits):
                 indices[i][j] = hit['_source'][self._dataset_index_key]
                 dists[i][j] = hit['_score']

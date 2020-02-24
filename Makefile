@@ -87,7 +87,7 @@ run/cluster: .mk/run-cluster
 
 run/gradle:
 	cd testing && $(dc) down
-	$(gradle) clean run -Dtests.heap.size=2G # TODO: Can you set tests.heap.size in build.gradle?
+	$(gradle) clean run -Dtests.heap.size=4G # TODO: Can you set tests.heap.size in build.gradle?
 
 run/debug:
 	cd testing && $(dc) down
