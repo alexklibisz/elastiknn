@@ -47,7 +47,7 @@ def main():
     )
 
     # Sample/evaluate loop.
-    sampler = ch.MOCMAES(conn, space, mu=5)
+    sampler = ch.MOCMAES(conn, space, mu=15)
 
     while True:
         token, params = sampler.next()
