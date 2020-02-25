@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 .idea
-out
+out/*.db*
