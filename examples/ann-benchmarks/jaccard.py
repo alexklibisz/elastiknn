@@ -1,5 +1,4 @@
 import itertools
-import json
 import os
 import sys
 from time import time
@@ -43,8 +42,8 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    num_tables = [('num_tables', t) for t in range(10, 121, 10)]
-    num_bands = [('num_bands', b) for b in range(5, 81, 5)]
+    num_tables = [('num_tables', t) for t in range(10, 121, 5)]
+    num_bands = [('num_bands', b) for b in range(5, 103, 3)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
 
     combinations = list(map(dict, itertools.product(num_tables, num_bands, num_rows)))
