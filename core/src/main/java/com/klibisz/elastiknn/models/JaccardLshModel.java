@@ -1,79 +1,85 @@
 package com.klibisz.elastiknn.models;
-//
-//import scala.util.hashing.MurmurHash3;
-//
-//import java.util.Objects;
-//import java.util.Random;
-//
-//public class JaccardLshModel {
-//
-//    private int numTables;
-//    private int numBands;
-//    private int numRows;
-//    private Random rng;
-//    private int[] alphas;
-//    private int[] betas;
-//
-//    public JaccardLshModel(long seed, int numTables, int numBands, int numRows) {
-//        this.rng = new Random(seed);
-//        this.numTables = numTables;
-//        this.numBands = numBands;
-//        this.numRows = numRows;
-//
-//        int HASH_PRIME = 2038074743;
-//        this.alphas = new int[numTables * numBands * numRows];
-//        this.betas = new int[numTables * numBands * numRows];
-//        for(int i = 0; i < this.alphas.length; i++) {
-//            this.alphas[i] = 1 + rng.nextInt(HASH_PRIME - 1);
-//            this.betas[i] = rng.nextInt(HASH_PRIME - 1);
-//        }
-//    }
-//
-//    private String[] getEmptyHashes() {
-//        String[] emptyHashes = new String[numTables * numBands];
-//
-//        return null;
-//    }
-//
-//
-//
-//    String [] hash(int[] trueIndices) {
-//
-//        if (trueIndices.length == 0)
-//
-//        String[] hashes = new String[this.numTables * this.numBands];
-//        int ixHashes = 0;
-//        int ixCoefs = 0;
-//
-//
-//
-//
-//
-//        return null;
-//    }
-//
-//
-//}
 
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import org.apache.commons.codec.digest.MurmurHash3;
+import java.util.Arrays;
+import java.util.Random;
 
 public class JaccardLshModel {
-    public static void main(String[] args) {
-        int[] data = { 100, 200, 300, 400 };
 
-        ByteBuffer byteBuffer = ByteBuffer.allocate(data.length * 4);
-        IntBuffer intBuffer = byteBuffer.asIntBuffer();
-        intBuffer.put(data);
+    private int numTables;
+    private int numBands;
+    private int numRows;
+    private int[] alphas;
+    private int[] betas;
+    private static long HASH_PRIME = 2038074743;
 
-        byte[] array = byteBuffer.array();
+    public JaccardLshModel(long seed, int numTables, int numBands, int numRows) {
+        this.numTables = numTables;
+        this.numBands = numBands;
+        this.numRows = numRows;
 
-        for (int i=0; i < array.length; i++) {
-            System.out.println(i + ": " + array[i]);
+        Random rng = new Random(seed);
+        this.alphas = new int[numTables * numBands * numRows];
+        this.betas = new int[numTables * numBands * numRows];
+        for(int i = 0; i < this.alphas.length; i++) {
+            this.alphas[i] = 1 + rng.nextInt(Long.valueOf(HASH_PRIME).intValue() - 1);
+            this.betas[i] = rng.nextInt(Long.valueOf(HASH_PRIME).intValue() - 1);
         }
-
-        long hash = MurmurHash3.hash32x86(array, 0, array.length, 0xb592f7ae);
-        System.out.println(hash);
     }
+
+    private static long hashBand(long[] rowHashes) {
+        long h = 0;
+        for (long hash : rowHashes) {
+            h = (h + hash) % HASH_PRIME;
+        }
+        return h;
+    }
+
+    private static String tableBandHash(int t, int b, long h) {
+        return t + "," + b + "," + h;
+    }
+
+    String[] getEmptyHashes() {
+        String[] emptyHashes = new String[numTables * numBands];
+        long[] fakeHashes = new long[numRows];
+        Arrays.fill(fakeHashes, Long.MAX_VALUE);
+        long hash = hashBand(fakeHashes);
+        for (int t = 0; t < numTables; t++) {
+            for (int b = 0; b < numBands; b++) {
+                emptyHashes[t * numBands + b] = tableBandHash(t, b, hash);
+            }
+        }
+        return emptyHashes;
+    }
+
+
+    String[] hash(int[] trueIndices) {
+
+        if (trueIndices.length == 0) {
+            return getEmptyHashes();
+        } else {
+            String[] allHashes = new String[this.numTables * this.numBands];
+            long[] rowHashes = new long[numRows];
+            int ixHashes = 0;
+            int ixCoefs = 0;
+
+            for (int t = 0; t < numTables; t++) {
+                for (int b = 0; b < numBands; b++) {
+                    for (int r = 0; r < numRows; r++) {
+                        long rowHash = Long.MAX_VALUE;
+                        for (int ixTrue : trueIndices) {
+                            long h = (1L + ixTrue) * alphas[ixCoefs] + betas[ixCoefs];
+                            rowHash = Math.min(rowHash, h);
+                        }
+                        rowHashes[r] = rowHash;
+                        ixCoefs += 1;
+                    }
+                    allHashes[ixHashes] = tableBandHash(t, b, hashBand(rowHashes));
+                }
+            }
+
+            return allHashes;
+        }
+    }
+
+
 }

@@ -95,16 +95,17 @@ object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModelScala] =
-    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModelScala] {
-      def load(opts: JaccardLshOptions): JaccardLshModelScala = new JaccardLshModelScala(opts)
+  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
+    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
+      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts.seed, opts.numTables, opts.numBands, opts.numRows)
     })
 
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
     (processorOptions.modelOptions, elastiKnnVector) match {
-      case (Exact(mopts), _)   => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
-      case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(elastiKnnVector).map(_.mkString(" "))
-      case other               => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
+      case (Exact(mopts), _) => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
+      case (Jaccard(mopts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
+        Try(jaccardCache.get(mopts).hash(sbv.trueIndices).mkString(" "))
+      case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 
 }
