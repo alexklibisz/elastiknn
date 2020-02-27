@@ -1,9 +1,15 @@
-package com.klibisz.elastiknn;
+package com.klibisz.elastiknn.utils;
+
+import org.apache.commons.codec.digest.MurmurHash3;
+
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
 
 /**
  * Java implementations of some particularly performance-critical code paths.
  */
-public class Hotspots {
+public class ArrayUtils {
 
     private static void unsortedException(int lit, int big) {
         throw new IllegalArgumentException(String.format("Called on unsorted array: %d came after %d", lit, big));
@@ -41,5 +47,12 @@ public class Hotspots {
         return n;
     }
 
+
+    public static int orderedMurmurHash(long[] xs) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(xs.length * 8);
+        LongBuffer longBuffer = byteBuffer.asLongBuffer();
+        longBuffer.put(xs);
+        return MurmurHash3.hash32x86(byteBuffer.array(), 0, xs.length, 0xb592f7ae);
+    }
 
 }

@@ -23,7 +23,7 @@ object ExactModel {
   }
 }
 
-class JaccardLshModel(opts: JaccardLshOptions) {
+class JaccardLshModelScala(opts: JaccardLshOptions) {
   import VectorHashingModel._
   import opts._
 
@@ -42,7 +42,7 @@ class JaccardLshModel(opts: JaccardLshOptions) {
   }
 
   private val emptyHashes: Seq[String] = {
-    val h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
+    val h = hashBand(Array.fill(numRows)(Int.MaxValue))
     for {
       ti <- 0 until numTables
       bi <- 0 until numBands
@@ -58,6 +58,14 @@ class JaccardLshModel(opts: JaccardLshOptions) {
     min
   }
 
+  def hashBand(rows: Array[Long]): Long = {
+    var h = 0L
+    rows foreach { r =>
+      h = (h + r) % HASH_PRIME
+    }
+    h
+  }
+
   def hash(sbv: SparseBoolVector): Seq[String] =
     if (sbv.isEmpty) emptyHashes
     else {
@@ -71,7 +79,7 @@ class JaccardLshModel(opts: JaccardLshOptions) {
             rh.update(ri, minHash(hashFuncs(hi), sbv.trueIndices))
             hi += 1
           }
-          hh :+= s"$ti,$bi,${MurmurHash3.orderedHash(rh)}"
+          hh :+= s"$ti,$bi,${hashBand(rh)}"
         }
       }
       hh
@@ -87,9 +95,9 @@ object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
-    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
-      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
+  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModelScala] =
+    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModelScala] {
+      def load(opts: JaccardLshOptions): JaccardLshModelScala = new JaccardLshModelScala(opts)
     })
 
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =

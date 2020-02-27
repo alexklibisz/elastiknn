@@ -42,6 +42,13 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
+    while True:
+        loss = evaluate(dataset, 15, 11, 1)
+        print(loss)
+
+    sys.exit(0)
+
+
     num_tables = [('num_tables', t) for t in range(10, 121, 5)]
     num_bands = [('num_bands', b) for b in range(5, 103, 3)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
@@ -58,7 +65,7 @@ def main():
             pmax = pareto_max(metrics)
 
             plt.title(f"{dsname} results")
-            plt.scatter(metrics[:i, 0], metrics[:i, 1], label='All')
+            plt.scatter(metrics[:, 0], metrics[:, 1], label='All')
             plt.scatter(metrics[pmax, 0], metrics[pmax, 1], label='Optimal')
             plt.legend()
             plt.savefig(f"out/{dsname}.png")

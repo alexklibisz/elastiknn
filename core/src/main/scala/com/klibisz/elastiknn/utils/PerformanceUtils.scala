@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.utils
 
-import com.klibisz.elastiknn.Hotspots
-
 import scala.annotation.tailrec
 import scala.util.Try
 
@@ -16,7 +14,7 @@ trait PerformanceUtils {
 
   final def fastfor(i: Int, pred: Int => Boolean)(f: Int => Unit): Unit = fastfor(i, pred, _ + 1)(f)
 
-  private[elastiknn] def sortedIntersectionCount(xs: Array[Int], ys: Array[Int]): Try[Int] = Try(Hotspots.sortedIntersectionCount(xs, ys))
+  private[elastiknn] def sortedIntersectionCount(xs: Array[Int], ys: Array[Int]): Try[Int] = Try(ArrayUtils.sortedIntersectionCount(xs, ys))
 
 }
 
