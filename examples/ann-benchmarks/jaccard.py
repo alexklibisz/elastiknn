@@ -46,9 +46,6 @@ def main():
         loss = evaluate(dataset, 15, 11, 1)
         print(loss)
 
-    sys.exit(0)
-
-
     num_tables = [('num_tables', t) for t in range(10, 121, 5)]
     num_bands = [('num_bands', b) for b in range(5, 103, 3)]
     num_rows = [('num_rows', r) for r in range(1, 2)]

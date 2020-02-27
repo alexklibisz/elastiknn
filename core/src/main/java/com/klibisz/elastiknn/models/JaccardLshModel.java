@@ -67,13 +67,14 @@ public class JaccardLshModel {
                     for (int r = 0; r < numRows; r++) {
                         long rowHash = Long.MAX_VALUE;
                         for (int ixTrue : trueIndices) {
-                            long h = (1L + ixTrue) * alphas[ixCoefs] + betas[ixCoefs];
+                            long h = ((1L + ixTrue) * alphas[ixCoefs] + betas[ixCoefs]) % HASH_PRIME;
                             rowHash = Math.min(rowHash, h);
                         }
                         rowHashes[r] = rowHash;
                         ixCoefs += 1;
                     }
                     allHashes[ixHashes] = tableBandHash(t, b, hashBand(rowHashes));
+                    ixHashes += 1;
                 }
             }
 
