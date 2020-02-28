@@ -1,15 +1,12 @@
 package com.klibisz.elastiknn.models
 
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import io.circe._
-import io.circe.syntax._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.utils.Utils._
-import com.klibisz.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, SparseBoolVector, _}
+import com.klibisz.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, _}
 
 import scala.util._
-import scala.util.hashing.MurmurHash3
 
 object ExactModel {
   import com.klibisz.elastiknn.ElastiKnnVector.Vector.{FloatVector, SparseBoolVector}
@@ -29,82 +26,63 @@ class JaccardLshModelScala(opts: JaccardLshOptions) {
 
   private val rng: Random = new Random(seed)
 
-  private val coefficients: Seq[(Int, Int)] = for {
-    _ <- 0 until numTables * numBands * numRows
-    a = 1 + rng.nextInt(HASH_PRIME - 1)
-    b = rng.nextInt(HASH_PRIME - 1)
-  } yield (a, b)
+  private val alphas: Array[Int] = (0 until numTables * numBands * numRows).toArray.map(_ => 1 + rng.nextInt(HASH_PRIME - 1))
+  private val betas: Array[Int] = (0 until numTables * numBands * numRows).toArray.map(_ => rng.nextInt(HASH_PRIME - 1))
 
-  private val hashFuncs: Array[Int => Long] = coefficients.toArray.map {
-    case (a, b) =>
-      (i: Int) =>
-        ((1L + i) * a + b) % HASH_PRIME
-  }
+  private def tableBandHash(table: Int, band: Int, bandHash: Long): Long =
+    ((((table % HASH_PRIME) + band) % HASH_PRIME) + bandHash) % HASH_PRIME
 
-  private val emptyHashes: Seq[String] = {
-    val h = hashBand(Array.fill(numRows)(Int.MaxValue))
-    for {
-      ti <- 0 until numTables
-      bi <- 0 until numBands
-    } yield s"$ti,$bi,$h"
-  }
-
-  private def minHash(hashFunc: Int => Long, indices: IndexedSeq[Int]): Long = {
-    var min = Long.MaxValue
-    fastfor(0, _ < indices.length) { i =>
-      val h = hashFunc(indices(i))
-      if (h < min) min = h
+  private lazy val emptyHashes: Array[Long] = {
+    var bandHash = 0L
+    fastfor(0, _ < numRows) { _ =>
+      bandHash = (bandHash + Long.MaxValue) % HASH_PRIME
     }
-    min
+    (for {
+      t <- 0 until numTables
+      b <- 0 until numBands
+    } yield tableBandHash(t, b, bandHash)).toArray
   }
 
-  def hashBand(rows: Array[Long]): Long = {
-    var h = 0L
-    rows foreach { r =>
-      h = (h + r) % HASH_PRIME
-    }
-    h
-  }
-
-  def hash(sbv: SparseBoolVector): Seq[String] =
-    if (sbv.isEmpty) emptyHashes
+  final def hash(trueIndices: Array[Int]): Array[Long] =
+    if (trueIndices.isEmpty) emptyHashes
     else {
-      // Implemented in a way that should avoid creating any ancillary data structures in the loops.
-      var hh = Vector.empty[String]
-      val rh = Array.fill(numRows)(Long.MaxValue)
-      var hi = 0
-      fastfor(0, _ < numTables) { ti =>
-        fastfor(0, _ < numBands) { bi =>
-          fastfor(0, _ < numRows) { ri =>
-            rh.update(ri, minHash(hashFuncs(hi), sbv.trueIndices))
-            hi += 1
+      val tableBandHashes = new Array[Long](numTables * numBands)
+      var (ixHashes, ixCoefs) = (0, 0)
+      fastfor(0, _ < numTables) { t =>
+        fastfor(0, _ < numBands) { b =>
+          var bandHash = 0L
+          fastfor(0, _ < numRows) { _ =>
+            var rowHash = Long.MaxValue
+            val (a, b) = (alphas(ixCoefs), betas(ixCoefs))
+            fastfor(0, _ < trueIndices.length) { i =>
+              rowHash = rowHash.min(((1L + trueIndices(i)) * a + b) % HASH_PRIME)
+            }
+            bandHash = (bandHash + rowHash) % HASH_PRIME
+            ixCoefs += 1
           }
-          hh :+= s"$ti,$bi,${hashBand(rh)}"
+          tableBandHashes.update(ixHashes, tableBandHash(t, b, bandHash))
+          ixHashes += 1
         }
       }
-      hh
+      tableBandHashes
     }
 
-  def hash(vec: ElastiKnnVector): Try[Seq[String]] = vec match {
-    case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(hash(sbv))
-    case _                                                             => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
-  }
 }
 
 object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
-    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
-      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts.seed, opts.numTables, opts.numBands, opts.numRows)
+  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModelScala] =
+    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModelScala] {
+      def load(opts: JaccardLshOptions): JaccardLshModelScala = new JaccardLshModelScala(opts)
     })
 
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
     (processorOptions.modelOptions, elastiKnnVector) match {
       case (Exact(mopts), _) => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
-      case (Jaccard(mopts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
-        Try(jaccardCache.get(mopts).hash(sbv.trueIndices).mkString(" "))
+      case (Jaccard(opts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
+        Try(jaccardCache.get(opts).hash(sbv.trueIndices).mkString(" "))
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 

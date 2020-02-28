@@ -41,16 +41,4 @@ public class ArrayUtils {
         return n;
     }
 
-//    implementation 'commons-codec:commons-codec:1.14'
-//    import org.apache.commons.codec.digest.MurmurHash3;
-//    import java.nio.ByteBuffer;
-//    import java.nio.IntBuffer;
-//    import java.nio.LongBuffer;
-//    public static int orderedMurmurHash(long[] xs) {
-//        ByteBuffer byteBuffer = ByteBuffer.allocate(xs.length * 8);
-//        LongBuffer longBuffer = byteBuffer.asLongBuffer();
-//        longBuffer.put(xs);
-//        return MurmurHash3.hash32x86(byteBuffer.array(), 0, xs.length, 0xb592f7ae);
-//    }
-
 }

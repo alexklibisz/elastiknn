@@ -37,7 +37,8 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
   override def execute(doc: IngestDocument): IngestDocument = {
     // The official python client puts bulk-indexed docs under a `doc` key. elastic4s doesn't seem to do this.
     // Still, it's safest to try both no prefix and the `doc.` prefix.
-    process(doc).orElse(process(doc, "doc.")).get
+    process(doc).get
+    //    process(doc).orElse(process(doc, "doc.")).get
   }
 
 }
