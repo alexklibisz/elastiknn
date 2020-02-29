@@ -1,3 +1,7 @@
+- Removed the `num_tables` argument from `JaccardLshOptions` as it's redundant to `num_bands`.
+- Profiled and refactored the `JaccardLshModel` using the Ann-benchmarks Kosarak Jaccard dataset.
+- Added an example program that grid-searches JaccardLshOptions for best performance and plots the Pareto front.
+---
 - LSH hashes are stored as a single `text` field with a `whitespace` analyzer `boolean` similarity instead of storing each
 hash as a single keyword field. This resolves the problem of having too many fields in a document, which was causing
 exceptions when using a large-ish number of LSH tables and min-hash bands (e.g. 20 and 40). The `whitespace` analyzer is
