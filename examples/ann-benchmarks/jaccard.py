@@ -10,11 +10,11 @@ from elastiknn.models import ElastiKnnModel
 from utils import open_dataset, ANNB_ROOT, Dataset, pareto_max
 
 
-def evaluate(dataset: Dataset, num_tables: int, num_bands: int, num_rows: int):
+def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     index = "ann-benchmarks-jaccard"
-    pipe = f"ingest-{index}-{num_tables}-{num_rows}-{num_bands}"
+    pipe = f"ingest-{index}-{num_bands}-{num_rows}"
     eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=1,
-                          algorithm_params=dict(num_tables=num_tables, num_bands=num_bands, num_rows=num_rows),
+                          algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
                           index="ann-benchmarks-jaccard", pipeline_id=pipe)
     print("Checking subset...")
     eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
@@ -42,21 +42,17 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    print(evaluate(dataset, 15, 11, 1))
-    print(evaluate(dataset, 11, 15, 1))
-
-    print(evaluate(dataset, 20, 5, 1))
-    print(evaluate(dataset, 4, 25, 1))
+    print(evaluate(dataset, 165, 1))
+    print(evaluate(dataset, 100, 1))
 
     while True:
-        loss = evaluate(dataset, 15, 11, 1)
+        loss = evaluate(dataset, 165, 1)
         print(loss)
 
-    num_tables = [('num_tables', t) for t in range(10, 121, 5)]
     num_bands = [('num_bands', b) for b in range(5, 103, 3)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
 
-    combinations = list(map(dict, itertools.product(num_tables, num_bands, num_rows)))
+    combinations = list(map(dict, itertools.product(num_bands, num_rows)))
     metrics = np.zeros((len(combinations), 2))
 
     for i, params in enumerate(combinations):

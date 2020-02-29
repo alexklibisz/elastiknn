@@ -26,99 +26,39 @@ class JaccardLshModel(opts: JaccardLshOptions) {
 
   private val rng: Random = new Random(seed)
 
-  private val alphas: Array[Int] = (0 until numTables * numBands * numRows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
-  private val betas: Array[Int] = (0 until numTables * numBands * numRows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
+  private val alphas: Array[Int] = (0 until numBands * numRows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
+  private val betas: Array[Int] = (0 until numBands * numRows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
 
-  private lazy val emptyHashes: Array[Long] = Array.fill(numTables * numRows)(HASH_PRIME)
+  private lazy val emptyHashes: Array[Long] = Array.fill(numRows)(HASH_PRIME)
 
   final def hash(trueIndices: Array[Int]): Array[Long] =
     if (trueIndices.isEmpty) emptyHashes
     else {
-      val tableBandHashes = new Array[Long](numTables * numBands)
-      var ixCoefficients = 0
+      val tableBandHashes = new Array[Long](numBands)
       var ixTableBandHashes = 0
-      var ixTables = 0
-      while (ixTables < numTables) {
-        var ixBands = 0
-        while (ixBands < numBands) {
-          var bandHash = 0L
-          var ixRows = 0
-          while (ixRows < numRows) {
-            val a = alphas(ixCoefficients)
-            val b = betas(ixCoefficients)
-            var rowHash = Long.MaxValue
-            var ixTrueIndices = 0
-            while (ixTrueIndices < trueIndices.length) {
-              val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-              if (indexHash < rowHash) rowHash = indexHash
-              ixTrueIndices += 1
-            }
-            bandHash = (bandHash + rowHash) % HASH_PRIME
-            ixRows += 1
-            ixCoefficients += 1
+      var ixCoefficients = 0
+      while (ixTableBandHashes < tableBandHashes.length) {
+        var bandHash = 0L
+        var ixRows = 0
+        while (ixRows < numRows) {
+          val a = alphas(ixCoefficients)
+          val b = betas(ixCoefficients)
+          var rowHash = Long.MaxValue
+          var ixTrueIndices = 0
+          while (ixTrueIndices < trueIndices.length) {
+            val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
+            if (indexHash < rowHash) rowHash = indexHash
+            ixTrueIndices += 1
           }
-          tableBandHashes.update(ixTableBandHashes, ((((ixTables % HASH_PRIME) + ixBands) % HASH_PRIME) + bandHash) % HASH_PRIME)
-          ixTableBandHashes += 1
-          ixBands += 1
+          bandHash = (bandHash + rowHash) % HASH_PRIME
+          ixRows += 1
+          ixCoefficients += 1
         }
-        ixTables += 1
+        tableBandHashes.update(ixTableBandHashes, ((ixTableBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
+        ixTableBandHashes += 1
       }
       tableBandHashes
     }
-
-//  final def hash(trueIndices: Array[Int]): Array[Long] =
-//    if (trueIndices.isEmpty) emptyHashes
-//    else {
-//      val tableBandHashes = new Array[Long](numTables * numBands)
-//      var ixTableBandHashes = 0
-//      var ixCoefficients = 0
-//      while (ixTableBandHashes < tableBandHashes.length) {
-//        var bandHash = 0L
-//        var ixRows = 0
-//        while (ixRows < numRows) {
-//          val a = alphas(ixCoefficients)
-//          val b = betas(ixCoefficients)
-//          var rowHash = Long.MaxValue
-//          var ixTrueIndices = 0
-//          while (ixTrueIndices < trueIndices.length) {
-//            val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-//            if (indexHash < rowHash) rowHash = indexHash
-//            ixTrueIndices += 1
-//          }
-//          bandHash = (bandHash + rowHash) % HASH_PRIME
-//          ixRows += 1
-//          ixCoefficients += 1
-//        }
-//        tableBandHashes.update(ixTableBandHashes, ((ixTableBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
-//        ixTableBandHashes += 1
-//      }
-//      tableBandHashes
-//    }
-
-//  final def hash(trueIndices: Array[Int]): Array[Long] =
-//    if (trueIndices.isEmpty) emptyHashes
-//    else {
-//      val tableBandHashes = new Array[Long](numTables * numBands)
-//      var (ixHashes, ixCoefs) = (0, 0)
-//      fastfor(0, _ < numTables) { t =>
-//        fastfor(0, _ < numBands) { b =>
-//          var bandHash = 0L
-//          fastfor(0, _ < numRows) { _ =>
-//            var rowHash = Long.MaxValue
-//            val (a, b) = (alphas(ixCoefs), betas(ixCoefs))
-//            fastfor(0, _ < trueIndices.length) { i =>
-//              val indexHash = ((1L + trueIndices(i)) * a + b) % HASH_PRIME
-//              if (indexHash < rowHash) rowHash = indexHash
-//            }
-//            bandHash = (bandHash + rowHash) % HASH_PRIME
-//            ixCoefs += 1
-//          }
-//          tableBandHashes.update(ixHashes, tableBandHash(t, b, bandHash))
-//          ixHashes += 1
-//        }
-//      }
-//      tableBandHashes
-//    }
 
 }
 
@@ -145,7 +85,7 @@ object Profile {
   def main(args: Array[String]): Unit = {
 
     implicit val r = new Random(100)
-    val m = new JaccardLshModel(JaccardLshOptions(0, "", 15, 10, 1))
+    val m = new JaccardLshModel(JaccardLshOptions(0, "", 150, 1))
 
     val vecs = SparseBoolVector.randoms(100, 5000)
 

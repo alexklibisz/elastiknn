@@ -37,9 +37,8 @@ message ExactModelOptions {
 message JaccardLshOptions {
     int64 seed = 1;
     string field_processed = 2;
-    uint32 num_tables = 3;
-    uint32 num_bands = 4;
-    uint32 num_rows = 5;
+    uint32 num_bands = 3;
+    uint32 num_rows = 4;
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.
@@ -61,7 +60,6 @@ message ElastiKnnVector {
         SparseBoolVector sparse_bool_vector = 2;
     }
 }
-
 
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
