@@ -41,7 +41,7 @@ def open_dataset(path: str) -> Dataset:
     return Dataset(corpus=list(train), queries=queries)
 
 
-def pareto_max(losses: np.ndarray, ndigits: int = 4) -> List[int]:
+def pareto_max(losses: np.ndarray, ndigits: int = 3) -> List[int]:
     assert losses.shape[-1] == 2
     best: Dict[float, Tuple[int, float]] = dict()
     for i, [x, y] in enumerate(losses.round(ndigits)):

@@ -42,11 +42,12 @@ if __name__ == "__main__":
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
+    # Useful for sampling/profiling.
     # while True:
     #     loss = evaluate(dataset, 165, 1)
     #     print(loss)
 
-    num_bands = [('num_bands', b) for b in range(5, 103, 3)]
+    num_bands = [('num_bands', b) for b in range(10, 601, 10)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
 
     combinations = list(map(dict, itertools.product(num_bands, num_rows)))
@@ -70,7 +71,7 @@ if __name__ == "__main__":
             with open(f"out/{dsname}.txt", "w") as fp:
                 for j in pmax:
                     d, m = combinations[j], metrics[j]
-                    fp.write(f"{d['num_tables']}, {d['num_bands']}, {d['num_rows']}, {m[0]}, {m[1]}\n")
+                    fp.write(f"{d['num_bands']}, {d['num_rows']}, {m[0]}, {m[1]}\n")
         except Exception as e:
             print(e, file=sys.stderr)
             continue
