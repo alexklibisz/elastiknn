@@ -42,9 +42,6 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    print(evaluate(dataset, 165, 1))
-    print(evaluate(dataset, 100, 1))
-
     while True:
         loss = evaluate(dataset, 165, 1)
         print(loss)
