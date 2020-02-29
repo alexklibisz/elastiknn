@@ -34,7 +34,7 @@ def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     return recall,  queries_per_sec
 
 
-def main():
+if __name__ == "__main__":
 
     dsname = "kosarak-jaccard"
 
@@ -42,9 +42,9 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    while True:
-        loss = evaluate(dataset, 165, 1)
-        print(loss)
+    # while True:
+    #     loss = evaluate(dataset, 165, 1)
+    #     print(loss)
 
     num_bands = [('num_bands', b) for b in range(5, 103, 3)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
@@ -76,5 +76,3 @@ def main():
             continue
         finally:
             print('-' * 100)
-
-main()

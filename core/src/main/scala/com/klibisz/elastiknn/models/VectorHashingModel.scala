@@ -3,8 +3,6 @@ package com.klibisz.elastiknn.models
 import com.google.common.cache._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.utils.ArrayUtils
-import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn._
 
 import scala.util._
@@ -38,31 +36,4 @@ object VectorHashingModel {
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 
-}
-
-object ProfileVectorHashing {
-  def main(args: Array[String]): Unit = {
-    implicit val r: Random = new Random(100)
-    val m = new JaccardLshModel(0, 150, 1)
-    val vecs = SparseBoolVector.randoms(100, 5000)
-    while (true) {
-      val t0 = System.currentTimeMillis()
-      vecs.foreach(v => m.hash(v.trueIndices))
-      println(vecs.length * 1.0 / (System.currentTimeMillis() - t0) * 1000)
-    }
-  }
-}
-
-object ProfileSortedIntersection {
-  def main(args: Array[String]): Unit = {
-    implicit val r: Random = new Random(100)
-    val vecs = SparseBoolVector.randoms(100, 5000)
-    while (true) {
-      val t0 = System.currentTimeMillis()
-      vecs.drop(1).zip(vecs).map {
-        case (a, b) => ArrayUtils.sortedIntersectionCount(a.trueIndices, b.trueIndices)
-      }
-      println(vecs.length * 1.0 / (System.currentTimeMillis() - t0) * 1000)
-    }
-  }
 }

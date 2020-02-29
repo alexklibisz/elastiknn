@@ -20,7 +20,7 @@ import scala.util.Random
   * @param numBands The number of LSH bands. See Mining Massive Datasets, Chapter 3 for precise description.
   * @param numRows The number of rows in each LSH band. Again, see Mining Massive Datasets, Chapter.
   */
-final private[models] class JaccardLshModel(seed: Long, numBands: Int, numRows: Int) {
+final private[elastiknn] class JaccardLshModel(seed: Long, numBands: Int, numRows: Int) {
 
   import VectorHashingModel.HASH_PRIME
 
@@ -28,7 +28,7 @@ final private[models] class JaccardLshModel(seed: Long, numBands: Int, numRows: 
   private val alphas: Array[Int] = (0 until numBands * numRows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
   private val betas: Array[Int] = (0 until numBands * numRows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
 
-  private lazy val emptyHashes: Array[Long] = Array.fill(numRows)(HASH_PRIME)
+  private lazy val emptyHashes: Array[Int] = Array.fill(numRows)(HASH_PRIME)
 
   /**
     * Hash the given vector using the hash functions constructed as a function of the random seed.
@@ -36,23 +36,23 @@ final private[models] class JaccardLshModel(seed: Long, numBands: Int, numRows: 
     * @param trueIndices The list of "true" (i.e. positive) indices from a boolean vector.
     * @return An array of longs with length `numBands`.
     */
-  def hash(trueIndices: Array[Int]): Array[Long] =
+  def hash(trueIndices: Array[Int]): Array[Int] =
     if (trueIndices.isEmpty) emptyHashes
     else {
-      val bandHashes = new Array[Long](numBands)
+      val bandHashes = new Array[Int](numBands)
       var ixBandHashes = 0
       var ixCoefficients = 0
       while (ixBandHashes < bandHashes.length) {
-        var bandHash = 0L
+        var bandHash = 0
         var ixRows = 0
         while (ixRows < numRows) {
           val a = alphas(ixCoefficients)
           val b = betas(ixCoefficients)
-          var rowHash = Long.MaxValue
+          var rowHash = Int.MaxValue
           var ixTrueIndices = 0
           while (ixTrueIndices < trueIndices.length) {
-            val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-            if (indexHash < rowHash) rowHash = indexHash
+            val indexHash = ((1 + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
+            if (indexHash < rowHash) rowHash = indexHash // Actually faster than math.min or a.min(b).
             ixTrueIndices += 1
           }
           bandHash = (bandHash + rowHash) % HASH_PRIME
