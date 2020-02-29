@@ -58,15 +58,13 @@ services:
     build:
       context: ${ES_CONTEXT:-../es74x}
       dockerfile: Dockerfile
-      #    volumes:
-      #      - ./mount/jvm.options:/user/share/elasticsearch/config/jvm.options
     environment:
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms2G -Xmx2G
+      - ES_JAVA_OPTS=-Xms1G -Xmx1G
     ulimits:
       nofile:
         soft: 65536
