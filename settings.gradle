@@ -4,4 +4,4 @@ include 'es74x'
 include 'testing'
 include 'reference'
 include 'client-elastic4s'
-include 'benchmarks'
+

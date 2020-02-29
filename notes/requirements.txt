@@ -1,11 +1,3 @@
 jupyter
 matplotlib
 numpy
-# Had to fork and fix a broken dependency.
-# git+git://github.com/alexklibisz/gpflowopt.git@d9feb42e59fa7fc380fe6843cbf7959e84dd9602
-
-# git+git://github.com/AIworx-Labs/chocolate@master
-git+git://github.com/alexklibisz/chocolate
-ghalton
-
-

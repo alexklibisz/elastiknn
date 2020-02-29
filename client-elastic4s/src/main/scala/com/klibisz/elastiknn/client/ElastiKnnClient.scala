@@ -26,7 +26,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   import Elastic4sUtils._
   import ElasticDsl._
 
-  def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] =
+  private def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] =
     for {
       res <- elastic4sClient.execute(req)
       ret <- res match {
@@ -102,7 +102,6 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     *                    an already-indexed vector (using [[KNearestNeighborsQuery.QueryVector.Indexed]].
     * @param k The number of search hits to return.
     * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache].
-    * @param fetchSource Whether to include the document _source in the results. Excluding it can yield a speedup.
     * @tparam O A query-option-like type implementing the [[QueryOptionsLike]] typeclass.
     * @tparam V A query-vector-like type implementing the [[QueryVectorLike]] typeclass.
     * @return Returns the elastic4s [[SearchResponse]].
@@ -111,8 +110,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                                                         options: O,
                                                         queryVector: V,
                                                         k: Int,
-                                                        useCache: Boolean = false,
-                                                        fetchSource: Boolean = true): Future[SearchResponse] =
+                                                        useCache: Boolean = false): Future[SearchResponse] =
     execute(search(index).query(Elastic4sUtils.knnQuery(options, queryVector, useCache)).size(k).fetchSource(false))
 
   def close(): Unit = elastic4sClient.close()
