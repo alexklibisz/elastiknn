@@ -20,52 +20,105 @@ object ExactModel {
   }
 }
 
-class JaccardLshModelScala(opts: JaccardLshOptions) {
+class JaccardLshModel(opts: JaccardLshOptions) {
   import VectorHashingModel._
   import opts._
 
   private val rng: Random = new Random(seed)
 
-  private val alphas: Array[Int] = (0 until numTables * numBands * numRows).toArray.map(_ => 1 + rng.nextInt(HASH_PRIME - 1))
-  private val betas: Array[Int] = (0 until numTables * numBands * numRows).toArray.map(_ => rng.nextInt(HASH_PRIME - 1))
+  private val alphas: Array[Int] = (0 until numTables * numBands * numRows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
+  private val betas: Array[Int] = (0 until numTables * numBands * numRows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
 
-  private def tableBandHash(table: Int, band: Int, bandHash: Long): Long =
-    ((((table % HASH_PRIME) + band) % HASH_PRIME) + bandHash) % HASH_PRIME
-
-  private lazy val emptyHashes: Array[Long] = {
-    var bandHash = 0L
-    fastfor(0, _ < numRows) { _ =>
-      bandHash = (bandHash + Long.MaxValue) % HASH_PRIME
-    }
-    (for {
-      t <- 0 until numTables
-      b <- 0 until numBands
-    } yield tableBandHash(t, b, bandHash)).toArray
-  }
+  private lazy val emptyHashes: Array[Long] = Array.fill(numTables * numRows)(HASH_PRIME)
 
   final def hash(trueIndices: Array[Int]): Array[Long] =
     if (trueIndices.isEmpty) emptyHashes
     else {
       val tableBandHashes = new Array[Long](numTables * numBands)
-      var (ixHashes, ixCoefs) = (0, 0)
-      fastfor(0, _ < numTables) { t =>
-        fastfor(0, _ < numBands) { b =>
+      var ixCoefficients = 0
+      var ixTableBandHashes = 0
+      var ixTables = 0
+      while (ixTables < numTables) {
+        var ixBands = 0
+        while (ixBands < numBands) {
           var bandHash = 0L
-          fastfor(0, _ < numRows) { _ =>
+          var ixRows = 0
+          while (ixRows < numRows) {
+            val a = alphas(ixCoefficients)
+            val b = betas(ixCoefficients)
             var rowHash = Long.MaxValue
-            val (a, b) = (alphas(ixCoefs), betas(ixCoefs))
-            fastfor(0, _ < trueIndices.length) { i =>
-              rowHash = rowHash.min(((1L + trueIndices(i)) * a + b) % HASH_PRIME)
+            var ixTrueIndices = 0
+            while (ixTrueIndices < trueIndices.length) {
+              val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
+              if (indexHash < rowHash) rowHash = indexHash
+              ixTrueIndices += 1
             }
             bandHash = (bandHash + rowHash) % HASH_PRIME
-            ixCoefs += 1
+            ixRows += 1
+            ixCoefficients += 1
           }
-          tableBandHashes.update(ixHashes, tableBandHash(t, b, bandHash))
-          ixHashes += 1
+          tableBandHashes.update(ixTableBandHashes, ((((ixTables % HASH_PRIME) + ixBands) % HASH_PRIME) + bandHash) % HASH_PRIME)
+          ixTableBandHashes += 1
+          ixBands += 1
         }
+        ixTables += 1
       }
       tableBandHashes
     }
+
+//  final def hash(trueIndices: Array[Int]): Array[Long] =
+//    if (trueIndices.isEmpty) emptyHashes
+//    else {
+//      val tableBandHashes = new Array[Long](numTables * numBands)
+//      var ixTableBandHashes = 0
+//      var ixCoefficients = 0
+//      while (ixTableBandHashes < tableBandHashes.length) {
+//        var bandHash = 0L
+//        var ixRows = 0
+//        while (ixRows < numRows) {
+//          val a = alphas(ixCoefficients)
+//          val b = betas(ixCoefficients)
+//          var rowHash = Long.MaxValue
+//          var ixTrueIndices = 0
+//          while (ixTrueIndices < trueIndices.length) {
+//            val indexHash = ((1L + trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
+//            if (indexHash < rowHash) rowHash = indexHash
+//            ixTrueIndices += 1
+//          }
+//          bandHash = (bandHash + rowHash) % HASH_PRIME
+//          ixRows += 1
+//          ixCoefficients += 1
+//        }
+//        tableBandHashes.update(ixTableBandHashes, ((ixTableBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
+//        ixTableBandHashes += 1
+//      }
+//      tableBandHashes
+//    }
+
+//  final def hash(trueIndices: Array[Int]): Array[Long] =
+//    if (trueIndices.isEmpty) emptyHashes
+//    else {
+//      val tableBandHashes = new Array[Long](numTables * numBands)
+//      var (ixHashes, ixCoefs) = (0, 0)
+//      fastfor(0, _ < numTables) { t =>
+//        fastfor(0, _ < numBands) { b =>
+//          var bandHash = 0L
+//          fastfor(0, _ < numRows) { _ =>
+//            var rowHash = Long.MaxValue
+//            val (a, b) = (alphas(ixCoefs), betas(ixCoefs))
+//            fastfor(0, _ < trueIndices.length) { i =>
+//              val indexHash = ((1L + trueIndices(i)) * a + b) % HASH_PRIME
+//              if (indexHash < rowHash) rowHash = indexHash
+//            }
+//            bandHash = (bandHash + rowHash) % HASH_PRIME
+//            ixCoefs += 1
+//          }
+//          tableBandHashes.update(ixHashes, tableBandHash(t, b, bandHash))
+//          ixHashes += 1
+//        }
+//      }
+//      tableBandHashes
+//    }
 
 }
 
@@ -73,9 +126,9 @@ object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModelScala] =
-    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModelScala] {
-      def load(opts: JaccardLshOptions): JaccardLshModelScala = new JaccardLshModelScala(opts)
+  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
+    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
+      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
     })
 
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
@@ -86,4 +139,23 @@ object VectorHashingModel {
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 
+}
+
+object Profile {
+  def main(args: Array[String]): Unit = {
+
+    implicit val r = new Random(100)
+    val m = new JaccardLshModel(JaccardLshOptions(0, "", 15, 10, 1))
+
+    val vecs = SparseBoolVector.randoms(100, 5000)
+
+    println(m.hash(vecs.head.trueIndices).hashCode())
+
+    while (true) {
+      val t0 = System.currentTimeMillis()
+      vecs.foreach(v => m.hash(v.trueIndices))
+      println(vecs.length / (System.currentTimeMillis() - t0) * 1000)
+    }
+
+  }
 }
