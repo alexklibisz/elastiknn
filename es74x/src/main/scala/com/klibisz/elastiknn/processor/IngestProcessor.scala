@@ -34,12 +34,7 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
     }
 
   /** This is the method that gets invoked when someone adds a document that uses an elastiknn pipeline. */
-  override def execute(doc: IngestDocument): IngestDocument = {
-    // The official python client puts bulk-indexed docs under a `doc` key. elastic4s doesn't seem to do this.
-    // Still, it's safest to try both no prefix and the `doc.` prefix.
-    process(doc).get
-    //    process(doc).orElse(process(doc, "doc.")).get
-  }
+  override def execute(doc: IngestDocument): IngestDocument = process(doc).get
 
 }
 
