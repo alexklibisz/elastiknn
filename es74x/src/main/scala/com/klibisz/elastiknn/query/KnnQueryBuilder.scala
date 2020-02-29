@@ -161,7 +161,7 @@ final class KnnExactQueryBuilder(val exactQueryOptions: ExactQueryOptions, val q
     val subQuery: Query = defaultSubQuery.toQuery(context)
     val fieldType: MappedFieldType = context.getMapperService.fullName(fieldRaw)
     val fieldData: ElastiKnnVectorFieldMapper.FieldData = context.getForField(fieldType)
-    new FunctionScoreQuery(subQuery, new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
+    new FunctionScoreQuery(subQuery, new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache, None))
   }
 
   def doWriteTo(out: StreamOutput): Unit = {
@@ -198,6 +198,7 @@ object KnnLshQueryBuilder {
       new KnnLshQueryBuilder(
         ProcessorOptions.parseBase64(in.readString()),
         ElastiKnnVector.parseBase64(in.readString()),
+        in.readInt(),
         in.readString(),
         in.readBoolean()
       )
@@ -205,8 +206,8 @@ object KnnLshQueryBuilder {
   }
 
   /** Used to store [[ProcessorOptions]] needed for LSH queries. */
-  private val processorOptionsCache: Cache[LshQueryOptions, ProcessorOptions] =
-    CacheBuilder.newBuilder.softValues.build[LshQueryOptions, ProcessorOptions]()
+  private val processorOptionsCache: Cache[String, ProcessorOptions] =
+    CacheBuilder.newBuilder.softValues.build[String, ProcessorOptions]()
 
   /**
     * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster and cache them.
@@ -216,8 +217,8 @@ object KnnLshQueryBuilder {
               lshQueryOptions: LshQueryOptions,
               queryVector: ElastiKnnVector,
               useCache: Boolean): QueryBuilder = {
-    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions)
-    if (cached != null) KnnLshQueryBuilder(cached, queryVector, useCache)
+    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions.pipelineId)
+    if (cached != null) KnnLshQueryBuilder(cached, queryVector, lshQueryOptions.candidates, useCache)
     else {
       // Put all the sketchy stuff in one place.
       def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
@@ -248,8 +249,8 @@ object KnnLshQueryBuilder {
           new ActionListener[GetPipelineResponse] {
             override def onResponse(response: GetPipelineResponse): Unit = {
               val procOpts = parseResponse(response).get
-              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, useCache))
-              processorOptionsCache.put(lshQueryOptions, procOpts)
+              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, lshQueryOptions.candidates, useCache))
+              processorOptionsCache.put(lshQueryOptions.pipelineId, procOpts)
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             }
             override def onFailure(e: Exception): Unit = l.onFailure(e)
@@ -265,20 +266,21 @@ object KnnLshQueryBuilder {
     * Otherwise it would have to be hashed inside the [[KnnLshQueryBuilder]], which could happen on each node.
     * @return
     */
-  def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector, useCache: Boolean): KnnLshQueryBuilder = {
+  def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector, numCandidates: Int, useCache: Boolean): KnnLshQueryBuilder = {
     val hashed = VectorHashingModel
       .hash(processorOptions, queryVector)
       .recover {
         case t: Throwable => throw illArgEx(s"$queryVector could not be hashed", Some(t))
       }
       .get
-    new KnnLshQueryBuilder(processorOptions, queryVector, hashed, useCache)
+    new KnnLshQueryBuilder(processorOptions, queryVector, numCandidates, hashed, useCache)
   }
 
 }
 
 final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
                                val queryVector: ElastiKnnVector,
+                               val numCandidates: Int,
                                val hashed: String,
                                val useCache: Boolean)
     extends AbstractQueryBuilder[KnnLshQueryBuilder] {
@@ -286,6 +288,7 @@ final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
   def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(processorOptions.toBase64)
     out.writeString(queryVector.toBase64)
+    out.writeInt(numCandidates)
     out.writeString(hashed)
     out.writeBoolean(useCache)
   }
@@ -314,7 +317,8 @@ final class KnnLshQueryBuilder(val processorOptions: ProcessorOptions,
     } yield {
       val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
       val fieldData: FieldData = context.getForField(fieldType)
-      new FunctionScoreQuery(matchQuery.toQuery(context), new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache))
+      new FunctionScoreQuery(matchQuery.toQuery(context),
+                             new KnnExactScoreFunction(similarity, queryVector, fieldData, useCache, Some(numCandidates)))
     }
     queryTry.get
   }

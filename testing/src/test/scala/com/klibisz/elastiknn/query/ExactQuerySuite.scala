@@ -26,7 +26,7 @@ class ExactQuerySuite
     val support = new Support("vec_raw", sim, dim, ModelOptions.Exact(ExactModelOptions(sim)))
 
     test(s"$dim, ${sim.name}, $cache, given") {
-      support.testGiven(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim)), cache) { queriesAndResults =>
+      support.testGiven(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, res) =>
             res.hits.hits should have length query.similarities.length
@@ -39,7 +39,7 @@ class ExactQuerySuite
     }
 
     test(s"$dim, ${sim.name}, $cache, indexed") {
-      support.testIndexed(QueryOptions.Exact(ExactQueryOptions("vec_raw", sim)), cache) { queriesAndResults =>
+      support.testIndexed(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, id, res) =>
             val hits = res.hits.hits

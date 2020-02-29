@@ -52,16 +52,17 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
       _ <- eknn.indexVectors(index, pipelineId, rawField, testData.corpus, Some(corpusIds), Immediate)
     } yield testData
 
-    private lazy val numHits: Future[Int] = for (testData <- setupIndexCorpus)
+    lazy val numHits: Future[Int] = for (testData <- setupIndexCorpus)
       yield testData.queries.head.similarities.length
 
     /** Runs a test for queries which just take an [[ElastiKnnVector]]. Passes the query and response to an assertion. */
-    def testGiven(queryOptions: QueryOptions, useCache: Boolean)(fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
+    def testGiven[O: QueryOptionsLike](queryOptions: O, useCache: Boolean)(
+        fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
       for {
         testData <- setupIndexCorpus
         numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
-          queryOptions match {
+          implicitly[QueryOptionsLike[O]].apply(queryOptions) match {
             case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
             case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
             case _                        => Future.failed(illArgEx("query options must be exact or lsh"))
@@ -70,7 +71,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
       } yield fun(queriesResponses)
 
     /** Run tests for queries which take an [[IndexedQueryVector]]. Passes the query, query vector ID, and response to an assertion. */
-    def testIndexed(queryOptions: QueryOptions, useCache: Boolean)(
+    def testIndexed[O: QueryOptionsLike](queryOptions: O, useCache: Boolean)(
         fun: Seq[(Query, String, SearchResponse)] => Assertion): Future[Assertion] =
       for {
         testData <- setupIndexCorpus
@@ -80,12 +81,12 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
         queriesAndResponses <- Future.sequence(testData.queries.zipWithIndex.map {
           case (q, i) =>
             val iqv = IndexedQueryVector(index, rawField, queryId(i))
-            queryOptions match {
+            implicitly[QueryOptionsLike[O]].apply(queryOptions) match {
               case QueryOptions.Exact(opts) =>
                 eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))
               case QueryOptions.Lsh(opts) =>
                 eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))
-              case _ => ???
+              case _ => Future.failed(illArgEx("query options must be exact or lsh"))
             }
         })
       } yield fun(queriesAndResponses)

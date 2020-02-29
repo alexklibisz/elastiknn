@@ -16,22 +16,23 @@ def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=1,
                           algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
                           index="ann-benchmarks-jaccard", pipeline_id=pipe)
-    print("Checking subset...")
-    eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
-    eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
+    # print("Checking subset...")
+    # eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
+    # eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
     print("Indexing...")
     eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
-    print("Searching...")
-    t0 = time()
-    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True,
-                                     use_cache=True)
-    queries_per_sec = len(dataset.queries) / (time() - t0)
-    recalls = [
-        len(set(q.indices).intersection(p)) / len(q.indices)
-        for (q, p) in zip(dataset.queries, neighbors_pred)
-    ]
-    recall = sum(recalls) / len(recalls)
-    return recall,  queries_per_sec
+    eknn.kneighbors([q.vector for q in dataset.queries[:1]], return_distance=False, allow_missing=True)
+    # print("Searching...")
+    # t0 = time()
+    # neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True, use_cache=True)
+    # queries_per_sec = len(dataset.queries) / (time() - t0)
+    # recalls = [
+    #     len(set(q.indices).intersection(p)) / len(q.indices)
+    #     for (q, p) in zip(dataset.queries, neighbors_pred)
+    # ]
+    # recall = sum(recalls) / len(recalls)
+    # return recall,  queries_per_sec
+    return 0, 0
 
 
 if __name__ == "__main__":
@@ -43,9 +44,9 @@ if __name__ == "__main__":
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
     # Useful for sampling/profiling.
-    # while True:
-    #     loss = evaluate(dataset, 165, 1)
-    #     print(loss)
+    while True:
+        loss = evaluate(dataset, 165, 1)
+        print(loss)
 
     num_bands = [('num_bands', b) for b in range(10, 601, 10)]
     num_rows = [('num_rows', r) for r in range(1, 2)]
