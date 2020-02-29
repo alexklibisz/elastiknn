@@ -1,15 +1,11 @@
 package com.klibisz.elastiknn.models
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import io.circe._
-import io.circe.syntax._
+import com.google.common.cache._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions._
 import com.klibisz.elastiknn.Similarity._
-import com.klibisz.elastiknn.utils.Utils._
-import com.klibisz.elastiknn.{ElastiKnnVector, ExactModelOptions, JaccardLshOptions, ProcessorOptions, SparseBoolVector, _}
+import com.klibisz.elastiknn._
 
 import scala.util._
-import scala.util.hashing.MurmurHash3
 
 object ExactModel {
   import com.klibisz.elastiknn.ElastiKnnVector.Vector.{FloatVector, SparseBoolVector}
@@ -23,80 +19,21 @@ object ExactModel {
   }
 }
 
-class JaccardLshModel(opts: JaccardLshOptions) {
-  import VectorHashingModel._
-  import opts._
-
-  private val rng: Random = new Random(seed)
-
-  private val coefficients: Seq[(Int, Int)] = for {
-    _ <- 0 until numTables * numBands * numRows
-    a = 1 + rng.nextInt(HASH_PRIME - 1)
-    b = rng.nextInt(HASH_PRIME - 1)
-  } yield (a, b)
-
-  private val hashFuncs: Array[Int => Long] = coefficients.toArray.map {
-    case (a, b) =>
-      (i: Int) =>
-        ((1L + i) * a + b) % HASH_PRIME
-  }
-
-  private val emptyHashes: Seq[String] = {
-    val h = MurmurHash3.orderedHash(Array.fill(numRows)(Int.MaxValue))
-    for {
-      ti <- 0 until numTables
-      bi <- 0 until numBands
-    } yield s"$ti,$bi,$h"
-  }
-
-  private def minHash(hashFunc: Int => Long, indices: IndexedSeq[Int]): Long = {
-    var min = Long.MaxValue
-    fastfor(0, _ < indices.length) { i =>
-      val h = hashFunc(indices(i))
-      if (h < min) min = h
-    }
-    min
-  }
-
-  def hash(sbv: SparseBoolVector): Seq[String] =
-    if (sbv.isEmpty) emptyHashes
-    else {
-      // Implemented in a way that should avoid creating any ancillary data structures in the loops.
-      var hh = Vector.empty[String]
-      val rh = Array.fill(numRows)(Long.MaxValue)
-      var hi = 0
-      fastfor(0, _ < numTables) { ti =>
-        fastfor(0, _ < numBands) { bi =>
-          fastfor(0, _ < numRows) { ri =>
-            rh.update(ri, minHash(hashFuncs(hi), sbv.trueIndices))
-            hi += 1
-          }
-          hh :+= s"$ti,$bi,${MurmurHash3.orderedHash(rh)}"
-        }
-      }
-      hh
-    }
-
-  def hash(vec: ElastiKnnVector): Try[Seq[String]] = vec match {
-    case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) => Success(hash(sbv))
-    case _                                                             => Failure(SimilarityAndTypeException(SIMILARITY_JACCARD, vec))
-  }
-}
-
 object VectorHashingModel {
 
   private[models] val HASH_PRIME: Int = 2038074743
 
-  private val jaccardCache: LoadingCache[JaccardLshOptions, JaccardLshModel] =
-    CacheBuilder.newBuilder.build(new CacheLoader[JaccardLshOptions, JaccardLshModel] {
-      def load(opts: JaccardLshOptions): JaccardLshModel = new JaccardLshModel(opts)
+  private val jaccardCache: LoadingCache[(Long, Int, Int), JaccardLshModel] =
+    CacheBuilder.newBuilder.build(new CacheLoader[(Long, Int, Int), JaccardLshModel] {
+      def load(opts: (Long, Int, Int)): JaccardLshModel = new JaccardLshModel(opts._1, opts._2, opts._3)
     })
 
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
     (processorOptions.modelOptions, elastiKnnVector) match {
-      case (Exact(mopts), _)   => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
-      case (Jaccard(mopts), _) => jaccardCache.get(mopts).hash(elastiKnnVector).map(_.mkString(" "))
-      case other               => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
+      case (Exact(mopts), _) => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
+      case (Jaccard(opts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
+        Try(jaccardCache.get((opts.seed, opts.numBands, opts.numRows)).hash(sbv.trueIndices).mkString(" "))
+      case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 
 }

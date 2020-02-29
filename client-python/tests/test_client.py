@@ -32,8 +32,7 @@ class TestClient:
         test_index = pipeline_id = "python-test-lsh-jaccard"
         n, dim = 1200, 128
         propts = ProcessorOptions(field_raw=field_raw, dimension=dim,
-                                  jaccard=JaccardLshOptions(field_processed="vec_proc", num_tables=5, num_bands=10,
-                                                            num_rows=2))
+                                  jaccard=JaccardLshOptions(field_processed="vec_proc", num_bands=10, num_rows=2))
         eknn.create_pipeline(pipeline_id, propts)
         eknn.es.indices.delete(index=test_index, ignore=[400, 404])
         eknn.es.indices.refresh()

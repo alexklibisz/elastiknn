@@ -16,7 +16,7 @@ services:
       - node.ml=false
       - node.ingest=false
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms500m -Xmx500m"
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ulimits:
       nofile:
         soft: 65536
@@ -44,7 +44,7 @@ services:
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
-      - "ES_JAVA_OPTS=-Xms400m -Xmx400m"
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ulimits:
       nofile:
         soft: 65536
@@ -64,7 +64,7 @@ services:
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms500m -Xmx500m"
+      - ES_JAVA_OPTS=-Xms1G -Xmx1G
     ulimits:
       nofile:
         soft: 65536
@@ -72,3 +72,4 @@ services:
       memlock:
         soft: -1
         hard: -1
+

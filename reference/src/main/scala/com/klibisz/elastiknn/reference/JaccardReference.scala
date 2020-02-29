@@ -1,14 +1,12 @@
 package com.klibisz.elastiknn.reference
 
-import com.klibisz.elastiknn.models.ExactSimilarity
 import com.klibisz.elastiknn.SparseBoolVector
+import com.klibisz.elastiknn.models.ExactSimilarity
 import com.klibisz.elastiknn.utils.Utils._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature.MinHashLSH
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import com.klibisz.elastiknn.SparseBoolVector
-import com.klibisz.elastiknn.models.ExactSimilarity
 
 import scala.util.Random
 import scala.util.hashing.MurmurHash3

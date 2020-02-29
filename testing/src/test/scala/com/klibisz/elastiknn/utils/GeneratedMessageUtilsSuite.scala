@@ -20,7 +20,6 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
         JaccardLshOptions(
           seed = 99L,
           fieldProcessed = "field_proc",
-          numTables = 10,
           numBands = 10,
           numRows = 3
         ))
@@ -33,7 +32,6 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
       "jaccard" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
-        "numTables" -> 10,
         "numBands" -> 10,
         "numRows" -> 3
       ).asJava

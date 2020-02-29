@@ -26,9 +26,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   import Elastic4sUtils._
   import ElasticDsl._
 
-  private def execute[T, U](req: T)(implicit
-                                    handler: Handler[T, U],
-                                    manifest: Manifest[U]): Future[U] =
+  private def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] =
     for {
       res <- elastic4sClient.execute(req)
       ret <- res match {
@@ -96,6 +94,8 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   /**
     * Run a K-Nearest-Neighbor query.
     *
+    * TODO: consider using fetchSource to prevent downloading the full document.
+    *
     * @param index The index against which you're searching.
     * @param options An query-option-like object implementing the [[QueryOptionsLike]] typeclass. This defines some
     *                elastiknn-specific options about your search request, like whether it's an exact or LSH search.
@@ -103,7 +103,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     *                    a vector given explicitly (using [[KNearestNeighborsQuery.QueryVector.Given]] or a reference to
     *                    an already-indexed vector (using [[KNearestNeighborsQuery.QueryVector.Indexed]].
     * @param k The number of search hits to return.
-    * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache].
+    * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache]].
     * @tparam O A query-option-like type implementing the [[QueryOptionsLike]] typeclass.
     * @tparam V A query-vector-like type implementing the [[QueryVectorLike]] typeclass.
     * @return Returns the elastic4s [[SearchResponse]].

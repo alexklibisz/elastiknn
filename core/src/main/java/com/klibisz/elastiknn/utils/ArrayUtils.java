@@ -1,9 +1,9 @@
-package com.klibisz.elastiknn;
+package com.klibisz.elastiknn.utils;
 
 /**
  * Java implementations of some particularly performance-critical code paths.
  */
-public class Hotspots {
+public class ArrayUtils {
 
     private static void unsortedException(int lit, int big) {
         throw new IllegalArgumentException(String.format("Called on unsorted array: %d came after %d", lit, big));
@@ -40,6 +40,5 @@ public class Hotspots {
         }
         return n;
     }
-
 
 }

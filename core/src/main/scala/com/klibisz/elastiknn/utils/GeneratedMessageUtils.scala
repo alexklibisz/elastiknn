@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.utils
 import com.google.common.io.BaseEncoding
 import io.circe.{Decoder, DecodingFailure, HCursor}
 import scalapb.descriptors._
-import scalapb.{GeneratedMessage, GeneratedMessageCompanion, Message}
+import scalapb.{GeneratedEnum, GeneratedMessage, GeneratedMessageCompanion, Message}
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._

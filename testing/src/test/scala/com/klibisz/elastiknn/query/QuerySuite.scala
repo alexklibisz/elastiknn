@@ -8,7 +8,7 @@ import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy.Immediate
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import io.circe.parser.decode
-import org.scalatest._
+import org.scalatest.{AsyncTestSuite, Assertion}
 
 import scala.concurrent.Future
 import scala.util.Try

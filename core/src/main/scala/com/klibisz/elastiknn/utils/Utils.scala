@@ -5,7 +5,6 @@ trait Utils
     with ElastiKnnVectorUtils
     with KNearestNeighborsQueryUtils
     with ModelOptionsUtils
-    with PerformanceUtils
     with GeneratedMessageUtils
     with SparseBoolVectorUtils
     with TraversableUtils
