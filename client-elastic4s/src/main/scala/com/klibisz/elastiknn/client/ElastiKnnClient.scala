@@ -94,6 +94,8 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   /**
     * Run a K-Nearest-Neighbor query.
     *
+    * TODO: consider using fetchSource to prevent downloading the full document.
+    *
     * @param index The index against which you're searching.
     * @param options An query-option-like object implementing the [[QueryOptionsLike]] typeclass. This defines some
     *                elastiknn-specific options about your search request, like whether it's an exact or LSH search.
@@ -101,7 +103,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     *                    a vector given explicitly (using [[KNearestNeighborsQuery.QueryVector.Given]] or a reference to
     *                    an already-indexed vector (using [[KNearestNeighborsQuery.QueryVector.Indexed]].
     * @param k The number of search hits to return.
-    * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache].
+    * @param useCache Corresponds to [[KNearestNeighborsQuery.useCache]].
     * @tparam O A query-option-like type implementing the [[QueryOptionsLike]] typeclass.
     * @tparam V A query-vector-like type implementing the [[QueryVectorLike]] typeclass.
     * @return Returns the elastic4s [[SearchResponse]].
@@ -111,7 +113,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
                                                         queryVector: V,
                                                         k: Int,
                                                         useCache: Boolean = false): Future[SearchResponse] =
-    execute(search(index).query(Elastic4sUtils.knnQuery(options, queryVector, useCache)).size(k).fetchSource(false))
+    execute(search(index).query(Elastic4sUtils.knnQuery(options, queryVector, useCache)).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }
