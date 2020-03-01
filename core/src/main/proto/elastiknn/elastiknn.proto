@@ -15,6 +15,24 @@ enum Similarity {
 }
 
 message ProcessorOptions {
+
+    message ExactComputedOptions {
+        // Specify the similarity so vectors can be checked for compatibility when indexing.
+        Similarity similarity = 1;
+    }
+
+    message ExactIndexedOptions {
+        Similarity similarity = 1;
+        string field_processed = 2;
+    }
+
+    message JaccardLshOptions {
+        int64 seed = 1;
+        string field_processed = 2;
+        uint32 num_bands = 3;
+        uint32 num_rows = 4;
+    }
+
     // Path to the field where the raw vector is stored.
     string field_raw = 1;
 
@@ -27,23 +45,6 @@ message ProcessorOptions {
         JaccardLshOptions jaccard_lsh = 4;
         ExactIndexedOptions exact_indexed = 5;
     }
-}
-
-message ExactComputedOptions {
-    // Specify the similarity so vectors can be checked for compatibility when indexing.
-    Similarity similarity = 1;
-}
-
-message ExactIndexedOptions {
-    Similarity similarity = 1;
-    string field_processed = 2;
-}
-
-message JaccardLshOptions {
-    int64 seed = 1;
-    string field_processed = 2;
-    uint32 num_bands = 3;
-    uint32 num_rows = 4;
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.

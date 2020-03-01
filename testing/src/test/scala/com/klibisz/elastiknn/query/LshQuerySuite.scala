@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{LshQueryOptions, QueryOptions}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.KNearestNeighborsQuery.LshQueryOptions
+import com.klibisz.elastiknn.ProcessorOptions.{ModelOptions, JaccardLshOptions}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}

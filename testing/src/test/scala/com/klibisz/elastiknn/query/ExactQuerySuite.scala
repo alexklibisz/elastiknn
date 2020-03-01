@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.ProcessorOptions._
 import com.klibisz.elastiknn._
 import org.scalatest._
 

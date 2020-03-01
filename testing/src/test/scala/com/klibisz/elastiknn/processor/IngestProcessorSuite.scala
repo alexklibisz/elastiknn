@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.processor
 
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.ProcessorOptions._
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.requests._

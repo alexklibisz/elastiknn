@@ -27,7 +27,7 @@ package object models {
           case _ => Failure(SimilarityAndTypeException(mopts.similarity, ekv))
         }
       }.map(_ => "")
-      case (ExactIndexed(ExactIndexedOptions(SIMILARITY_JACCARD, _)), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
+      case (ExactIndexed(exix), ElastiKnnVector(Vector.SparseBoolVector(sbv))) if exix.similarity == SIMILARITY_JACCARD =>
         Try(sbv.trueIndices.mkString(" "))
       case (JaccardLsh(opts), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
         Try(jaccardCache.get((opts.seed, opts.numBands, opts.numRows)).hash(sbv.trueIndices).mkString(" "))

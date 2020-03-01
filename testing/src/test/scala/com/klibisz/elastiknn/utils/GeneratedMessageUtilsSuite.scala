@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.utils
 import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
+import com.klibisz.elastiknn.ProcessorOptions.JaccardLshOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}

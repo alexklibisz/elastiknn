@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.ProcessorOptions.{ModelOptions, JaccardLshOptions}
 import com.klibisz.elastiknn.client.ElastiKnnClient
-import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, JaccardLshOptions, ProcessorOptions}
+import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl
 import io.circe.parser._
 import org.scalatest.{AsyncFunSuite, Matchers}
