@@ -11,7 +11,7 @@ import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper.FieldData
 import com.klibisz.elastiknn.models.ProcessedVector
 import com.klibisz.elastiknn.utils.Utils._
-import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, models, _}
+import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, models, query, _}
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -27,6 +27,7 @@ import org.elasticsearch.index.query._
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
@@ -56,9 +57,201 @@ object KnnQueryBuilder {
     }
   }
 
+  private val procOptsCache: Cache[String, ProcessorOptions] = CacheBuilder.newBuilder.build[String, ProcessorOptions]()
+
 }
 
-final class KnnQueryBuilder(val query: KNearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+/**
+  * Main purpose of this class is to rewrite the given generic query to a more specific query builder.
+  * @param query a KNearestNeighborsQuery from the end user.
+  * @param processorOptions optional processor options, fetched using the query pipelineId in the rewrite phase.
+  */
+final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions: Option[ProcessorOptions] = None)
+    extends AbstractQueryBuilder[KnnQueryBuilder] {
+  override def doWriteTo(out: StreamOutput): Unit = out.writeString(query.toBase64)
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+  override def doToQuery(context: QueryShardContext): Query =
+    throw new IllegalStateException("Query should have been re-written")
+  override def doEquals(other: KnnQueryBuilder): Boolean = this.query == other.query
+  override def doHashCode(): Int = Objects.hash(query)
+  override def getWriteableName: String = KnnQueryBuilder.NAME
+
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.queryVector match {
+    case QueryVector.Indexed(iqv) => rewriteFetchQueryVector(context, iqv)
+    case QueryVector.Given(ekv) =>
+      processorOptions match {
+        case None => rewriteFetchProcessorOptions(context)
+        case Some(popts) =>
+          (popts.modelOptions, query.queryOptions, ekv, models.processVector(popts, ekv)) match {
+            case (
+                ModelOptions.ExactComputed(mopts),
+                QueryOptions.ExactComputed(qopts),
+                _,
+                Success(proc: ProcessedVector.ExactComputed)
+                ) =>
+              new ExactComputedQueryBuilder(mopts, qopts, ekv, proc, popts.fieldRaw, query.useCache)
+            case (
+                ModelOptions.ExactIndexed(mopts),
+                QueryOptions.ExactIndexed(qopts),
+                ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)),
+                Success(proc: ProcessedVector.ExactIndexedJaccard)
+                ) =>
+              new ExactIndexedJaccardQueryBuilder(mopts, qopts, sbv, proc, popts.fieldRaw, query.useCache)
+            case (
+                ModelOptions.JaccardLsh(mopts),
+                QueryOptions.JaccardLsh(qopts),
+                ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)),
+                Success(proc: ProcessedVector.JaccardLsh)
+                ) =>
+              new JaccardLshQueryBuilder(mopts, qopts, sbv, proc, popts.fieldRaw, query.useCache)
+            case other => throw new IllegalArgumentException(s"Cannot convert this combination to a valid query: $other")
+          }
+      }
+    case QueryVector.Empty => throw new IllegalArgumentException(s"Query vector cannot be empty")
+  }
+
+  private def rewriteFetchQueryVector(context: QueryRewriteContext, iqv: KNearestNeighborsQuery.IndexedQueryVector): QueryBuilder = {
+    // TODO: can you read the binary version of the document instead of the source?
+    val supplier = new SetOnce[KnnQueryBuilder]()
+    context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
+      c.execute(
+        GetAction.INSTANCE,
+        new GetRequest(iqv.index, iqv.id),
+        new ActionListener[GetResponse] {
+          def onResponse(response: GetResponse): Unit = {
+            val pth = s"${iqv.field}."
+            val map = pth.split('.').foldLeft(response.getSourceAsMap) {
+              case (m, k) =>
+                m.get(k).asInstanceOf[util.Map[String, AnyRef]]
+            }
+            val json = map.asJson(javaMapEncoder)
+            val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
+            supplier.set(new KnnQueryBuilder(query.withGiven(ekv), processorOptions))
+            l.asInstanceOf[ActionListener[Any]].onResponse(null)
+          }
+          def onFailure(e: Exception): Unit = l.onFailure(e)
+        }
+      )
+    })
+    RewriteLater(_ => supplier.get())
+  }
+
+  private def rewriteFetchProcessorOptions(context: QueryRewriteContext): QueryBuilder = {
+    val maybeCached: ProcessorOptions = KnnQueryBuilder.procOptsCache.getIfPresent(query.pipelineId)
+    if (maybeCached != null) new KnnQueryBuilder(query, Some(maybeCached))
+    else {
+      // Put all the sketchy stuff in one place.
+      def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
+        Try {
+          val processorOptsMap = response
+            .pipelines()
+            .asScala
+            .find(_.getId == query.pipelineId)
+            .getOrElse(throw illArgEx(s"Couldn't find pipeline with id ${query.pipelineId}"))
+            .getConfigAsMap
+            .get("processors")
+            .asInstanceOf[util.List[util.Map[String, AnyRef]]]
+            .asScala
+            .find(_.containsKey(ELASTIKNN_NAME))
+            .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
+            .get(ELASTIKNN_NAME)
+            .asInstanceOf[util.Map[String, AnyRef]]
+          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(javaMapEncoder))
+        }.recoverWith {
+          case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${query.pipelineId}", Some(t)))
+        }
+
+      val supplier = new SetOnce[KnnQueryBuilder]()
+      context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
+        c.execute(
+          GetPipelineAction.INSTANCE,
+          new GetPipelineRequest(query.pipelineId),
+          new ActionListener[GetPipelineResponse] {
+            override def onResponse(response: GetPipelineResponse): Unit = {
+              val processorOptions = parseResponse(response).get
+              KnnQueryBuilder.procOptsCache.put(query.pipelineId, processorOptions)
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
+            }
+            override def onFailure(e: Exception): Unit = l.onFailure(e)
+          }
+        )
+      })
+      RewriteLater(_ => supplier.get())
+    }
+  }
+}
+
+final class ExactComputedQueryBuilder(val modelOptions: ExactComputedModelOptions,
+                                      val queryOptions: ExactComputedQueryOptions,
+                                      val queryVector: ElastiKnnVector,
+                                      val processedVector: ProcessedVector.ExactComputed,
+                                      val fieldRaw: String,
+                                      val useCache: Boolean)
+    extends AbstractQueryBuilder[ExactComputedQueryBuilder] {
+
+  override def doWriteTo(out: StreamOutput): Unit = {
+    out.writeString(modelOptions.toBase64)
+    out.writeString(queryOptions.toBase64)
+    out.writeString(queryVector.toBase64)
+    out.writeBoolean(useCache)
+  }
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+
+  override def doToQuery(context: QueryShardContext): Query = ???
+
+  override def doEquals(other: ExactComputedQueryBuilder): Boolean = ???
+
+  override def doHashCode(): Int = ???
+
+  override def getWriteableName: String = ???
+}
+
+final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelOptions,
+                                            val queryOptions: ExactIndexedQueryOptions,
+                                            val queryVector: SparseBoolVector,
+                                            val processedVector: ProcessedVector.ExactIndexedJaccard,
+                                            val fieldRaw: String,
+                                            val useCache: Boolean)
+    extends AbstractQueryBuilder[ExactIndexedJaccardQueryBuilder] {
+  override def doWriteTo(out: StreamOutput): Unit = ???
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+
+  override def doToQuery(context: QueryShardContext): Query = ???
+
+  override def doEquals(other: ExactIndexedJaccardQueryBuilder): Boolean = ???
+
+  override def doHashCode(): Int = ???
+
+  override def getWriteableName: String = ???
+}
+
+final class JaccardLshQueryBuilder(val modelOptions: JaccardLshModelOptions,
+                                   val queryOptions: JaccardLshQueryOptions,
+                                   val queryVector: SparseBoolVector,
+                                   val processedVector: ProcessedVector.JaccardLsh,
+                                   val fieldRaw: String,
+                                   val useCache: Boolean)
+    extends AbstractQueryBuilder[JaccardLshQueryBuilder] {
+  override def doWriteTo(out: StreamOutput): Unit = ???
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+
+  override def doToQuery(context: QueryShardContext): Query = ???
+
+  override def doEquals(other: JaccardLshQueryBuilder): Boolean = ???
+
+  override def doHashCode(): Int = ???
+
+  override def getWriteableName: String = ???
+}
+
+final class InternalKnnQueryBuilder(val modelOptions: ModelOptions,
+                                    val queryVector: ElastiKnnVector,
+                                    val queryOptions: QueryOptions,
+                                    val useCache: Boolean)
+    extends AbstractQueryBuilder[KnnQueryBuilder] {
 
   /** Encodes the KnnQueryBuilder to a StreamOutput as a base64 string. */
   override def doWriteTo(out: StreamOutput): Unit =
@@ -218,7 +411,7 @@ object KnnProcessedQueryBuilder {
     * Then use the [[ProcessorOptions]] to instantiate a new [[KnnProcessedQueryBuilder]].
     */
   def rewrite(context: QueryRewriteContext,
-              lshQueryOptions: LshQueryOptions,
+              lshQueryOptions: JaccardLshQueryOptions,
               queryVector: ElastiKnnVector,
               useCache: Boolean): QueryBuilder = {
     val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions.pipelineId)

@@ -70,20 +70,21 @@ message ProcessorOptions {
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
 
-    message ExactComputedQueryOptions {
-        string pipeline_id = 1;
-    }
+    // Pipeline used to preprocess the vectors being queried.
+    string pipeline_id = 1;
 
-    message ExactIndexedQueryOptions {
-        string pipeline_id = 1;
-    }
+    // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
+    // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
+    bool use_cache = 2;
 
-    message LshQueryOptions {
-        // Pipeline used to index the original vectors.
-        string pipeline_id = 1;
+    message ExactComputedQueryOptions { }
+
+    message ExactIndexedQueryOptions { }
+
+    message JaccardLshQueryOptions {
         // Number of approximate results which will have their exact scores computed.
         // This should be larger than the desired number of hits, but much smaller than the total size of the corpus.
-        uint32 num_candidates = 2;
+        uint32 num_candidates = 1;
     }
 
     // Find the neighbors for a vector which has already been indexed.
@@ -95,17 +96,14 @@ message KNearestNeighborsQuery {
 
     // Options defining how the exact or LSH query should be executed.
     oneof query_options {
-        ExactComputedQueryOptions exact_computed = 1;
-        LshQueryOptions lsh = 2;
+        ExactComputedQueryOptions exact_computed = 3;
+        ExactIndexedQueryOptions exact_indexed = 4;
+        JaccardLshQueryOptions jaccard_lsh = 5;
     }
 
     // The query vector, either given explicitly or as a reference to an already-indexed vector.
     oneof query_vector {
-        ElastiKnnVector given = 3;
-        IndexedQueryVector indexed = 4;
+        ElastiKnnVector given = 6;
+        IndexedQueryVector indexed = 7;
     }
-
-    // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
-    // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
-    bool use_cache = 5;
 }

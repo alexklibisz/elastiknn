@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.LshQueryOptions
+import com.klibisz.elastiknn.KNearestNeighborsQuery.JaccardLshQueryOptions
 import com.klibisz.elastiknn.ProcessorOptions.{ModelOptions, JaccardLshModelOptions}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
@@ -33,7 +33,7 @@ class LshQuerySuite
     val support = new Support("vec_raw", sim, dim, opt)
 
     test(s"$dim, $sim, $opt, $useCache, given") {
-      support.testGiven(LshQueryOptions(support.pipelineId, 20), useCache) { queriesAndResponses =>
+      support.testGiven(JaccardLshQueryOptions(support.pipelineId, 20), useCache) { queriesAndResponses =>
         forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
           case (query, res) =>
             res.hits.hits should not be empty
