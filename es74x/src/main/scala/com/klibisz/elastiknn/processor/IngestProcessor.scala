@@ -3,9 +3,12 @@ package com.klibisz.elastiknn.processor
 import java.util
 
 import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.models.ProcessedVector
 import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.utils.Utils._
+import io.circe.Json
 import io.circe.syntax._
+import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, XContentType}
 import org.elasticsearch.ingest._
 import scalapb_circe.JsonFormat
 
@@ -23,14 +26,19 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
 
   override def getType: String = IngestProcessor.TYPE
 
-  private def toDocValue(ekv: ElastiKnnVector): Try[String] = models.toDocValue(popts, ekv)
+  private def setField(doc: IngestDocument, field: String, json: Json): Unit = {
+    val reg = NamedXContentRegistry.EMPTY
+    val dep = DeprecationHandler.THROW_UNSUPPORTED_OPERATION
+    val parser = XContentType.JSON.xContent.createParser(reg, dep, json.noSpaces)
+    doc.setFieldValue(field, parser.map())
+  }
 
   private def process(doc: IngestDocument): Try[IngestDocument] =
     for {
       ekv <- parseVector(doc, fieldRaw)
-      docValue: String <- toDocValue(ekv)
+      processed <- models.processVector(popts, ekv)
     } yield {
-      modelOptions.fieldProc.foreach(fieldProc => doc.setFieldValue(fieldProc, docValue))
+      modelOptions.fieldProc.foreach(fieldProc => setField(doc, fieldProc, processed.asJson))
       doc
     }
 

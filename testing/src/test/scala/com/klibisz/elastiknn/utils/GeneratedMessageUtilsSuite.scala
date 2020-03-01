@@ -1,9 +1,9 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactComputedQueryOptions, QueryOptions}
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
-import com.klibisz.elastiknn.ProcessorOptions.JaccardLshOptions
+import com.klibisz.elastiknn.ProcessorOptions.JaccardLshModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}
@@ -18,7 +18,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
       fieldRaw = "field_raw",
       dimension = 222,
       modelOptions = JaccardLsh(
-        JaccardLshOptions(
+        JaccardLshModelOptions(
           seed = 99L,
           fieldProcessed = "field_proc",
           numBands = 10,
@@ -44,7 +44,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
   }
 
   test("query serialization and deserialization") {
-    val knnq1 = KNearestNeighborsQuery(QueryOptions.Exact(ExactQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
+    val knnq1 = KNearestNeighborsQuery(QueryOptions.ExactComputed(ExactComputedQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
     val s1 = knnq1.toByteString.toStringUtf8
     val knnq2 = KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
     knnq2 shouldBe knnq1

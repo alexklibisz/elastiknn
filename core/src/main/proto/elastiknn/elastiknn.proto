@@ -14,39 +14,6 @@ enum Similarity {
     SIMILARITY_JACCARD = 4;
 }
 
-message ProcessorOptions {
-
-    message ExactComputedOptions {
-        // Specify the similarity so vectors can be checked for compatibility when indexing.
-        Similarity similarity = 1;
-    }
-
-    message ExactIndexedOptions {
-        Similarity similarity = 1;
-        string field_processed = 2;
-    }
-
-    message JaccardLshOptions {
-        int64 seed = 1;
-        string field_processed = 2;
-        uint32 num_bands = 3;
-        uint32 num_rows = 4;
-    }
-
-    // Path to the field where the raw vector is stored.
-    string field_raw = 1;
-
-    // Dimensionality of the raw floating-point vector.
-    uint32 dimension = 2;
-
-    // The model options which will determine how the vector gets preprocessed and stored.
-    oneof model_options {
-        ExactComputedOptions exact_computed = 3;
-        JaccardLshOptions jaccard_lsh = 4;
-        ExactIndexedOptions exact_indexed = 5;
-    }
-}
-
 // A vector of doubles, used for l1, l2, and angular similarity.
 message FloatVector {
     repeated double values = 1 [(scalapb.field).collection_type="Array"];
@@ -67,23 +34,56 @@ message ElastiKnnVector {
     }
 }
 
+message ProcessorOptions {
+
+    message ExactComputedModelOptions {
+        // Specify the similarity so vectors can be checked for compatibility when indexing.
+        Similarity similarity = 1;
+    }
+
+    message ExactIndexedModelOptions {
+        Similarity similarity = 1;
+        string field_processed = 2;
+    }
+
+    message JaccardLshModelOptions {
+        int64 seed = 1;
+        string field_processed = 2;
+        uint32 num_bands = 3;
+        uint32 num_rows = 4;
+    }
+
+    // Path to the field where the raw vector is stored.
+    string field_raw = 1;
+
+    // Dimensionality of the raw floating-point vector.
+    uint32 dimension = 2;
+
+    // The model options which will determine how the vector gets preprocessed and stored.
+    oneof model_options {
+        ExactComputedModelOptions exact_computed = 3;
+        JaccardLshModelOptions jaccard_lsh = 4;
+        ExactIndexedModelOptions exact_indexed = 5;
+    }
+}
+
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
 
-    // Options for running an exact (exhaustive) query. This is only recommended for small datasets.
-    message ExactQueryOptions {
-        string field_raw = 1;
-        Similarity similarity = 2;
+    message ExactComputedQueryOptions {
+        string pipeline_id = 1;
     }
 
-    // Options for running locality-sensitive-hashing queries.
+    message ExactIndexedQueryOptions {
+        string pipeline_id = 1;
+    }
+
     message LshQueryOptions {
+        // Pipeline used to index the original vectors.
+        string pipeline_id = 1;
         // Number of approximate results which will have their exact scores computed.
         // This should be larger than the desired number of hits, but much smaller than the total size of the corpus.
-        uint32 num_candidates = 1;
-        // Pipeline used to index the original vectors.
-        string pipeline_id = 2;
-        // TODO: regular and multi-probe lsh options here.
+        uint32 num_candidates = 2;
     }
 
     // Find the neighbors for a vector which has already been indexed.
@@ -95,7 +95,7 @@ message KNearestNeighborsQuery {
 
     // Options defining how the exact or LSH query should be executed.
     oneof query_options {
-        ExactQueryOptions exact = 1;
+        ExactComputedQueryOptions exact_computed = 1;
         LshQueryOptions lsh = 2;
     }
 

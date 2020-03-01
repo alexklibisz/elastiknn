@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.rest
 
-import com.klibisz.elastiknn.ProcessorOptions.{JaccardLshOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.{JaccardLshModelOptions, ModelOptions}
 import com.klibisz.elastiknn.client.ElastiKnnClient
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl
@@ -44,7 +44,7 @@ class PrepareMappingSuite extends AsyncFunSuite with Matchers with Elastic4sMatc
       _ <- client.execute(deleteIndex(index))
       _ <- client.execute(createIndex(index))
       _ <- client.execute(putMapping(index).fields(longField(existingField)))
-      _ <- eknn.prepareMapping(index, ProcessorOptions(rawField, 9, ModelOptions.JaccardLsh(JaccardLshOptions(0, procField))))
+      _ <- eknn.prepareMapping(index, ProcessorOptions(rawField, 9, ModelOptions.JaccardLsh(JaccardLshModelOptions(0, procField))))
       getMapping <- client.execute(getMapping(index))
       _ = getMapping.shouldBeSuccess
       _ = getMapping.body shouldBe defined

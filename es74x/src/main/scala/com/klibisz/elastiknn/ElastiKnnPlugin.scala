@@ -7,7 +7,7 @@ import java.util.function.Supplier
 import org.elasticsearch.common.settings.{ClusterSettings, IndexScopedSettings, Settings, SettingsFilter}
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.processor.IngestProcessor
-import com.klibisz.elastiknn.query.{KnnExactQueryBuilder, KnnLshQueryBuilder, KnnQueryBuilder, RadiusQueryBuilder}
+import com.klibisz.elastiknn.query.{KnnExactComputedQueryBuilder, KnnProcessedQueryBuilder, KnnQueryBuilder, RadiusQueryBuilder}
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
 import org.elasticsearch.cluster.node.DiscoveryNodes
 import org.elasticsearch.index.mapper.Mapper
@@ -35,8 +35,8 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
-    new QuerySpec(KnnExactQueryBuilder.NAME, KnnExactQueryBuilder.Reader, KnnExactQueryBuilder.Parser),
-    new QuerySpec(KnnLshQueryBuilder.NAME, KnnLshQueryBuilder.Reader, KnnLshQueryBuilder.Parser),
+    new QuerySpec(KnnExactComputedQueryBuilder.NAME, KnnExactComputedQueryBuilder.Reader, KnnExactComputedQueryBuilder.Parser),
+    new QuerySpec(KnnProcessedQueryBuilder.NAME, KnnProcessedQueryBuilder.Reader, KnnProcessedQueryBuilder.Parser),
     new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 

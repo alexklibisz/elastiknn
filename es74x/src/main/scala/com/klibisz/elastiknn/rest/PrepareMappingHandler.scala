@@ -6,11 +6,10 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.requests.{PrepareMappingRequest, AcknowledgedResponse => AckRes}
 import com.klibisz.elastiknn.utils.GeneratedMessageUtils
-import io.circe.Json
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.parser._
 import io.circe.syntax._
-import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequest, PutMappingRequestBuilder}
+import org.elasticsearch.action.admin.indices.mapping.put.{PutMappingAction, PutMappingRequestBuilder}
 import org.elasticsearch.action.support.master.AcknowledgedResponse
 import org.elasticsearch.client.node.NodeClient
 import org.elasticsearch.common.xcontent.XContentType
@@ -43,13 +42,17 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         s"""
            |"${exix.fieldProcessed}": {
            |  "properties": {
-           |    "numTrueIndices": {
-           |      "type": "integer"
-           |    },
-           |    "trueIndices": {
-           |      "type": "text",
-           |      "similarity": "boolean",
-           |      "analyzer": "whitespace"
+           |    "ExactIndexedJaccard": {
+           |      "properties": {
+           |        "numTrueIndices": {
+           |          "type": "integer"
+           |        },
+           |        "trueIndices": {
+           |          "type": "text",
+           |          "similarity": "boolean",
+           |          "analyzer": "whitespace"
+           |        }
+           |      }
            |    }
            |  }
            |}

@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery.LshQueryOptions
-import com.klibisz.elastiknn.ProcessorOptions.{ModelOptions, JaccardLshOptions}
+import com.klibisz.elastiknn.ProcessorOptions.{ModelOptions, JaccardLshModelOptions}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
@@ -17,9 +17,9 @@ class LshQuerySuite
 
   private val simToOpts: Map[Similarity, Seq[ModelOptions]] = Map[Similarity, Seq[ModelOptions]](
     SIMILARITY_JACCARD -> Seq(
-      ModelOptions.JaccardLsh(JaccardLshOptions(0, "vec_proc", 10, 1)),
-      ModelOptions.JaccardLsh(JaccardLshOptions(0, "vec_proc", 30, 2)),
-      ModelOptions.JaccardLsh(JaccardLshOptions(0, "vec_proc", 42, 3))
+      ModelOptions.JaccardLsh(JaccardLshModelOptions(0, "vec_proc", 10, 1)),
+      ModelOptions.JaccardLsh(JaccardLshModelOptions(0, "vec_proc", 30, 2)),
+      ModelOptions.JaccardLsh(JaccardLshModelOptions(0, "vec_proc", 42, 3))
     )
   ).withDefault((_: Similarity) => Seq.empty[ModelOptions])
 
@@ -33,7 +33,7 @@ class LshQuerySuite
     val support = new Support("vec_raw", sim, dim, opt)
 
     test(s"$dim, $sim, $opt, $useCache, given") {
-      support.testGiven(LshQueryOptions(20, support.pipelineId), useCache) { queriesAndResponses =>
+      support.testGiven(LshQueryOptions(support.pipelineId, 20), useCache) { queriesAndResponses =>
         forAtLeast((queriesAndResponses.length * 0.7).floor.toInt, queriesAndResponses.silent) {
           case (query, res) =>
             res.hits.hits should not be empty

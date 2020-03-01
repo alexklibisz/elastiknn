@@ -16,8 +16,15 @@ package object models {
       def load(opts: (Long, Int, Int)): JaccardLshModel = new JaccardLshModel(opts._1, opts._2, opts._3)
     })
 
-  def toDocValue(popts: ProcessorOptions, ekv: ElastiKnnVector): Try[String] =
+  /**
+    * Convert the given vector into the format that will be stored in its Elasticsearch document.
+    * @param popts ProcessorOptions which determine how the vector will be converted.
+    * @param ekv The vector.
+    * @return
+    */
+  def processVector(popts: ProcessorOptions, ekv: ElastiKnnVector): Try[ProcessedVector] =
     (popts.modelOptions, ekv) match {
+      // Exact computed just checks that the vector's dimension matches the pre-defined dimension.
       case (ExactComputed(mopts), _) => {
         (mopts.similarity, ekv) match {
           case (SIMILARITY_ANGULAR | SIMILARITY_L1 | SIMILARITY_L2, ElastiKnnVector(Vector.FloatVector(fv))) =>
@@ -26,11 +33,20 @@ package object models {
             if (sbv.totalIndices == popts.dimension) Success(()) else Failure(VectorDimensionException(sbv.totalIndices, popts.dimension))
           case _ => Failure(SimilarityAndTypeException(mopts.similarity, ekv))
         }
-      }.map(_ => "")
+      }.map(_ => ProcessedVector.ExactComputed)
+
+      // Foobar
       case (ExactIndexed(exix), ElastiKnnVector(Vector.SparseBoolVector(sbv))) if exix.similarity == SIMILARITY_JACCARD =>
-        Try(sbv.trueIndices.mkString(" "))
+        Try(ProcessedVector.ExactIndexedJaccard(sbv.trueIndices.length, sbv.trueIndices.mkString(" ")))
+
+      // Foobar
       case (JaccardLsh(opts), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
-        Try(jaccardCache.get((opts.seed, opts.numBands, opts.numRows)).hash(sbv.trueIndices).mkString(" "))
+        Try {
+          val model = jaccardCache.get((opts.seed, opts.numBands, opts.numRows))
+          val hashes = model.hash(sbv.trueIndices).mkString(" ")
+          ProcessedVector.JaccardLsh(hashes)
+        }
+      // Foobar
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
 

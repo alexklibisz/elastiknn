@@ -31,7 +31,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
   import KnnExactScoreFunction.vectorCache
 
   // Combine the numCandidates option with a corresponding heap.
-  private val heapCandidatesOpt: Option[(Int, MinMaxPriorityQueue[lang.Float])] =
+  private val candidatesHeapOpt: Option[(Int, MinMaxPriorityQueue[lang.Float])] =
     numCandidates.map(n => (n, MinMaxPriorityQueue.create[java.lang.Float]()))
 
   override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
@@ -44,7 +44,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
 
       override def score(docId: Int, subQueryScore: Float): Double = {
 
-        val computeExact: Boolean = heapCandidatesOpt match {
+        val computeExact: Boolean = candidatesHeapOpt match {
           case Some((n, heap)) =>
             if (heap.size() < n) {
               heap.add(subQueryScore)

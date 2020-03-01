@@ -17,6 +17,7 @@ trait ModelOptionsUtils {
 
     private[elastiknn] lazy val similarity: Option[Similarity] = mopts match {
       case ModelOptions.ExactComputed(eopts) => Some(eopts.similarity)
+      case ModelOptions.ExactIndexed(exix)   => Some(exix.similarity)
       case ModelOptions.JaccardLsh(_)        => Some(SIMILARITY_JACCARD)
       case _                                 => None
     }

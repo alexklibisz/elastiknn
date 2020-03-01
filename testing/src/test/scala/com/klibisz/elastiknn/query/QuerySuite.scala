@@ -63,9 +63,9 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
         numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           implicitly[QueryOptionsLike[O]].apply(queryOptions) match {
-            case QueryOptions.Exact(opts) => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
-            case QueryOptions.Lsh(opts)   => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
-            case _                        => Future.failed(illArgEx("query options must be exact or lsh"))
+            case QueryOptions.ExactComputed(opts) => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
+            case QueryOptions.Lsh(opts)           => eknn.knnQuery(index, opts, q, numHits, useCache).map(r => q -> r)
+            case _                                => Future.failed(illArgEx("query options must be exact or lsh"))
           }
         })
       } yield fun(queriesResponses)
@@ -82,7 +82,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
           case (q, i) =>
             val iqv = IndexedQueryVector(index, rawField, queryId(i))
             implicitly[QueryOptionsLike[O]].apply(queryOptions) match {
-              case QueryOptions.Exact(opts) =>
+              case QueryOptions.ExactComputed(opts) =>
                 eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))
               case QueryOptions.Lsh(opts) =>
                 eknn.knnQuery(index, opts, iqv, numHits, useCache).map(r => (q, queryId(i), r))

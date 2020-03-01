@@ -18,19 +18,23 @@ class ExactQuerySuite
     with Elastic4sMatchers
     with ElasticAsyncClient {
 
-  private val computedOptions = Similarity.values.map(s => (s, ModelOptions.ExactComputed(ExactComputedOptions(s))))
-  private val indexedOptions = Seq(SIMILARITY_JACCARD).map(s => (s, ModelOptions.ExactIndexed(ExactIndexedOptions(s, "vec_proc"))))
+  private val computedDefs = Similarity.values.map { s =>
+    (s, ModelOptions.ExactComputed(ExactComputedModelOptions(s)), (_: String) => ExactComputedQueryOptions("vec_raw", s))
+  }
+  private val indexedDefs = Seq(SIMILARITY_JACCARD).map { s =>
+    (s, ModelOptions.ExactIndexed(ExactIndexedModelOptions(s, "vec_proc")), (pipelineId: String) => ExactIndexedQueryOptions(pipelineId))
+  }
 
   for {
-    (sim, opt) <- indexedOptions ++ computedOptions
+    (sim, mopts, qoptsFunc) <- indexedDefs ++ computedDefs
     dim <- testDataDims
     cache <- Seq(true, false)
   } yield {
 
-    val support = new Support("vec_raw", sim, dim, opt)
+    val support = new Support("vec_raw", sim, dim, mopts)
 
-    test(s"$dim, $opt, $cache, given") {
-      support.testGiven(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
+    test(s"$dim, $mopts, $cache, given") {
+      support.testGiven(qoptsFunc, cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, res) =>
             res.hits.hits should have length query.similarities.length
@@ -40,10 +44,11 @@ class ExactQuerySuite
             }
         }
       }
+
     }
 
-    test(s"$dim, $opt, $cache, indexed") {
-      support.testIndexed(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
+    test(s"$dim, $mopts, $cache, indexed") {
+      support.testIndexed(ExactComputedQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, id, res) =>
             val hits = res.hits.hits
