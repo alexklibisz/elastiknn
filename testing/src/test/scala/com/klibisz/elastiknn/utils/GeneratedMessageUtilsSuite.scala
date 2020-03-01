@@ -2,9 +2,8 @@ package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactComputedQueryOptions, QueryOptions}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
 import com.klibisz.elastiknn.ProcessorOptions.JaccardLshModelOptions
-import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}
 
@@ -45,7 +44,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
 
   test("query serialization and deserialization") {
     val knnq1 =
-      KNearestNeighborsQuery(pipelineId = "foo", useCache = true, QueryOptions.ExactComputed(ExactComputedQueryOptions(SIMILARITY_ANGULAR)))
+      KNearestNeighborsQuery(pipelineId = "foo", useCache = true, QueryOptions.ExactComputed(ExactComputedQueryOptions()))
     val s1 = knnq1.toByteString.toStringUtf8
     val knnq2 = KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
     knnq2 shouldBe knnq1

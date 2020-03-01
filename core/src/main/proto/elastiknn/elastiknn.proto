@@ -71,11 +71,9 @@ message ProcessorOptions {
 message KNearestNeighborsQuery {
 
     message ExactComputedQueryOptions {
-        Similarity similarity = 1;
     }
 
     message ExactIndexedQueryOptions {
-        Similarity similarity = 1;
     }
 
     message JaccardLshQueryOptions {

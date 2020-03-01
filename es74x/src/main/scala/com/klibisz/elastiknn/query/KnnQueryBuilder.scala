@@ -240,7 +240,7 @@ final class ExactComputedQueryBuilder(val modelOptions: ExactComputedModelOption
     val fd = context.getForField(ft)
     new FunctionScoreQuery(
       defaultSubquery.toQuery(context),
-      new KnnExactScoreFunction(queryOptions.similarity, queryVector, fd, useCache, None)
+      new KnnExactScoreFunction(modelOptions.similarity, queryVector, fd, useCache, None)
     )
   }
 
