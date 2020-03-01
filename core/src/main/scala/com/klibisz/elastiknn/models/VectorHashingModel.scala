@@ -31,7 +31,7 @@ object VectorHashingModel {
   def hash(processorOptions: ProcessorOptions, elastiKnnVector: ElastiKnnVector): Try[String] =
     (processorOptions.modelOptions, elastiKnnVector) match {
       case (Exact(mopts), _) => ExactModel(processorOptions, mopts, elastiKnnVector).map(_ => "")
-      case (Jaccard(opts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
+      case (JaccardLsh(opts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
         Try(jaccardCache.get((opts.seed, opts.numBands, opts.numRows)).hash(sbv.trueIndices).mkString(" "))
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }

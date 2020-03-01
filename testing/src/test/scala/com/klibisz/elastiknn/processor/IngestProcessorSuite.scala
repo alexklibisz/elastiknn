@@ -21,7 +21,7 @@ class IngestProcessorSuite extends AsyncFunSuite with Matchers with Elastic4sMat
   }
 
   test("make an lsh pipeline") {
-    val opts = ProcessorOptions("a", 32, ModelOptions.Jaccard(JaccardLshOptions(fieldProcessed = "vec_proc")))
+    val opts = ProcessorOptions("a", 32, ModelOptions.JaccardLsh(JaccardLshOptions(fieldProcessed = "vec_proc")))
     val req = PutPipelineRequest("lsh", "d", Processor("elastiknn", opts))
     for {
       res <- client.execute(req)

@@ -25,7 +25,7 @@ message ProcessorOptions {
     // TODO: switch to sealed oneof. It simplifies the scala code a lot and doesn't really affect the other langs.
     oneof model_options {
         ExactModelOptions exact = 3;
-        JaccardLshOptions jaccard = 4;
+        JaccardLshOptions jaccard_lsh = 4;
     }
 }
 
@@ -33,6 +33,10 @@ message ExactModelOptions {
     // Specify the similarity so vectors can be checked for compatibility when indexing.
     Similarity similarity = 1;
 }
+
+//message JaccardIndexedOptions {
+//    string field_processed = 1;
+//}
 
 message JaccardLshOptions {
     int64 seed = 1;

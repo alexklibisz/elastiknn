@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
 import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactQueryOptions, QueryOptions}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.Jaccard
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
 import com.klibisz.elastiknn.Similarity.SIMILARITY_ANGULAR
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}
@@ -16,7 +16,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
     val procOptActual = ProcessorOptions(
       fieldRaw = "field_raw",
       dimension = 222,
-      modelOptions = Jaccard(
+      modelOptions = JaccardLsh(
         JaccardLshOptions(
           seed = 99L,
           fieldProcessed = "field_proc",
@@ -29,7 +29,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
       "fieldRaw" -> "field_raw",
       "dimension" -> 222,
       "exact" -> null,
-      "jaccard" -> Map(
+      "jaccardLsh" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",
         "numBands" -> 10,
