@@ -97,6 +97,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     * TODO: consider using fetchSource to prevent downloading the full document.
     *
     * @param index The index against which you're searching.
+    * @param pipelineId Id of the pipeline used to index the vectors being searched.
     * @param options An query-option-like object implementing the [[QueryOptionsLike]] typeclass. This defines some
     *                elastiknn-specific options about your search request, like whether it's an exact or LSH search.
     * @param queryVector A query-vector-like object implementing the [[QueryVectorLike]] typeclass. This is typically
@@ -109,11 +110,12 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
     * @return Returns the elastic4s [[SearchResponse]].
     */
   def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](index: String,
+                                                        pipelineId: String,
                                                         options: O,
                                                         queryVector: V,
                                                         k: Int,
                                                         useCache: Boolean = false): Future[SearchResponse] =
-    execute(search(index).query(Elastic4sUtils.knnQuery(options, queryVector, useCache)).size(k))
+    execute(search(index).query(Elastic4sUtils.knnQuery(pipelineId, options, queryVector, useCache)).size(k))
 
   def close(): Unit = elastic4sClient.close()
 }

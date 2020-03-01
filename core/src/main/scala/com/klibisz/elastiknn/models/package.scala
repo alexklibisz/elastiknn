@@ -33,7 +33,7 @@ package object models {
             if (sbv.totalIndices == popts.dimension) Success(()) else Failure(VectorDimensionException(sbv.totalIndices, popts.dimension))
           case _ => Failure(SimilarityAndTypeException(mopts.similarity, ekv))
         }
-      }.map(_ => ProcessedVector.ExactComputed)
+      }.map(_ => ProcessedVector.ExactComputed())
 
       // Foobar
       case (ExactIndexed(exix), ElastiKnnVector(Vector.SparseBoolVector(sbv))) if exix.similarity == SIMILARITY_JACCARD =>

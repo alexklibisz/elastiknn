@@ -70,16 +70,13 @@ message ProcessorOptions {
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
 
-    // Pipeline used to preprocess the vectors being queried.
-    string pipeline_id = 1;
+    message ExactComputedQueryOptions {
+        Similarity similarity = 1;
+    }
 
-    // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
-    // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
-    bool use_cache = 2;
-
-    message ExactComputedQueryOptions { }
-
-    message ExactIndexedQueryOptions { }
+    message ExactIndexedQueryOptions {
+        Similarity similarity = 1;
+    }
 
     message JaccardLshQueryOptions {
         // Number of approximate results which will have their exact scores computed.
@@ -94,16 +91,23 @@ message KNearestNeighborsQuery {
         string id = 3;
     }
 
+    // Pipeline used to preprocess the vectors being queried.
+    string pipeline_id = 1;
+
     // Options defining how the exact or LSH query should be executed.
     oneof query_options {
-        ExactComputedQueryOptions exact_computed = 3;
-        ExactIndexedQueryOptions exact_indexed = 4;
-        JaccardLshQueryOptions jaccard_lsh = 5;
+        ExactComputedQueryOptions exact_computed = 2;
+        ExactIndexedQueryOptions exact_indexed = 3;
+        JaccardLshQueryOptions jaccard_lsh = 4;
     }
 
     // The query vector, either given explicitly or as a reference to an already-indexed vector.
     oneof query_vector {
-        ElastiKnnVector given = 6;
-        IndexedQueryVector indexed = 7;
+        ElastiKnnVector given = 5;
+        IndexedQueryVector indexed = 6;
     }
+
+    // When true, maintain and use a cache of vectors in memory that avoids re-reading from the Lucene index.
+    // Useful when querying against data which won't change. DO NOT use if your data changes between queries.
+    bool use_cache = 7;
 }

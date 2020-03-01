@@ -50,8 +50,9 @@ package object elastiknn {
 
   object QueryOptionsLike {
     implicit val id: QueryOptionsLike[QueryOptions] = identity
-    implicit val exact: QueryOptionsLike[ExactComputedQueryOptions] = (a: ExactComputedQueryOptions) => QueryOptions.ExactComputed(a)
-    implicit val lsh: QueryOptionsLike[JaccardLshQueryOptions] = (a: JaccardLshQueryOptions) => QueryOptions.Lsh(a)
+    implicit val excmp: QueryOptionsLike[ExactComputedQueryOptions] = (a: ExactComputedQueryOptions) => QueryOptions.ExactComputed(a)
+    implicit val exix: QueryOptionsLike[ExactIndexedQueryOptions] = (a: ExactIndexedQueryOptions) => QueryOptions.ExactIndexed(a)
+    implicit val jacclsh: QueryOptionsLike[JaccardLshQueryOptions] = (a: JaccardLshQueryOptions) => QueryOptions.JaccardLsh(a)
   }
 
 }

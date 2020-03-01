@@ -54,9 +54,13 @@ object Elastic4sUtils {
       XContentFactory.jsonBuilder.rawField("elastiknn_knn", json)
     }
 
-  def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](options: O, vector: V, useInMemoryCache: Boolean = false): CustomQuery =
+  def knnQuery[O: QueryOptionsLike, V: QueryVectorLike](pipelineId: String,
+                                                        options: O,
+                                                        vector: V,
+                                                        useInMemoryCache: Boolean = false): CustomQuery =
     knnQuery(
       KNearestNeighborsQuery(
+        pipelineId,
         useInMemoryCache,
         implicitly[QueryOptionsLike[O]].apply(options),
         implicitly[QueryVectorLike[V]].apply(vector)
