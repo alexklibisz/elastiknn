@@ -21,8 +21,6 @@ object ExactModel {
 
 object VectorHashingModel {
 
-  private[models] val HASH_PRIME: Int = 2038074743
-
   private val jaccardCache: LoadingCache[(Long, Int, Int), JaccardLshModel] =
     CacheBuilder.newBuilder.build(new CacheLoader[(Long, Int, Int), JaccardLshModel] {
       def load(opts: (Long, Int, Int)): JaccardLshModel = new JaccardLshModel(opts._1, opts._2, opts._3)

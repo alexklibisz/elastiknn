@@ -13,7 +13,7 @@ from utils import open_dataset, ANNB_ROOT, Dataset, pareto_max
 def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     index = "ann-benchmarks-jaccard"
     pipe = f"ingest-{index}-{num_bands}-{num_rows}"
-    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=5,
+    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=1,
                           algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
                           index="ann-benchmarks-jaccard", pipeline_id=pipe)
     print("Checking subset...")

@@ -22,10 +22,10 @@ message ProcessorOptions {
     uint32 dimension = 2;
 
     // The model options which will determine how the vector gets preprocessed and stored.
-    // TODO: switch to sealed oneof. It simplifies the scala code a lot and doesn't really affect the other langs.
     oneof model_options {
         ExactModelOptions exact = 3;
         JaccardLshOptions jaccard_lsh = 4;
+        JaccardIndexedOptions jaccard_indexed = 5;
     }
 }
 
@@ -34,15 +34,15 @@ message ExactModelOptions {
     Similarity similarity = 1;
 }
 
-//message JaccardIndexedOptions {
-//    string field_processed = 1;
-//}
-
 message JaccardLshOptions {
     int64 seed = 1;
     string field_processed = 2;
     uint32 num_bands = 3;
     uint32 num_rows = 4;
+}
+
+message JaccardIndexedOptions {
+    string field_processed = 1;
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.

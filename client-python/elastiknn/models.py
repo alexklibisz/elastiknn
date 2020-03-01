@@ -45,7 +45,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim, exact=ExactModelOptions(similarity=self._sim))
         elif self._sim == SIMILARITY_JACCARD:
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
-                                    jaccard=JaccardLshOptions(field_processed=self._field_proc, **self._algorithm_params))
+                                    jaccard_lsh=JaccardLshOptions(field_processed=self._field_proc, **self._algorithm_params))
         else:
             raise RuntimeError(f"Couldn't determine valid processor options")
 
