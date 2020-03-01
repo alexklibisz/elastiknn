@@ -3,11 +3,10 @@ package com.klibisz.elastiknn.processor
 import java.util
 
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.models.VectorHashingModel
 import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.utils.Utils._
 import io.circe.syntax._
-import org.elasticsearch.ingest.{AbstractProcessor, IngestDocument, Processor}
+import org.elasticsearch.ingest._
 import scalapb_circe.JsonFormat
 
 import scala.util.Try
@@ -24,12 +23,14 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
 
   override def getType: String = IngestProcessor.TYPE
 
-  private def process(doc: IngestDocument, fieldPrefix: String = ""): Try[IngestDocument] =
+  private def toDocValue(ekv: ElastiKnnVector): Try[String] = models.toDocValue(popts, ekv)
+
+  private def process(doc: IngestDocument): Try[IngestDocument] =
     for {
-      raw <- parseVector(doc, s"$fieldPrefix$fieldRaw")
-      hashed: String <- VectorHashingModel.hash(popts, raw)
+      ekv <- parseVector(doc, fieldRaw)
+      docValue: String <- toDocValue(ekv)
     } yield {
-      modelOptions.fieldProc.foreach(fieldProc => doc.setFieldValue(s"$fieldPrefix$fieldProc", hashed))
+      modelOptions.fieldProc.foreach(fieldProc => doc.setFieldValue(fieldProc, docValue))
       doc
     }
 

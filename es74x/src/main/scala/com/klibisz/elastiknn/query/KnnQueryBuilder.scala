@@ -7,10 +7,8 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper.FieldData
-import com.klibisz.elastiknn.models.VectorHashingModel
 import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, _}
-import io.circe.parser._
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -267,8 +265,8 @@ object KnnLshQueryBuilder {
     * @return
     */
   def apply(processorOptions: ProcessorOptions, queryVector: ElastiKnnVector, numCandidates: Int, useCache: Boolean): KnnLshQueryBuilder = {
-    val hashed = VectorHashingModel
-      .hash(processorOptions, queryVector)
+    val hashed = models
+      .toDocValue(processorOptions, queryVector)
       .recover {
         case t: Throwable => throw illArgEx(s"$queryVector could not be hashed", Some(t))
       }
