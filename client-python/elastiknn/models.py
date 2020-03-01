@@ -65,7 +65,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         dim = elastiknn_vector_length(X[0])
         proc_opts = self._proc_opts(dim)
         if self._pipeline_id is None:
-            self._pipeline_id = f"{Similarity.Name(self._sim).lower()}-{self._algorithm.lower()}-{dim}"
+            self._pipeline_id = f"{Similarity.Name(self._sim).lower()}-{self._algorithm.lower()}-{int(time())}"
             self._logger.warning(f"pipeline id was not given, using {self._pipeline_id} instead")
         if self._index is None:
             self._index = f"{ELASTIKNN_NAME}-auto-{self._pipeline_id}-{int(time())}"

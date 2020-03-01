@@ -8,7 +8,6 @@ import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ExactSimilarity
 import com.klibisz.elastiknn.{ElastiKnnVector, Similarity}
-import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.Explanation
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
@@ -83,11 +82,12 @@ class KnnExactScoreFunction(val similarity: Similarity,
       this.similarity == that.similarity &&
         this.queryVector == that.queryVector &&
         this.fieldData == that.fieldData &&
+        this.numCandidates == that.numCandidates &&
         this.useCache == that.useCache
     case _ => false
   }
 
-  override def doHashCode(): Int = Objects.hash(similarity, queryVector, fieldData, useCache.asInstanceOf[AnyRef])
+  override def doHashCode(): Int = Objects.hash(similarity, queryVector, fieldData, numCandidates, useCache.asInstanceOf[AnyRef])
 }
 
 object KnnExactScoreFunction {
