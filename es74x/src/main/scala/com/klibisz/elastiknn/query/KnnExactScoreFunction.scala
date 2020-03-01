@@ -31,7 +31,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
 
   import KnnExactScoreFunction.vectorCache
 
-  // Combinate the numCandidates option with a corresponding heap.
+  // Combine the numCandidates option with a corresponding heap.
   private val heapCandidatesOpt: Option[(Int, MinMaxPriorityQueue[lang.Float])] =
     numCandidates.map(n => (n, MinMaxPriorityQueue.create[java.lang.Float]()))
 
@@ -39,7 +39,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
     // This .load call is expensive so it's important to only instantiate once.
     lazy val atomicFieldData = fieldData.load(ctx)
 
-    // val logger: Logger = LogManager.getLogger(s"${this.getClass} - ${ctx.toString}")
+    // val logger: Logger = LogManager.getLogger(s"${this.getClass} - ${ctx.docBase} - ${ctx.ord}")
 
     new LeafScoreFunction {
 
@@ -52,9 +52,9 @@ class KnnExactScoreFunction(val similarity: Similarity,
               // logger.info(s"Added ($docId, $subQueryScore) to cache. New size = ${heap.size()}.")
               true
             } else if (subQueryScore > heap.peekFirst()) {
+              // logger.info(s"Adding $docId to heap. Replacing (${heap.peekFirst()} with $subQueryScore) in heap of size ${heap.size()}")
               heap.removeFirst()
               heap.add(subQueryScore)
-              // logger.info(s"Added ($docId, $subQueryScore) to cache. New size = ${heap.size()}.")
               true
             } else false
           case None => true

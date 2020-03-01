@@ -218,7 +218,7 @@ object KnnLshQueryBuilder {
               queryVector: ElastiKnnVector,
               useCache: Boolean): QueryBuilder = {
     val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions.pipelineId)
-    if (cached != null) KnnLshQueryBuilder(cached, queryVector, lshQueryOptions.candidates, useCache)
+    if (cached != null) KnnLshQueryBuilder(cached, queryVector, lshQueryOptions.numCandidates, useCache)
     else {
       // Put all the sketchy stuff in one place.
       def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
@@ -249,7 +249,7 @@ object KnnLshQueryBuilder {
           new ActionListener[GetPipelineResponse] {
             override def onResponse(response: GetPipelineResponse): Unit = {
               val procOpts = parseResponse(response).get
-              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, lshQueryOptions.candidates, useCache))
+              supplier.set(KnnLshQueryBuilder(procOpts, queryVector, lshQueryOptions.numCandidates, useCache))
               processorOptionsCache.put(lshQueryOptions.pipelineId, procOpts)
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             }

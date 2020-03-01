@@ -13,13 +13,14 @@ from utils import open_dataset, ANNB_ROOT, Dataset, pareto_max
 def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     index = "ann-benchmarks-jaccard"
     pipe = f"ingest-{index}-{num_bands}-{num_rows}"
-    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=1,
+    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=5,
                           algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
                           index="ann-benchmarks-jaccard", pipeline_id=pipe)
-    # print("Checking subset...")
-    # eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
-    # eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
-    # print("Indexing...")
+    print("Checking subset...")
+    eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
+    eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
+    print("Indexing...")
+    # eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
     eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
     # eknn.kneighbors([q.vector for q in dataset.queries[:1]], return_distance=False, allow_missing=True)
     # return 0, 0

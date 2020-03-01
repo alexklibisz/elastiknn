@@ -74,7 +74,7 @@ message KNearestNeighborsQuery {
     message LshQueryOptions {
         // Number of approximate results which will have their exact scores computed.
         // This should be larger than the desired number of hits, but much smaller than the total size of the corpus.
-        uint32 candidates = 1;
+        uint32 num_candidates = 1;
         // Pipeline used to index the original vectors.
         string pipeline_id = 2;
         // TODO: regular and multi-probe lsh options here.

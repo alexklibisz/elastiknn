@@ -53,7 +53,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         if self._algorithm == 'exact':
             return KNearestNeighborsQuery.ExactQueryOptions(field_raw=self._field_raw, similarity=self._sim)
         elif self._sim == SIMILARITY_JACCARD:
-            return KNearestNeighborsQuery.LshQueryOptions(candidates=n_neighbors, pipeline_id=self._pipeline_id)
+            return KNearestNeighborsQuery.LshQueryOptions(num_candidates=n_neighbors, pipeline_id=self._pipeline_id)
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 
