@@ -1,6 +1,7 @@
 package com.klibisz
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
+import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
 
 package object elastiknn {
 
@@ -38,10 +39,21 @@ package object elastiknn {
 
   object QueryVectorLike {
     implicit val id: QueryVectorLike[QueryVector] = identity
-    implicit val ekv: QueryVectorLike[ElastiKnnVector] = (a: ElastiKnnVector) => QueryVector.Given(a)
-    implicit val iqv: QueryVectorLike[IndexedQueryVector] = (a: IndexedQueryVector) => QueryVector.Indexed(a)
+    implicit val ekv: QueryVectorLike[ElastiKnnVector] = QueryVector.Given(_)
+    implicit val iqv: QueryVectorLike[IndexedQueryVector] = QueryVector.Indexed(_)
     implicit def ekvLike[A: ElastiKnnVectorLike]: QueryVectorLike[A] =
       (a: A) => QueryVector.Given(implicitly[ElastiKnnVectorLike[A]].apply(a))
+  }
+
+  trait ModelOptionsLike[T] {
+    def apply(a: T): ProcessorOptions.ModelOptions
+  }
+
+  object ModelOptionsLike {
+    implicit val id: ModelOptionsLike[ModelOptions] = identity
+    implicit val excmp: ModelOptionsLike[ExactComputedModelOptions] = ModelOptions.ExactComputed(_)
+    implicit val exix: ModelOptionsLike[ExactIndexedModelOptions] = ModelOptions.ExactIndexed(_)
+    implicit val jacclsh: ModelOptionsLike[JaccardLshModelOptions] = ModelOptions.JaccardLsh(_)
   }
 
   trait QueryOptionsLike[T] {

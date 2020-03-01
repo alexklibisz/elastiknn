@@ -44,7 +44,8 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
   }
 
   test("query serialization and deserialization") {
-    val knnq1 = KNearestNeighborsQuery(QueryOptions.ExactComputed(ExactComputedQueryOptions("vecRaw", SIMILARITY_ANGULAR)))
+    val knnq1 =
+      KNearestNeighborsQuery(pipelineId = "foo", useCache = true, QueryOptions.ExactComputed(ExactComputedQueryOptions(SIMILARITY_ANGULAR)))
     val s1 = knnq1.toByteString.toStringUtf8
     val knnq2 = KNearestNeighborsQuery.parseFrom(ByteString.copyFromUtf8(s1).toByteArray)
     knnq2 shouldBe knnq1
