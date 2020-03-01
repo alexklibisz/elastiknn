@@ -29,28 +29,35 @@ class KnnExactScoreFunction(val similarity: Similarity,
                             val numCandidates: Option[Int])
     extends ScoreFunction(CombineFunction.REPLACE) {
 
-  private val logger: Logger = LogManager.getLogger(this.getClass)
-
   import KnnExactScoreFunction.vectorCache
+
+  // Combinate the numCandidates option with a corresponding heap.
+  private val heapCandidatesOpt: Option[(Int, MinMaxPriorityQueue[lang.Float])] =
+    numCandidates.map(n => (n, MinMaxPriorityQueue.create[java.lang.Float]()))
 
   override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
     // This .load call is expensive so it's important to only instantiate once.
     lazy val atomicFieldData = fieldData.load(ctx)
 
-    new LeafScoreFunction {
+    // val logger: Logger = LogManager.getLogger(s"${this.getClass} - ${ctx.toString}")
 
-      // Combinate the numCandidates option with a corresponding heap.
-      private val heapCandidatesOpt: Option[(Int, MinMaxPriorityQueue[lang.Float])] =
-        numCandidates.map(n => (n, MinMaxPriorityQueue.create[java.lang.Float]()))
+    new LeafScoreFunction {
 
       override def score(docId: Int, subQueryScore: Float): Double = {
 
         val computeExact: Boolean = heapCandidatesOpt match {
-          case Some((n, heap)) if heap.size() < n || subQueryScore > heap.peekFirst() =>
-            heap.add(subQueryScore)
-            true
-          case Some(_) => false
-          case None    => true
+          case Some((n, heap)) =>
+            if (heap.size() < n) {
+              heap.add(subQueryScore)
+              // logger.info(s"Added ($docId, $subQueryScore) to cache. New size = ${heap.size()}.")
+              true
+            } else if (subQueryScore > heap.peekFirst()) {
+              heap.removeFirst()
+              heap.add(subQueryScore)
+              // logger.info(s"Added ($docId, $subQueryScore) to cache. New size = ${heap.size()}.")
+              true
+            } else false
+          case None => true
         }
 
         if (computeExact) {
@@ -58,7 +65,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
             vectorCache.get((ctx, docId), () => atomicFieldData.getElastiKnnVector(docId).get)
           } else atomicFieldData.getElastiKnnVector(docId).get
           val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
-          logger.info(s"Computed exact similarity, subQueryScore = $subQueryScore, sim = $sim")
+          // logger.info(s"Computed exact similarity, subQueryScore = $subQueryScore, sim = $sim")
           sim
         } else 0
       }

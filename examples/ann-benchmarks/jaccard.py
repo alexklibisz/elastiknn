@@ -19,20 +19,20 @@ def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     # print("Checking subset...")
     # eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
     # eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
-    print("Indexing...")
+    # print("Indexing...")
     eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
-    eknn.kneighbors([q.vector for q in dataset.queries[:1]], return_distance=False, allow_missing=True)
-    # print("Searching...")
-    # t0 = time()
-    # neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True, use_cache=True)
-    # queries_per_sec = len(dataset.queries) / (time() - t0)
-    # recalls = [
-    #     len(set(q.indices).intersection(p)) / len(q.indices)
-    #     for (q, p) in zip(dataset.queries, neighbors_pred)
-    # ]
-    # recall = sum(recalls) / len(recalls)
-    # return recall,  queries_per_sec
-    return 0, 0
+    # eknn.kneighbors([q.vector for q in dataset.queries[:1]], return_distance=False, allow_missing=True)
+    # return 0, 0
+    print("Searching...")
+    t0 = time()
+    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True, use_cache=True)
+    queries_per_sec = len(dataset.queries) / (time() - t0)
+    recalls = [
+        len(set(q.indices).intersection(p)) / len(q.indices)
+        for (q, p) in zip(dataset.queries, neighbors_pred)
+    ]
+    recall = sum(recalls) / len(recalls)
+    return recall,  queries_per_sec
 
 
 if __name__ == "__main__":
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
     # Useful for sampling/profiling.
-    while True:
+    for _ in range(10000):
         loss = evaluate(dataset, 165, 1)
         print(loss)
 

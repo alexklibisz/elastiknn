@@ -49,11 +49,11 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         else:
             raise RuntimeError(f"Couldn't determine valid processor options")
 
-    def _query_opts(self) -> Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions]:
+    def _query_opts(self, n_neighbors: int) -> Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions]:
         if self._algorithm == 'exact':
             return KNearestNeighborsQuery.ExactQueryOptions(field_raw=self._field_raw, similarity=self._sim)
         elif self._sim == SIMILARITY_JACCARD:
-            return KNearestNeighborsQuery.LshQueryOptions(pipeline_id=self._pipeline_id)
+            return KNearestNeighborsQuery.LshQueryOptions(candidates=n_neighbors, pipeline_id=self._pipeline_id)
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 
@@ -103,7 +103,7 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         X = list(canonical_vectors_to_elastiknn(X))
         if n_neighbors is None:
             n_neighbors = self.n_neighbors
-        qopts = self._query_opts()
+        qopts = self._query_opts(n_neighbors)
         futures = []
         for x in X:
             futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key], use_cache))
