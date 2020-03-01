@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
+import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.requests.{PrepareMappingRequest, AcknowledgedResponse => AckRes}
@@ -38,10 +39,19 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
     val procProp = request.processorOptions.modelOptions match {
 
-      case ModelOptions.ExactIndexed(exix) =>
+      case ModelOptions.ExactIndexed(exix) if exix.similarity == SIMILARITY_JACCARD =>
         s"""
            |"${exix.fieldProcessed}": {
-           |  ...
+           |  "properties": {
+           |    "numTrueIndices": {
+           |      "type": "integer"
+           |    },
+           |    "trueIndices": {
+           |      "type": "text",
+           |      "similarity": "boolean",
+           |      "analyzer": "whitespace"
+           |    }
+           |  }
            |}
            |""".stripMargin
 

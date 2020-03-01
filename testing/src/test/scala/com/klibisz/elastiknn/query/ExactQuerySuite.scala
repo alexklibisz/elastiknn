@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions._
+import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest._
 
@@ -17,15 +18,18 @@ class ExactQuerySuite
     with Elastic4sMatchers
     with ElasticAsyncClient {
 
+  private val computedOptions = Similarity.values.map(s => (s, ModelOptions.ExactComputed(ExactComputedOptions(s))))
+  private val indexedOptions = Seq(SIMILARITY_JACCARD).map(s => (s, ModelOptions.ExactIndexed(ExactIndexedOptions(s, "vec_proc"))))
+
   for {
-    sim <- Similarity.values
+    (sim, opt) <- indexedOptions ++ computedOptions
     dim <- testDataDims
     cache <- Seq(true, false)
   } yield {
 
-    val support = new Support("vec_raw", sim, dim, ModelOptions.ExactComputed(ExactComputedOptions(sim)))
+    val support = new Support("vec_raw", sim, dim, opt)
 
-    test(s"$dim, ${sim.name}, $cache, given") {
+    test(s"$dim, $opt, $cache, given") {
       support.testGiven(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, res) =>
@@ -38,7 +42,7 @@ class ExactQuerySuite
       }
     }
 
-    test(s"$dim, ${sim.name}, $cache, indexed") {
+    test(s"$dim, $opt, $cache, indexed") {
       support.testIndexed(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>
         forAll(queriesAndResults.silent) {
           case (query, id, res) =>
