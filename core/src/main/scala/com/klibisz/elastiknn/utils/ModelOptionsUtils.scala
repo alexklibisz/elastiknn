@@ -10,14 +10,14 @@ trait ModelOptionsUtils {
 
     /** Return the processed field name. */
     private[elastiknn] lazy val fieldProc: Option[String] = mopts match {
-      case ModelOptions.Exact(_) | ModelOptions.Empty => None
-      case ModelOptions.JaccardLsh(j)                 => Some(j.fieldProcessed)
+      case ModelOptions.ExactComputed(_) | ModelOptions.Empty => None
+      case ModelOptions.JaccardLsh(j)                         => Some(j.fieldProcessed)
     }
 
     private[elastiknn] lazy val similarity: Option[Similarity] = mopts match {
-      case ModelOptions.Exact(eopts)  => Some(eopts.similarity)
-      case ModelOptions.JaccardLsh(_) => Some(SIMILARITY_JACCARD)
-      case _                          => None
+      case ModelOptions.ExactComputed(eopts) => Some(eopts.similarity)
+      case ModelOptions.JaccardLsh(_)        => Some(SIMILARITY_JACCARD)
+      case _                                 => None
     }
 
   }

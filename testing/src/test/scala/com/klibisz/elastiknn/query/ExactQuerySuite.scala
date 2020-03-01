@@ -23,7 +23,7 @@ class ExactQuerySuite
     cache <- Seq(true, false)
   } yield {
 
-    val support = new Support("vec_raw", sim, dim, ModelOptions.Exact(ExactModelOptions(sim)))
+    val support = new Support("vec_raw", sim, dim, ModelOptions.ExactComputed(ExactComputedOptions(sim)))
 
     test(s"$dim, ${sim.name}, $cache, given") {
       support.testGiven(ExactQueryOptions("vec_raw", sim), cache) { queriesAndResults =>

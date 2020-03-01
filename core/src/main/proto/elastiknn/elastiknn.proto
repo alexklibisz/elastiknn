@@ -23,15 +23,20 @@ message ProcessorOptions {
 
     // The model options which will determine how the vector gets preprocessed and stored.
     oneof model_options {
-        ExactModelOptions exact = 3;
+        ExactComputedOptions exact_computed = 3;
         JaccardLshOptions jaccard_lsh = 4;
-        JaccardIndexedOptions jaccard_indexed = 5;
+        ExactIndexedOptions exact_indexed = 5;
     }
 }
 
-message ExactModelOptions {
+message ExactComputedOptions {
     // Specify the similarity so vectors can be checked for compatibility when indexing.
     Similarity similarity = 1;
+}
+
+message ExactIndexedOptions {
+    Similarity similarity = 1;
+    string field_processed = 2;
 }
 
 message JaccardLshOptions {
@@ -39,10 +44,6 @@ message JaccardLshOptions {
     string field_processed = 2;
     uint32 num_bands = 3;
     uint32 num_rows = 4;
-}
-
-message JaccardIndexedOptions {
-    string field_processed = 1;
 }
 
 // A vector of doubles, used for l1, l2, and angular similarity.

@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{Exact, JaccardLsh}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{ExactComputed, ExactIndexed, JaccardLsh}
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
 
@@ -18,7 +18,7 @@ package object models {
 
   def toDocValue(popts: ProcessorOptions, ekv: ElastiKnnVector): Try[String] =
     (popts.modelOptions, ekv) match {
-      case (Exact(mopts), _) => {
+      case (ExactComputed(mopts), _) => {
         (mopts.similarity, ekv) match {
           case (SIMILARITY_ANGULAR | SIMILARITY_L1 | SIMILARITY_L2, ElastiKnnVector(Vector.FloatVector(fv))) =>
             if (fv.values.length == popts.dimension) Success(()) else Failure(VectorDimensionException(fv.values.length, popts.dimension))
@@ -27,7 +27,9 @@ package object models {
           case _ => Failure(SimilarityAndTypeException(mopts.similarity, ekv))
         }
       }.map(_ => "")
-      case (JaccardLsh(opts), ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))) =>
+      case (ExactIndexed(ExactIndexedOptions(SIMILARITY_JACCARD, _)), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
+        Try(sbv.trueIndices.mkString(" "))
+      case (JaccardLsh(opts), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
         Try(jaccardCache.get((opts.seed, opts.numBands, opts.numRows)).hash(sbv.trueIndices).mkString(" "))
       case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
     }
