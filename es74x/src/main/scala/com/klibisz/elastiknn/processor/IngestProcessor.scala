@@ -22,7 +22,12 @@ class IngestProcessor private (tag: String, popts: ProcessorOptions) extends Abs
     for {
       srcMap <- Try(doc.getFieldValue(field, classOf[util.Map[String, AnyRef]]))
       ekv <- ElastiKnnVector.from(srcMap)
-    } yield ekv
+      sorted = ekv match {
+        case ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)) =>
+          ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
+        case _ => ekv
+      }
+    } yield sorted
 
   override def getType: String = IngestProcessor.TYPE
 

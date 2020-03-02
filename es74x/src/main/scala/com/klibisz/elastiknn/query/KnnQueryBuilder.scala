@@ -6,12 +6,10 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
-import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
-import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper.FieldData
 import com.klibisz.elastiknn.models.ProcessedVector
 import com.klibisz.elastiknn.utils.Utils._
-import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, Similarity, models, query, _}
+import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, models, _}
 import io.circe.syntax._
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -20,14 +18,13 @@ import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest, GetPipelineResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.common.lucene.search.function.{FunctionScoreQuery, ScriptScoreQuery}
+import org.elasticsearch.common.lucene.search.function.FunctionScoreQuery
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
 import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 object KnnQueryBuilder {
@@ -82,6 +79,11 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
 
   override def getWriteableName: String = KnnQueryBuilder.NAME
 
+  private def ensureSorted(ekv: ElastiKnnVector): ElastiKnnVector = ekv.vector match {
+    case ElastiKnnVector.Vector.SparseBoolVector(sbv) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted))
+    case other                                        => ElastiKnnVector(other)
+  }
+
   override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.queryVector match {
     case QueryVector.Indexed(iqv) => rewriteFetchQueryVector(context, iqv)
     case QueryVector.Given(ekv) =>
@@ -95,22 +97,24 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
                 _,
                 Success(proc: ProcessedVector.ExactComputed)
                 ) =>
-              new ExactComputedQueryBuilder(mopts, qopts, ekv, proc, popts.fieldRaw, query.useCache)
+              new ExactComputedQueryBuilder(mopts, qopts, ensureSorted(ekv), proc, popts.fieldRaw, query.useCache)
             case (
                 ModelOptions.ExactIndexed(mopts),
                 QueryOptions.ExactIndexed(qopts),
                 ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)),
                 Success(proc: ProcessedVector.ExactIndexedJaccard)
                 ) =>
-              new ExactIndexedJaccardQueryBuilder(mopts, qopts, sbv, proc, popts.fieldRaw, query.useCache)
+              new ExactIndexedJaccardQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
             case (
                 ModelOptions.JaccardLsh(mopts),
                 QueryOptions.JaccardLsh(qopts),
                 ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)),
                 Success(proc: ProcessedVector.JaccardLsh)
                 ) =>
-              new JaccardLshQueryBuilder(mopts, qopts, sbv, proc, popts.fieldRaw, query.useCache)
-            case other => throw new IllegalArgumentException(s"Cannot convert this combination to a valid query: $other")
+              new JaccardLshQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
+            case other => {
+              throw new IllegalArgumentException(s"Cannot convert this combination to a valid query: $other")
+            }
           }
       }
     case QueryVector.Empty => throw new IllegalArgumentException(s"Query vector cannot be empty")
@@ -176,6 +180,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
             override def onResponse(response: GetPipelineResponse): Unit = {
               val processorOptions = parseResponse(response).get
               KnnQueryBuilder.procOptsCache.put(query.pipelineId, processorOptions)
+              supplier.set(new KnnQueryBuilder(query, Some(processorOptions)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             }
             override def onFailure(e: Exception): Unit = l.onFailure(e)
@@ -236,8 +241,8 @@ final class ExactComputedQueryBuilder(val modelOptions: ExactComputedModelOption
   private val defaultSubquery = new ExistsQueryBuilder(fieldRaw)
 
   override def doToQuery(context: QueryShardContext): Query = {
-    val ft = context.getMapperService.fullName(fieldRaw)
-    val fd = context.getForField(ft)
+    val ft: MappedFieldType = context.getMapperService.fullName(fieldRaw)
+    val fd: ElastiKnnVectorFieldMapper.FieldData = context.getForField(ft)
     new FunctionScoreQuery(
       defaultSubquery.toQuery(context),
       new KnnExactScoreFunction(modelOptions.similarity, queryVector, fd, useCache, None)

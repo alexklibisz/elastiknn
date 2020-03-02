@@ -3,14 +3,14 @@ package com.klibisz.elastiknn.query
 import java.lang
 import java.util.Objects
 
-import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.common.cache._
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ExactSimilarity
-import com.klibisz.elastiknn.{ElastiKnnVector, Similarity}
+import com.klibisz.elastiknn._
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.Explanation
-import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
+import org.elasticsearch.common.lucene.search.function._
 
 /**
   * Query function which exact similarity scores for indexed vectors against the given query vector.
@@ -48,10 +48,8 @@ class KnnExactScoreFunction(val similarity: Similarity,
           case Some((n, heap)) =>
             if (heap.size() < n) {
               heap.add(subQueryScore)
-              // logger.info(s"Added ($docId, $subQueryScore) to cache. New size = ${heap.size()}.")
               true
             } else if (subQueryScore > heap.peekFirst()) {
-              // logger.info(s"Adding $docId to heap. Replacing (${heap.peekFirst()} with $subQueryScore) in heap of size ${heap.size()}")
               heap.removeFirst()
               heap.add(subQueryScore)
               true
@@ -64,7 +62,6 @@ class KnnExactScoreFunction(val similarity: Similarity,
             vectorCache.get((ctx, docId), () => atomicFieldData.getElastiKnnVector(docId).get)
           } else atomicFieldData.getElastiKnnVector(docId).get
           val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
-          // logger.info(s"Computed exact similarity, subQueryScore = $subQueryScore, sim = $sim")
           sim
         } else 0
       }
