@@ -36,6 +36,7 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
     new QuerySpec(ExactComputedQueryBuilder.NAME, ExactComputedQueryBuilder.Reader, ExactComputedQueryBuilder.Parser),
+    new QuerySpec(ExactIndexedJaccardQueryBuilder.NAME, ExactIndexedJaccardQueryBuilder.Reader, ExactIndexedJaccardQueryBuilder.Parser),
     new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 

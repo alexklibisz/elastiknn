@@ -1,15 +1,27 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactComputedQueryOptions, QueryOptions}
+import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactComputedQueryOptions, ExactIndexedQueryOptions, QueryOptions, QueryVector}
 import com.klibisz.elastiknn.ProcessorOptions.JaccardLshModelOptions
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}
+import scalapb_circe.JsonFormat
 
 import scala.collection.JavaConverters._
 
 class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
+
+  test("foo") {
+    val q = KNearestNeighborsQuery(
+      "test-similarity_jaccard-10-pipeline-1583124519746",
+      true,
+      QueryOptions.ExactIndexed(ExactIndexedQueryOptions()),
+      QueryVector.Given(ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(SparseBoolVector(Array(1, 2, 3), 10))))
+    )
+    val j = JsonFormat.toJsonString(q)
+    ???
+  }
 
   test("converting a pb message to a java map") {
 

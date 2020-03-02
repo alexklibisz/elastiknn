@@ -22,14 +22,14 @@ class ExactQuerySuite
   private val fieldProc = "vec_proc"
 
   for {
-    sim <- Similarity.values
+    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
     dim <- testDataDims
     useCache <- Seq(true, false)
     simToOptions: (Similarity => (ModelOptions, QueryOptions)) <- Seq(
-      (s: Similarity) =>
-        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),
 //      (s: Similarity) =>
-//        (ModelOptions.ExactIndexed(ExactIndexedModelOptions(s, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions()))
+//        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),
+      (s: Similarity) =>
+        (ModelOptions.ExactIndexed(ExactIndexedModelOptions(s, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions()))
     )
   } yield {
 
@@ -43,7 +43,8 @@ class ExactQuerySuite
       harness.testGiven(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, res) =>
-            // res.hits.hits should have length query.similarities.length
+            val minScore = res.hits.hits.map(_.score).min
+            res.hits.hits should have length query.similarities.length
             // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
             forAll(query.similarities.zip(res.hits.hits.map(_.score)).silent) {
               case (sim, score) => score shouldBe sim +- 1e-5f
