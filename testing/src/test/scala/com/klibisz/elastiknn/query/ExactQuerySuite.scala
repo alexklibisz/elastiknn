@@ -24,7 +24,7 @@ class ExactQuerySuite
   for {
     sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
     dim <- testDataDims
-    useCache <- Seq(true, false)
+    useCache <- Seq(true, false).filter(_ == false)
     simToOptions: (Similarity => (ModelOptions, QueryOptions)) <- Seq(
 //      (s: Similarity) =>
 //        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),

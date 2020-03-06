@@ -114,9 +114,8 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
                 Success(proc: ProcessedVector.JaccardLsh)
                 ) =>
               new JaccardLshQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
-            case other => {
+            case other =>
               throw new IllegalArgumentException(s"Cannot convert this combination to a valid query: $other")
-            }
           }
       }
     case QueryVector.Empty => throw new IllegalArgumentException(s"Query vector cannot be empty")
@@ -310,6 +309,7 @@ final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelO
                                             val fieldRaw: String,
                                             val useCache: Boolean)
     extends AbstractQueryBuilder[ExactIndexedJaccardQueryBuilder] {
+
   override def doWriteTo(out: StreamOutput): Unit = ExactIndexedJaccardQueryBuilder.Reader.write(this, out)
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -319,39 +319,29 @@ final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelO
       new MatchQueryBuilder(s"${modelOptions.fieldProcessed}.ExactIndexedJaccard.trueIndices", processedQueryVector.trueIndices)
     val ft: MappedFieldType = context.getMapperService.fullName(s"${modelOptions.fieldProcessed}.ExactIndexedJaccard.numTrueIndices")
     val fd: SortedNumericDVIndexFieldData = context.getForField(ft)
-    val self = this
+    val outerHashCode = this.hashCode()
     new FunctionScoreQuery(
       mq.toQuery(context),
       new ScoreFunction(CombineFunction.REPLACE) {
         override def needsScores(): Boolean = false
-        override def doEquals(other: ScoreFunction): Boolean = false
-        override def doHashCode(): Int = self.doHashCode()
+        override def doEquals(other: ScoreFunction): Boolean = this.hashCode == other.hashCode
+        override def doHashCode(): Int = outerHashCode
         override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
           val values: SortedNumericDocValues = fd.load(ctx).getLongValues
           new LeafScoreFunction {
             override def score(docId: Int, intersection: Float): Double =
               if (values.advanceExact(docId)) {
+                // TODO: the default FunctionScoreQuery behavior is to multiply the sub query score by the score returned
+                // from the score function. In order to undo that, you have to divide the Jaccard by the intersection.
+                // Surely there is a cleaner way, but I've tried all the ways I could think to instantiate the ScoreFunction.
                 val storedNumTrueIndices = values.nextValue()
-                val ret = intersection / (processedQueryVector.numTrueIndices + storedNumTrueIndices - intersection)
-                ret
+                val jacc = intersection / (processedQueryVector.numTrueIndices + storedNumTrueIndices - intersection)
+                jacc / intersection
               } else throw new IllegalStateException(s"Couldn't read the number of true indices for document $docId in context $ctx")
-            override def explainScore(docId: Int, intersection: Explanation): Explanation = ???
-//              if (values.advanceExact(docId)) {
-//                val storedNumTrueIndices = values.nextValue()
-//                Explanation.`match`(
-//                  100,
-//                  s"jaccard = intersection(a,b) / (|a| + |b| - intersection(a,b)) = $intersection / (${processedQueryVector.numTrueIndices} + $storedNumTrueIndices - $intersection)"
-//                )
-//              } else
-//                Explanation.`match`(
-//                  100,
-//                  s"jaccard = intersection(a,b) / (|a| + |b| - intersection(a,b) = $intersection / (${processedQueryVector.numTrueIndices} + ??? - $intersection)")
+            override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = subQueryScore
           }
         }
-      },
-      CombineFunction.REPLACE,
-      0f,
-      Float.MaxValue
+      }
     )
   }
 
