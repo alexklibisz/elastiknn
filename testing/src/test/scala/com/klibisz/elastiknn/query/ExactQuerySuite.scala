@@ -23,22 +23,24 @@ class ExactQuerySuite
   private val fieldRaw = "vec_raw"
   private val fieldProc = "vec_proc"
 
+  private def simToOptions(sim: Similarity): Seq[(ModelOptions, QueryOptions)] =
+    Seq((ModelOptions.ExactComputed(ExactComputedModelOptions(sim)), QueryOptions.ExactComputed(ExactComputedQueryOptions()))) ++ {
+      sim match {
+        case SIMILARITY_JACCARD =>
+          Seq((ModelOptions.ExactIndexed(ExactIndexedModelOptions(sim, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions())))
+        case _ => Seq.empty
+      }
+    }
+
   for {
-    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
+    sim <- Similarity.values
     dim <- testDataDims
+    (mopts, qopts) <- simToOptions(sim)
     useCache <- Seq(true, false)
-    simToOptions: (Similarity => (ModelOptions, QueryOptions)) <- Seq(
-      (s: Similarity) =>
-        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),
-      (s: Similarity) =>
-        (ModelOptions.ExactIndexed(ExactIndexedModelOptions(s, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions()))
-    )
   } yield {
 
     val index: String = s"test-${sim.name.toLowerCase}-$dim"
     val pipelineId: String = s"$index-pipeline-${UUID.randomUUID()}"
-
-    val (mopts, qopts) = simToOptions(sim)
     val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
 
     test(s"$mopts, $dim, given, $qopts, $useCache") {

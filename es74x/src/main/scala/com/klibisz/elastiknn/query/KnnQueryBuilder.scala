@@ -93,6 +93,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
         case None => rewriteFetchProcessorOptions(context)
         case Some(popts) =>
           (popts.modelOptions, query.queryOptions, ekv, models.processVector(popts, ekv)) match {
+            // Exact computed for any similarity.
             case (
                 ModelOptions.ExactComputed(mopts),
                 QueryOptions.ExactComputed(qopts),
@@ -100,6 +101,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
                 Success(proc: ProcessedVector.ExactComputed)
                 ) =>
               new ExactComputedQueryBuilder(mopts, qopts, ensureSorted(ekv), proc, popts.fieldRaw, query.useCache)
+            // Exact indexed for Jaccard similarity.
             case (
                 ModelOptions.ExactIndexed(mopts),
                 QueryOptions.ExactIndexed(qopts),
@@ -107,6 +109,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
                 Success(proc: ProcessedVector.ExactIndexedJaccard)
                 ) =>
               new ExactIndexedJaccardQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
+            // LSH for Jaccard similarity.
             case (
                 ModelOptions.JaccardLsh(mopts),
                 QueryOptions.JaccardLsh(qopts),
