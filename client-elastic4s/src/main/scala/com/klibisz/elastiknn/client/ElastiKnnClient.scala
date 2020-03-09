@@ -1,17 +1,19 @@
 package com.klibisz.elastiknn.client
 
 import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.requests.bulk.BulkResponse
+import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, Executor, Handler}
+import com.sksamuel.elastic4s.{ElasticClient, ElasticDsl, ElasticError, Executor, Handler}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.requests._
 
+import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Client used to prepare, store, and search vectors using the ElastiKnn plugin.
@@ -26,14 +28,42 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   import Elastic4sUtils._
   import ElasticDsl._
 
-  private def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] =
-    for {
-      res <- elastic4sClient.execute(req)
-      ret <- res match {
-        case b: BulkResponse => if (b.hasFailures) Future.failed(b.error.asException) else Future.successful(b.result)
-        case _               => if (res.isSuccess) Future.successful(res.result) else Future.failed(res.error.asException)
+  @tailrec
+  private def findError(bulkResponseItems: Seq[BulkResponseItem], acc: Option[ElasticError] = None): Option[ElasticError] =
+    if (bulkResponseItems.isEmpty) acc
+    else
+      bulkResponseItems.head.error match {
+        case Some(err) =>
+          Some(
+            ElasticError(err.`type`,
+                         err.reason,
+                         Some(err.index_uuid),
+                         Some(err.index),
+                         Some(err.shard.toString),
+                         Seq.empty,
+                         None,
+                         None,
+                         None,
+                         Seq.empty))
+        case None => findError(bulkResponseItems.tail, acc)
       }
-    } yield ret
+
+  private def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] = {
+    elastic4sClient.execute(req).transformWith {
+      case Success(res) =>
+        if (res.isError) Future.failed(res.error.asException)
+        else
+          res.result match {
+            case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
+              findError(bulkResponse.items) match {
+                case Some(err) => Future.failed(err.asException)
+                case None      => Future.failed(new RuntimeException(s"Bulk execution error occurred for request $req"))
+              }
+            case result => Future.successful(result)
+          }
+      case Failure(ex) => Future.failed(ex)
+    }
+  }
 
   /**
     * Updates the index's mapping to support ElastiKnn types according to the given options.

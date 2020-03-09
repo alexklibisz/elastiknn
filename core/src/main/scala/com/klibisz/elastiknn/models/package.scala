@@ -35,7 +35,7 @@ package object models {
         }
       }.map(_ => ProcessedVector.ExactComputed())
 
-      // Foobar
+      // Exact indexed for Jaccard converts the true indices into a string.
       case (ExactIndexed(exix), ElastiKnnVector(Vector.SparseBoolVector(sbv))) if exix.similarity == SIMILARITY_JACCARD =>
         Try(ProcessedVector.ExactIndexedJaccard(sbv.trueIndices.length, sbv.trueIndices.mkString(" ")))
 
@@ -47,7 +47,7 @@ package object models {
           ProcessedVector.JaccardLsh(hashes)
         }
       // Foobar
-      case _ => Failure(new NotImplementedError(s"Vector $ekv cannot be processed with options $popts"))
+      case _ => Failure(new IllegalArgumentException(s"Vector $ekv cannot be processed with options $popts"))
     }
 
 }

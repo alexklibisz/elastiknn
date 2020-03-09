@@ -43,7 +43,7 @@ class ExactQuerySuite
     val pipelineId: String = s"$index-pipeline-${UUID.randomUUID()}"
     val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
 
-    test(s"$mopts, $dim, given, $qopts, $useCache") {
+    test(s"search w/ given vector: $mopts, $dim, $qopts, $useCache") {
       harness.testGiven(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, res) =>
@@ -56,7 +56,7 @@ class ExactQuerySuite
       }
     }
 
-    test(s"$mopts, $dim, indexed, $qopts, $useCache") {
+    test(s"search w/ indexed vector: $mopts, $dim, indexed, $qopts, $useCache") {
       harness.testIndexed(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, id, res) =>
@@ -76,5 +76,21 @@ class ExactQuerySuite
       }
     }
   }
+
+  for {
+    sim <- Similarity.values.filter(_ != SIMILARITY_JACCARD)
+    dim <- testDataDims
+    cache <- Seq(true, false)
+  } yield
+    test(s"exact indexed doesn't work for $sim, $dim, $cache") {
+      val (mopts, qopts) = (ExactIndexedModelOptions(sim, fieldProc), ExactIndexedQueryOptions())
+      val harness = new Harness(sim, fieldRaw, dim, UUID.randomUUID.toString, UUID.randomUUID.toString, mopts)
+      for {
+        ex1 <- recoverToExceptionIf[RuntimeException](harness.testIndexed(qopts, cache)(_ => Assertions.succeed))
+        _ = ex1.getMessage should include("cannot be processed with options")
+        ex2 <- recoverToExceptionIf[RuntimeException](harness.testGiven(qopts, cache)(_ => Assertions.succeed))
+        _ = ex2.getMessage should include("cannot be processed with options")
+      } yield Assertions.succeed
+    }
 
 }
