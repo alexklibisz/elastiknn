@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.query
 
+import java.util.UUID
+
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions._
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
@@ -24,17 +26,17 @@ class ExactQuerySuite
   for {
     sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
     dim <- testDataDims
-    useCache <- Seq(true, false).filter(_ == false)
+    useCache <- Seq(true, false)
     simToOptions: (Similarity => (ModelOptions, QueryOptions)) <- Seq(
-//      (s: Similarity) =>
-//        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),
+      (s: Similarity) =>
+        (ModelOptions.ExactComputed(ExactComputedModelOptions(s)), QueryOptions.ExactComputed(ExactComputedQueryOptions())),
       (s: Similarity) =>
         (ModelOptions.ExactIndexed(ExactIndexedModelOptions(s, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions()))
     )
   } yield {
 
     val index: String = s"test-${sim.name.toLowerCase}-$dim"
-    val pipelineId: String = s"$index-pipeline-${System.currentTimeMillis()}"
+    val pipelineId: String = s"$index-pipeline-${UUID.randomUUID()}"
 
     val (mopts, qopts) = simToOptions(sim)
     val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
@@ -43,7 +45,6 @@ class ExactQuerySuite
       harness.testGiven(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, res) =>
-            val minScore = res.hits.hits.map(_.score).min
             res.hits.hits should have length query.similarities.length
             // Just check the similarity scores. Some vectors will have the same scores, so checking indexes is brittle.
             forAll(query.similarities.zip(res.hits.hits.map(_.score)).silent) {

@@ -82,7 +82,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
   override def getWriteableName: String = KnnQueryBuilder.NAME
 
   private def ensureSorted(ekv: ElastiKnnVector): ElastiKnnVector = ekv.vector match {
-    case ElastiKnnVector.Vector.SparseBoolVector(sbv) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted))
+    case ElastiKnnVector.Vector.SparseBoolVector(sbv) => ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
     case other                                        => ElastiKnnVector(other)
   }
 

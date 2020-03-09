@@ -47,7 +47,7 @@ package object models {
           ProcessedVector.JaccardLsh(hashes)
         }
       // Foobar
-      case other => Failure(new NotImplementedError(s"Hashing is not implemented for $other"))
+      case _ => Failure(new NotImplementedError(s"Vector $ekv cannot be processed with options $popts"))
     }
 
 }
