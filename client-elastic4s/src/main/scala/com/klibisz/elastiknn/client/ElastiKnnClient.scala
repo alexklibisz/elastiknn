@@ -49,6 +49,7 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
       }
 
   private def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[U] = {
+    // A bit of finangling to identify requests that had errors and transform them to failed futures.
     elastic4sClient.execute(req).transformWith {
       case Success(res) =>
         if (res.isError) Future.failed(res.error.asException)
