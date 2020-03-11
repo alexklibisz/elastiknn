@@ -39,11 +39,12 @@ class ExactQuerySuite
     useCache <- Seq(true, false)
   } yield {
 
-    val index: String = s"test-${sim.name.toLowerCase}-$dim"
-    val pipelineId: String = s"$index-pipeline-${UUID.randomUUID()}"
+    val uuid: String = UUID.randomUUID.toString
+    val index: String = s"test-$uuid"
+    val pipelineId: String = s"$index-pipeline-$uuid"
     val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
 
-    test(s"search w/ given vector: $mopts, $dim, $qopts, $useCache") {
+    test(s"search given: $index, $mopts, $dim, $qopts, $useCache") {
       harness.testGiven(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, res) =>
@@ -56,7 +57,7 @@ class ExactQuerySuite
       }
     }
 
-    test(s"search w/ indexed vector: $mopts, $dim, indexed, $qopts, $useCache") {
+    test(s"search indexed: $index, $mopts, $dim, indexed, $qopts, $useCache") {
       harness.testIndexed(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, id, res) =>
