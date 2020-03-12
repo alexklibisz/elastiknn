@@ -52,18 +52,18 @@ class LshQuerySuite
       }
     }
 
-//    test(s"$dim, $sim, $opt, $useCache, indexed") {
-//      support.testIndexed(QueryOptions.Lsh(LshQueryOptions(support.pipelineId)), useCache) { queriesAndResponses =>
-//        forAll(queriesAndResponses.silent) {
-//          case (_, id, res) =>
-//            res.hits.hits should not be empty
-//            // Top hit should be the query vector itself.
-//            val self = res.hits.hits.find(_.id == id)
-//            self shouldBe defined
-//            self.map(_.score) shouldBe Some(res.hits.hits.map(_.score).max)
-//        }
-//      }
-//    }
+    test(s"search indexed: $index, $mopts, $dim, $qopts, $useCache") {
+      support.testIndexed(qopts, useCache) { queriesAndResponses =>
+        forAll(queriesAndResponses.silent) {
+          case (_, id, res) =>
+            res.hits.hits should not be empty
+            // Top hit should be the query vector itself.
+            val self = res.hits.hits.find(_.id == id)
+            self shouldBe defined
+            self.map(_.score) shouldBe Some(res.hits.hits.map(_.score).max)
+        }
+      }
+    }
 
   }
 

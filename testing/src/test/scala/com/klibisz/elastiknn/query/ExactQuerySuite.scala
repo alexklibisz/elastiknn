@@ -56,7 +56,7 @@ class ExactQuerySuite
       }
     }
 
-    test(s"search indexed: $index, $mopts, $dim, indexed, $qopts, $useCache") {
+    test(s"search indexed: $index, $mopts, $dim, $qopts, $useCache") {
       harness.testIndexed(qopts, useCache) { qAndR =>
         forAll(qAndR.silent) {
           case (query, id, res) =>
