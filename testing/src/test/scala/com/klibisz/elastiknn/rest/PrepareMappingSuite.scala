@@ -27,9 +27,17 @@ class PrepareMappingSuite extends AsyncFunSuite with Matchers with Elastic4sMatc
         |          "type": "elastiknn_vector"
         |        },
         |        "$procField": {
-        |          "type": "text",
-        |          "similarity": "boolean",
-        |          "analyzer": "whitespace"
+        |          "properties": {
+        |            "JaccardLsh": {
+        |              "properties": {
+        |                "hashes": {
+        |                  "type": "text",
+        |                  "similarity": "boolean",
+        |                  "analyzer": "whitespace"
+        |                }
+        |              }
+        |            }
+        |          }
         |        },
         |        "$existingField": {
         |          "type": "long"

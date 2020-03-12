@@ -6,6 +6,7 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ProcessedVector
 import com.klibisz.elastiknn.utils.CirceUtils
@@ -299,10 +300,12 @@ object ExactIndexedJaccardQueryBuilder {
         useCache = in.readBoolean()
       )
     }
+
     def write(b: ExactIndexedJaccardQueryBuilder, out: StreamOutput): Unit = {
       out.writeString(b.modelOptions.toBase64)
       out.writeString(b.queryOptions.toBase64)
       out.writeString(b.queryVector.toBase64)
+      out.writeString(b.processedQueryVector.asJson.noSpaces)
       out.writeString(b.fieldRaw)
       out.writeBoolean(b.useCache)
     }
@@ -367,189 +370,72 @@ final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelO
   override def getWriteableName: String = ExactIndexedJaccardQueryBuilder.NAME
 }
 
+object JaccardLshQueryBuilder {
+  val NAME = s"${KnnQueryBuilder.NAME}_jaccard_lsh"
+
+  object Parser extends QueryParser[JaccardLshQueryBuilder] {
+    override def fromXContent(parser: XContentParser): JaccardLshQueryBuilder =
+      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query instead")
+  }
+
+  object Reader extends Writeable.Reader[JaccardLshQueryBuilder] {
+    override def read(in: StreamInput): JaccardLshQueryBuilder = {
+      in.readFloat()
+      in.readOptionalString()
+      new JaccardLshQueryBuilder(
+        modelOptions = JaccardLshModelOptions.parseBase64(in.readString()),
+        queryOptions = JaccardLshQueryOptions.parseBase64(in.readString()),
+        queryVector = SparseBoolVector.parseBase64(in.readString()),
+        processedQueryVector = io.circe.parser.decode[ProcessedVector.JaccardLsh](in.readString()).right.get,
+        fieldRaw = in.readString(),
+        useCache = in.readBoolean()
+      )
+    }
+
+    def write(b: JaccardLshQueryBuilder, out: StreamOutput): Unit = {
+      out.writeString(b.modelOptions.toBase64)
+      out.writeString(b.queryOptions.toBase64)
+      out.writeString(b.queryVector.toBase64)
+      out.writeString(b.processedQueryVector.asJson.noSpaces)
+      out.writeString(b.fieldRaw)
+      out.writeBoolean(b.useCache)
+    }
+  }
+
+}
+
 final class JaccardLshQueryBuilder(val modelOptions: JaccardLshModelOptions,
                                    val queryOptions: JaccardLshQueryOptions,
                                    val queryVector: SparseBoolVector,
-                                   val processedVector: ProcessedVector.JaccardLsh,
+                                   val processedQueryVector: ProcessedVector.JaccardLsh,
                                    val fieldRaw: String,
                                    val useCache: Boolean)
     extends AbstractQueryBuilder[JaccardLshQueryBuilder] {
-  override def doWriteTo(out: StreamOutput): Unit = ???
 
-  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ???
+  override def doWriteTo(out: StreamOutput): Unit = JaccardLshQueryBuilder.Reader.write(this, out)
 
-  override def doToQuery(context: QueryShardContext): Query = ???
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doEquals(other: JaccardLshQueryBuilder): Boolean = ???
+  override def doToQuery(context: QueryShardContext): Query = {
+    val mqb = new MatchQueryBuilder(s"${modelOptions.fieldProcessed}.JaccardLsh.hashes", processedQueryVector.hashes)
+    val ft: MappedFieldType = context.getMapperService.fullName(fieldRaw)
+    val fd: ElastiKnnVectorFieldMapper.FieldData = context.getForField(ft)
+    new FunctionScoreQuery(
+      mqb.toQuery(context),
+      new KnnExactScoreFunction(SIMILARITY_JACCARD, ElastiKnnVector(queryVector), fd, useCache, Some(queryOptions.numCandidates))
+    )
+  }
 
-  override def doHashCode(): Int = ???
+  override def doEquals(other: JaccardLshQueryBuilder): Boolean =
+    this.modelOptions == other.modelOptions &&
+      this.queryOptions == other.queryOptions &&
+      this.queryVector == other.queryVector &&
+      this.processedQueryVector == other.processedQueryVector &&
+      this.fieldRaw == other.fieldRaw &&
+      this.useCache == other.useCache
 
-  override def getWriteableName: String = ???
+  override def doHashCode(): Int =
+    Objects.hash(modelOptions, queryOptions, queryVector, processedQueryVector, fieldRaw, useCache.asInstanceOf[AnyRef])
+
+  override def getWriteableName: String = JaccardLshQueryBuilder.NAME
 }
-
-//object KnnProcessedQueryBuilder {
-//
-//  val NAME = s"${KnnQueryBuilder.NAME}_lsh"
-//
-//  object Parser extends QueryParser[KnnProcessedQueryBuilder] {
-//    override def fromXContent(parser: XContentParser): KnnProcessedQueryBuilder =
-//      throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query instead")
-//  }
-//
-//  object Reader extends Writeable.Reader[KnnProcessedQueryBuilder] {
-//    override def read(in: StreamInput): KnnProcessedQueryBuilder = {
-//      in.readFloat()
-//      in.readOptionalString()
-//      new KnnProcessedQueryBuilder(
-//        ProcessorOptions.parseBase64(in.readString()),
-//        ElastiKnnVector.parseBase64(in.readString()),
-//        io.circe.parser.decode[models.ProcessedVector](in.readString()).right.get,
-//        in.readInt(),
-//        in.readBoolean()
-//      )
-//    }
-//  }
-//
-//  /** Used to store [[ProcessorOptions]] needed for LSH queries. */
-//  private val processorOptionsCache: Cache[String, ProcessorOptions] =
-//    CacheBuilder.newBuilder.softValues.build[String, ProcessorOptions]()
-//
-//  /**
-//    * Attempt to load [[ProcessorOptions]] from cache. If not present, retrieve them from cluster and cache them.
-//    * Then use the [[ProcessorOptions]] to instantiate a new [[KnnProcessedQueryBuilder]].
-//    */
-//  def rewrite(context: QueryRewriteContext,
-//              lshQueryOptions: JaccardLshQueryOptions,
-//              queryVector: ElastiKnnVector,
-//              useCache: Boolean): QueryBuilder = {
-//    val cached: ProcessorOptions = processorOptionsCache.getIfPresent(lshQueryOptions.pipelineId)
-//    if (cached != null) KnnProcessedQueryBuilder(cached, queryVector, lshQueryOptions.numCandidates, useCache)
-//    else {
-//      // Put all the sketchy stuff in one place.
-//      def parseResponse(response: GetPipelineResponse): Try[ProcessorOptions] =
-//        Try {
-//          val processorOptsMap = response
-//            .pipelines()
-//            .asScala
-//            .find(_.getId == lshQueryOptions.pipelineId)
-//            .getOrElse(throw illArgEx(s"Couldn't find pipeline with id ${lshQueryOptions.pipelineId}"))
-//            .getConfigAsMap
-//            .get("processors")
-//            .asInstanceOf[util.List[util.Map[String, AnyRef]]]
-//            .asScala
-//            .find(_.containsKey(ELASTIKNN_NAME))
-//            .getOrElse(throw illArgEx(s"Couldn't find a processor with id $ELASTIKNN_NAME"))
-//            .get(ELASTIKNN_NAME)
-//            .asInstanceOf[util.Map[String, AnyRef]]
-//          JsonFormat.fromJson[ProcessorOptions](processorOptsMap.asJson(javaMapEncoder))
-//        }.recoverWith {
-//          case t: Throwable => Failure(illArgEx(s"Failed to find or parse pipeline with id ${lshQueryOptions.pipelineId}", Some(t)))
-//        }
-//
-//      val supplier = new SetOnce[KnnProcessedQueryBuilder]()
-//      context.registerAsyncAction((c: Client, l: ActionListener[_]) => {
-//        c.execute(
-//          GetPipelineAction.INSTANCE,
-//          new GetPipelineRequest(lshQueryOptions.pipelineId),
-//          new ActionListener[GetPipelineResponse] {
-//            override def onResponse(response: GetPipelineResponse): Unit = {
-//              val procOpts = parseResponse(response).get
-//              supplier.set(KnnProcessedQueryBuilder(procOpts, queryVector, lshQueryOptions.numCandidates, useCache))
-//              processorOptionsCache.put(lshQueryOptions.pipelineId, procOpts)
-//              l.asInstanceOf[ActionListener[Any]].onResponse(null)
-//            }
-//            override def onFailure(e: Exception): Unit = l.onFailure(e)
-//          }
-//        )
-//      })
-//      RewriteLater(_ => supplier.get())
-//    }
-//  }
-//
-//  /**
-//    * Instantiate a [[KnnProcessedQueryBuilder]] such that the given [[ElastiKnnVector]] is only hashed once.
-//    * Otherwise it would have to be hashed inside the [[KnnProcessedQueryBuilder]], which could happen on each node.
-//    *
-//    * @return
-//    */
-//  def apply(processorOptions: ProcessorOptions,
-//            queryVector: ElastiKnnVector,
-//            numCandidates: Int,
-//            useCache: Boolean): KnnProcessedQueryBuilder = {
-//    val processed = models
-//      .processVector(processorOptions, queryVector)
-//      .recover {
-//        case t: Throwable => throw illArgEx(s"$queryVector could not be processed", Some(t))
-//      }
-//      .get
-//    new KnnProcessedQueryBuilder(processorOptions, queryVector, processed, numCandidates, useCache)
-//  }
-//
-//}
-//
-//final class KnnProcessedQueryBuilder(val processorOptions: ProcessorOptions,
-//                                     val queryVector: ElastiKnnVector,
-//                                     val processed: ProcessedVector,
-//                                     val numCandidates: Int,
-//                                     val useCache: Boolean)
-//    extends AbstractQueryBuilder[KnnProcessedQueryBuilder] {
-//
-//  def doWriteTo(out: StreamOutput): Unit = {
-//    out.writeString(processorOptions.toBase64)
-//    out.writeString(queryVector.toBase64)
-//    out.writeString(processed.asJson.noSpaces)
-//    out.writeInt(numCandidates)
-//    out.writeBoolean(useCache)
-//  }
-//
-//  def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
-//
-//  private val fieldProc: Try[String] = processorOptions.modelOptions.fieldProc match {
-//    case Some(fp) => Success(fp)
-//    case None     => Failure(illArgEx(s"${processorOptions.modelOptions} does not specify a processed field."))
-//  }
-//
-//  private val similarity: Try[Similarity] = processorOptions.modelOptions.similarity match {
-//    case Some(sim) => Success(sim)
-//    case None      => Failure(illArgEx(s"${processorOptions.modelOptions} does not correspond to any similarity."))
-//  }
-//
-//  /**
-//    * Constructs a match query for approximate searching by hashes. Then uses that query in a [[ScriptScoreQuery]]
-//    * which executes an exact query to refine the approximate results.
-//    */
-//  def doToQuery(context: QueryShardContext): Query = {
-//
-//    val query = (processorOptions.modelOptions, processed) match {
-//
-//      // Exact indexed jaccard uses a match query to find candidates based on intersected true indices,
-//      // followed by a score function that loads the number of true indices to compute the exact similarity.
-//      case (ModelOptions.ExactIndexed(exix), exixJacc: ProcessedVector.ExactIndexedJaccard) =>
-//        val fieldType: MappedFieldType =
-//          context.getMapperService.fullName(s"${processorOptions.fieldRaw}.ExactIndexedJaccard.numTrueIndices")
-//        val fieldData: FieldData = context.getForField(fieldType)
-//        ???
-//
-//      // Jaccard LSH uses a match query to find approximate candidates based on intersected hashes,
-//      // followed by an exact score function to refine the scores for the top candidates.
-//      case (ModelOptions.JaccardLsh(jacc), proc: ProcessedVector.JaccardLsh) =>
-//        val mqb = new MatchQueryBuilder(jacc.fieldProcessed, proc.hashes)
-//        val fieldType: MappedFieldType = context.getMapperService.fullName(processorOptions.fieldRaw)
-//        val fieldData: FieldData = context.getForField(fieldType)
-//        val exactScoreFunction = new KnnExactScoreFunction(SIMILARITY_JACCARD, queryVector, fieldData, useCache, Some(numCandidates))
-//        new FunctionScoreQuery(mqb.toQuery(context), exactScoreFunction)
-//    }
-//
-//    query
-//  }
-//
-//  def doEquals(that: KnnProcessedQueryBuilder): Boolean =
-//    this.processorOptions == that.processorOptions &&
-//      this.queryVector == that.queryVector &&
-//      this.processed == that.processed &&
-//      this.useCache == that.useCache
-//
-//  def doHashCode(): Int = Objects.hash(processorOptions, queryVector, processed, useCache.asInstanceOf[AnyRef])
-//
-//  def getWriteableName: String = KnnProcessedQueryBuilder.NAME
-//}

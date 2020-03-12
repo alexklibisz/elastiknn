@@ -38,12 +38,9 @@ class KnnExactScoreFunction(val similarity: Similarity,
     // This .load call is expensive so it's important to only instantiate once.
     lazy val atomicFieldData = fieldData.load(ctx)
 
-    // val logger: Logger = LogManager.getLogger(s"${this.getClass} - ${ctx.docBase} - ${ctx.ord}")
-
     new LeafScoreFunction {
 
       override def score(docId: Int, subQueryScore: Float): Double = {
-
         val computeExact: Boolean = candidatesHeapOpt match {
           case Some((n, heap)) =>
             if (heap.size() < n) {
@@ -62,7 +59,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
             vectorCache.get((ctx, docId), () => atomicFieldData.getElastiKnnVector(docId).get)
           } else atomicFieldData.getElastiKnnVector(docId).get
           val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
-          sim
+          sim / subQueryScore
         } else 0
       }
 

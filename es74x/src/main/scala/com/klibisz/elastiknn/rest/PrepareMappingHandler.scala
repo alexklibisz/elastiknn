@@ -62,9 +62,17 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
         // The whitespace analyzer is necessary to prevent `too_many_clauses` warnings.
         s"""
            |"${jacc.fieldProcessed}": {
-           |  "type": "text",
-           |  "similarity": "boolean",
-           |  "analyzer": "whitespace"
+           |  "properties": {
+           |    "JaccardLsh": {
+           |      "properties": {
+           |        "hashes": {
+           |          "type": "text",
+           |          "similarity": "boolean",
+           |          "analyzer": "whitespace"
+           |        }
+           |      }
+           |    }
+           |  }
            |}
            |""".stripMargin
       case _ => ""

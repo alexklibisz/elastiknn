@@ -37,6 +37,7 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser),
     new QuerySpec(ExactComputedQueryBuilder.NAME, ExactComputedQueryBuilder.Reader, ExactComputedQueryBuilder.Parser),
     new QuerySpec(ExactIndexedJaccardQueryBuilder.NAME, ExactIndexedJaccardQueryBuilder.Reader, ExactIndexedJaccardQueryBuilder.Parser),
+    new QuerySpec(JaccardLshQueryBuilder.NAME, JaccardLshQueryBuilder.Reader, JaccardLshQueryBuilder.Parser),
     new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 
