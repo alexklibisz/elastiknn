@@ -39,9 +39,8 @@ class ExactQuerySuite
     useCache <- Seq(true, false)
   } yield {
 
-    val uuid: String = UUID.randomUUID.toString
-    val index: String = s"test-$uuid"
-    val pipelineId: String = s"$index-pipeline-$uuid"
+    val index: String = s"test-${UUID.randomUUID()}"
+    val pipelineId: String = s"$index-pipeline"
     val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
 
     test(s"search given: $index, $mopts, $dim, $qopts, $useCache") {
@@ -85,7 +84,9 @@ class ExactQuerySuite
   } yield
     test(s"exact indexed doesn't work for $sim, $dim, $cache") {
       val (mopts, qopts) = (ExactIndexedModelOptions(sim, fieldProc), ExactIndexedQueryOptions())
-      val harness = new Harness(sim, fieldRaw, dim, UUID.randomUUID.toString, UUID.randomUUID.toString, mopts)
+      val index = s"test-${UUID.randomUUID()}"
+      val pipelineId = s"$index-pipeline"
+      val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
       for {
         ex1 <- recoverToExceptionIf[RuntimeException](harness.testIndexed(qopts, cache)(_ => Assertions.succeed))
         _ = ex1.getMessage should include("cannot be processed with options")
@@ -93,5 +94,31 @@ class ExactQuerySuite
         _ = ex2.getMessage should include("cannot be processed with options")
       } yield Assertions.succeed
     }
+
+  test("readable error message for query with bogus indexed vector") {
+    val index = s"test-${UUID.randomUUID()}"
+    val pipelineId = s"$index-pipeline"
+    val harness =
+      new Harness(SIMILARITY_JACCARD, fieldRaw, testDataDims.head, index, pipelineId, ExactComputedModelOptions(SIMILARITY_JACCARD))
+    for {
+      _ <- harness.populateIndex
+      wrongIndex = s"$index-wrong"
+      wrongIndexRes <- recoverToExceptionIf[RuntimeException](
+        harness.eknn.knnQuery(index,
+                              pipelineId,
+                              ExactComputedQueryOptions(),
+                              IndexedQueryVector(wrongIndex, fieldRaw, harness.corpusId(0)),
+                              10)
+      )
+      wrongId = harness.corpusId(Int.MaxValue)
+      wrongIdRes <- recoverToExceptionIf[RuntimeException](
+        harness.eknn.knnQuery(index, pipelineId, ExactComputedQueryOptions(), IndexedQueryVector(index, fieldRaw, wrongId), 10)
+      )
+    } yield {
+      wrongIndexRes.getMessage should include(s"index_not_found_exception no such index [$index-wrong]")
+      wrongIdRes.getMessage should include(s"failed to find or parse vector index [$index] id [$wrongId] field [$fieldRaw]")
+    }
+
+  }
 
 }

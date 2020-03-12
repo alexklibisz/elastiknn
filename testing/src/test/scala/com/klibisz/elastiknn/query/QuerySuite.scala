@@ -45,7 +45,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     def corpusId(i: Int): String = s"$corpusVectorIdPrefix$i"
     def queryId(i: Int): String = s"$queryVectorIdPrefix$i"
 
-    private lazy val setupIndexCorpus: Future[TestData] = for {
+    lazy val populateIndex: Future[TestData] = for {
       testData <- Future.fromTry(readTestData(similarity, dimension))
       _ <- client.execute(deleteIndex(index))
       _ <- client.execute(createIndex(index))
@@ -55,14 +55,14 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
       _ <- eknn.indexVectors(index, pipelineId, fieldRaw, testData.corpus, Some(corpusIds), Immediate)
     } yield testData
 
-    lazy val numHits: Future[Int] = for (testData <- setupIndexCorpus)
+    lazy val numHits: Future[Int] = for (testData <- populateIndex)
       yield testData.queries.head.similarities.length
 
     /** Runs a test for queries which just take an [[ElastiKnnVector]]. Passes the query and response to an assertion. */
     def testGiven[O: QueryOptionsLike](queryOptions: O, useCache: Boolean)(
         fun: Seq[(Query, SearchResponse)] => Assertion): Future[Assertion] =
       for {
-        testData <- setupIndexCorpus
+        testData <- populateIndex
         numHits <- this.numHits
         queriesResponses <- Future.sequence(testData.queries.map { q =>
           eknn.knnQuery(index, pipelineId, queryOptions, q.vector, numHits, useCache).map(r => q -> r)
@@ -73,7 +73,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
     def testIndexed[O: QueryOptionsLike](queryOptions: O, useCache: Boolean)(
         fun: Seq[(Query, String, SearchResponse)] => Assertion): Future[Assertion] =
       for {
-        testData <- setupIndexCorpus
+        testData <- populateIndex
         numHits <- numHits.map(_ + testData.queries.length + 1)
         queryIds = testData.queries.indices.map(queryId)
         _ <- eknn.indexVectors(index, pipelineId, popts.fieldRaw, testData.queries, ids = Some(queryIds), Immediate)

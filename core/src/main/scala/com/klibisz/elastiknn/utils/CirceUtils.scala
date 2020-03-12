@@ -7,6 +7,7 @@ import io.circe.syntax._
 import io.circe.{Encoder, Json}
 
 import scala.collection.JavaConverters._
+import scala.util.{Success, Try}
 
 trait CirceUtils {
 
@@ -36,6 +37,15 @@ trait CirceUtils {
   implicit def scalaMapEncoder: Encoder[Map[String, AnyRef]] = {
     case m: Map[String, AnyRef] => m.asInstanceOf[Map[String, Object]].asJson
   }
+
+  final def extractNested(keys: Seq[String], s: String): Try[Json] =
+    for {
+      outer <- io.circe.parser.parse(s).toTry
+      inner <- keys.foldLeft(Try(outer)) {
+        case (Success(j), k) => Try(j.findAllByKey(k).head)
+        case (f, _)          => f
+      }
+    } yield inner
 
 }
 

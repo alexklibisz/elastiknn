@@ -8,6 +8,7 @@ import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ProcessedVector
+import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, models, _}
 import io.circe.syntax._
@@ -21,6 +22,7 @@ import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
+import org.elasticsearch.index.IndexNotFoundException
 import org.elasticsearch.index.fielddata.plain.SortedNumericDVIndexFieldData
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
@@ -66,7 +68,8 @@ object KnnQueryBuilder {
   * @param processorOptions optional processor options, fetched using the query pipelineId in the rewrite phase.
   */
 final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions: Option[ProcessorOptions] = None)
-    extends AbstractQueryBuilder[KnnQueryBuilder] {
+    extends AbstractQueryBuilder[KnnQueryBuilder]
+    with CirceUtils {
 
   override def doWriteTo(out: StreamOutput): Unit = out.writeString(query.toBase64)
 
@@ -132,17 +135,16 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
         GetAction.INSTANCE,
         new GetRequest(iqv.index, iqv.id),
         new ActionListener[GetResponse] {
-          def onResponse(response: GetResponse): Unit = {
-            val pth = s"${iqv.field}."
-            val map = pth.split('.').foldLeft(response.getSourceAsMap) {
-              case (m, k) =>
-                m.get(k).asInstanceOf[util.Map[String, AnyRef]]
-            }
-            val json = map.asJson(javaMapEncoder)
-            val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
-            supplier.set(new KnnQueryBuilder(query.withGiven(ekv), processorOptions))
-            l.asInstanceOf[ActionListener[Any]].onResponse(null)
-          }
+          def onResponse(response: GetResponse): Unit =
+            (for (json <- extractNested(s"${iqv.field}.".split('.'), response.getSourceAsString)) yield {
+              val ekv = JsonFormat.fromJson[ElastiKnnVector](json)
+              supplier.set(new KnnQueryBuilder(query.withGiven(ekv), processorOptions))
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
+            }).recover {
+              case t =>
+                val ex = new RuntimeException(s"failed to find or parse vector index [${iqv.index}] id [${iqv.id}] field [${iqv.field}]", t)
+                l.asInstanceOf[ActionListener[Any]].onFailure(ex)
+            }.get
           def onFailure(e: Exception): Unit = l.onFailure(e)
         }
       )
