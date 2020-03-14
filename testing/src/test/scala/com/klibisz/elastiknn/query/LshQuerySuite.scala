@@ -2,8 +2,7 @@ package com.klibisz.elastiknn.query
 
 import java.util.UUID
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery.JaccardLshQueryOptions
-import com.klibisz.elastiknn.ProcessorOptions.{JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn._
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}

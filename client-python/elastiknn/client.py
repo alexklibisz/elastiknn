@@ -72,23 +72,23 @@ class ElastiKnnClient(object):
 
     def knn_query(self, index: str,
                   pipeline_id: str,
-                  options: Union[KNearestNeighborsQuery.ExactComputedQueryOptions,
-                                 KNearestNeighborsQuery.JaccardIndexedQueryOptions,
-                                 KNearestNeighborsQuery.JaccardLshQueryOptions],
-                  vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector],
+                  options: Union[ExactComputedQueryOptions,
+                                 JaccardIndexedQueryOptions,
+                                 JaccardLshQueryOptions],
+                  vector: Union[ElastiKnnVector, IndexedQueryVector],
                   n_neighbors: int = 10,
                   source: List[str] = None,
                   use_cache: bool = False):
         excmp, jaccix, jacclsh, given, indexed = None, None, None, None, None
-        if isinstance(options, KNearestNeighborsQuery.ExactComputedQueryOptions):
+        if isinstance(options, ExactComputedQueryOptions):
             excmp = options
-        elif isinstance(options, KNearestNeighborsQuery.JaccardIndexedQueryOptions):
+        elif isinstance(options, JaccardIndexedQueryOptions):
             jaccix = options
-        elif isinstance(options, KNearestNeighborsQuery.JaccardLshQueryOptions):
+        elif isinstance(options, JaccardLshQueryOptions):
             jacclsh = options
         if isinstance(vector, ElastiKnnVector):
             given = vector
-        elif isinstance(vector, KNearestNeighborsQuery.IndexedQueryVector):
+        elif isinstance(vector, IndexedQueryVector):
             indexed = vector
         query = KNearestNeighborsQuery(pipeline_id=pipeline_id, exact_computed=excmp, jaccard_lsh=jacclsh,
                                        jaccard_indexed=jaccix, given=given, indexed=indexed, use_cache=use_cache)

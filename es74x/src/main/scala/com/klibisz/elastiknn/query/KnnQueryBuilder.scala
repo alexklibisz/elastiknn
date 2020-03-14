@@ -5,7 +5,7 @@ import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, JaccardIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ProcessedVector
@@ -127,7 +127,7 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
     case QueryVector.Empty => throw new IllegalArgumentException(s"Query vector cannot be empty")
   }
 
-  private def rewriteFetchQueryVector(context: QueryRewriteContext, iqv: KNearestNeighborsQuery.IndexedQueryVector): QueryBuilder = {
+  private def rewriteFetchQueryVector(context: QueryRewriteContext, iqv: IndexedQueryVector): QueryBuilder = {
     // TODO: can you read the binary version of the document instead of the source?
     val supplier = new SetOnce[KnnQueryBuilder]()
     context.registerAsyncAction((c: Client, l: ActionListener[_]) => {

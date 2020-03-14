@@ -42,25 +42,25 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
     def _proc_opts(self, dim: int) -> ProcessorOptions:
         if self._algorithm == 'exact':
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
-                                    exact_computed=ProcessorOptions.ExactComputedModelOptions(similarity=self._sim))
+                                    exact_computed=ExactComputedModelOptions(similarity=self._sim))
         elif (self._algorithm, self._sim) == ('indexed', SIMILARITY_JACCARD):
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
-                                    jaccard_indexed=ProcessorOptions.JaccardIndexedModelOptions(
+                                    jaccard_indexed=JaccardIndexedModelOptions(
                                         field_processed=self._field_proc))
         elif (self._algorithm, self._sim) == ('lsh', SIMILARITY_JACCARD):
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
-                                    jaccard_lsh=ProcessorOptions.JaccardLshModelOptions(
+                                    jaccard_lsh=JaccardLshModelOptions(
                                         field_processed=self._field_proc, **self._algorithm_params))
         else:
             raise RuntimeError(f"Couldn't determine valid processor options")
 
     def _query_opts(self, n_neighbors: int):
         if self._algorithm == 'exact':
-            return KNearestNeighborsQuery.ExactComputedQueryOptions()
+            return ExactComputedQueryOptions()
         elif (self._algorithm, self._sim) == ('indexed', SIMILARITY_JACCARD):
-            return KNearestNeighborsQuery.JaccardIndexedQueryOptions()
+            return JaccardIndexedQueryOptions()
         elif (self._algorithm, self._sim) == ('lsh', SIMILARITY_JACCARD):
-            return KNearestNeighborsQuery.JaccardLshQueryOptions(num_candidates=n_neighbors)
+            return JaccardLshQueryOptions(num_candidates=n_neighbors)
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 

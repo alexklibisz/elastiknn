@@ -27,30 +27,46 @@ message SparseBoolVector {
 
 // Generic representation of a vector.
 message ElastiKnnVector {
-    // TODO: switch to sealed oneof. It simplifies the scala code a lot and doesn't really affect the other langs.
     oneof vector {
         FloatVector float_vector = 1;
         SparseBoolVector sparse_bool_vector = 2;
     }
 }
 
+message ExactComputedModelOptions {
+    // Specify the similarity so vectors can be checked for compatibility when indexing.
+    Similarity similarity = 1;
+}
+
+message ExactComputedQueryOptions {}
+
+message JaccardIndexedModelOptions {
+    string field_processed = 1;
+}
+
+message JaccardIndexedQueryOptions {}
+
+message JaccardLshModelOptions {
+    int64 seed = 1;
+    string field_processed = 2;
+    uint32 num_bands = 3;
+    uint32 num_rows = 4;
+}
+
+message JaccardLshQueryOptions {
+    // Number of approximate results which will have their exact scores computed.
+    // This should be larger than the desired number of hits, but much smaller than the total size of the corpus.
+    uint32 num_candidates = 1;
+}
+
+// Find the neighbors for a vector which has already been indexed.
+message IndexedQueryVector {
+    string index = 1;
+    string field = 2;
+    string id = 3;
+}
+
 message ProcessorOptions {
-
-    message ExactComputedModelOptions {
-        // Specify the similarity so vectors can be checked for compatibility when indexing.
-        Similarity similarity = 1;
-    }
-
-    message JaccardIndexedModelOptions {
-        string field_processed = 2;
-    }
-
-    message JaccardLshModelOptions {
-        int64 seed = 1;
-        string field_processed = 2;
-        uint32 num_bands = 3;
-        uint32 num_rows = 4;
-    }
 
     // Path to the field where the raw vector is stored.
     string field_raw = 1;
@@ -68,25 +84,6 @@ message ProcessorOptions {
 
 // Body and options for the elastiknn_knn query.
 message KNearestNeighborsQuery {
-
-    message ExactComputedQueryOptions {
-    }
-
-    message JaccardIndexedQueryOptions {
-    }
-
-    message JaccardLshQueryOptions {
-        // Number of approximate results which will have their exact scores computed.
-        // This should be larger than the desired number of hits, but much smaller than the total size of the corpus.
-        uint32 num_candidates = 1;
-    }
-
-    // Find the neighbors for a vector which has already been indexed.
-    message IndexedQueryVector {
-        string index = 1;
-        string field = 2;
-        string id = 3;
-    }
 
     // Pipeline used to preprocess the vectors being queried.
     string pipeline_id = 1;

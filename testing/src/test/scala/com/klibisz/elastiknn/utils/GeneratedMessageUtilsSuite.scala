@@ -1,8 +1,7 @@
 package com.klibisz.elastiknn.utils
 
 import com.google.protobuf.ByteString
-import com.klibisz.elastiknn.KNearestNeighborsQuery.{ExactComputedQueryOptions, QueryOptions}
-import com.klibisz.elastiknn.ProcessorOptions.JaccardLshModelOptions
+import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.JaccardLsh
 import com.klibisz.elastiknn._
 import org.scalatest.{FunSuite, Matchers}

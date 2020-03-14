@@ -1,7 +1,7 @@
 package com.klibisz
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, JaccardIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
 
 package object elastiknn {
 
