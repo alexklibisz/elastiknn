@@ -41,8 +41,7 @@ message ProcessorOptions {
         Similarity similarity = 1;
     }
 
-    message ExactIndexedModelOptions {
-        Similarity similarity = 1;
+    message JaccardIndexedModelOptions {
         string field_processed = 2;
     }
 
@@ -62,8 +61,8 @@ message ProcessorOptions {
     // The model options which will determine how the vector gets preprocessed and stored.
     oneof model_options {
         ExactComputedModelOptions exact_computed = 3;
-        JaccardLshModelOptions jaccard_lsh = 4;
-        ExactIndexedModelOptions exact_indexed = 5;
+        JaccardIndexedModelOptions jaccard_indexed = 4;
+        JaccardLshModelOptions jaccard_lsh = 5;
     }
 }
 
@@ -73,7 +72,7 @@ message KNearestNeighborsQuery {
     message ExactComputedQueryOptions {
     }
 
-    message ExactIndexedQueryOptions {
+    message JaccardIndexedQueryOptions {
     }
 
     message JaccardLshQueryOptions {
@@ -95,7 +94,7 @@ message KNearestNeighborsQuery {
     // Options defining how the exact or LSH query should be executed.
     oneof query_options {
         ExactComputedQueryOptions exact_computed = 2;
-        ExactIndexedQueryOptions exact_indexed = 3;
+        JaccardIndexedQueryOptions jaccard_indexed = 3;
         JaccardLshQueryOptions jaccard_lsh = 4;
     }
 

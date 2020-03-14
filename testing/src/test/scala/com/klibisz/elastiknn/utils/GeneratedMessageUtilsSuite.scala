@@ -29,7 +29,7 @@ class GeneratedMessageUtilsSuite extends FunSuite with Matchers with Utils {
       "fieldRaw" -> "field_raw",
       "dimension" -> 222,
       "exactComputed" -> null,
-      "exactIndexed" -> null,
+      "jaccardIndexed" -> null,
       "jaccardLsh" -> Map(
         "seed" -> 99L,
         "fieldProcessed" -> "field_proc",

@@ -11,10 +11,10 @@ object ProcessedVector {
     implicit def dec: Decoder[ExactComputed] = deriveDecoder
   }
 
-  final case class ExactIndexedJaccard(numTrueIndices: Int, trueIndices: String) extends ProcessedVector
-  object ExactIndexedJaccard {
-    implicit def enc: Encoder[ExactIndexedJaccard] = deriveEncoder
-    implicit def dec: Decoder[ExactIndexedJaccard] = deriveDecoder
+  final case class JaccardIndexed(numTrueIndices: Int, trueIndices: String) extends ProcessedVector
+  object JaccardIndexed {
+    implicit def enc: Encoder[JaccardIndexed] = deriveEncoder
+    implicit def dec: Decoder[JaccardIndexed] = deriveDecoder
   }
 
   final case class JaccardLsh(hashes: String) extends ProcessedVector

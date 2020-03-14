@@ -5,7 +5,7 @@ import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, JaccardIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
 import com.klibisz.elastiknn.models.ProcessedVector
@@ -106,12 +106,12 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
               new ExactComputedQueryBuilder(mopts, qopts, ensureSorted(ekv), proc, popts.fieldRaw, query.useCache)
             // Exact indexed for Jaccard similarity.
             case (
-                ModelOptions.ExactIndexed(mopts),
-                QueryOptions.ExactIndexed(qopts),
+                ModelOptions.JaccardIndexed(mopts),
+                QueryOptions.JaccardIndexed(qopts),
                 ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv)),
-                Success(proc: ProcessedVector.ExactIndexedJaccard)
+                Success(proc: ProcessedVector.JaccardIndexed)
                 ) =>
-              new ExactIndexedJaccardQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
+              new JaccardIndexedQueryBuilder(mopts, qopts, sbv.sorted(), proc, popts.fieldRaw, query.useCache)
             // LSH for Jaccard similarity.
             case (
                 ModelOptions.JaccardLsh(mopts),
@@ -279,29 +279,29 @@ final class ExactComputedQueryBuilder(val modelOptions: ExactComputedModelOption
   override def getWriteableName: String = ExactComputedQueryBuilder.NAME
 }
 
-object ExactIndexedJaccardQueryBuilder {
+object JaccardIndexedQueryBuilder {
   val NAME = s"${KnnQueryBuilder.NAME}_indexed_jaccard"
 
-  object Parser extends QueryParser[ExactIndexedJaccardQueryBuilder] {
-    override def fromXContent(parser: XContentParser): ExactIndexedJaccardQueryBuilder =
+  object Parser extends QueryParser[JaccardIndexedQueryBuilder] {
+    override def fromXContent(parser: XContentParser): JaccardIndexedQueryBuilder =
       throw new IllegalStateException(s"Use the ${KnnQueryBuilder.NAME} query instead")
   }
 
-  object Reader extends Writeable.Reader[ExactIndexedJaccardQueryBuilder] {
-    override def read(in: StreamInput): ExactIndexedJaccardQueryBuilder = {
+  object Reader extends Writeable.Reader[JaccardIndexedQueryBuilder] {
+    override def read(in: StreamInput): JaccardIndexedQueryBuilder = {
       in.readFloat()
       in.readOptionalString()
-      new ExactIndexedJaccardQueryBuilder(
-        modelOptions = ExactIndexedModelOptions.parseBase64(in.readString()),
-        queryOptions = ExactIndexedQueryOptions.parseBase64(in.readString()),
+      new JaccardIndexedQueryBuilder(
+        modelOptions = JaccardIndexedModelOptions.parseBase64(in.readString()),
+        queryOptions = JaccardIndexedQueryOptions.parseBase64(in.readString()),
         queryVector = SparseBoolVector.parseBase64(in.readString()),
-        processedQueryVector = io.circe.parser.decode[ProcessedVector.ExactIndexedJaccard](in.readString()).right.get,
+        processedQueryVector = io.circe.parser.decode[ProcessedVector.JaccardIndexed](in.readString()).right.get,
         fieldRaw = in.readString(),
         useCache = in.readBoolean()
       )
     }
 
-    def write(b: ExactIndexedJaccardQueryBuilder, out: StreamOutput): Unit = {
+    def write(b: JaccardIndexedQueryBuilder, out: StreamOutput): Unit = {
       out.writeString(b.modelOptions.toBase64)
       out.writeString(b.queryOptions.toBase64)
       out.writeString(b.queryVector.toBase64)
@@ -313,22 +313,22 @@ object ExactIndexedJaccardQueryBuilder {
 
 }
 
-final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelOptions,
-                                            val queryOptions: ExactIndexedQueryOptions,
-                                            val queryVector: SparseBoolVector,
-                                            val processedQueryVector: ProcessedVector.ExactIndexedJaccard,
-                                            val fieldRaw: String,
-                                            val useCache: Boolean)
-    extends AbstractQueryBuilder[ExactIndexedJaccardQueryBuilder] {
+final class JaccardIndexedQueryBuilder(val modelOptions: JaccardIndexedModelOptions,
+                                       val queryOptions: JaccardIndexedQueryOptions,
+                                       val queryVector: SparseBoolVector,
+                                       val processedQueryVector: ProcessedVector.JaccardIndexed,
+                                       val fieldRaw: String,
+                                       val useCache: Boolean)
+    extends AbstractQueryBuilder[JaccardIndexedQueryBuilder] {
 
-  override def doWriteTo(out: StreamOutput): Unit = ExactIndexedJaccardQueryBuilder.Reader.write(this, out)
+  override def doWriteTo(out: StreamOutput): Unit = JaccardIndexedQueryBuilder.Reader.write(this, out)
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
   override def doToQuery(context: QueryShardContext): Query = {
     val mq: MatchQueryBuilder =
-      new MatchQueryBuilder(s"${modelOptions.fieldProcessed}.ExactIndexedJaccard.trueIndices", processedQueryVector.trueIndices)
-    val ft: MappedFieldType = context.getMapperService.fullName(s"${modelOptions.fieldProcessed}.ExactIndexedJaccard.numTrueIndices")
+      new MatchQueryBuilder(s"${modelOptions.fieldProcessed}.JaccardIndexed.trueIndices", processedQueryVector.trueIndices)
+    val ft: MappedFieldType = context.getMapperService.fullName(s"${modelOptions.fieldProcessed}.JaccardIndexed.numTrueIndices")
     val fd: SortedNumericDVIndexFieldData = context.getForField(ft)
     val outerHashCode = this.hashCode()
     new FunctionScoreQuery(
@@ -356,7 +356,7 @@ final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelO
     )
   }
 
-  override def doEquals(other: ExactIndexedJaccardQueryBuilder): Boolean =
+  override def doEquals(other: JaccardIndexedQueryBuilder): Boolean =
     this.modelOptions == other.modelOptions &&
       this.queryOptions == other.queryOptions &&
       this.queryVector == other.queryVector &&
@@ -367,7 +367,7 @@ final class ExactIndexedJaccardQueryBuilder(val modelOptions: ExactIndexedModelO
   override def doHashCode(): Int =
     Objects.hash(modelOptions, queryOptions, queryVector, processedQueryVector, fieldRaw, useCache.asInstanceOf[AnyRef])
 
-  override def getWriteableName: String = ExactIndexedJaccardQueryBuilder.NAME
+  override def getWriteableName: String = JaccardIndexedQueryBuilder.NAME
 }
 
 object JaccardLshQueryBuilder {

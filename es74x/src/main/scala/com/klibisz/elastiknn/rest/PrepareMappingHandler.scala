@@ -38,11 +38,11 @@ final class PrepareMappingHandler extends BaseRestHandler with GeneratedMessageU
 
     val procProp = request.processorOptions.modelOptions match {
 
-      case ModelOptions.ExactIndexed(exix) if exix.similarity == SIMILARITY_JACCARD =>
+      case ModelOptions.JaccardIndexed(jaccix) =>
         s"""
-           |"${exix.fieldProcessed}": {
+           |"${jaccix.fieldProcessed}": {
            |  "properties": {
-           |    "ExactIndexedJaccard": {
+           |    "JaccardIndexed": {
            |      "properties": {
            |        "numTrueIndices": {
            |          "type": "integer"

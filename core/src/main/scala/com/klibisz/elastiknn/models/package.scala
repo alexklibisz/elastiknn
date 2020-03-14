@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{ExactComputed, ExactIndexed, JaccardLsh}
+import com.klibisz.elastiknn.ProcessorOptions.ModelOptions.{ExactComputed, JaccardIndexed, JaccardLsh}
 import com.klibisz.elastiknn.Similarity._
 import com.klibisz.elastiknn.ElastiKnnVector.Vector
 
@@ -35,9 +35,9 @@ package object models {
         }
       }.map(_ => ProcessedVector.ExactComputed())
 
-      // Exact indexed for Jaccard converts the true indices into a string.
-      case (ExactIndexed(exix), ElastiKnnVector(Vector.SparseBoolVector(sbv))) if exix.similarity == SIMILARITY_JACCARD =>
-        Try(ProcessedVector.ExactIndexedJaccard(sbv.trueIndices.length, sbv.trueIndices.mkString(" ")))
+      // Jaccard indexed converts the true indices into a string.
+      case (JaccardIndexed(opts), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
+        Try(ProcessedVector.JaccardIndexed(sbv.trueIndices.length, sbv.trueIndices.mkString(" ")))
 
       // Foobar
       case (JaccardLsh(opts), ElastiKnnVector(Vector.SparseBoolVector(sbv))) =>
@@ -46,6 +46,7 @@ package object models {
           val hashes = model.hash(sbv.trueIndices).mkString(" ")
           ProcessedVector.JaccardLsh(hashes)
         }
+
       // Foobar
       case _ => Failure(new IllegalArgumentException(s"Vector $ekv cannot be processed with options $popts"))
     }

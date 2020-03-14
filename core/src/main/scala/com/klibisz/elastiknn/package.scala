@@ -1,7 +1,7 @@
 package com.klibisz
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, ExactIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
+import com.klibisz.elastiknn.ProcessorOptions.{ExactComputedModelOptions, JaccardIndexedModelOptions, JaccardLshModelOptions, ModelOptions}
 
 package object elastiknn {
 
@@ -52,7 +52,7 @@ package object elastiknn {
   object ModelOptionsLike {
     implicit val id: ModelOptionsLike[ModelOptions] = identity
     implicit val excmp: ModelOptionsLike[ExactComputedModelOptions] = ModelOptions.ExactComputed(_)
-    implicit val exix: ModelOptionsLike[ExactIndexedModelOptions] = ModelOptions.ExactIndexed(_)
+    implicit val jaccix: ModelOptionsLike[JaccardIndexedModelOptions] = ModelOptions.JaccardIndexed(_)
     implicit val jacclsh: ModelOptionsLike[JaccardLshModelOptions] = ModelOptions.JaccardLsh(_)
   }
 
@@ -62,9 +62,9 @@ package object elastiknn {
 
   object QueryOptionsLike {
     implicit val id: QueryOptionsLike[QueryOptions] = identity
-    implicit val excmp: QueryOptionsLike[ExactComputedQueryOptions] = (a: ExactComputedQueryOptions) => QueryOptions.ExactComputed(a)
-    implicit val exix: QueryOptionsLike[ExactIndexedQueryOptions] = (a: ExactIndexedQueryOptions) => QueryOptions.ExactIndexed(a)
-    implicit val jacclsh: QueryOptionsLike[JaccardLshQueryOptions] = (a: JaccardLshQueryOptions) => QueryOptions.JaccardLsh(a)
+    implicit val excmp: QueryOptionsLike[ExactComputedQueryOptions] = QueryOptions.ExactComputed(_)
+    implicit val jaccix: QueryOptionsLike[JaccardIndexedQueryOptions] = QueryOptions.JaccardIndexed(_)
+    implicit val jacclsh: QueryOptionsLike[JaccardLshQueryOptions] = QueryOptions.JaccardLsh(_)
   }
 
 }

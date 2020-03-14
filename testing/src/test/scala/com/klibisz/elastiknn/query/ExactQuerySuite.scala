@@ -27,7 +27,8 @@ class ExactQuerySuite
     Seq((ModelOptions.ExactComputed(ExactComputedModelOptions(sim)), QueryOptions.ExactComputed(ExactComputedQueryOptions()))) ++ {
       sim match {
         case SIMILARITY_JACCARD =>
-          Seq((ModelOptions.ExactIndexed(ExactIndexedModelOptions(sim, fieldProc)), QueryOptions.ExactIndexed(ExactIndexedQueryOptions())))
+          Seq(
+            (ModelOptions.JaccardIndexed(JaccardIndexedModelOptions(fieldProc)), QueryOptions.JaccardIndexed(JaccardIndexedQueryOptions())))
         case _ => Seq.empty
       }
     }
@@ -76,24 +77,6 @@ class ExactQuerySuite
       }
     }
   }
-
-  for {
-    sim <- Similarity.values.filter(_ != SIMILARITY_JACCARD)
-    dim <- testDataDims
-    cache <- Seq(true, false)
-  } yield
-    test(s"exact indexed doesn't work for $sim, $dim, $cache") {
-      val (mopts, qopts) = (ExactIndexedModelOptions(sim, fieldProc), ExactIndexedQueryOptions())
-      val index = s"test-${UUID.randomUUID()}"
-      val pipelineId = s"$index-pipeline"
-      val harness = new Harness(sim, fieldRaw, dim, index, pipelineId, mopts)
-      for {
-        ex1 <- recoverToExceptionIf[RuntimeException](harness.testIndexed(qopts, cache)(_ => Assertions.succeed))
-        _ = ex1.getMessage should include("cannot be processed with options")
-        ex2 <- recoverToExceptionIf[RuntimeException](harness.testGiven(qopts, cache)(_ => Assertions.succeed))
-        _ = ex2.getMessage should include("cannot be processed with options")
-      } yield Assertions.succeed
-    }
 
   test("readable error message for query with bogus indexed vector") {
     val index = s"test-${UUID.randomUUID()}"
