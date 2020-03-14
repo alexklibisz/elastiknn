@@ -71,21 +71,27 @@ class ElastiKnnClient(object):
         return res
 
     def knn_query(self, index: str,
-                  options: Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions],
+                  pipeline_id: str,
+                  options: Union[KNearestNeighborsQuery.ExactComputedQueryOptions,
+                                 KNearestNeighborsQuery.JaccardIndexedQueryOptions,
+                                 KNearestNeighborsQuery.JaccardLshQueryOptions],
                   vector: Union[ElastiKnnVector, KNearestNeighborsQuery.IndexedQueryVector],
                   n_neighbors: int = 10,
                   source: List[str] = None,
                   use_cache: bool = False):
-        exact, lsh, given, indexed = None, None, None, None
-        if isinstance(options, KNearestNeighborsQuery.ExactQueryOptions):
-            exact = options
-        elif isinstance(options, KNearestNeighborsQuery.LshQueryOptions):
-            lsh = options
+        excmp, jaccix, jacclsh, given, indexed = None, None, None, None, None
+        if isinstance(options, KNearestNeighborsQuery.ExactComputedQueryOptions):
+            excmp = options
+        elif isinstance(options, KNearestNeighborsQuery.JaccardIndexedQueryOptions):
+            jaccix = options
+        elif isinstance(options, KNearestNeighborsQuery.JaccardLshQueryOptions):
+            jacclsh = options
         if isinstance(vector, ElastiKnnVector):
             given = vector
         elif isinstance(vector, KNearestNeighborsQuery.IndexedQueryVector):
             indexed = vector
-        query = KNearestNeighborsQuery(exact=exact, lsh=lsh, given=given, indexed=indexed, use_cache=use_cache)
+        query = KNearestNeighborsQuery(pipeline_id=pipeline_id, exact_computed=excmp, jaccard_lsh=jacclsh,
+                                       jaccard_indexed=jaccix, given=given, indexed=indexed, use_cache=use_cache)
         body = dict(query=dict(elastiknn_knn=MessageToDict(query)))
         if source:
             body["_source"] = source

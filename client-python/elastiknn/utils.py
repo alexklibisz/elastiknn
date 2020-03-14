@@ -15,6 +15,7 @@ valid_metrics_algorithms = [
     ('angular', 'exact'),
     ('hamming', 'exact'),
     ('jaccard', 'exact'),
+    ('jaccard', 'indexed'),
     ('jaccard', 'lsh')
 ]
 

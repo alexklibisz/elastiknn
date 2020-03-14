@@ -11,14 +11,13 @@ from sklearn.neighbors._base import NeighborsBase, KNeighborsMixin
 
 from . import ELASTIKNN_NAME
 from .client import ElastiKnnClient
-from .elastiknn_pb2 import ProcessorOptions, ExactModelOptions, Similarity, JaccardLshOptions, KNearestNeighborsQuery, \
-    SIMILARITY_JACCARD, ElastiKnnVector, SparseBoolVector, FloatVector
+from .elastiknn_pb2 import *
 from .utils import valid_metrics_algorithms, canonical_vectors_to_elastiknn, elastiknn_vector_length
 
 
 class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
 
-    def __init__(self, n_neighbors: int = None, algorithm: str = 'lsh', metric: str = 'jaccard',
+    def __init__(self, n_neighbors: int = None, algorithm: str = 'exact', metric: str = 'jaccard',
                  hosts: List[str] = None, pipeline_id: str = None, index: str = None,
                  field_raw: str = "vec_raw", algorithm_params: dict = None, n_jobs: int = 4):
         if hosts is None:
@@ -42,18 +41,26 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
 
     def _proc_opts(self, dim: int) -> ProcessorOptions:
         if self._algorithm == 'exact':
-            return ProcessorOptions(field_raw=self._field_raw, dimension=dim, exact=ExactModelOptions(similarity=self._sim))
-        elif self._sim == SIMILARITY_JACCARD:
             return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
-                                    jaccard_lsh=JaccardLshOptions(field_processed=self._field_proc, **self._algorithm_params))
+                                    exact_computed=ProcessorOptions.ExactComputedModelOptions(similarity=self._sim))
+        elif (self._algorithm, self._sim) == ('indexed', SIMILARITY_JACCARD):
+            return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
+                                    jaccard_indexed=ProcessorOptions.JaccardIndexedModelOptions(
+                                        field_processed=self._field_proc))
+        elif (self._algorithm, self._sim) == ('lsh', SIMILARITY_JACCARD):
+            return ProcessorOptions(field_raw=self._field_raw, dimension=dim,
+                                    jaccard_lsh=ProcessorOptions.JaccardLshModelOptions(
+                                        field_processed=self._field_proc, **self._algorithm_params))
         else:
             raise RuntimeError(f"Couldn't determine valid processor options")
 
-    def _query_opts(self, n_neighbors: int) -> Union[KNearestNeighborsQuery.ExactQueryOptions, KNearestNeighborsQuery.LshQueryOptions]:
+    def _query_opts(self, n_neighbors: int):
         if self._algorithm == 'exact':
-            return KNearestNeighborsQuery.ExactQueryOptions(field_raw=self._field_raw, similarity=self._sim)
-        elif self._sim == SIMILARITY_JACCARD:
-            return KNearestNeighborsQuery.LshQueryOptions(num_candidates=n_neighbors, pipeline_id=self._pipeline_id)
+            return KNearestNeighborsQuery.ExactComputedQueryOptions()
+        elif (self._algorithm, self._sim) == ('indexed', SIMILARITY_JACCARD):
+            return KNearestNeighborsQuery.JaccardIndexedQueryOptions()
+        elif (self._algorithm, self._sim) == ('lsh', SIMILARITY_JACCARD):
+            return KNearestNeighborsQuery.JaccardLshQueryOptions(num_candidates=n_neighbors)
         else:
             raise RuntimeError(f"Couldn't determine valid query options")
 
@@ -106,7 +113,8 @@ class ElastiKnnModel(NeighborsBase, KNeighborsMixin):
         qopts = self._query_opts(n_neighbors)
         futures = []
         for x in X:
-            futures.append(self._tpex.submit(self._eknn.knn_query, self._index, qopts, x, n_neighbors, [self._dataset_index_key], use_cache))
+            futures.append(self._tpex.submit(self._eknn.knn_query, self._index, self._pipeline_id, qopts, x,
+                                             n_neighbors, [self._dataset_index_key], use_cache))
         indices = np.ones((len(X), n_neighbors), dtype=np.uint32) * -1
         dists = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
         wait(futures)   # To ensure same order.
