@@ -5,56 +5,66 @@ import java.io.File
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
-import org.apache.lucene.queryparser.xml.builders.BooleanQueryBuilder
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, IndexSearcher, TermQuery}
 import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 
 object LuceneBooleanHashes {
 
-  // Goal: get the term query to return docs with matching hashes.
+  // Goal: the query score should be the number of intersected temrs.
+  // After this runs, you can look cat the .pst file in the tmpDir to see the inverted index.
 
   def main(args: Array[String]): Unit = {
 
     val tmpDir = new File(s"/tmp/lucene-${System.currentTimeMillis()}")
     println(tmpDir)
     val ixDir = new MMapDirectory(tmpDir.toPath)
-    val ixOpts = IndexOptions.DOCS
 
-    val iwc = new IndexWriterConfig(new WhitespaceAnalyzer)
-    val iw = new IndexWriter(ixDir, iwc)
+    val ixWriterCfg = new IndexWriterConfig(new WhitespaceAnalyzer).setCodec(new SimpleTextCodec)
+    val ixWriter = new IndexWriter(ixDir, ixWriterCfg)
 
     val idFieldType = new FieldType()
     idFieldType.setStored(true)
-    idFieldType.setIndexOptions(ixOpts)
+    idFieldType.setIndexOptions(IndexOptions.DOCS)
     idFieldType.setTokenized(false)
 
     val hashesFieldType = new FieldType()
-    hashesFieldType.setStored(false) // Don't need to store the hashes.
-    hashesFieldType.setIndexOptions(ixOpts)
-    hashesFieldType.setTokenized(false)
+    // Only store the document ids, not frequencies, offsets, etc.
+    hashesFieldType.setIndexOptions(IndexOptions.DOCS)
+
+    // Not sure if all of these are necessary.
     hashesFieldType.setOmitNorms(true)
+    hashesFieldType.setTokenized(false)
+    hashesFieldType.setStored(false) // Don't need to store the hashes.
+    hashesFieldType.setStoreTermVectors(false)
+    hashesFieldType.setStoreTermVectorPayloads(false)
+    hashesFieldType.setStoreTermVectorPositions(false)
 
     val doc1 = new Document()
     doc1.add(new Field("id", "1", idFieldType))
     Seq("123", "456", "789").foreach(t => doc1.add(new Field("hashes", t, hashesFieldType)))
-    iw.addDocument(doc1)
-    iw.commit()
+    ixWriter.addDocument(doc1)
+    ixWriter.commit()
 
     val doc2 = new Document()
     doc2.add(new Field("id", "2", idFieldType))
     Seq("111", "222", "789").foreach(t => doc2.add(new Field("hashes", t, hashesFieldType)))
-    iw.addDocument(doc2)
-    iw.commit()
+    ixWriter.addDocument(doc2)
+    ixWriter.commit()
 
     val doc3 = new Document()
     doc3.add(new Field("id", "3", idFieldType))
     doc3.add(new Field("hashes", "999", hashesFieldType))
-    iw.addDocument(doc3)
-    iw.commit()
+    ixWriter.addDocument(doc3)
+
+    ixWriter.commit()
+    ixWriter.forceMerge(1) // Have to do this to get the .pst file.
+    ixWriter.close()
 
     val ixReader = DirectoryReader.open(ixDir)
     val ixSearcher = new IndexSearcher(ixReader)
+    // This is the magic setting to get the score to be the number of intersections instead of a fancier formula.
     ixSearcher.setSimilarity(new BooleanSimilarity)
 
     val boolQueryBuilder = new BooleanQuery.Builder
@@ -68,6 +78,8 @@ object LuceneBooleanHashes {
     println(topDocs.scoreDocs.length)
     topDocs.scoreDocs.foreach(d => println(s"${d.doc}, ${d.score}, ${ixSearcher.doc(d.doc)}"))
 
+    import scala.sys.process._
+    println(Seq("/bin/sh", "-c", s"cat ${tmpDir}/*.pst").!!)
   }
 
 }
