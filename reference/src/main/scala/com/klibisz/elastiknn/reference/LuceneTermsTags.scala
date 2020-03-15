@@ -9,7 +9,7 @@ import org.apache.lucene.index.{DirectoryReader, IndexOptions, IndexWriter, Inde
 import org.apache.lucene.search.{IndexSearcher, TermQuery}
 import org.apache.lucene.store.{MMapDirectory, RAMDirectory}
 
-object LucenePlayground {
+object LuceneTermsTags {
 
   def main(args: Array[String]): Unit = {
 

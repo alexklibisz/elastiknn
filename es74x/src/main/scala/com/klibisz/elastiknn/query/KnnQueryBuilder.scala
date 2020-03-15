@@ -23,6 +23,7 @@ import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
+import org.elasticsearch.index.fielddata.SortedNumericDoubleValues
 import org.elasticsearch.index.fielddata.plain.SortedNumericDVIndexFieldData
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._

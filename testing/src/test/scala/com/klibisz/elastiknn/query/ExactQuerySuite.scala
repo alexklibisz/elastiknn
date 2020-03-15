@@ -34,8 +34,8 @@ class ExactQuerySuite
     }
 
   for {
-    sim <- Similarity.values
-    dim <- testDataDims
+    sim <- Similarity.values.filter(_ == SIMILARITY_JACCARD)
+    dim <- testDataDims.take(1)
     (mopts, qopts) <- simToOptions(sim)
     useCache <- Seq(true, false)
   } yield {

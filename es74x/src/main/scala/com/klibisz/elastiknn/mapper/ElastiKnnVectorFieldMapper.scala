@@ -7,9 +7,18 @@ import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.utils.Utils._
 import io.circe.syntax._
 import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{BinaryDocValuesField, StringField}
+import org.apache.lucene.document.{
+  BinaryDocValuesField,
+  DoublePoint,
+  Field,
+  FloatDocValuesField,
+  FloatPoint,
+  IntPoint,
+  StoredField,
+  StringField
+}
 import org.apache.lucene.index._
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
+import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource
@@ -62,14 +71,14 @@ object ElastiKnnVectorFieldMapper {
 
     override def clone(): FieldType = new FieldType()
 
-    override def termQuery(value: Any, context: QueryShardContext): Query =
+    override def termQuery(value: Any, context: QueryShardContext): Query = {
+      // TODO: should we implement termQuery? See: https://github.com/elastic/elasticsearch/pull/44374/files#diff-3e8da1369743959b46f7e6fa0d63c1afR252
       throw new UnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support queries")
+    }
 
-    override def existsQuery(context: QueryShardContext): Query =
-      new DocValuesFieldExistsQuery(name())
+    override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
 
-    override def fielddataBuilder(indexName: String): fielddata.IndexFieldData.Builder =
-      FieldData.Builder
+    override def fielddataBuilder(indexName: String): fielddata.IndexFieldData.Builder = FieldData.Builder
   }
 
   object FieldData {
@@ -86,17 +95,14 @@ object ElastiKnnVectorFieldMapper {
   class FieldData(index: Index, fieldName: String)
       extends DocValuesIndexFieldData(index, fieldName)
       with fielddata.IndexFieldData[AtomicFieldData] {
-    override def load(context: LeafReaderContext): AtomicFieldData =
-      new AtomicFieldData(context.reader(), fieldName)
+    override def load(context: LeafReaderContext): AtomicFieldData = new AtomicFieldData(context.reader(), fieldName)
 
-    override def loadDirect(context: LeafReaderContext): AtomicFieldData =
-      load(context)
+    override def loadDirect(context: LeafReaderContext): AtomicFieldData = load(context)
 
     override def sortField(missingValue: Any,
                            sortMode: MultiValueMode,
                            nested: XFieldComparatorSource.Nested,
-                           reverse: Boolean): SortField =
-      throw new UnsupportedOperationException("Sorting is not supported")
+                           reverse: Boolean): SortField = throw new UnsupportedOperationException("Sorting is not supported")
   }
 
   class AtomicFieldData(reader: LeafReader, field: String) extends fielddata.AtomicFieldData {
@@ -167,8 +173,8 @@ class ElastiKnnVectorFieldMapper(simpleName: String,
         ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv.sorted()))
       case other => other
     }
-    val field = new BinaryDocValuesField(fieldType.name, new BytesRef(ekv.toByteArray))
-    context.doc.addWithKey(fieldType.name, field)
+    val bref = new BytesRef(ekv.toByteArray)
+    context.doc.add(new BinaryDocValuesField(fieldType.name, bref))
   }
 
   override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
