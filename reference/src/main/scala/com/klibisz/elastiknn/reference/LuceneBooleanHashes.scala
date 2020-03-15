@@ -55,6 +55,7 @@ object LuceneBooleanHashes {
 
     val ixReader = DirectoryReader.open(ixDir)
     val ixSearcher = new IndexSearcher(ixReader)
+    ixSearcher.setSimilarity(new BooleanSimilarity)
 
     val boolQueryBuilder = new BooleanQuery.Builder
     val boolQuery = boolQueryBuilder
