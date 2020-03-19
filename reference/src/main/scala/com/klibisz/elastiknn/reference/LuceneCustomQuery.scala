@@ -133,7 +133,8 @@ object LuceneCustomQuery {
       "how now brown cow",
       "cow".reverse,
       "brown".reverse,
-      "how now brown cow".reverse
+      "how now brown cow".reverse,
+      "brown brown cow".reverse
     ).zipWithIndex.foreach {
       case (body, id) =>
         val doc = new Document
