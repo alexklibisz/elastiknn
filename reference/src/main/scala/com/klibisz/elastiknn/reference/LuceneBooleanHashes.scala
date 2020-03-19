@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.reference
 import java.io.File
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
-import org.apache.lucene.document.{Document, Field, FieldType}
+import org.apache.lucene.document.{Document, Field, FieldType, StoredField}
 import org.apache.lucene.index._
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, IndexSearcher, TermQuery}
@@ -44,18 +44,21 @@ object LuceneBooleanHashes {
     val doc1 = new Document()
     doc1.add(new Field("id", "1", idFieldType))
     Seq("123", "456", "789").foreach(t => doc1.add(new Field("hashes", t, hashesFieldType)))
+    doc1.add(new StoredField("stored_body", "blah blah"))
     ixWriter.addDocument(doc1)
     ixWriter.commit()
 
     val doc2 = new Document()
     doc2.add(new Field("id", "2", idFieldType))
     Seq("111", "222", "789").foreach(t => doc2.add(new Field("hashes", t, hashesFieldType)))
+    doc2.add(new StoredField("stored_body", "blah blah"))
     ixWriter.addDocument(doc2)
     ixWriter.commit()
 
     val doc3 = new Document()
     doc3.add(new Field("id", "3", idFieldType))
     doc3.add(new Field("hashes", "999", hashesFieldType))
+    doc3.add(new StoredField("stored_body", "blah blah"))
     ixWriter.addDocument(doc3)
 
     ixWriter.commit()

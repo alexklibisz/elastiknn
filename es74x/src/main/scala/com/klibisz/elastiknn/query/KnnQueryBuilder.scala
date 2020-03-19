@@ -14,9 +14,11 @@ import com.klibisz.elastiknn.utils.Utils._
 import com.klibisz.elastiknn.{KNearestNeighborsQuery, ProcessorOptions, models, _}
 import io.circe.syntax._
 import org.apache.lucene.index.{LeafReaderContext, SortedNumericDocValues}
-import org.apache.lucene.search.{Explanation, Query}
+import org.apache.lucene.search.similarities.BooleanSimilarity
+import org.apache.lucene.search.{Explanation, IndexSearcher, Query}
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
+import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.action.ingest.{GetPipelineAction, GetPipelineRequest, GetPipelineResponse}
 import org.elasticsearch.client.Client
@@ -127,6 +129,8 @@ final class KnnQueryBuilder(val query: KNearestNeighborsQuery, processorOptions:
       }
     case QueryVector.Empty => throw new IllegalArgumentException(s"Query vector cannot be empty")
   }
+
+  new GetFieldMappingsRequest()
 
   private def rewriteFetchQueryVector(context: QueryRewriteContext, iqv: IndexedQueryVector): QueryBuilder = {
     // TODO: can you read the binary version of the document instead of the source?
@@ -252,6 +256,10 @@ final class ExactComputedQueryBuilder(val modelOptions: ExactComputedModelOption
   private val defaultSubquery = new ExistsQueryBuilder(fieldRaw)
 
   override def doToQuery(context: QueryShardContext): Query = {
+
+    // TODO: can use the index searcher here to recreate the lucene example.
+    // val ixSearcher = new IndexSearcher(context.getIndexReader).setSimilarity(new BooleanSimilarity)
+
     val ft: MappedFieldType = context.getMapperService.fullName(fieldRaw)
     val fd: ElastiKnnVectorFieldMapper.FieldData = context.getForField(ft)
     new FunctionScoreQuery(
