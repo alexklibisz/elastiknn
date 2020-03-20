@@ -4,8 +4,11 @@ import java.io.File
 import java.util
 import java.util.Objects
 
-import com.klibisz.elastiknn.Similarity
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.{ElastiKnnVector, Similarity}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
+import com.klibisz.elastiknn.models.ExactSimilarity
+import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 import org.apache.lucene.document.{BinaryDocValuesField, Document, Field, FieldType, StoredField}
@@ -14,15 +17,13 @@ import org.apache.lucene.search._
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.util.BytesRef
 
-import scala.collection.JavaConverters._
+object LuceneExactSimilarityQuery extends ElastiKnnVectorUtils {
 
-object LuceneExactSimilarityQuery {
-
-  class ExactSimilarityQuery(val field: String, val sim: Similarity) extends Query {
+  class ExactSimilarityQuery(val field: String, val sim: Similarity, val queryVector: ElastiKnnVector) extends Query {
 
     private val existsQuery = new DocValuesFieldExistsQuery(field)
 
-    class ExactSimilarityWeight(searcher: IndexSearcher) extends Weight(this) {
+    class ExactSimWeight(searcher: IndexSearcher) extends Weight(this) {
 
       private val existsWeight = existsQuery.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f)
 
@@ -33,24 +34,34 @@ object LuceneExactSimilarityQuery {
       override def scorer(context: LeafReaderContext): Scorer = {
         val existsScorer = existsWeight.scorer(context)
         val existsIterator = if (existsScorer != null) existsScorer.iterator() else DocIdSetIterator.empty()
-        new ExactSimilirityScorer(this, context, existsIterator)
+        new ExactSimScorer(this, context, existsIterator)
       }
 
       override def isCacheable(ctx: LeafReaderContext): Boolean = false
     }
 
-    class ExactSimilirityScorer(weight: Weight, context: LeafReaderContext, iterator: DocIdSetIterator) extends Scorer(weight) {
+    class ExactSimScorer(weight: Weight, context: LeafReaderContext, iterator: DocIdSetIterator) extends Scorer(weight) {
+
+      private val reader = context.reader()
+      private val binaryDocValues = reader.getBinaryDocValues(field)
+
       override def iterator(): DocIdSetIterator = iterator
 
       override def getMaxScore(upTo: Int): Float = Float.MaxValue
 
-      override def score(): Float = 42f
+      override def score(): Float =
+        if (binaryDocValues.advanceExact(iterator.docID())) {
+          val bv = binaryDocValues.binaryValue()
+          val ekv = ElastiKnnVector.parseFrom(bv.bytes.take(bv.length))
+          val (score, _) = ExactSimilarity.apply(sim, queryVector, ekv).get
+          score.toFloat
+        } else 0f
 
       override def docID(): Int = iterator.docID()
     }
 
     override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight =
-      new ExactSimilarityWeight(searcher)
+      new ExactSimWeight(searcher)
 
     override def toString(field: String): String = s"$field:${sim.name}"
 
@@ -75,26 +86,34 @@ object LuceneExactSimilarityQuery {
     idFieldType.setStored(true)
     idFieldType.setIndexOptions(IndexOptions.DOCS)
 
-    val bodyFieldType = new FieldType()
-    bodyFieldType.setIndexOptions(IndexOptions.DOCS)
-    bodyFieldType.setStored(true)
+    val field = "vec_raw"
+    val queryVector = ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(SparseBoolVector(Array(1, 2, 3), 10)))
+    val sbvOpts = Seq(
+      Some(SparseBoolVector(Array(1, 2, 3), 10)),
+      None,
+      Some(SparseBoolVector(Array(1, 3, 5), 10)),
+      Some(SparseBoolVector(Array(3, 6, 7, 8), 10))
+    )
 
-    val docWithBody = new Document
-    docWithBody.add(new Field("id", "1", idFieldType))
-    docWithBody.add(new BinaryDocValuesField("body", new BytesRef("foo".getBytes)))
+    sbvOpts.zipWithIndex.foreach {
+      case (sbvOpt, i) =>
+        val doc = new Document
+        doc.add(new Field("id", i.toString, idFieldType))
+        sbvOpt.foreach { sbv =>
+          val ekv = ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(sbv))
+          doc.add(new BinaryDocValuesField(field, new BytesRef(ekv.toByteArray)))
+        }
+        ixWriter.addDocument(doc)
+    }
 
-    val docNoBody = new Document
-    docNoBody.add(new Field("id", "2", idFieldType))
-
-    ixWriter.addDocuments(Seq(docWithBody, docNoBody).asJava)
     ixWriter.forceMerge(1)
     ixWriter.commit()
     ixWriter.close()
 
     val ixReader = DirectoryReader.open(ixDir)
     val ixSearcher = new IndexSearcher(ixReader)
-    val topDocs = ixSearcher.search(new ExactSimilarityQuery("body", SIMILARITY_JACCARD), 10)
-    // val topDocs = ixSearcher.search(new DocValuesFieldExistsQuery("body"), 10)
+
+    val topDocs = ixSearcher.search(new ExactSimilarityQuery(field, SIMILARITY_JACCARD, queryVector), 10)
 
     println(s"Found ${topDocs.scoreDocs.length} docs")
     topDocs.scoreDocs.foreach(d => println(s"${d.doc}, ${d.score}, ${ixSearcher.doc(d.doc)}"))
