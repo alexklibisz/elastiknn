@@ -10,45 +10,21 @@ import org.apache.lucene.index.{DirectoryReader, IndexOptions, IndexWriter, Inde
 import org.apache.lucene.search.{DocIdSetIterator, Explanation, IndexSearcher, Query, ScoreMode, Scorer, TermQuery, Weight}
 import org.apache.lucene.store.MMapDirectory
 
-object LuceneCustomQuery {
+object LuceneCustomBackwardsQuery {
 
   class BackwardsTermQuery(field: String, term: String) extends Query {
+
+    println(s"Created BacwardsTermQuery for field [$field], term [$term]")
 
     private val fwdTerm = new Term(field, term)
     private val fwdQuery = new TermQuery(fwdTerm)
     private val bwdTerm = new Term(field, term.reverse)
     private val bwdQuery = new TermQuery(bwdTerm)
 
-    class BackwardsWeight(indexSearcher: IndexSearcher) extends Weight(this) {
-
-      private val bwdWeight = bwdQuery.createWeight(indexSearcher, ScoreMode.COMPLETE, 1f)
-      private val fwdWeight = fwdQuery.createWeight(indexSearcher, ScoreMode.COMPLETE, 1f)
-
-      override def extractTerms(terms: util.Set[Term]): Unit = {
-        bwdWeight.extractTerms(terms)
-        fwdWeight.extractTerms(terms)
-      }
-
-      override def explain(context: LeafReaderContext, doc: Int): Explanation = {
-        val s: BackwardsScorer = backwardsScorer(context)
-        s.iterator().advance(doc)
-        s.explain()
-      }
-
-      private def backwardsScorer(context: LeafReaderContext): BackwardsScorer = {
-        val bwdScorer = bwdWeight.scorer(context)
-        val fwdScorer = fwdWeight.scorer(context)
-        val bwdIter = if (bwdScorer != null) bwdScorer.iterator() else DocIdSetIterator.empty()
-        val fwdIter = if (fwdScorer != null) fwdScorer.iterator() else DocIdSetIterator.empty()
-        new BackwardsScorer(this, context, bwdIter, fwdIter)
-      }
-
-      override def scorer(context: LeafReaderContext): Scorer = backwardsScorer(context)
-
-      override def isCacheable(ctx: LeafReaderContext): Boolean = false
+    override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = {
+      println(s"BackwardsTermQuery creating BackwardsWeight with searcher $searcher")
+      new BackwardsWeight(searcher)
     }
-
-    override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new BackwardsWeight(searcher)
 
     override def equals(other: Any): Boolean =
       other match {
@@ -58,25 +34,71 @@ object LuceneCustomQuery {
 
     override def hashCode(): Int = ((classHash() * 31) + bwdQuery.hashCode() * 31) + fwdQuery.hashCode() * 31
 
-    override def toString(field: String): String = s"BackwardsTermQuery for field $field, term $term"
+    override def toString(field: String): String = s"BackwardsTermQuery for field [$field], term [$term]"
+
+    class BackwardsWeight(indexSearcher: IndexSearcher) extends Weight(this) {
+
+      println(s"Created BackwardsWeight with searcher $indexSearcher")
+
+      private val bwdWeight = bwdQuery.createWeight(indexSearcher, ScoreMode.COMPLETE, 1f)
+      private val fwdWeight = fwdQuery.createWeight(indexSearcher, ScoreMode.COMPLETE, 1f)
+
+      override def extractTerms(terms: util.Set[Term]): Unit = {
+        println(s"Extract terms $terms")
+        ???
+//        bwdWeight.extractTerms(terms)
+//        fwdWeight.extractTerms(terms)
+      }
+
+      override def explain(context: LeafReaderContext, doc: Int): Explanation = {
+//        val s: BackwardsScorer = backwardsScorer(context)
+//        s.iterator().advance(doc)
+//        s.explain()
+        ???
+      }
+
+      override def scorer(context: LeafReaderContext): Scorer = {
+        println(s"BackwardsWeight creating scorer with context $context")
+        backwardsScorer(context)
+      }
+
+      private def backwardsScorer(context: LeafReaderContext): BackwardsScorer = {
+        val bwdScorer = bwdWeight.scorer(context)
+        val fwdScorer = fwdWeight.scorer(context)
+        val bwdIter = if (bwdScorer != null) bwdScorer.iterator() else DocIdSetIterator.empty()
+        val fwdIter = if (fwdScorer != null) fwdScorer.iterator() else DocIdSetIterator.empty()
+        println(s"BackwardsWight creating BackwardsScorer with backward iterator $bwdIter, forward iterator $fwdIter")
+        new BackwardsScorer(this, context, bwdIter, fwdIter)
+      }
+
+      override def isCacheable(ctx: LeafReaderContext): Boolean = false
+    }
+
   }
 
   class BackwardsScorer(weight: Weight, context: LeafReaderContext, bwdIter: DocIdSetIterator, fwdIter: DocIdSetIterator)
       extends Scorer(weight) {
 
+    println(s"Created BackwardsScorer with weight $weight, context $context, bwdIter $bwdIter, fwdIter $fwdIter")
+
     private val iter = new Iterator(bwdIter, fwdIter)
     private val bwdScore = 5f
     private val fwdScore = 1f
-    private var currScore = 0f
 
     override def iterator(): DocIdSetIterator = iter
 
-    override def getMaxScore(upTo: Int): Float = fwdScore // TODO: huh?
+    override def getMaxScore(upTo: Int): Float = Float.MaxValue // TODO: huh?
 
-    override def score(): Float =
-      if (docID() == bwdIter.docID()) bwdScore
-      else if (docID() == fwdIter.docID()) fwdScore
-      else 0f
+    override def score(): Float = {
+      val did = docID()
+      if (did == bwdIter.docID()) {
+        println(s"BackwardsScorer returning score $bwdScore for document $did")
+        bwdScore
+      } else if (did == fwdIter.docID()) {
+        println(s"BackwardsScorer returning score $fwdScore for document $did")
+        fwdScore
+      } else 0f
+    }
 
     override def docID(): Int = iter.docID()
 
@@ -92,6 +114,7 @@ object LuceneCustomQuery {
     override def docID(): Int = {
       val bid = bwdIter.docID()
       val fid = fwdIter.docID()
+      println(s"Iterator comparing bid $bid and fid $fid")
       if (bid <= fid && bid != DocIdSetIterator.NO_MORE_DOCS) bid
       else if (fid != DocIdSetIterator.NO_MORE_DOCS) fid
       else DocIdSetIterator.NO_MORE_DOCS
@@ -127,7 +150,8 @@ object LuceneCustomQuery {
     idFieldType.setTokenized(false)
 
     val bodyFieldType = new FieldType()
-    bodyFieldType.setIndexOptions(IndexOptions.DOCS)
+    bodyFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+    bodyFieldType.setTokenized(true)
 
     Seq(
       "how now brown cow",
@@ -153,7 +177,6 @@ object LuceneCustomQuery {
 
     val btq = new BackwardsTermQuery("body", "brown")
     val topDocs = ixSearcher.search(btq, 10)
-    println(topDocs.scoreDocs.length)
     topDocs.scoreDocs.foreach(d => println(s"${d.doc}, ${d.score}, ${ixSearcher.doc(d.doc)}"))
 
   }
