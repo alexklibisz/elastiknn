@@ -1,11 +1,13 @@
 package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
-import java.util
+import java.{lang, util}
 import java.util.Objects
 
+import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.models.{ExactSimilarity, JaccardLshModel}
+import com.klibisz.elastiknn.utils.SparseBoolVectorUtils
 import com.klibisz.elastiknn.{ElastiKnnVector, JaccardLshModelOptions, SparseBoolVector}
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 import org.apache.lucene.document.{Document, Field, FieldType, StoredField}
@@ -15,7 +17,9 @@ import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.util.BytesRef
 
-object JaccardLshQuery {
+import scala.util.Random
+
+object JaccardLshQuery extends SparseBoolVectorUtils {
 
   object JaccardLshQuery {
 
@@ -48,7 +52,8 @@ object JaccardLshQuery {
 
   }
 
-  class JaccardLshQuery(val field: String, val queryVector: SparseBoolVector, val modelOptions: JaccardLshModelOptions) extends Query {
+  class JaccardLshQuery(val field: String, val queryVector: SparseBoolVector, val modelOptions: JaccardLshModelOptions, candidates: Int)
+      extends Query {
 
     import JaccardLshQuery._
 
@@ -68,7 +73,7 @@ object JaccardLshQuery {
 
       searcher.setSimilarity(new BooleanSimilarity)
 
-      private val booleanWeight = booleanIntersectionQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
+      private val booleanWeight = booleanIntersectionQuery.createWeight(searcher, ScoreMode.TOP_SCORES, 1f)
 
       override def extractTerms(terms: util.Set[Term]): Unit = ()
 
@@ -83,25 +88,38 @@ object JaccardLshQuery {
     class JaccardLshScorer(weight: Weight, searcher: IndexSearcher, context: LeafReaderContext, booleanScorer: Scorer)
         extends Scorer(weight) {
 
+      private val scoreHeap: MinMaxPriorityQueue[java.lang.Integer] = MinMaxPriorityQueue.create[java.lang.Integer]()
+
       override val iterator: DocIdSetIterator = if (booleanScorer != null) booleanScorer.iterator() else DocIdSetIterator.empty()
 
       override def getMaxScore(upTo: Int): Float = Float.MaxValue
 
       override def score(): Float = {
-        val intersection = booleanScorer.score() // TODO: this is where you'd use a heap to skip low scores.
-        val docId = iterator.docID()
-        println(s"Scoring doc with id $docId, intersection score $intersection")
-        val doc = searcher.doc(docId)
-        val ekvBytes = doc.getField(fieldVector(field)).binaryValue.bytes
-        val ekv = SparseBoolVector.parseFrom(ekvBytes.take(ekvBytes.length))
-        val (score, _) = ExactSimilarity
-          .apply(
-            SIMILARITY_JACCARD,
-            ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(queryVector)),
-            ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(ekv))
-          )
-          .get
-        score.toFloat
+        val intersection = booleanScorer.score()
+        val computeExact: Boolean = if (scoreHeap.size() < candidates) {
+          scoreHeap.add(intersection.toInt)
+          true
+        } else if (intersection > scoreHeap.peekFirst()) {
+          scoreHeap.removeFirst()
+          scoreHeap.add(intersection.toInt)
+          true
+        } else false
+
+        if (computeExact) {
+          val docId = iterator.docID()
+          println(s"Compute exact score for doc with id $docId, intersection score $intersection")
+          val doc = searcher.doc(docId)
+          val ekvBytes = doc.getField(fieldVector(field)).binaryValue.bytes
+          val ekv = SparseBoolVector.parseFrom(ekvBytes.take(ekvBytes.length))
+          val (score, _) = ExactSimilarity
+            .apply(
+              SIMILARITY_JACCARD,
+              ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(queryVector)),
+              ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(ekv))
+            )
+            .get
+          score.toFloat
+        } else 0f
       }
 
       override def docID(): Int = iterator.docID()
@@ -130,14 +148,11 @@ object JaccardLshQuery {
     idFieldType.setIndexOptions(IndexOptions.DOCS)
 
     val field = "vec"
-    val queryVector = SparseBoolVector(Array(1, 2, 3), 10)
+
+    implicit val rng: Random = new Random(0)
+    val sbvs = SparseBoolVector.randoms(20, 25)
+    val queryVector = sbvs.head
     val modelOptions = JaccardLshModelOptions(1, "", 11, 1)
-    val sbvs = Seq(
-      SparseBoolVector(Array(1, 2, 3), 10),
-      SparseBoolVector(Array(1, 3, 5), 10),
-      SparseBoolVector(Array(3, 6, 7, 8), 10),
-      SparseBoolVector(Array(1, 4, 5, 6, 7, 8, 9), 10)
-    )
 
     sbvs.zipWithIndex.foreach {
       case (sbv, i) =>
@@ -153,7 +168,7 @@ object JaccardLshQuery {
     val ixReader = DirectoryReader.open(ixDir)
     val ixSearcher = new IndexSearcher(ixReader)
 
-    val topDocs = ixSearcher.search(new JaccardLshQuery(field, queryVector, modelOptions), 10)
+    val topDocs = ixSearcher.search(new JaccardLshQuery(field, queryVector, modelOptions, 10), 10)
     println(s"Found ${topDocs.scoreDocs.length} docs")
     topDocs.scoreDocs.foreach(d => println(s"${d.doc}, ${d.score}, ${ixSearcher.doc(d.doc)}"))
   }
