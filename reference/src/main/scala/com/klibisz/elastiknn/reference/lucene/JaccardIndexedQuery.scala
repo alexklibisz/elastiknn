@@ -108,7 +108,7 @@ object JaccardIndexedQuery extends ElastiKnnVectorUtils {
 
   def main(args: Array[String]): Unit = {
 
-    val tmpDir = new File(s"/tmp/lucene-backward-${System.currentTimeMillis()}")
+    val tmpDir = new File(s"/tmp/lucene-${System.currentTimeMillis()}")
     val ixDir = new MMapDirectory(tmpDir.toPath)
 
     val ixWriterCfg = new IndexWriterConfig().setCodec(new SimpleTextCodec)
@@ -118,7 +118,7 @@ object JaccardIndexedQuery extends ElastiKnnVectorUtils {
     idFieldType.setStored(true)
     idFieldType.setIndexOptions(IndexOptions.DOCS)
 
-    val field = "vec_raw"
+    val field = "vec"
     val queryVector = SparseBoolVector(Array(1, 2, 3), 10)
     val sbvs = Seq(
       SparseBoolVector(Array(1, 2, 3), 10),
