@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
-import java.{lang, util}
+import java.util
 import java.util.Objects
 
 import com.google.common.collect.MinMaxPriorityQueue
@@ -168,7 +168,7 @@ object JaccardLshQuery extends SparseBoolVectorUtils {
     val ixReader = DirectoryReader.open(ixDir)
     val ixSearcher = new IndexSearcher(ixReader)
 
-    val topDocs = ixSearcher.search(new JaccardLshQuery(field, queryVector, modelOptions, 10), 10)
+    val topDocs = ixSearcher.search(new JaccardLshQuery(field, queryVector, modelOptions, 30), 10)
     println(s"Found ${topDocs.scoreDocs.length} docs")
     topDocs.scoreDocs.foreach(d => println(s"${d.doc}, ${d.score}, ${ixSearcher.doc(d.doc)}"))
   }

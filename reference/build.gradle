@@ -6,4 +6,6 @@ dependencies {
     implementation 'org.apache.spark:spark-mllib_2.12:2.4.4'
     implementation 'org.elasticsearch:elasticsearch:7.4.0'
     implementation 'org.apache.lucene:lucene-codecs:8.2.0'
+    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
 }

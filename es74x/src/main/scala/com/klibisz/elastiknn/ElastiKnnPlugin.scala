@@ -5,7 +5,7 @@ import java.util.Collections.singletonMap
 import java.util.function.Supplier
 
 import org.elasticsearch.common.settings.{ClusterSettings, IndexScopedSettings, Settings, SettingsFilter}
-import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
+import com.klibisz.elastiknn.mapper.{ElastiKnnVectorFieldMapper, SparseBoolVectorMapper}
 import com.klibisz.elastiknn.processor.IngestProcessor
 import com.klibisz.elastiknn.query._
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
@@ -15,6 +15,8 @@ import org.elasticsearch.ingest.Processor
 import org.elasticsearch.plugins.SearchPlugin.QuerySpec
 import org.elasticsearch.plugins._
 import org.elasticsearch.rest.{RestController, RestHandler, RestRequest}
+
+import scala.collection.JavaConverters._
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin with MapperPlugin {
 
@@ -42,6 +44,9 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
   )
 
   override def getMappers: util.Map[String, Mapper.TypeParser] =
-    singletonMap(ElastiKnnVectorFieldMapper.CONTENT_TYPE, new ElastiKnnVectorFieldMapper.TypeParser)
+    Map(
+      ElastiKnnVectorFieldMapper.CONTENT_TYPE -> new ElastiKnnVectorFieldMapper.TypeParser,
+      SparseBoolVectorMapper.CONTENT_TYPE -> new SparseBoolVectorMapper.TypeParser
+    ).asJava
 
 }

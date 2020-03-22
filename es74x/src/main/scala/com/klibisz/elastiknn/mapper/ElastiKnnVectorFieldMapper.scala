@@ -6,19 +6,9 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.utils.Utils._
 import io.circe.syntax._
-import org.apache.lucene.document.Field.Store
-import org.apache.lucene.document.{
-  BinaryDocValuesField,
-  DoublePoint,
-  Field,
-  FloatDocValuesField,
-  FloatPoint,
-  IntPoint,
-  StoredField,
-  StringField
-}
+import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index._
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField, TermQuery}
+import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, SortField}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.fielddata.IndexFieldData.XFieldComparatorSource
@@ -31,7 +21,6 @@ import org.elasticsearch.index.{Index, IndexSettings, fielddata}
 import org.elasticsearch.indices.breaker.CircuitBreakerService
 import org.elasticsearch.search.MultiValueMode
 import scalapb_circe.JsonFormat
-import sun.jvm.hotspot.oops.BooleanField
 
 import scala.util.{Failure, Success, Try}
 
@@ -49,8 +38,9 @@ object ElastiKnnVectorFieldMapper {
   class TypeParser extends Mapper.TypeParser {
 
     /** This method gets called when you create a mapping with this type. */
-    override def parse(name: String, node: util.Map[String, AnyRef], parserContext: ParserContext): Mapper.Builder[_, _] =
+    override def parse(name: String, node: util.Map[String, AnyRef], parserContext: ParserContext): Mapper.Builder[_, _] = {
       new Builder(name)
+    }
   }
 
   class Builder(name: String)
