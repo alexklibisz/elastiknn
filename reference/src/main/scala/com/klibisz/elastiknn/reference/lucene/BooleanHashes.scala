@@ -1,16 +1,16 @@
-package com.klibisz.elastiknn.reference
+package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
+import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 import org.apache.lucene.document.{Document, Field, FieldType, StoredField}
 import org.apache.lucene.index._
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{BooleanClause, BooleanQuery, IndexSearcher, TermQuery}
 import org.apache.lucene.store.MMapDirectory
-import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 
-object LuceneBooleanHashes {
+object BooleanHashes {
 
   // Goal: the query score should be the number of intersected temrs.
   // After this runs, you can look cat the .pst file in the tmpDir to see the inverted index.

@@ -1,23 +1,22 @@
-package com.klibisz.elastiknn.reference
+package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
 import java.util
 import java.util.Objects
 
-import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.{ElastiKnnVector, Similarity}
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
 import com.klibisz.elastiknn.models.ExactSimilarity
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
+import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVector}
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
-import org.apache.lucene.document.{BinaryDocValuesField, Document, Field, FieldType, StoredField}
+import org.apache.lucene.document.{BinaryDocValuesField, Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.util.BytesRef
 
-object LuceneExactSimilarityQuery extends ElastiKnnVectorUtils {
+object ExactSimilarityQuery extends ElastiKnnVectorUtils {
 
   class ExactSimilarityQuery(val field: String, val sim: Similarity, val queryVector: ElastiKnnVector) extends Query {
 

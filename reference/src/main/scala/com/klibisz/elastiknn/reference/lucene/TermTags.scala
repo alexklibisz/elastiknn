@@ -1,15 +1,14 @@
-package com.klibisz.elastiknn.reference
+package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
-import java.nio.file.Path
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.document.{Document, Field, FieldType}
-import org.apache.lucene.index.{DirectoryReader, IndexOptions, IndexWriter, IndexWriterConfig, Term, TermStates}
+import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, TermQuery}
-import org.apache.lucene.store.{MMapDirectory, RAMDirectory}
+import org.apache.lucene.store.MMapDirectory
 
-object LuceneTermsTags {
+object TermTags {
 
   def main(args: Array[String]): Unit = {
 

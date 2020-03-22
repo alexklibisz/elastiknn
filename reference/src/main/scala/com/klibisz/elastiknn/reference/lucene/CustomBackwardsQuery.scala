@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.reference
+package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
 import java.util
@@ -6,11 +6,11 @@ import java.util
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 import org.apache.lucene.document.{Document, Field, FieldType, StoredField}
-import org.apache.lucene.index.{DirectoryReader, IndexOptions, IndexWriter, IndexWriterConfig, LeafReaderContext, Term}
-import org.apache.lucene.search.{DocIdSetIterator, Explanation, IndexSearcher, Query, ScoreMode, Scorer, TermQuery, Weight}
+import org.apache.lucene.index._
+import org.apache.lucene.search._
 import org.apache.lucene.store.MMapDirectory
 
-object LuceneCustomBackwardsQuery {
+object CustomBackwardsQuery {
 
   class BackwardsTermQuery(field: String, term: String) extends Query {
 

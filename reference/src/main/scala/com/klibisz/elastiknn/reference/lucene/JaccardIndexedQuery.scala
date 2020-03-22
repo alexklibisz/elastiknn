@@ -1,21 +1,20 @@
-package com.klibisz.elastiknn.reference
+package com.klibisz.elastiknn.reference.lucene
 
 import java.io.File
 import java.util
 import java.util.Objects
 
-import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.SparseBoolVector
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
 import org.apache.lucene.document.{Document, Field, FieldType, StoredField}
 import org.apache.lucene.index._
-import org.apache.lucene.search._
 import org.apache.lucene.search.similarities.BooleanSimilarity
+import org.apache.lucene.search._
 import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.util.BytesRef
 
-object LuceneJaccardIndexedQuery extends ElastiKnnVectorUtils {
+object JaccardIndexedQuery extends ElastiKnnVectorUtils {
 
   object JaccardIndexedQuery {
 
