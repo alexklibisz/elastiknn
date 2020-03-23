@@ -2,8 +2,8 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.ELASTIKNN_NAME
-import com.klibisz.elastiknn.api.{DenseFloatVectorModelOptions, SparseBoolVectorModelOptions}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.api.Mapping
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 import org.apache.lucene.index.IndexableField
@@ -13,34 +13,26 @@ import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[SparseBoolVectorModelOptions] =
-    new VectorMapper[SparseBoolVectorModelOptions](s"${ELASTIKNN_NAME}_sparse_bool_vector") {
-      override def parse(context: ParseContext, dims: Int, options: SparseBoolVectorModelOptions): Unit = {
+  val sparseBoolVector: VectorMapper[api.Mapping.ElastiknnSparseBoolVector] =
+    new VectorMapper[api.Mapping.ElastiknnSparseBoolVector](s"${ELASTIKNN_NAME}_sparse_bool_vector") {
+      override def parse(context: ParseContext, options: api.Mapping.ElastiknnSparseBoolVector): Unit = {
         ???
       }
     }
-  val denseFloatVector: VectorMapper[DenseFloatVectorModelOptions] =
-    new VectorMapper[DenseFloatVectorModelOptions](s"${ELASTIKNN_NAME}_dense_float_vector") {
-      override def parse(context: ParseContext, dims: Int, options: DenseFloatVectorModelOptions): Unit = {
+  val denseFloatVector: VectorMapper[api.Mapping.ElastiknnDenseFloatVector] =
+    new VectorMapper[api.Mapping.ElastiknnDenseFloatVector](s"${ELASTIKNN_NAME}_dense_float_vector") {
+      override def parse(context: ParseContext, mapping: Mapping.ElastiknnDenseFloatVector): Unit = {
         ???
       }
     }
-
-  private object Keys {
-    val DIMS: String = "dims"
-    val MODEL_OPTIONS: String = "model_options"
-  }
-
 }
 
-abstract class VectorMapper[MODEL_OPTIONS: Encoder: Decoder](val CONTENT_TYPE: String) {
+abstract class VectorMapper[M <: api.Mapping](val CONTENT_TYPE: String) {
 
-  import VectorMapper._
-
-  def parse(context: ParseContext, dims: Int, options: MODEL_OPTIONS): Unit
+  def parse(context: ParseContext, mapping: M): Unit
 
   private val fieldType = new this.FieldType
   private val mapper = this
@@ -52,51 +44,66 @@ abstract class VectorMapper[MODEL_OPTIONS: Encoder: Decoder](val CONTENT_TYPE: S
     override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
       val builder = new Builder(name)
       TypeParsers.parseField(builder, name, node, parserContext)
-      // You have to set mutable fields by iterating over the map. For some reason this method gets called > 1 times and
-      // the node map doesn't always include all of the entries so you can't convert it to JSON and then to a case class.
-      val iter = node.entrySet.iterator()
-      while (iter.hasNext) {
-        val entry = iter.next()
-        (entry.getKey, entry.getValue) match {
-          case (Keys.DIMS, i: Integer) =>
-            builder.dims = i
-            iter.remove()
-          case (Keys.MODEL_OPTIONS, m: util.Map[_, _]) =>
-            (for {
-              optsMap <- Try(m.asInstanceOf[util.Map[String, AnyRef]])
-              _ = builder.optionsMap = optsMap
-              options <- implicitly[Decoder[MODEL_OPTIONS]].decodeJson(optsMap.asJson).toTry
-              _ = builder.options = options
-              _ = iter.remove()
-            } yield ()).recoverWith {
-              case t => Failure(new RuntimeException(s"Failed to parse ${Keys.MODEL_OPTIONS}", t))
-            }.get
-          case _ =>
-        }
-      }
+      implicitly[Decoder[Mapping]]
+        .decodeJson(node.asJson)
+        .map(_.asInstanceOf[M])
+        .foreach(builder.mapping = _)
+      node.clear()
+//      if (builder.mapping != null) {
+//        implicitly[Encoder[Mapping]]
+//          .apply(builder.mapping)
+//          .asObject
+//          .foreach(_.keys.foreach(node.remove))
+//      }
       builder
     }
   }
 
   private class Builder(name: String) extends FieldMapper.Builder[Builder, FieldMapper](name, fieldType, fieldType) {
 
-    var dims: Int = _
-    var options: MODEL_OPTIONS = _
-    var optionsMap: java.util.Map[String, AnyRef] = _
+    var mapping: M = _
 
     override def build(context: Mapper.BuilderContext): FieldMapper = {
       super.setupFieldType(context)
 
       new FieldMapper(name, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
-        override def parse(context: ParseContext): Unit = mapper.parse(context, dims, options)
+        override def parse(context: ParseContext): Unit = mapper.parse(context, mapping)
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
         override def contentType(): String = CONTENT_TYPE
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)
-          builder.field(Keys.DIMS, dims)
-          builder.field(Keys.MODEL_OPTIONS, optionsMap)
+
+          builder.field("dims", 100)
+          builder.field("model_options", new util.HashMap[String, AnyRef] {
+            put("type", "jaccard_lsh")
+            put("bands", 100.asInstanceOf[AnyRef])
+            put("rows", 1.asInstanceOf[AnyRef])
+          })
+
+//          if (mapping != null) {
+//            implicitly[Encoder[Mapping]]
+//              .apply(mapping)
+//              .asObject
+//              .foreach(_.toIterable.foreach {
+//                case (k, v) => if (k != "type") ()
+//              })
+//          }
+
+          // builder.field("wtf", 99)
+//          mapping match {
+//            case Mapping.ElastiknnSparseBoolVector(dims, _) =>
+////              builder.field("dims", dims)
+////              builder.field("wtf", 99)
+//            case Mapping.ElastiknnDenseFloatVector(dims, _) =>
+////              builder.field("dims", dims)
+////              builder.field("wtf", 99)
+//            case _ => ()
+//          }
         }
+
+//        override def doXContentDocValues(builder: XContentBuilder, includeDefaults: Boolean): Unit =
+//          super.doXContentDocValues(builder, includeDefaults)
       }
     }
   }
