@@ -13,7 +13,7 @@ import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object VectorMapper {
   val sparseBoolVector: VectorMapper[SparseBoolVectorModelOptions] =
@@ -61,11 +61,16 @@ abstract class VectorMapper[MODEL_OPTIONS: Encoder: Decoder](val CONTENT_TYPE: S
           case (Keys.DIMS, i: Integer) =>
             builder.dims = i
             iter.remove()
-          case (Keys.MODEL_OPTIONS, m: util.Map[_, _]) if Try(m.asInstanceOf[util.Map[String, AnyRef]]).isSuccess =>
-            builder.optionsMap = m.asInstanceOf[java.util.Map[String, AnyRef]]
-            val json = builder.optionsMap.asJson(javaMapEncoder)
-            builder.options = implicitly[Decoder[MODEL_OPTIONS]].decodeJson(json).toTry.get
-            iter.remove()
+          case (Keys.MODEL_OPTIONS, m: util.Map[_, _]) =>
+            (for {
+              optsMap <- Try(m.asInstanceOf[util.Map[String, AnyRef]])
+              _ = builder.optionsMap = optsMap
+              options <- implicitly[Decoder[MODEL_OPTIONS]].decodeJson(optsMap.asJson).toTry
+              _ = builder.options = options
+              _ = iter.remove()
+            } yield ()).recoverWith {
+              case t => Failure(new RuntimeException(s"Failed to parse ${Keys.MODEL_OPTIONS}", t))
+            }.get
           case _ =>
         }
       }
