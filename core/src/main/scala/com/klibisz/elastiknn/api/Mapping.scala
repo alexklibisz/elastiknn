@@ -29,8 +29,9 @@ sealed trait Mapping
 
 object Mapping {
   case object Missing extends Mapping
-  case class ElastiknnSparseBoolVector(dims: Int, modelOptions: SparseBoolVectorModelOptions) extends Mapping
-  case class ElastiknnDenseFloatVector(dims: Int, modelOptions: DenseFloatVectorModelOptions) extends Mapping
+  case class ElastiknnSparseBoolVector(dims: Int) extends Mapping
+//  case class ElastiknnSparseBoolVector(dims: Int, modelOptions: SparseBoolVectorModelOptions) extends Mapping
+//  case class ElastiknnDenseFloatVector(dims: Int, modelOptions: DenseFloatVectorModelOptions) extends Mapping
 
   implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames.withSnakeCaseConstructorNames.withDiscriminator("type")
   implicit val enc: Encoder[Mapping] = deriveConfiguredEncoder
@@ -40,16 +41,15 @@ object Mapping {
 object Dummy {
   def main(args: Array[String]): Unit = {
 
-    val mappings: Seq[Mapping] = Seq(
-      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.Exact),
-      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.JaccardIndexed),
-      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.JaccardLsh(100, 3)),
-      Mapping.ElastiknnDenseFloatVector(100, DenseFloatVectorModelOptions.Exact)
-    )
-
-    mappings.foreach { m =>
-      println(m.asJson.spaces2)
-    }
+//    val mappings: Seq[Mapping] = Seq(
+//      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.Exact),
+//      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.JaccardIndexed),
+//      Mapping.ElastiknnSparseBoolVector(100, SparseBoolVectorModelOptions.JaccardLsh(100, 3))
+//    )
+//
+//    mappings.foreach { m =>
+//      println(m.asJson.spaces2)
+//    }
 
   }
 }
