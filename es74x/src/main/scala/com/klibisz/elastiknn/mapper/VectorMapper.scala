@@ -1,21 +1,17 @@
 package com.klibisz.elastiknn.mapper
 
-import java.io.ByteArrayInputStream
 import java.util
 
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.api.Mapping
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
-import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentType}
+import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
-
-import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
 
 object VectorMapper {
   val sparseBoolVector: VectorMapper[api.Mapping.ElastiknnSparseBoolVector] =
@@ -48,16 +44,18 @@ abstract class VectorMapper[M <: api.Mapping](val CONTENT_TYPE: String) {
         .decodeJson(node.asJson)
         .map(_.asInstanceOf[M])
         .toTry
-      node.clear()
+        .get
       val builder = new Builder(name, mapping)
-//      TypeParsers.parseField(builder, name, node, parserContext)
+      TypeParsers.parseField(builder, name, node, parserContext)
+      node.clear()
       builder
     }
   }
 
-  private class Builder(name: String, mapping: Try[M]) extends FieldMapper.Builder[Builder, FieldMapper](name, fieldType, fieldType) {
+  private class Builder(name: String, mapping: M) extends FieldMapper.Builder[Builder, FieldMapper](name, fieldType, fieldType) {
 
-    private def populateBuilder(json: Json, builder: XContentBuilder, skipKeys: Set[String] = Set.empty): Unit = {
+    /** Populate the given builder from the given Json. */
+    private def populateBuilder(json: Json, builder: XContentBuilder): Unit = {
       def populate(json: Json): Unit =
         if (json.isBoolean) json.asBoolean.foreach(builder.value)
         else if (json.isString) json.asString.foreach(builder.value)
@@ -92,16 +90,15 @@ abstract class VectorMapper[M <: api.Mapping](val CONTENT_TYPE: String) {
       super.setupFieldType(context)
 
       new FieldMapper(name, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
-        override def parse(context: ParseContext): Unit = mapper.parse(context, mapping.get)
+        override def parse(context: ParseContext): Unit = mapper.parse(context, mapping)
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
         override def contentType(): String = CONTENT_TYPE
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)
-          print(mapping)
-          mapping.toOption
-            .map(implicitly[Encoder[Mapping]].apply)
-            .flatMap(_.asObject)
+          implicitly[Encoder[Mapping]]
+            .apply(mapping)
+            .asObject
             .map(_.toIterable.filter(_._1 != "type"))
             .map(JsonObject.fromIterable)
             .map(Json.fromJsonObject)
