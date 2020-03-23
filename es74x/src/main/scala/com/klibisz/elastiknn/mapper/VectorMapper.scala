@@ -10,42 +10,44 @@ import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
+
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[api.Mapping.ElastiknnSparseBoolVector] =
-    new VectorMapper[api.Mapping.ElastiknnSparseBoolVector](s"${ELASTIKNN_NAME}_sparse_bool_vector") {
-      override def parse(context: ParseContext, options: api.Mapping.ElastiknnSparseBoolVector): Unit = {
-        ???
+  val sparseBoolVector: VectorMapper[api.Mapping.ElastiknnSparseBoolVector, api.Vector.SparseBoolVector] =
+    new VectorMapper[api.Mapping.ElastiknnSparseBoolVector, api.Vector.SparseBoolVector] {
+      override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
+      override def index(mapping: api.Mapping.ElastiknnSparseBoolVector,
+                         vec: api.Vector.SparseBoolVector,
+                         doc: ParseContext.Document): Unit = {
+        ()
       }
     }
-  val denseFloatVector: VectorMapper[api.Mapping.ElastiknnDenseFloatVector] =
-    new VectorMapper[api.Mapping.ElastiknnDenseFloatVector](s"${ELASTIKNN_NAME}_dense_float_vector") {
-      override def parse(context: ParseContext, mapping: Mapping.ElastiknnDenseFloatVector): Unit = {
-        ???
+  val denseFloatVector: VectorMapper[api.Mapping.ElastiknnDenseFloatVector, api.Vector.DenseFloatVector] =
+    new VectorMapper[api.Mapping.ElastiknnDenseFloatVector, api.Vector.DenseFloatVector] {
+      override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
+      override def index(mapping: Mapping.ElastiknnDenseFloatVector, vec: api.Vector.DenseFloatVector, doc: ParseContext.Document): Unit = {
+        ()
       }
     }
 }
 
-abstract class VectorMapper[M <: api.Mapping](val CONTENT_TYPE: String) {
+abstract class VectorMapper[M <: api.Mapping, V: Decoder] {
 
-  def parse(context: ParseContext, mapping: M): Unit
+  val CONTENT_TYPE: String
+  def index(mapping: M, vec: V, doc: ParseContext.Document): Unit
 
   private val fieldType = new this.FieldType
   private val mapper = this
 
+  import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+
   class TypeParser extends Mapper.TypeParser {
 
-    import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
-
     override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
-      val mapping = implicitly[Decoder[Mapping]]
-        .decodeJson(node.asJson)
-        .map(_.asInstanceOf[M])
-        .toTry
-        .get
-      val builder = new Builder(name, mapping)
+      val mappingTry = implicitly[Decoder[Mapping]].decodeJson(node.asJson).map(_.asInstanceOf[M]).toTry
+      val builder = new Builder(name, mappingTry.get)
       TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
       builder
@@ -90,7 +92,12 @@ abstract class VectorMapper[M <: api.Mapping](val CONTENT_TYPE: String) {
       super.setupFieldType(context)
 
       new FieldMapper(name, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
-        override def parse(context: ParseContext): Unit = mapper.parse(context, mapping)
+        override def parse(context: ParseContext): Unit = {
+          val doc: ParseContext.Document = context.doc()
+          val json: Json = context.parser().map().asJson
+          val vecTry = implicitly[Decoder[V]].decodeJson(json).toTry
+          mapper.index(mapping, vecTry.get, doc)
+        }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
         override def contentType(): String = CONTENT_TYPE
