@@ -5,7 +5,7 @@ import java.util.Collections.singletonMap
 import java.util.function.Supplier
 
 import org.elasticsearch.common.settings.{ClusterSettings, IndexScopedSettings, Settings, SettingsFilter}
-import com.klibisz.elastiknn.mapper.{ElastiKnnVectorFieldMapper, SparseBoolVectorMapper}
+import com.klibisz.elastiknn.mapper.{ElastiKnnVectorFieldMapper, VectorMapper}
 import com.klibisz.elastiknn.processor.IngestProcessor
 import com.klibisz.elastiknn.query._
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver
@@ -43,10 +43,13 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
     new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 
-  override def getMappers: util.Map[String, Mapper.TypeParser] =
+  override def getMappers: util.Map[String, Mapper.TypeParser] = {
+    import VectorMapper._
     Map(
       ElastiKnnVectorFieldMapper.CONTENT_TYPE -> new ElastiKnnVectorFieldMapper.TypeParser,
-      SparseBoolVectorMapper.CONTENT_TYPE -> new SparseBoolVectorMapper.TypeParser
+      sparseBoolVector.CONTENT_TYPE -> new sparseBoolVector.TypeParser,
+      denseFloatVector.CONTENT_TYPE -> new denseFloatVector.TypeParser
     ).asJava
+  }
 
 }

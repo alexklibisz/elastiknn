@@ -8,13 +8,10 @@ import io.circe.syntax._
 object CirceElasticsearchStyle {
 
   sealed trait SparseBoolVectorModelOptions
-
   object SparseBoolVectorModelOptions {
-
     object Exact extends SparseBoolVectorModelOptions
     object JaccardIndexed extends SparseBoolVectorModelOptions
     case class JaccardLsh(numBands: Int, numRows: Int) extends SparseBoolVectorModelOptions
-
     implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames.withSnakeCaseConstructorNames
       .withDiscriminator("type")
     implicit val enc: Encoder[SparseBoolVectorModelOptions] = deriveConfiguredEncoder
