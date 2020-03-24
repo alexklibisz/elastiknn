@@ -20,7 +20,7 @@ object CircePlayground {
     mappings.foreach { m: Mapping =>
       val j = implicitly[ElasticsearchCodec[Mapping]].encode(m).asJson
       println(j.spaces2)
-      println(implicitly[ElasticsearchCodec[Mapping]].decode(j))
+      println(implicitly[ElasticsearchCodec[Mapping]].decodeJson(j))
       println("-" * 80)
     }
 
@@ -33,7 +33,7 @@ object CircePlayground {
     vectors.foreach { v: Vector =>
       val j = implicitly[ElasticsearchCodec[Vector]].encode(v).asJson
       println(j.spaces2)
-      println(implicitly[ElasticsearchCodec[Vector]].decode(j))
+      println(implicitly[ElasticsearchCodec[Vector]].decodeJson(j))
       println("-" * 80)
     }
 

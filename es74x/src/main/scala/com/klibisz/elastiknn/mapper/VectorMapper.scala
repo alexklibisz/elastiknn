@@ -51,7 +51,7 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vecto
   class TypeParser extends Mapper.TypeParser {
 
     override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
-      val mappingTry = implicitly[ElasticsearchCodec[M]].decode(node.asJson).toTry
+      val mappingTry = implicitly[ElasticsearchCodec[M]].decodeJson(node.asJson).toTry
       val builder = new Builder(name, mappingTry.get)
       TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
@@ -100,7 +100,7 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vecto
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser().map().asJson
-          val vecTry = implicitly[ElasticsearchCodec[V]].decode(json).toTry
+          val vecTry = implicitly[ElasticsearchCodec[V]].decodeJson(json).toTry
           mapper.index(mapping, vecTry.get, doc)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =

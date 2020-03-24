@@ -27,7 +27,7 @@ object KnnQueryBuilder {
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       val json: Json = javaMapEncoder(parser.map)
-      val queryTry = ElasticsearchCodec.decode[NearestNeighborsQuery](json).toTry
+      val queryTry = ElasticsearchCodec.decodeJson[NearestNeighborsQuery](json).toTry
       new KnnQueryBuilder(queryTry.get)
     }
   }
@@ -94,7 +94,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
                   .get(query.field)
                   .asInstanceOf[java.util.Map[String, AnyRef]]
                 val srcJson = javaMapEncoder(srcMap)
-                val mapping: Mapping = ElasticsearchCodec.decodeGet[Mapping](srcJson)
+                val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
                 mappingCache.put((query.index, query.field), mapping)
                 supplier.set(copy(mappingOpt = Some(mapping)))
                 l.asInstanceOf[ActionListener[Any]].onResponse(null)
@@ -123,7 +123,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
                 .get(ixv.field)
                 .asInstanceOf[java.util.Map[String, AnyRef]]
               val srcJson: Json = javaMapEncoder(srcMap)
-              val vector = ElasticsearchCodec.decodeGet[api.Vector](srcJson)
+              val vector = ElasticsearchCodec.decodeJsonGet[api.Vector](srcJson)
               supplier.set(copy(query.copy(vector = vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
