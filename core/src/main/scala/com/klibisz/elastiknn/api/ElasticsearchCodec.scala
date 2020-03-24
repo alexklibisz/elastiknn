@@ -68,19 +68,25 @@ object ElasticsearchCodec {
         .orElse(indexedVector.decode(j))
   }
 
+  implicit val jaccardLshModelOptions: ESC[SparseBoolVectorModelOptions.JaccardLsh] = new ESC[SparseBoolVectorModelOptions.JaccardLsh] {
+    implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
+    private val enc: Encoder[SparseBoolVectorModelOptions.JaccardLsh] = deriveConfiguredEncoder
+    private val dec: Decoder[SparseBoolVectorModelOptions.JaccardLsh] = deriveConfiguredDecoder
+    override def encode(t: SparseBoolVectorModelOptions.JaccardLsh): Json = enc(t)
+    override def decode(j: Json): Either[DecodingFailure, SparseBoolVectorModelOptions.JaccardLsh] = dec.decodeJson(j)
+  }
+
   implicit val sparseBoolVectorModelOptions: ESC[SparseBoolVectorModelOptions] = new ESC[SparseBoolVectorModelOptions] {
 
     private val EXACT = "exact"
     private val JACCIX = "jaccard_indexed"
     private val JACCLSH = "jaccard_lsh"
-    private val BANDS = "bands"
-    private val ROWS = "rows"
 
     override def encode(t: SparseBoolVectorModelOptions): Json = t match {
       case SparseBoolVectorModelOptions.Exact          => JsonObject(TYPE -> EXACT)
       case SparseBoolVectorModelOptions.JaccardIndexed => JsonObject(TYPE -> JACCIX)
-      case SparseBoolVectorModelOptions.JaccardLsh(bands: Int, rows: Int) =>
-        JsonObject(TYPE -> JACCLSH, BANDS -> bands, ROWS -> rows)
+      case jlsh: SparseBoolVectorModelOptions.JaccardLsh =>
+        JsonObject(TYPE -> JACCLSH).deepMerge(implicitly[ESC[SparseBoolVectorModelOptions.JaccardLsh]].encode(jlsh))
     }
 
     override def decode(j: Json): Either[DecodingFailure, SparseBoolVectorModelOptions] = {
@@ -88,14 +94,10 @@ object ElasticsearchCodec {
       for {
         typ <- c.downField(TYPE).as[String]
         mopts <- typ match {
-          case EXACT  => Right(SparseBoolVectorModelOptions.Exact)
-          case JACCIX => Right(SparseBoolVectorModelOptions.JaccardIndexed)
-          case JACCLSH =>
-            for {
-              bands <- c.downField(BANDS).as[Int]
-              rows <- c.downField(ROWS).as[Int]
-            } yield SparseBoolVectorModelOptions.JaccardLsh(bands, rows)
-          case other => fail(s"Expected type $TYPE $EXACT, $JACCIX, or $JACCLSH, but got $other")
+          case EXACT   => Right(SparseBoolVectorModelOptions.Exact)
+          case JACCIX  => Right(SparseBoolVectorModelOptions.JaccardIndexed)
+          case JACCLSH => implicitly[ESC[SparseBoolVectorModelOptions.JaccardLsh]].decode(j)
+          case other   => fail(s"Expected type $TYPE $EXACT, $JACCIX, or $JACCLSH, but got $other")
         }
       } yield mopts
     }
