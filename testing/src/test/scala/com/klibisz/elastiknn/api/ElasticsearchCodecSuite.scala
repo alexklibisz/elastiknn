@@ -1,8 +1,10 @@
 package com.klibisz.elastiknn.api
 
 import io.circe
-import io.circe.Json
+import io.circe.{DecodingFailure, Json}
 import org.scalatest.{Assertion, FunSuite, Matchers}
+
+import scala.language.postfixOps
 
 class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
@@ -29,6 +31,12 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
         ElasticsearchCodec.decodeB64(enc) shouldBe Right(obj)
       }
     }
+
+    def shouldNotDecode[T: ElasticsearchCodec]: Assertion = {
+      val parsed = ElasticsearchCodec.parse(s)
+      assertThrows[DecodingFailure](parsed.flatMap(ElasticsearchCodec.decodeJson[T]).toTry.get)
+    }
+
   }
 
   test("mappings w/o models") {
@@ -48,8 +56,39 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
   }
 
-//  test("mappings w/ invalid types") {}
-//  test("mappings w/ jaccard_indexed models") {}
-//  test("mappings w/ jaccard_lsh models") {}
+  test("mappings w/ invalid types") {
+    """
+      |{
+      | "type": "elastiknn_wrong",
+      | "dims": 100
+      |}
+      |""".stripMargin.shouldNotDecode[Mapping]
+  }
+
+  test("mappings w/ jaccard_indexed models") {
+    """
+      |{
+      | "type": "elastiknn_sparse_bool_vector",
+      | "dims": 100,
+      | "model_options": {
+      |  "type": "jaccard_indexed"
+      | }
+      |}
+      |""".stripMargin matches (Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardIndexed)): Mapping)
+  }
+
+  test("mappings w/ jaccard_lsh models") {
+    """
+      |{
+      | "type": "elastiknn_sparse_bool_vector",
+      | "dims": 100,
+      | "model_options": {
+      |   "type": "jaccard_lsh",
+      |   "bands": 99,
+      |   "rows": 1
+      | }
+      |}
+      |""".stripMargin matches (Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1))): Mapping)
+  }
 
 }
