@@ -27,6 +27,7 @@ object ElasticsearchCodec {
   private val INDEX = "index"
 
   private type ESC[T] = ElasticsearchCodec[T]
+  private val esc = this
 
   private def fail[T](msg: String): Either[DecodingFailure, T] = Left(DecodingFailure(msg, List.empty))
 
@@ -74,9 +75,9 @@ object ElasticsearchCodec {
 
   implicit val vector: ESC[api.Vector] = new ESC[api.Vector] {
     override def encode(t: Vector): Json = t match {
-      case ixv: IndexedVector    => ElasticsearchCodec.encode(ixv)
-      case sbv: SparseBoolVector => ElasticsearchCodec.encode(sbv)
-      case dfv: DenseFloatVector => ElasticsearchCodec.encode(dfv)
+      case ixv: IndexedVector    => esc.encode(ixv)
+      case sbv: SparseBoolVector => esc.encode(sbv)
+      case dfv: DenseFloatVector => esc.encode(dfv)
     }
 
     override def decode(j: Json): Either[DecodingFailure, Vector] =
@@ -100,9 +101,8 @@ object ElasticsearchCodec {
     private val JACCLSH = "jaccard_lsh"
 
     override def encode(t: SparseBoolVectorModelOptions): Json = t match {
-      case SparseBoolVectorModelOptions.Exact            => JsonObject(TYPE -> EXACT)
       case SparseBoolVectorModelOptions.JaccardIndexed   => JsonObject(TYPE -> JACCIX)
-      case jlsh: SparseBoolVectorModelOptions.JaccardLsh => JsonObject(TYPE -> JACCLSH).deepMerge(ElasticsearchCodec.encode(jlsh))
+      case jlsh: SparseBoolVectorModelOptions.JaccardLsh => JsonObject(TYPE -> JACCLSH).deepMerge(esc.encode(jlsh))
     }
 
     override def decode(j: Json): Either[DecodingFailure, SparseBoolVectorModelOptions] = {
@@ -110,7 +110,6 @@ object ElasticsearchCodec {
       for {
         typ <- c.downField(TYPE).as[String]
         mopts <- typ match {
-          case EXACT   => Right(SparseBoolVectorModelOptions.Exact)
           case JACCIX  => Right(SparseBoolVectorModelOptions.JaccardIndexed)
           case JACCLSH => implicitly[ESC[SparseBoolVectorModelOptions.JaccardLsh]].decode(j)
           case other   => fail(s"Expected $TYPE to be one of ($EXACT, $JACCIX, $JACCLSH) but got $other")
@@ -120,41 +119,52 @@ object ElasticsearchCodec {
   }
 
   implicit val denseFloatVectorModelOptions: ESC[DenseFloatVectorModelOptions] = new ESC[DenseFloatVectorModelOptions] {
+    private val ANGLSH = "angular_lsh"
     override def encode(t: DenseFloatVectorModelOptions): Json = t match {
-      case DenseFloatVectorModelOptions.Exact => JsonObject(TYPE -> EXACT)
+      case _: DenseFloatVectorModelOptions.AngularLsh => JsonObject(TYPE -> ANGLSH)
     }
     override def decode(j: Json): Either[DecodingFailure, DenseFloatVectorModelOptions] = {
       val c = j.hcursor
       for {
         typ <- c.downField(TYPE).as[String]
         mopts <- typ match {
-          case EXACT => Right(DenseFloatVectorModelOptions.Exact)
-          case other => fail(s"Expect $TYPE to be one of ($EXACT) but got $other")
+          case other => fail(s"Expected $TYPE to be one of ($EXACT) but got $other")
         }
       } yield mopts
     }
   }
 
   implicit val mappingDenseFloatVector: ESC[Mapping.DenseFloatVector] = new ESC[Mapping.DenseFloatVector] {
-    override def encode(t: Mapping.DenseFloatVector): Json = JsonObject(DIMS -> t.dims, MOPTS -> ElasticsearchCodec.encode(t.modelOptions))
+    override def encode(t: Mapping.DenseFloatVector): Json = t.modelOptions match {
+      case Some(mopts) => JsonObject(DIMS -> t.dims, MOPTS -> esc.encode(mopts))
+      case None        => JsonObject(DIMS -> t.dims)
+    }
     override def decode(j: Json): Either[DecodingFailure, Mapping.DenseFloatVector] = {
       val c = j.hcursor
       for {
         dims <- c.downField(DIMS).as[Int]
-        moptsJson <- c.downField(MOPTS).as[Json]
-        mopts <- implicitly[ESC[DenseFloatVectorModelOptions]].decode(moptsJson)
+        mopts <- j.findAllByKey(MOPTS).headOption match {
+          case Some(moptsJson) => esc.decode[DenseFloatVectorModelOptions](moptsJson).map(Some(_))
+          case None            => Right(None)
+        }
       } yield Mapping.DenseFloatVector(dims, mopts)
     }
   }
 
   implicit val mappingSparseBoolVector: ESC[Mapping.SparseBoolVector] = new ESC[Mapping.SparseBoolVector] {
-    override def encode(t: Mapping.SparseBoolVector): Json = JsonObject(DIMS -> t.dims, MOPTS -> ElasticsearchCodec.encode(t.modelOptions))
+    override def encode(t: Mapping.SparseBoolVector): Json = t.modelOptions match {
+      case Some(mopts) => JsonObject(DIMS -> t.dims, MOPTS -> esc.encode(mopts))
+      case None        => JsonObject(DIMS -> t.dims)
+    }
+
     override def decode(j: Json): Either[DecodingFailure, Mapping.SparseBoolVector] = {
       val c = j.hcursor
       for {
         dims <- c.downField(DIMS).as[Int]
-        moptsJson <- c.downField(MOPTS).as[Json]
-        mopts <- implicitly[ESC[SparseBoolVectorModelOptions]].decode(moptsJson)
+        mopts <- j.findAllByKey(MOPTS).headOption match {
+          case Some(moptsJson) => esc.decode[SparseBoolVectorModelOptions](moptsJson).map(Some(_))
+          case None            => Right(None)
+        }
       } yield Mapping.SparseBoolVector(dims, mopts)
     }
   }
@@ -165,8 +175,8 @@ object ElasticsearchCodec {
     val EKNNDFV = s"${ELASTIKNN_NAME}_dense_float_vector"
 
     override def encode(t: Mapping): Json = t match {
-      case sbv: Mapping.SparseBoolVector => JsonObject(TYPE -> EKNNSBV).deepMerge(ElasticsearchCodec.encode(sbv))
-      case dfv: Mapping.DenseFloatVector => JsonObject(TYPE -> EKNNDFV).deepMerge(ElasticsearchCodec.encode(dfv))
+      case sbv: Mapping.SparseBoolVector => JsonObject(TYPE -> EKNNSBV).deepMerge(esc.encode(sbv))
+      case dfv: Mapping.DenseFloatVector => JsonObject(TYPE -> EKNNDFV).deepMerge(esc.encode(dfv))
     }
 
     override def decode(j: Json): Either[DecodingFailure, Mapping] = {
@@ -184,16 +194,19 @@ object ElasticsearchCodec {
   }
 
   implicit val nearestNeighborsQuery: ESC[Query.NearestNeighborsQuery] = new ESC[Query.NearestNeighborsQuery] {
+    val QUERY_OPTIONS = "query_options"
     override def encode(t: Query.NearestNeighborsQuery): Json =
-      JsonObject(FIELD -> t.field, INDEX -> t.index, VECTOR -> ElasticsearchCodec.encode(t.vector))
+      JsonObject(FIELD -> t.field, INDEX -> t.index, VECTOR -> esc.encode(t.vector))
     override def decode(j: Json): Either[DecodingFailure, Query.NearestNeighborsQuery] = {
       val c = j.hcursor
       for {
         index <- c.downField(INDEX).as[String]
         field <- c.downField(FIELD).as[String]
         vecJson <- c.downField(VECTOR).as[Json]
-        vec <- implicitly[ESC[api.Vector]].decode(vecJson)
-      } yield Query.NearestNeighborsQuery(index, field, vec)
+        vec <- esc.decode[api.Vector](vecJson)
+//        qoptsJson <- c.downField(QUERY_OPTIONS).as[Json]
+//        qopts <- esc.decode[api.QueryOptions](qoptsJson)
+      } yield Query.NearestNeighborsQuery(index, field, vec, QueryOptions.Exact(Similarity.Jaccard))
     }
   }
 

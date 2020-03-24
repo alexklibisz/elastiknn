@@ -13,9 +13,8 @@ object CircePlayground {
   def main(args: Array[String]): Unit = {
 
     val mappings: Seq[Mapping] = Seq(
-      Mapping.SparseBoolVector(100, SparseBoolVectorModelOptions.Exact),
-      Mapping.SparseBoolVector(100, SparseBoolVectorModelOptions.JaccardIndexed),
-      Mapping.SparseBoolVector(100, SparseBoolVectorModelOptions.JaccardLsh(99, 1))
+      Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardIndexed)),
+      Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1)))
     )
 
     mappings.foreach { m: Mapping =>
@@ -26,7 +25,7 @@ object CircePlayground {
     }
 
     val vectors: Seq[Vector] = Seq(
-      Vector.IndexedVector("foo", "bar"),
+      Vector.IndexedVector("foo", "bar", "baz"),
       Vector.DenseFloatVector(Array(1, 2, 3)),
       Vector.SparseBoolVector(Array(1, 2, 3), 10)
     )

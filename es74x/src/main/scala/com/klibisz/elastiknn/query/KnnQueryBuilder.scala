@@ -138,9 +138,8 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
 
   private def sparseBool(c: QueryShardContext, m: Mapping.SparseBoolVector, v: api.Vector.SparseBoolVector): Query =
     m.modelOptions match {
-      case SparseBoolVectorModelOptions.Exact                   => ???
-      case SparseBoolVectorModelOptions.JaccardIndexed          => ???
-      case SparseBoolVectorModelOptions.JaccardLsh(bands, rows) => ???
+      case Some(SparseBoolVectorModelOptions.JaccardIndexed)          => ???
+      case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) => ???
     }
 
   private def denseFloat(c: QueryShardContext, m: Mapping.DenseFloatVector, v: api.Vector.DenseFloatVector): Query = {

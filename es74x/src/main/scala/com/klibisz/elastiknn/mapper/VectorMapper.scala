@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolVectorModelOptions}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.VectorDimensionException
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
@@ -21,13 +21,11 @@ object VectorMapper {
     new VectorMapper[api.Mapping.SparseBoolVector, api.Vector.SparseBoolVector] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
       override def index(mapping: api.Mapping.SparseBoolVector, vec: api.Vector.SparseBoolVector, doc: ParseContext.Document): Unit = {
+        if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
+        ExactSimilarityQuery.index(vec).foreach(doc.add)
         mapping.modelOptions match {
-          case api.SparseBoolVectorModelOptions.Exact =>
-            if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
-            ExactSimilarityQuery.index(vec).foreach(doc.add)
-
-          case api.SparseBoolVectorModelOptions.JaccardIndexed          =>
-          case api.SparseBoolVectorModelOptions.JaccardLsh(bands, rows) =>
+          case Some(SparseBoolVectorModelOptions.JaccardIndexed)          =>
+          case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) =>
         }
       }
     }
