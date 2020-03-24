@@ -4,13 +4,15 @@ import java.util
 
 import com.klibisz.elastiknn.api.Mapping
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.VectorDimensionException
+import com.klibisz.elastiknn.query.ExactSimilarityQuery
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
+import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
-
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
@@ -21,7 +23,14 @@ object VectorMapper {
       override def index(mapping: api.Mapping.ElastiknnSparseBoolVector,
                          vec: api.Vector.SparseBoolVector,
                          doc: ParseContext.Document): Unit = {
-        ()
+        mapping.modelOptions match {
+          case api.SparseBoolVectorModelOptions.Exact =>
+            if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
+            ExactSimilarityQuery.index(vec).foreach(doc.add)
+
+          case api.SparseBoolVectorModelOptions.JaccardIndexed          =>
+          case api.SparseBoolVectorModelOptions.JaccardLsh(bands, rows) =>
+        }
       }
     }
   val denseFloatVector: VectorMapper[api.Mapping.ElastiknnDenseFloatVector, api.Vector.DenseFloatVector] =

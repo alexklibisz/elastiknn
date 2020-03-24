@@ -8,14 +8,14 @@ object Vector {
 
   private val circeConfig = Configuration.default.withSnakeCaseMemberNames.withSnakeCaseConstructorNames.withStrictDecoding
 
-  case class SparseBoolVector(trueIndices: Vector[Int], totalIndices: Int)
+  case class SparseBoolVector(trueIndices: Array[Int], totalIndices: Int)
   object SparseBoolVector {
     implicit val cfg: Configuration = circeConfig
     implicit val enc: Encoder[SparseBoolVector] = deriveConfiguredEncoder
     implicit val dec: Decoder[SparseBoolVector] = deriveConfiguredDecoder
   }
 
-  case class DenseFloatVector(values: Vector[Float])
+  case class DenseFloatVector(values: Array[Float])
   object DenseFloatVector {
     implicit val cfg: Configuration = circeConfig
     implicit val enc: Encoder[DenseFloatVector] = deriveConfiguredEncoder
