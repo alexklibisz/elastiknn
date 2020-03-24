@@ -25,6 +25,19 @@ object CircePlayground {
       println("-" * 80)
     }
 
+    val vectors: Seq[Vector] = Seq(
+      Vector.IndexedVector("foo", "bar"),
+      Vector.DenseFloatVector(Array(1, 2, 3)),
+      Vector.SparseBoolVector(Array(1, 2, 3), 10)
+    )
+
+    vectors.foreach { v: Vector =>
+      val j = implicitly[ElasticsearchCodec[Vector]].encode(v).asJson
+      println(j.spaces2)
+      println(implicitly[ElasticsearchCodec[Vector]].decode(j))
+      println("-" * 80)
+    }
+
   }
 
 }

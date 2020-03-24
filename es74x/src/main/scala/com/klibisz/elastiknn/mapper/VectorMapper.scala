@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.Mapping
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.VectorDimensionException
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
@@ -40,7 +40,7 @@ object VectorMapper {
     }
 }
 
-abstract class VectorMapper[M <: api.Mapping, V: Decoder] {
+abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vector: ElasticsearchCodec] {
 
   val CONTENT_TYPE: String
   def index(mapping: M, vec: V, doc: ParseContext.Document): Unit
@@ -53,7 +53,7 @@ abstract class VectorMapper[M <: api.Mapping, V: Decoder] {
   class TypeParser extends Mapper.TypeParser {
 
     override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
-      val mappingTry = implicitly[Decoder[Mapping]].decodeJson(node.asJson).map(_.asInstanceOf[M]).toTry
+      val mappingTry = implicitly[ElasticsearchCodec[M]].decode(node.asJson).toTry
       val builder = new Builder(name, mappingTry.get)
       TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
@@ -102,7 +102,7 @@ abstract class VectorMapper[M <: api.Mapping, V: Decoder] {
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser().map().asJson
-          val vecTry = implicitly[Decoder[V]].decodeJson(json).toTry
+          val vecTry = implicitly[ElasticsearchCodec[V]].decode(json).toTry
           mapper.index(mapping, vecTry.get, doc)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
@@ -110,8 +110,8 @@ abstract class VectorMapper[M <: api.Mapping, V: Decoder] {
         override def contentType(): String = CONTENT_TYPE
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)
-          implicitly[Encoder[Mapping]]
-            .apply(mapping)
+          implicitly[ElasticsearchCodec[M]]
+            .encode(mapping)
             .asObject
             .map(_.toIterable.filter(_._1 != "type"))
             .map(JsonObject.fromIterable)
