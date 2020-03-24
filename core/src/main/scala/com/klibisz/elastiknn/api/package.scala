@@ -22,14 +22,13 @@ package object api {
   }
 
   sealed trait Vector
-
   object Vector {
     case class SparseBoolVector(trueIndices: Array[Int], totalIndices: Int) extends Vector
     case class DenseFloatVector(values: Array[Float]) extends Vector
-    case class IndexedVector(index: String, id: String) extends Vector
+    case class IndexedVector(index: String, id: String, field: String) extends Vector
   }
 
   object Query {
-    case class NearestNeighborsQuery(field: String, vector: Vector)
+    case class NearestNeighborsQuery(index: String, field: String, vector: Vector)
   }
 }

@@ -158,7 +158,7 @@ final class KnnQueryBuilderOld(val query: KNearestNeighborsQuery, processorOptio
         }
       )
     })
-    RewriteLater(_ => supplier.get())
+    RewriteQueryBuilder(_ => supplier.get())
   }
 
   private def rewriteFetchProcessorOptions(context: QueryRewriteContext): QueryBuilder = {
@@ -202,7 +202,7 @@ final class KnnQueryBuilderOld(val query: KNearestNeighborsQuery, processorOptio
           }
         )
       })
-      RewriteLater(_ => supplier.get())
+      RewriteQueryBuilder(_ => supplier.get())
     }
   }
 }

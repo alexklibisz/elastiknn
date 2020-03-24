@@ -12,13 +12,13 @@ import org.elasticsearch.index.query._
   *
   * @param f An anonymous function that takes a rewrite context and returns a QueryBuilder.
   */
-private[query] case class RewriteLater(f: QueryRewriteContext => QueryBuilder) extends AbstractQueryBuilder[RewriteLater] {
+private[query] case class RewriteQueryBuilder(f: QueryRewriteContext => QueryBuilder) extends AbstractQueryBuilder[RewriteQueryBuilder] {
   override def doRewrite(c: QueryRewriteContext): QueryBuilder = f(c)
   private val ex = new UnsupportedOperationException("Only supports doRewrite")
   def doWriteTo(out: StreamOutput): Unit = throw ex
   def doXContent(b: XContentBuilder, p: ToXContent.Params): Unit = throw ex
   def doToQuery(context: QueryShardContext): Query = throw ex
-  def doEquals(other: RewriteLater): Boolean = throw ex
+  def doEquals(other: RewriteQueryBuilder): Boolean = throw ex
   def doHashCode(): Int = throw ex
   def getWriteableName: String = throw ex
 }

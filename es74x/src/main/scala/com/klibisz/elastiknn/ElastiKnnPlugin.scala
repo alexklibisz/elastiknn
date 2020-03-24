@@ -36,11 +36,12 @@ class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with 
     singletonMap(IngestProcessor.TYPE, new IngestProcessor.Factory)
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
-    new QuerySpec(KnnQueryBuilderOld.NAME, KnnQueryBuilderOld.Reader, KnnQueryBuilderOld.Parser),
-    new QuerySpec(ExactComputedQueryBuilder.NAME, ExactComputedQueryBuilder.Reader, ExactComputedQueryBuilder.Parser),
-    new QuerySpec(JaccardIndexedQueryBuilder.NAME, JaccardIndexedQueryBuilder.Reader, JaccardIndexedQueryBuilder.Parser),
-    new QuerySpec(JaccardLshQueryBuilder.NAME, JaccardLshQueryBuilder.Reader, JaccardLshQueryBuilder.Parser),
-    new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
+    new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
+//    new QuerySpec(KnnQueryBuilderOld.NAME, KnnQueryBuilderOld.Reader, KnnQueryBuilderOld.Parser),
+//    new QuerySpec(ExactComputedQueryBuilder.NAME, ExactComputedQueryBuilder.Reader, ExactComputedQueryBuilder.Parser),
+//    new QuerySpec(JaccardIndexedQueryBuilder.NAME, JaccardIndexedQueryBuilder.Reader, JaccardIndexedQueryBuilder.Parser),
+//    new QuerySpec(JaccardLshQueryBuilder.NAME, JaccardLshQueryBuilder.Reader, JaccardLshQueryBuilder.Parser),
+//    new QuerySpec(RadiusQueryBuilder.NAME, RadiusQueryBuilder.Reader, RadiusQueryBuilder.Parser)
   )
 
   override def getMappers: util.Map[String, Mapper.TypeParser] = {
