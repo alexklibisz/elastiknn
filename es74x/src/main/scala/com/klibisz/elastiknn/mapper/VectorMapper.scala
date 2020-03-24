@@ -17,12 +17,10 @@ import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[api.Mapping.ElastiknnSparseBoolVector, api.Vector.SparseBoolVector] =
-    new VectorMapper[api.Mapping.ElastiknnSparseBoolVector, api.Vector.SparseBoolVector] {
+  val sparseBoolVector: VectorMapper[api.Mapping.SparseBoolVector, api.Vector.SparseBoolVector] =
+    new VectorMapper[api.Mapping.SparseBoolVector, api.Vector.SparseBoolVector] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: api.Mapping.ElastiknnSparseBoolVector,
-                         vec: api.Vector.SparseBoolVector,
-                         doc: ParseContext.Document): Unit = {
+      override def index(mapping: api.Mapping.SparseBoolVector, vec: api.Vector.SparseBoolVector, doc: ParseContext.Document): Unit = {
         mapping.modelOptions match {
           case api.SparseBoolVectorModelOptions.Exact =>
             if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
@@ -33,10 +31,10 @@ object VectorMapper {
         }
       }
     }
-  val denseFloatVector: VectorMapper[api.Mapping.ElastiknnDenseFloatVector, api.Vector.DenseFloatVector] =
-    new VectorMapper[api.Mapping.ElastiknnDenseFloatVector, api.Vector.DenseFloatVector] {
+  val denseFloatVector: VectorMapper[api.Mapping.DenseFloatVector, api.Vector.DenseFloatVector] =
+    new VectorMapper[api.Mapping.DenseFloatVector, api.Vector.DenseFloatVector] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.ElastiknnDenseFloatVector, vec: api.Vector.DenseFloatVector, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.DenseFloatVector, vec: api.Vector.DenseFloatVector, doc: ParseContext.Document): Unit = {
         ()
       }
     }
