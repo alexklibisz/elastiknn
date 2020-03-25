@@ -15,5 +15,5 @@ object JaccardLshQuery {
             field: String,
             mopts: SparseBoolModelOptions.JaccardLsh,
             qopts: QueryOptions.JaccardLsh,
-            vec: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(field)
+            vec: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(ExactSimilarityQuery.FIELD_NAME)
 }

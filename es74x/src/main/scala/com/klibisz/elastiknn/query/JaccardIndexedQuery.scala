@@ -12,5 +12,5 @@ class JaccardIndexedQuery() extends Query {
 
 object JaccardIndexedQuery {
   def apply(c: QueryShardContext, field: String, v: Vec.SparseBool): Query =
-    new DocValuesFieldExistsQuery(field)
+    new DocValuesFieldExistsQuery(ExactSimilarityQuery.FIELD_NAME)
 }

@@ -23,14 +23,14 @@ object ExactSimilarityQuery {
     Seq(new BinaryDocValuesField(FIELD_NAME, new BytesRef(stored.toByteArray)))
   }
 
-  def jaccard(c: QueryShardContext, field: String, v: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(field)
+  def jaccard(c: QueryShardContext, field: String, v: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(FIELD_NAME)
 
-  def hamming(c: QueryShardContext, field: String, v: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(field)
+  def hamming(c: QueryShardContext, field: String, v: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(FIELD_NAME)
 
-  def l1(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(field)
+  def l1(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(FIELD_NAME)
 
-  def l2(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(field)
+  def l2(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(FIELD_NAME)
 
-  def angular(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(field)
+  def angular(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(FIELD_NAME)
 
 }
