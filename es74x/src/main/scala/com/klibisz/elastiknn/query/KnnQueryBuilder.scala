@@ -6,7 +6,7 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.Query.NearestNeighborsQuery
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolVectorModelOptions}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, QueryOptions, SparseBoolVectorModelOptions}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
@@ -51,11 +51,16 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doToQuery(context: QueryShardContext): Query = (mappingOpt, query.vector) match {
-    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool) => sparseBool(context, m, v)
-    case (Some(m: Mapping.DenseFloat), v: api.Vec.DenseFloat) => denseFloat(context, m, v)
-    case (Some(m: Mapping), v: api.Vec)                       => throw new IllegalArgumentException(s"Mapping $m is not compatible with vector $v")
-    case (None, _)                                            => throw new IllegalArgumentException(s"Mapping is missing.")
+  override def doToQuery(c: QueryShardContext): Query = (mappingOpt, query.vector, query.queryOptions) match {
+    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, q: QueryOptions.Exact)       => exactSparseBool(c, m, v, q)
+    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, QueryOptions.JaccardIndexed) => jaccardIndexed(c, m, v)
+    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, q: QueryOptions.JaccardLsh)  => jaccardLsh(c, m, v)
+    case (_, _, _) =>
+      val msg =
+        s"Incompatible combination of mapping [${mappingOpt.map(ElasticsearchCodec.encode(_).noSpaces)}]," +
+          s"vector [${ElasticsearchCodec.encode(query.vector).noSpaces}]," +
+          s"query options [${ElasticsearchCodec.encode(query.queryOptions).noSpaces}]"
+      throw new IllegalArgumentException(msg)
   }
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
@@ -136,15 +141,15 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
     RewriteQueryBuilder(_ => supplier.get())
   }
 
-  private def sparseBool(c: QueryShardContext, m: Mapping.SparseBool, v: api.Vec.SparseBool): Query =
-    m.modelOptions match {
-      case Some(SparseBoolVectorModelOptions.JaccardIndexed)          => ???
-      case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) => ???
-      case None                                                       => ???
-    }
-
-  private def denseFloat(c: QueryShardContext, m: Mapping.DenseFloat, v: api.Vec.DenseFloat): Query = {
+  private def exactSparseBool(c: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool, q: api.QueryOptions.Exact): Query = {
     ???
   }
 
+  private def jaccardIndexed(context: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool): Query = {
+    ???
+  }
+
+  private def jaccardLsh(c: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool): Query = {
+    ???
+  }
 }
