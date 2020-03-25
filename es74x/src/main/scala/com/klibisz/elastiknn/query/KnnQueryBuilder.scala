@@ -37,7 +37,7 @@ object KnnQueryBuilder {
       // https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
       in.readFloat()
       in.readOptionalString()
-      new KnnQueryBuilder(ElasticsearchCodec.parseGetB64[NearestNeighborsQuery](in.readString()))
+      new KnnQueryBuilder(ElasticsearchCodec.decodeB64Get[NearestNeighborsQuery](in.readString()))
     }
   }
 
@@ -52,10 +52,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
   override def doToQuery(context: QueryShardContext): Query = (mappingOpt, query.vector) match {
-    case (Some(m: Mapping.SparseBoolVector), v: api.Vector.SparseBoolVector) => sparseBool(context, m, v)
-    case (Some(m: Mapping.DenseFloatVector), v: api.Vector.DenseFloatVector) => denseFloat(context, m, v)
-    case (Some(m: Mapping), v: api.Vector)                                   => throw new IllegalArgumentException(s"Mapping $m is not compatible with vector $v")
-    case (None, _)                                                           => throw new IllegalArgumentException(s"Mapping is missing.")
+    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool) => sparseBool(context, m, v)
+    case (Some(m: Mapping.DenseFloat), v: api.Vec.DenseFloat) => denseFloat(context, m, v)
+    case (Some(m: Mapping), v: api.Vec)                       => throw new IllegalArgumentException(s"Mapping $m is not compatible with vector $v")
+    case (None, _)                                            => throw new IllegalArgumentException(s"Mapping is missing.")
   }
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
@@ -65,9 +65,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
   override def getWriteableName: String = KnnQueryBuilder.NAME
 
   override def doRewrite(context: QueryRewriteContext): QueryBuilder = (mappingOpt, query.vector) match {
-    case (None, _)                          => rewriteGetMapping(context)
-    case (_, ixv: api.Vector.IndexedVector) => rewriteGetVector(context, ixv)
-    case _                                  => this
+    case (None, _)                 => rewriteGetMapping(context)
+    case (_, ixv: api.Vec.Indexed) => rewriteGetVector(context, ixv)
+    case _                         => this
   }
 
   // Fetch the mapping and return a [[KnnQueryBuilder]] with the mapping defined.
@@ -109,7 +109,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
     }
   }
 
-  private def rewriteGetVector(c: QueryRewriteContext, ixv: api.Vector.IndexedVector): QueryBuilder = {
+  private def rewriteGetVector(c: QueryRewriteContext, ixv: api.Vec.Indexed): QueryBuilder = {
     def ex(e: Exception) = new RuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
     val supplier = new SetOnce[KnnQueryBuilder]()
     c.registerAsyncAction((client: Client, l: ActionListener[_]) => {
@@ -123,7 +123,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
                 .get(ixv.field)
                 .asInstanceOf[java.util.Map[String, AnyRef]]
               val srcJson: Json = javaMapEncoder(srcMap)
-              val vector = ElasticsearchCodec.decodeJsonGet[api.Vector](srcJson)
+              val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.copy(vector = vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
@@ -136,13 +136,14 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
     RewriteQueryBuilder(_ => supplier.get())
   }
 
-  private def sparseBool(c: QueryShardContext, m: Mapping.SparseBoolVector, v: api.Vector.SparseBoolVector): Query =
+  private def sparseBool(c: QueryShardContext, m: Mapping.SparseBool, v: api.Vec.SparseBool): Query =
     m.modelOptions match {
       case Some(SparseBoolVectorModelOptions.JaccardIndexed)          => ???
       case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) => ???
+      case None                                                       => ???
     }
 
-  private def denseFloat(c: QueryShardContext, m: Mapping.DenseFloatVector, v: api.Vector.DenseFloatVector): Query = {
+  private def denseFloat(c: QueryShardContext, m: Mapping.DenseFloat, v: api.Vec.DenseFloat): Query = {
     ???
   }
 

@@ -11,7 +11,7 @@ object ExactSimilarityQuery {
 
   val FIELD_NAME: String = s"${ELASTIKNN_NAME}.vector"
 
-  def index(sbv: api.Vector.SparseBoolVector): Seq[IndexableField] = {
+  def index(sbv: api.Vec.SparseBool): Seq[IndexableField] = {
     val stored = storage.SparseBoolVector(sbv.trueIndices, sbv.totalIndices)
     Seq(new BinaryDocValuesField(FIELD_NAME, new BytesRef(stored.toByteArray)))
   }

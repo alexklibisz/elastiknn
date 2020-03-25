@@ -3,12 +3,10 @@ package com.klibisz.elastiknn.mapper
 import java.util
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolVectorModelOptions}
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
-import com.klibisz.elastiknn.VectorDimensionException
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json, JsonObject}
-import org.apache.lucene.document.BinaryDocValuesField
+import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
@@ -17,28 +15,29 @@ import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[api.Mapping.SparseBoolVector, api.Vector.SparseBoolVector] =
-    new VectorMapper[api.Mapping.SparseBoolVector, api.Vector.SparseBoolVector] {
+  val sparseBoolVector: VectorMapper[api.Mapping.SparseBool, api.Vec.SparseBool] =
+    new VectorMapper[api.Mapping.SparseBool, api.Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: api.Mapping.SparseBoolVector, vec: api.Vector.SparseBoolVector, doc: ParseContext.Document): Unit = {
+      override def index(mapping: api.Mapping.SparseBool, vec: api.Vec.SparseBool, doc: ParseContext.Document): Unit = {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
         ExactSimilarityQuery.index(vec).foreach(doc.add)
         mapping.modelOptions match {
           case Some(SparseBoolVectorModelOptions.JaccardIndexed)          =>
           case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) =>
+          case None                                                       =>
         }
       }
     }
-  val denseFloatVector: VectorMapper[api.Mapping.DenseFloatVector, api.Vector.DenseFloatVector] =
-    new VectorMapper[api.Mapping.DenseFloatVector, api.Vector.DenseFloatVector] {
+  val denseFloatVector: VectorMapper[api.Mapping.DenseFloat, api.Vec.DenseFloat] =
+    new VectorMapper[api.Mapping.DenseFloat, api.Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.DenseFloatVector, vec: api.Vector.DenseFloatVector, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.DenseFloat, vec: api.Vec.DenseFloat, doc: ParseContext.Document): Unit = {
         ()
       }
     }
 }
 
-abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vector: ElasticsearchCodec] {
+abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vec: ElasticsearchCodec] {
 
   val CONTENT_TYPE: String
   def index(mapping: M, vec: V, doc: ParseContext.Document): Unit
@@ -49,7 +48,6 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vecto
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
   class TypeParser extends Mapper.TypeParser {
-
     override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
       val mappingTry = implicitly[ElasticsearchCodec[M]].decodeJson(node.asJson).toTry
       val builder = new Builder(name, mappingTry.get)
@@ -62,7 +60,7 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vecto
   private class Builder(name: String, mapping: M) extends FieldMapper.Builder[Builder, FieldMapper](name, fieldType, fieldType) {
 
     /** Populate the given builder from the given Json. */
-    private def populateBuilder(json: Json, builder: XContentBuilder): Unit = {
+    private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
       def populate(json: Json): Unit =
         if (json.isBoolean) json.asBoolean.foreach(builder.value)
         else if (json.isString) json.asString.foreach(builder.value)
@@ -108,13 +106,13 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vecto
         override def contentType(): String = CONTENT_TYPE
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)
-          implicitly[ElasticsearchCodec[M]]
+          ElasticsearchCodec
             .encode(mapping)
             .asObject
             .map(_.toIterable.filter(_._1 != "type"))
             .map(JsonObject.fromIterable)
             .map(Json.fromJsonObject)
-            .foreach(populateBuilder(_, builder))
+            .foreach(populateXContent(_, builder))
 
         }
       }

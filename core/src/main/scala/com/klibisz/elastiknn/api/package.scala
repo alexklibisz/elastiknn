@@ -14,37 +14,47 @@ package object api {
   sealed trait SparseBoolVectorModelOptions
   object SparseBoolVectorModelOptions {
     case object JaccardIndexed extends SparseBoolVectorModelOptions
-    case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolVectorModelOptions
+    final case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolVectorModelOptions
   }
 
   sealed trait DenseFloatVectorModelOptions
   object DenseFloatVectorModelOptions {
-    case class AngularLsh() extends DenseFloatVectorModelOptions
+    final case class AngularLsh() extends DenseFloatVectorModelOptions
   }
 
   sealed trait Mapping
   object Mapping {
-    case class SparseBoolVector(dims: Int, modelOptions: Option[SparseBoolVectorModelOptions]) extends Mapping
-    case class DenseFloatVector(dims: Int, modelOptions: Option[DenseFloatVectorModelOptions]) extends Mapping
+    final case class SparseBool(dims: Int, modelOptions: Option[SparseBoolVectorModelOptions]) extends Mapping
+    final case class DenseFloat(dims: Int, modelOptions: Option[DenseFloatVectorModelOptions]) extends Mapping
   }
 
-  sealed trait Vector
-  object Vector {
-    case class SparseBoolVector(trueIndices: Array[Int], totalIndices: Int) extends Vector
-    case class DenseFloatVector(values: Array[Float]) extends Vector
-    case class IndexedVector(index: String, id: String, field: String) extends Vector
+  sealed trait Vec
+  object Vec {
+    final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec {
+      override def equals(other: Any): Boolean = other match {
+        case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
+        case _                 => false
+      }
+    }
+    final case class DenseFloat(values: Array[Float]) extends Vec {
+      override def equals(other: Any): Boolean = other match {
+        case other: DenseFloat => other.values.deep == values.deep
+        case _                 => false
+      }
+    }
+    final case class Indexed(index: String, id: String, field: String) extends Vec
   }
 
   sealed trait QueryOptions
   object QueryOptions {
-    case class Exact(similarity: Similarity) extends QueryOptions
+    final case class Exact(similarity: Similarity) extends QueryOptions
     case object JaccardIndexed extends QueryOptions
-    case object JaccardLsh extends QueryOptions
+    case class JaccardLsh(candidates: Int, refine: Boolean) extends QueryOptions
   }
 
   sealed trait Query
   object Query {
-    case class NearestNeighborsQuery(index: String, field: String, vector: Vector, queryOptions: QueryOptions) extends Query
-    case class RadiusQuery(index: String, field: String, vector: Vector, queryOptions: QueryOptions, radius: Float) extends Query
+    final case class NearestNeighborsQuery(index: String, field: String, vector: Vec, queryOptions: QueryOptions) extends Query
+    final case class RadiusQuery(index: String, field: String, vector: Vec, queryOptions: QueryOptions, radius: Float) extends Query
   }
 }

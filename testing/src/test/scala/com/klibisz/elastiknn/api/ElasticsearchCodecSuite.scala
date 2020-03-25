@@ -9,7 +9,7 @@ import scala.language.postfixOps
 class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
   implicit class CodecMatcher(s: String) {
-    def matches[T: ElasticsearchCodec](obj: T): Assertion = {
+    def decodesTo[T: ElasticsearchCodec](obj: T): Assertion = {
 
       lazy val parsed: Either[circe.Error, Json] = ElasticsearchCodec.parse(s)
       lazy val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
@@ -32,11 +32,56 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       }
     }
 
-    def shouldNotDecode[T: ElasticsearchCodec]: Assertion = {
+    def shouldNotDecodeTo[T: ElasticsearchCodec]: Assertion = {
       val parsed = ElasticsearchCodec.parse(s)
       assertThrows[DecodingFailure](parsed.flatMap(ElasticsearchCodec.decodeJson[T]).toTry.get)
     }
 
+  }
+
+  test("vectors w/ valid contents") {
+    """
+      |{
+      | "true_indices": [1,2,3],
+      | "total_indices": 99
+      |}
+      |""".stripMargin decodesTo [Vec] Vec.SparseBool(Array(1, 2, 3), 99)
+
+    """
+      |{
+      | "values": [0.1, 1, 11]
+      |}
+      |""".stripMargin decodesTo [Vec] Vec.DenseFloat(Array(0.1f, 1f, 11f))
+
+    """
+      |{
+      |  "index": "foo",
+      |  "id": "abc",
+      |  "field": "vec"
+      |}
+      |""".stripMargin decodesTo [Vec] Vec.Indexed("foo", "abc", "vec")
+  }
+
+  test("vectors w/ invalid contents") {
+    """
+      |{
+      |  "true_indices": [1,2,3]
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Vec]
+
+    """
+      |{
+      | "values": "foo"
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Vec]
+
+    """
+      |{
+      | "index": 99,
+      | "id": "foo",
+      | "field": "vec"
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Vec]
   }
 
   test("mappings w/o models") {
@@ -45,14 +90,14 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "type": "elastiknn_sparse_bool_vector",
       | "dims": 100
       |}
-      |""".stripMargin matches (Mapping.SparseBoolVector(100, None): Mapping)
+      |""".stripMargin decodesTo (Mapping.SparseBool(100, None): Mapping)
 
     """
       |{
       | "type": "elastiknn_dense_float_vector",
       | "dims": 100
       |}
-      |""".stripMargin matches (Mapping.DenseFloatVector(100, None): Mapping)
+      |""".stripMargin decodesTo [Mapping] Mapping.DenseFloat(100, None)
 
   }
 
@@ -62,7 +107,14 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "type": "elastiknn_wrong",
       | "dims": 100
       |}
-      |""".stripMargin.shouldNotDecode[Mapping]
+      |""".stripMargin.shouldNotDecodeTo[Mapping]
+
+    """
+      |{
+      | "type": "",
+      | "dims": 100
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Mapping]
   }
 
   test("mappings w/ jaccard_indexed models") {
@@ -74,7 +126,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |  "type": "jaccard_indexed"
       | }
       |}
-      |""".stripMargin matches (Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardIndexed)): Mapping)
+      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardIndexed))
   }
 
   test("mappings w/ jaccard_lsh models") {
@@ -88,7 +140,50 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "rows": 1
       | }
       |}
-      |""".stripMargin matches (Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1))): Mapping)
+      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1)))
+  }
+
+  test("mappings w/ invalid models") {
+    """
+      |{
+      | "type": "elastiknn_sparse_bool_vector",
+      | "dims": 100,
+      | "model_options": {
+      |  "type": "jaccard_index"
+      | }
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Mapping]
+
+    """
+      |{
+      | "type": "elastiknn_sparse_bool_vector",
+      | "dims": 100,
+      | "model_options": { }
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Mapping]
+  }
+
+  test("query options") {
+    """
+      |{
+      | "type": "exact",
+      | "similarity": "jaccard"
+      |}
+      |""".stripMargin decodesTo [QueryOptions] QueryOptions.Exact(Similarity.Jaccard)
+
+    """
+      |{
+      | "type": "jaccard_indexed"
+      |}
+      |""".stripMargin.decodesTo[QueryOptions](QueryOptions.JaccardIndexed)
+
+    """
+      |{
+      | "type": "jaccard_lsh",
+      | "candidates": 99,
+      | "refine": true
+      |}
+      |""".stripMargin decodesTo [QueryOptions] QueryOptions.JaccardLsh(99, true)
   }
 
 }

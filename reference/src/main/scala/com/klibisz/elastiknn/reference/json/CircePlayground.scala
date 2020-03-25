@@ -13,8 +13,8 @@ object CircePlayground {
   def main(args: Array[String]): Unit = {
 
     val mappings: Seq[Mapping] = Seq(
-      Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardIndexed)),
-      Mapping.SparseBoolVector(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1)))
+      Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardIndexed)),
+      Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1)))
     )
 
     mappings.foreach { m: Mapping =>
@@ -24,16 +24,16 @@ object CircePlayground {
       println("-" * 80)
     }
 
-    val vectors: Seq[Vector] = Seq(
-      Vector.IndexedVector("foo", "bar", "baz"),
-      Vector.DenseFloatVector(Array(1, 2, 3)),
-      Vector.SparseBoolVector(Array(1, 2, 3), 10)
+    val vectors: Seq[Vec] = Seq(
+      Vec.Indexed("foo", "bar", "baz"),
+      Vec.DenseFloatVector(Array(1, 2, 3)),
+      Vec.SparseBoolVector(Array(1, 2, 3), 10)
     )
 
-    vectors.foreach { v: Vector =>
-      val j = implicitly[ElasticsearchCodec[Vector]].encode(v).asJson
+    vectors.foreach { v: Vec =>
+      val j = implicitly[ElasticsearchCodec[Vec]].encode(v).asJson
       println(j.spaces2)
-      println(implicitly[ElasticsearchCodec[Vector]].decodeJson(j))
+      println(implicitly[ElasticsearchCodec[Vec]].decodeJson(j))
       println("-" * 80)
     }
 
