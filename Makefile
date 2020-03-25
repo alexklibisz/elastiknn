@@ -91,7 +91,7 @@ run/gradle:
 
 run/debug:
 	cd testing && $(dc) down
-	$(gradle) run --debug-jvm || $(gradle) clean run --debug-jvm
+	$(gradle) run --debug-jvm
 
 run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0

@@ -116,36 +116,36 @@ object ElasticsearchCodec {
       denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c))
   }
 
-  implicit val jaccardLshModelOptions: ESC[SparseBoolVectorModelOptions.JaccardLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val jaccardLshModelOptions: ESC[SparseBoolModelOptions.JaccardLsh] = ElasticsearchCodec(deriveCodec)
 
-  implicit val sparseBoolVectorModelOptions: ESC[SparseBoolVectorModelOptions] = new ESC[SparseBoolVectorModelOptions] {
+  implicit val sparseBoolVectorModelOptions: ESC[SparseBoolModelOptions] = new ESC[SparseBoolModelOptions] {
 
-    override def apply(t: SparseBoolVectorModelOptions): Json = t match {
-      case SparseBoolVectorModelOptions.JaccardIndexed   => JsonObject(TYPE -> JACCARD_INDEXED)
-      case jlsh: SparseBoolVectorModelOptions.JaccardLsh => JsonObject(TYPE -> JACCARD_LSH).deepMerge(encode(jlsh))
+    override def apply(t: SparseBoolModelOptions): Json = t match {
+      case SparseBoolModelOptions.JaccardIndexed   => JsonObject(TYPE -> JACCARD_INDEXED)
+      case jlsh: SparseBoolModelOptions.JaccardLsh => JsonObject(TYPE -> JACCARD_LSH).deepMerge(encode(jlsh))
     }
 
-    override def apply(c: HCursor): Either[DecodingFailure, SparseBoolVectorModelOptions] = {
+    override def apply(c: HCursor): Either[DecodingFailure, SparseBoolModelOptions] = {
       for {
         typ <- c.downField(TYPE).as[String]
         mopts <- typ match {
-          case JACCARD_INDEXED => Right(SparseBoolVectorModelOptions.JaccardIndexed)
-          case JACCARD_LSH     => decode[SparseBoolVectorModelOptions.JaccardLsh](c)
+          case JACCARD_INDEXED => Right(SparseBoolModelOptions.JaccardIndexed)
+          case JACCARD_LSH     => decode[SparseBoolModelOptions.JaccardLsh](c)
           case other           => failTypes(Seq(JACCARD_INDEXED, JACCARD_LSH), other)
         }
       } yield mopts
     }
   }
 
-  implicit val denseFloatVectorModelOptions: ESC[DenseFloatVectorModelOptions] = new ESC[DenseFloatVectorModelOptions] {
-    override def apply(t: DenseFloatVectorModelOptions): Json = t match {
-      case _: DenseFloatVectorModelOptions.AngularLsh => JsonObject(TYPE -> ANGULAR_LSH)
+  implicit val denseFloatVectorModelOptions: ESC[DenseFloatModelOptions] = new ESC[DenseFloatModelOptions] {
+    override def apply(t: DenseFloatModelOptions): Json = t match {
+      case _: DenseFloatModelOptions.AngularLsh => JsonObject(TYPE -> ANGULAR_LSH)
     }
-    override def apply(c: HCursor): Either[DecodingFailure, DenseFloatVectorModelOptions] =
+    override def apply(c: HCursor): Either[DecodingFailure, DenseFloatModelOptions] =
       for {
         typ <- c.downField(TYPE).as[String]
         mopts <- typ match {
-          case ANGULAR_LSH => Right(DenseFloatVectorModelOptions.AngularLsh())
+          case ANGULAR_LSH => Right(DenseFloatModelOptions.AngularLsh())
           case other       => failTypes(Seq(ANGULAR_LSH), other)
         }
       } yield mopts
@@ -160,7 +160,7 @@ object ElasticsearchCodec {
       for {
         dims <- c.downField(DIMS).as[Int]
         mopts <- c.value.findAllByKey(MODEL_OPTIONS).headOption match {
-          case Some(moptsJson) => esc.decodeJson[DenseFloatVectorModelOptions](moptsJson).map(Some(_))
+          case Some(moptsJson) => esc.decodeJson[DenseFloatModelOptions](moptsJson).map(Some(_))
           case None            => Right(None)
         }
       } yield Mapping.DenseFloat(dims, mopts)
@@ -176,7 +176,7 @@ object ElasticsearchCodec {
       for {
         dims <- c.downField(DIMS).as[Int]
         mopts <- c.value.findAllByKey(MODEL_OPTIONS).headOption match {
-          case Some(moptsJson) => esc.decodeJson[SparseBoolVectorModelOptions](moptsJson).map(Some(_))
+          case Some(moptsJson) => esc.decodeJson[SparseBoolModelOptions](moptsJson).map(Some(_))
           case None            => Right(None)
         }
       } yield Mapping.SparseBool(dims, mopts)
@@ -222,16 +222,15 @@ object ElasticsearchCodec {
 
   implicit val nearestNeighborsQuery: ESC[Query.NearestNeighborsQuery] = new ESC[Query.NearestNeighborsQuery] {
     override def apply(t: Query.NearestNeighborsQuery): Json =
-      JsonObject(FIELD -> t.field, INDEX -> t.index, VECTOR -> encode(t.vector))
+      JsonObject(FIELD -> t.field, VECTOR -> encode(t.vector))
     override def apply(c: HCursor): Either[DecodingFailure, Query.NearestNeighborsQuery] = {
       for {
-        index <- c.downField(INDEX).as[String]
         field <- c.downField(FIELD).as[String]
         vecJson <- c.downField(VECTOR).as[Json]
         vec <- esc.decodeJson[api.Vec](vecJson)
         qoptsJson <- c.downField(QUERY_OPTIONS).as[Json]
         qopts <- esc.decodeJson[QueryOptions](qoptsJson)
-      } yield Query.NearestNeighborsQuery(index, field, vec, qopts)
+      } yield Query.NearestNeighborsQuery(field, vec, qopts)
     }
   }
 

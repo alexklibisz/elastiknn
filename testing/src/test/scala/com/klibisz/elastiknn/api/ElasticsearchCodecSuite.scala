@@ -126,7 +126,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |  "type": "jaccard_indexed"
       | }
       |}
-      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardIndexed))
+      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolModelOptions.JaccardIndexed))
   }
 
   test("mappings w/ jaccard_lsh models") {
@@ -140,7 +140,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "rows": 1
       | }
       |}
-      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolVectorModelOptions.JaccardLsh(99, 1)))
+      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolModelOptions.JaccardLsh(99, 1)))
   }
 
   test("mappings w/ invalid models") {

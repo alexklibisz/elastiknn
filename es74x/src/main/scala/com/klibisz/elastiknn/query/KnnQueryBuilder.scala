@@ -6,7 +6,7 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.Query.NearestNeighborsQuery
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, QueryOptions, SparseBoolVectorModelOptions}
+import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
@@ -45,74 +45,92 @@ object KnnQueryBuilder {
 
 }
 
-final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Option[Mapping] = None)
-    extends AbstractQueryBuilder[KnnQueryBuilder] {
+final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+
+  import query._
+
   override def doWriteTo(out: StreamOutput): Unit = out.writeString(ElasticsearchCodec.encodeB64(query))
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doToQuery(c: QueryShardContext): Query = (mappingOpt, query.vector, query.queryOptions) match {
-    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, q: QueryOptions.Exact)       => exactSparseBool(c, m, v, q)
-    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, QueryOptions.JaccardIndexed) => jaccardIndexed(c, m, v)
-    case (Some(m: Mapping.SparseBool), v: api.Vec.SparseBool, q: QueryOptions.JaccardLsh)  => jaccardLsh(c, m, v)
-    case (_, _, _) =>
-      val msg =
-        s"Incompatible combination of mapping [${mappingOpt.map(ElasticsearchCodec.encode(_).noSpaces)}]," +
-          s"vector [${ElasticsearchCodec.encode(query.vector).noSpaces}]," +
-          s"query options [${ElasticsearchCodec.encode(query.queryOptions).noSpaces}]"
-      throw new IllegalArgumentException(msg)
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder = vector match {
+    case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
+    case _                => this
+  }
+
+  override def doToQuery(c: QueryShardContext): Query = {
+    // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
+    val mapping: Mapping = getMapping(c)
+    checkDims(mapping, vector)
+    (mapping, vector) match {
+      case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
+        (m.modelOptions, queryOptions) match {
+          case (_, QueryOptions.Exact(Similarity.Jaccard))                                => ExactSimilarityQuery.jaccard(c, field, v)
+          case (_, QueryOptions.Exact(Similarity.Hamming))                                => ExactSimilarityQuery.hamming(c, field, v)
+          case (Some(SparseBoolModelOptions.JaccardIndexed), QueryOptions.JaccardIndexed) => JaccardIndexedQuery(c, field, v)
+          case (Some(mopts: SparseBoolModelOptions.JaccardLsh), qopts: QueryOptions.JaccardLsh) =>
+            JaccardLshQuery(c, field, mopts, qopts, v)
+          case _ => throw incompatible(mapping, vector, queryOptions)
+        }
+      case (m: Mapping.DenseFloat, v: Vec.DenseFloat) =>
+        (m.modelOptions, queryOptions) match {
+          case (_, QueryOptions.Exact(Similarity.L1))      => ExactSimilarityQuery.l1(c, field, v)
+          case (_, QueryOptions.Exact(Similarity.L2))      => ExactSimilarityQuery.l2(c, field, v)
+          case (_, QueryOptions.Exact(Similarity.Angular)) => ExactSimilarityQuery.angular(c, field, v)
+          case _                                           => throw incompatible(mapping, vector, queryOptions)
+        }
+      case _ => throw incompatible(mapping, vector, queryOptions)
+    }
+  }
+
+  private def checkDims(m: Mapping, v: Vec): Unit = (m, v) match {
+    case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
+      require(m.dims == v.totalIndices, s"mapping dims [${m.dims}] must equal vector dims [${v.totalIndices}]")
+    case (m: Mapping.DenseFloat, v: Vec.DenseFloat) =>
+      require(m.dims == v.values.length, s"Mapping dims [${m.dims}] must equal vector dims [${v.values.length}]")
+    case _ => ()
+  }
+
+  private def incompatible(m: Mapping, v: Vec, q: QueryOptions): Exception = {
+    val msg = s"Incompatible combination of mapping [${ElasticsearchCodec.encode(m).noSpaces}], " +
+      s"vector [${ElasticsearchCodec.encode(v).noSpaces}], " +
+      s"and query options [${ElasticsearchCodec.encode(q).noSpaces}]}"
+    new IllegalArgumentException(msg)
+  }
+
+  private def getMapping(context: QueryShardContext): Mapping = {
+    import KnnQueryBuilder.mappingCache
+    val index = context.index.getName
+    mappingCache.get(
+      (index, query.field),
+      () =>
+        try {
+          val client = context.getClient
+          val request = new GetFieldMappingsRequest().indices(index).fields(query.field)
+          val response = client.execute(GetFieldMappingsAction.INSTANCE, request).actionGet(1000)
+          val srcMap = response
+            .mappings()
+            .get(index)
+            .get("_doc")
+            .get(query.field)
+            .sourceAsMap()
+            .get(query.field)
+            .asInstanceOf[JavaJsonMap]
+          val srcJson = javaMapEncoder(srcMap)
+          val mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
+          KnnQueryBuilder.mappingCache.put((index, query.field), mapping)
+          mapping
+        } catch {
+          case e: Exception => throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e)
+      }
+    )
   }
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
 
-  override def doHashCode(): Int = Objects.hash(query, mappingOpt)
+  override def doHashCode(): Int = Objects.hash(query)
 
   override def getWriteableName: String = KnnQueryBuilder.NAME
-
-  override def doRewrite(context: QueryRewriteContext): QueryBuilder = (mappingOpt, query.vector) match {
-    case (None, _)                 => rewriteGetMapping(context)
-    case (_, ixv: api.Vec.Indexed) => rewriteGetVector(context, ixv)
-    case _                         => this
-  }
-
-  // Fetch the mapping and return a [[KnnQueryBuilder]] with the mapping defined.
-  private def rewriteGetMapping(c: QueryRewriteContext): QueryBuilder = {
-    import KnnQueryBuilder.mappingCache
-    def ex(e: Exception): Exception =
-      new RuntimeException(s"Failed to retrieve mapping at index [${query.index}] field [${query.field}]", e)
-    val maybeCached: Mapping = mappingCache.getIfPresent((query.index, query.field))
-    if (maybeCached != null) copy(mappingOpt = Some(maybeCached))
-    else {
-      val supplier = new SetOnce[KnnQueryBuilder]()
-      c.registerAsyncAction((client: Client, l: ActionListener[_]) => {
-        client.execute(
-          GetFieldMappingsAction.INSTANCE,
-          new GetFieldMappingsRequest().indices(query.index).fields(query.field),
-          new ActionListener[GetFieldMappingsResponse] {
-            override def onResponse(response: GetFieldMappingsResponse): Unit =
-              try {
-                val srcMap = response.mappings
-                  .get(query.index)
-                  .get("_doc")
-                  .get(query.field)
-                  .sourceAsMap()
-                  .get(query.field)
-                  .asInstanceOf[java.util.Map[String, AnyRef]]
-                val srcJson = javaMapEncoder(srcMap)
-                val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
-                mappingCache.put((query.index, query.field), mapping)
-                supplier.set(copy(mappingOpt = Some(mapping)))
-                l.asInstanceOf[ActionListener[Any]].onResponse(null)
-              } catch {
-                case e: Exception => l.onFailure(ex(e))
-              }
-            override def onFailure(e: Exception): Unit = l.onFailure(ex(e))
-          }
-        )
-      })
-      RewriteQueryBuilder(_ => supplier.get())
-    }
-  }
 
   private def rewriteGetVector(c: QueryRewriteContext, ixv: api.Vec.Indexed): QueryBuilder = {
     def ex(e: Exception) = new RuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
@@ -139,17 +157,5 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, mappingOpt: Optio
       )
     })
     RewriteQueryBuilder(_ => supplier.get())
-  }
-
-  private def exactSparseBool(c: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool, q: api.QueryOptions.Exact): Query = {
-    ???
-  }
-
-  private def jaccardIndexed(context: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool): Query = {
-    ???
-  }
-
-  private def jaccardLsh(c: QueryShardContext, m: api.Mapping.SparseBool, v: api.Vec.SparseBool): Query = {
-    ???
   }
 }

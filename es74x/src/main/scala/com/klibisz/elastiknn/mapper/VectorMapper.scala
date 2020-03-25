@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolVectorModelOptions}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolModelOptions}
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
 import io.circe.syntax._
@@ -22,9 +22,9 @@ object VectorMapper {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
         ExactSimilarityQuery.index(vec).foreach(doc.add)
         mapping.modelOptions match {
-          case Some(SparseBoolVectorModelOptions.JaccardIndexed)          =>
-          case Some(SparseBoolVectorModelOptions.JaccardLsh(bands, rows)) =>
-          case None                                                       =>
+          case Some(SparseBoolModelOptions.JaccardIndexed)          =>
+          case Some(SparseBoolModelOptions.JaccardLsh(bands, rows)) =>
+          case None                                                 =>
         }
       }
     }

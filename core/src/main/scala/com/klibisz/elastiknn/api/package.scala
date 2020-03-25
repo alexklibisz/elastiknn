@@ -2,6 +2,8 @@ package com.klibisz.elastiknn
 
 package object api {
 
+  type JavaJsonMap = java.util.Map[String, AnyRef]
+
   sealed trait Similarity
   object Similarity {
     case object Jaccard extends Similarity
@@ -11,21 +13,21 @@ package object api {
     case object Angular extends Similarity
   }
 
-  sealed trait SparseBoolVectorModelOptions
-  object SparseBoolVectorModelOptions {
-    case object JaccardIndexed extends SparseBoolVectorModelOptions
-    final case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolVectorModelOptions
+  sealed trait SparseBoolModelOptions
+  object SparseBoolModelOptions {
+    case object JaccardIndexed extends SparseBoolModelOptions
+    final case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolModelOptions
   }
 
-  sealed trait DenseFloatVectorModelOptions
-  object DenseFloatVectorModelOptions {
-    final case class AngularLsh() extends DenseFloatVectorModelOptions
+  sealed trait DenseFloatModelOptions
+  object DenseFloatModelOptions {
+    final case class AngularLsh() extends DenseFloatModelOptions
   }
 
   sealed trait Mapping
   object Mapping {
-    final case class SparseBool(dims: Int, modelOptions: Option[SparseBoolVectorModelOptions]) extends Mapping
-    final case class DenseFloat(dims: Int, modelOptions: Option[DenseFloatVectorModelOptions]) extends Mapping
+    final case class SparseBool(dims: Int, modelOptions: Option[SparseBoolModelOptions]) extends Mapping
+    final case class DenseFloat(dims: Int, modelOptions: Option[DenseFloatModelOptions]) extends Mapping
   }
 
   sealed trait Vec
@@ -54,7 +56,7 @@ package object api {
 
   sealed trait Query
   object Query {
-    final case class NearestNeighborsQuery(index: String, field: String, vector: Vec, queryOptions: QueryOptions) extends Query
-    final case class RadiusQuery(index: String, field: String, vector: Vec, queryOptions: QueryOptions, radius: Float) extends Query
+    final case class NearestNeighborsQuery(field: String, vector: Vec, queryOptions: QueryOptions) extends Query
+    final case class RadiusQuery(field: String, vector: Vec, queryOptions: QueryOptions, radius: Float) extends Query
   }
 }
