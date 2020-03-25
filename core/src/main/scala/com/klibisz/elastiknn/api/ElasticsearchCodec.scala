@@ -99,19 +99,11 @@ object ElasticsearchCodec {
       codec(a).asString.map(_.toLowerCase).map(Json.fromString).getOrElse(codec(a))
   }
 
+  implicit val denseFloatVector: ESC[DenseFloat] = ElasticsearchCodec(deriveCodec)
+  implicit val indexedVector: ESC[Indexed] = ElasticsearchCodec(deriveCodec)
   implicit val sparseBoolVector: ESC[SparseBool] = {
-    implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames.withStrictDecoding
-    ElasticsearchCodec(deriveConfiguredEncoder, deriveConfiguredDecoder)
-  }
-
-  implicit val denseFloatVector: ESC[DenseFloat] = {
-    implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames.withStrictDecoding
-    ElasticsearchCodec(deriveConfiguredEncoder, deriveConfiguredDecoder)
-  }
-
-  implicit val indexedVector: ESC[Indexed] = {
-    implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames.withStrictDecoding
-    ElasticsearchCodec(deriveConfiguredEncoder, deriveConfiguredDecoder)
+    implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
+    ElasticsearchCodec(deriveConfiguredCodec)
   }
 
   implicit val vector: ESC[api.Vec] = new ESC[api.Vec] {
@@ -120,18 +112,11 @@ object ElasticsearchCodec {
       case sbv: SparseBool => encode(sbv)
       case dfv: DenseFloat => encode(dfv)
     }
-
     override def apply(c: HCursor): Either[DecodingFailure, Vec] =
       denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c))
   }
 
-  implicit val jaccardLshModelOptions: ESC[SparseBoolVectorModelOptions.JaccardLsh] = new ESC[SparseBoolVectorModelOptions.JaccardLsh] {
-    private implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
-    private val enc: Encoder[SparseBoolVectorModelOptions.JaccardLsh] = deriveConfiguredEncoder
-    private val dec: Decoder[SparseBoolVectorModelOptions.JaccardLsh] = deriveConfiguredDecoder
-    override def apply(t: SparseBoolVectorModelOptions.JaccardLsh): Json = enc(t)
-    override def apply(c: HCursor): Either[DecodingFailure, SparseBoolVectorModelOptions.JaccardLsh] = dec.apply(c)
-  }
+  implicit val jaccardLshModelOptions: ESC[SparseBoolVectorModelOptions.JaccardLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val sparseBoolVectorModelOptions: ESC[SparseBoolVectorModelOptions] = new ESC[SparseBoolVectorModelOptions] {
 
@@ -146,7 +131,7 @@ object ElasticsearchCodec {
         mopts <- typ match {
           case JACCARD_INDEXED => Right(SparseBoolVectorModelOptions.JaccardIndexed)
           case JACCARD_LSH     => decode[SparseBoolVectorModelOptions.JaccardLsh](c)
-          case other           => failTypes(Seq(EXACT, JACCARD_INDEXED, JACCARD_LSH), other)
+          case other           => failTypes(Seq(JACCARD_INDEXED, JACCARD_LSH), other)
         }
       } yield mopts
     }
