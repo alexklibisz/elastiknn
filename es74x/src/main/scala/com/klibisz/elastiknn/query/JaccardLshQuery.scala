@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.api.{Mapping, QueryOptions, Vec}
+import com.klibisz.elastiknn.api.{Mapping, Vec}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.index.query.QueryShardContext
 
@@ -11,9 +11,6 @@ class JaccardLshQuery() extends Query {
 }
 
 object JaccardLshQuery {
-  def apply(context: QueryShardContext,
-            field: String,
-            mapping: Mapping.JaccardLsh,
-            qopts: QueryOptions.JaccardLsh,
-            vec: Vec.SparseBool): Query = new DocValuesFieldExistsQuery(ExactSimilarityQuery.storedVectorField(field))
+  def apply(context: QueryShardContext, field: String, mapping: Mapping.JaccardLsh, vec: Vec.SparseBool): Query =
+    new DocValuesFieldExistsQuery(ExactSimilarityQuery.storedVectorField(field))
 }

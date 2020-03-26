@@ -11,7 +11,6 @@ import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{IndexableField, LeafReaderContext, Term}
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.index.query.QueryShardContext
 
 class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val simFunc: ExactSimilarityFunction[V])(
     implicit codec: ByteArrayCodec[V])
@@ -46,10 +45,10 @@ class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val sim
         val storedVec: V = codec(barr).get
         val simScore: ExactSimilarityScore = simFunc(queryVec, storedVec).get
 
-        val doc = searcher.doc(docId)
-        val foo = doc.getField("foo").numericValue().intValue()
-        val bar = doc.getField("bar").binaryValue().bytes
-        val baz = codec(bar).get
+//        val doc = searcher.doc(docId)
+//        val foo = doc.getField("foo").numericValue().intValue()
+//        val bar = doc.getField("bar").binaryValue().bytes
+//        val baz = codec(bar).get
         simScore.score.toFloat
       } else 0f
     }

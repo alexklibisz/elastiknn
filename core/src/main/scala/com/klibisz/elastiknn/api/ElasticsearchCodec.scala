@@ -169,26 +169,6 @@ object ElasticsearchCodec { esc =>
       } yield mapping
   }
 
-  implicit val exactQueryOptions: ESC[QueryOptions.Exact] = ElasticsearchCodec(deriveCodec)
-  implicit val jaccardLshQueryOptions: ESC[QueryOptions.JaccardLsh] = ElasticsearchCodec(deriveCodec)
-
-  implicit val queryOptions: ESC[QueryOptions] = new ESC[QueryOptions] {
-    override def apply(c: HCursor): Result[QueryOptions] =
-      for {
-        typ <- c.downField(TYPE).as[String]
-        opts <- typ match {
-          case EXACT           => decode[QueryOptions.Exact](c)
-          case JACCARD_LSH     => decode[QueryOptions.JaccardLsh](c)
-          case JACCARD_INDEXED => Right(QueryOptions.JaccardIndexed)
-        }
-      } yield opts
-    override def apply(a: QueryOptions): Json = a match {
-      case QueryOptions.Exact(sim)       => JsonObject(TYPE -> EXACT, SIMILARITY -> encode[Similarity](sim))
-      case QueryOptions.JaccardIndexed   => JsonObject(TYPE -> JACCARD_INDEXED)
-      case jlsh: QueryOptions.JaccardLsh => JsonObject(TYPE -> JACCARD_LSH).deepMerge(encode(jlsh))
-    }
-  }
-
   implicit val exactNNQ: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
   implicit val sparseNNQ: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
@@ -222,20 +202,6 @@ object ElasticsearchCodec { esc =>
           case other => failTypes(MODEL, Seq(EXACT, SPARSE_INDEXED, LSH), other)
         }
       } yield nnq
-  }
-
-  implicit val queryNearestNeighbors: ESC[Query.NearestNeighborsQuery] = new ESC[Query.NearestNeighborsQuery] {
-    override def apply(t: Query.NearestNeighborsQuery): Json =
-      JsonObject(FIELD -> t.field, VECTOR -> encode(t.vector))
-    override def apply(c: HCursor): Either[DecodingFailure, Query.NearestNeighborsQuery] = {
-      for {
-        field <- c.downField(FIELD).as[String]
-        vecJson <- c.downField(VECTOR).as[Json]
-        vec <- esc.decodeJson[api.Vec](vecJson)
-        qoptsJson <- c.downField(QUERY_OPTIONS).as[Json]
-        qopts <- esc.decodeJson[QueryOptions](qoptsJson)
-      } yield Query.NearestNeighborsQuery(field, vec, qopts)
-    }
   }
 
 }

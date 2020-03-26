@@ -41,29 +41,22 @@ package object api {
     final case class JaccardLsh(dims: Int, bands: Int, rows: Int) extends Mapping
   }
 
-  sealed trait QueryOptions
-  object QueryOptions {
-    final case class Exact(similarity: Similarity) extends QueryOptions
-    case object JaccardIndexed extends QueryOptions
-    case class JaccardLsh(candidates: Int, refine: Boolean) extends QueryOptions
-  }
-
   sealed trait NearestNeighborsQuery {
     def field: String
     def vector: Vec
     def similarity: Similarity
+    def withVector(v: Vec): NearestNeighborsQuery
   }
   object NearestNeighborsQuery {
-    final case class Exact(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery
-    final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery
+    final case class Exact(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+    }
+    final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+    }
     final case class JaccardLsh(field: String, vector: Vec, candidates: Int, refine: Boolean) extends NearestNeighborsQuery {
       val similarity: Similarity = Similarity.Jaccard
+      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
     }
-  }
-
-  sealed trait Query
-  object Query {
-    final case class NearestNeighborsQuery(field: String, vector: Vec, queryOptions: QueryOptions) extends Query
-    final case class RadiusQuery(field: String, vector: Vec, queryOptions: QueryOptions, radius: Float) extends Query
   }
 }

@@ -2,14 +2,12 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
-import com.klibisz.elastiknn.storage.ByteArrayCodec
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
-import org.apache.lucene.document.{IntPoint, StoredField}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
@@ -107,7 +105,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser.map.asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          self.checkAndSetFields(mapping, name, vec, doc)
+          self.checkAndSetFields(mapping, name, vec, doc).get
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")

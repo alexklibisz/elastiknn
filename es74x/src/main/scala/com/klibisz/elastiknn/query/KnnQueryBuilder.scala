@@ -5,7 +5,6 @@ import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
-import com.klibisz.elastiknn.api.Query.NearestNeighborsQuery
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
@@ -20,6 +19,8 @@ import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
+
+import scala.util.{Failure, Try}
 
 object KnnQueryBuilder {
 
@@ -47,13 +48,11 @@ object KnnQueryBuilder {
 
 final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  import query._
-
   override def doWriteTo(out: StreamOutput): Unit = out.writeString(ElasticsearchCodec.encodeB64(query))
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doRewrite(context: QueryRewriteContext): QueryBuilder = vector match {
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.vector match {
     case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
     case _                => this
   }
@@ -61,33 +60,38 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   override def doToQuery(c: QueryShardContext): Query = {
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
-    vector match {
-      case v: Vec.SparseBool =>
-        (mapping, queryOptions) match {
-          case (_: Mapping.SparseBool, QueryOptions.Exact(Similarity.Jaccard)) =>
-            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Jaccard)
-          case (_: Mapping.SparseBool, QueryOptions.Exact(Similarity.Hamming)) =>
-            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Hamming)
-          case _ => throw incompatible(mapping, vector, queryOptions)
-        }
-      case v: Vec.DenseFloat =>
-        (mapping, queryOptions) match {
-          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.L1)) =>
-            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L1)
-          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.L2)) =>
-            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L2)
-          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.Angular)) =>
-            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Angular)
-          case _ => throw incompatible(mapping, vector, queryOptions)
-        }
-      case _ => throw incompatible(mapping, vector, queryOptions)
+    import NearestNeighborsQuery._
+    (query, mapping) match {
+      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseBool) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
+
+      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
+
+      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.JaccardLsh) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
+
+      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseBool) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
+
+      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
+
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1)
+
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2)
+
+      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
+
+      case _ => throw incompatible(mapping, query)
     }
   }
 
-  private def incompatible(m: Mapping, v: Vec, q: QueryOptions): Exception = {
-    val msg = s"Incompatible combination of mapping [${ElasticsearchCodec.encode(m).spaces2}], " +
-      s"vector [${ElasticsearchCodec.encode(v).spaces2}], " +
-      s"and query options [${ElasticsearchCodec.encode(q).spaces2}]}"
+  private def incompatible(m: Mapping, q: NearestNeighborsQuery): Exception = {
+    val msg = s"Query [${ElasticsearchCodec.encode(q).noSpaces}] is not compatible with mapping [${ElasticsearchCodec.encode(m).noSpaces}]"
     new IllegalArgumentException(msg)
   }
 
@@ -138,7 +142,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
               val srcMap = response.getSourceAsMap.get(ixv.field).asInstanceOf[JavaJsonMap]
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
-              supplier.set(copy(query.copy(vector = vector)))
+              supplier.set(copy(query.withVector(vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
               case e: Exception => l.onFailure(ex(e))
