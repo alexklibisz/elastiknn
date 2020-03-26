@@ -34,7 +34,7 @@ object ExactSimilarityFunction {
       else
         Try {
           val isec = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
-          val sim: Float = isec / (v1.trueIndices.length + v2.trueIndices.length - isec)
+          val sim = isec * 1.0 / (v1.trueIndices.length + v2.trueIndices.length - isec)
           ExactSimilarityScore(sim, 1 - sim)
         }
   }

@@ -48,12 +48,16 @@ class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val sim
     override def docID(): Int = iterator.docID()
   }
 
+  override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new ExactSimilarityWeight(searcher)
+
   override def toString(field: String): String =
     s"ExactSimilarityQuery for field [$field], query vector [$queryVec], similarity [${simFunc.similarity}]"
+
   override def equals(other: Any): Boolean = other match {
     case q: ExactSimilarityQuery[V] => q.storedField == storedField && q.queryVec == queryVec && q.simFunc == simFunc
     case _                          => false
   }
+
   override def hashCode(): Int = Objects.hashCode(storedField, queryVec, simFunc)
 }
 

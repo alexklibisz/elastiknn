@@ -19,9 +19,9 @@ object VectorMapper {
   val sparseBoolVector: VectorMapper[Mapping.SparseBool, Vec.SparseBool] =
     new VectorMapper[Mapping.SparseBool, Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: Mapping.SparseBool, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.SparseBool, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
-        ExactSimilarityQuery.index("", vec).foreach(doc.add(_))
+        ExactSimilarityQuery.index(field, vec).foreach(doc.add)
         mapping.modelOptions match {
           case Some(SparseBoolModelOptions.JaccardIndexed)          =>
           case Some(SparseBoolModelOptions.JaccardLsh(bands, rows)) =>
@@ -32,19 +32,18 @@ object VectorMapper {
   val denseFloatVector: VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] =
     new VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.DenseFloat, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.DenseFloat, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
         ()
       }
     }
 }
 
-abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: ElasticsearchCodec] {
+abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: ElasticsearchCodec] { self =>
 
   val CONTENT_TYPE: String
-  def index(mapping: M, vec: V, doc: ParseContext.Document): Unit
+  def index(mapping: M, field: String, vec: V, doc: ParseContext.Document): Unit
 
   private val fieldType = new this.FieldType
-  private val mapper = this
 
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
@@ -100,7 +99,7 @@ abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: Elastics
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser().map().asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          mapper.index(mapping, vec, doc)
+          self.index(mapping, name, vec, doc)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
