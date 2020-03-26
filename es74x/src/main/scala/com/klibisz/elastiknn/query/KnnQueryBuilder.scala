@@ -62,24 +62,24 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   override def doToQuery(c: QueryShardContext): Query = {
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
-    (mapping, vector) match {
-      case (m: Mapping.SparseBoolOld, v: Vec.SparseBool) =>
-        (m.modelOptions, queryOptions) match {
-          case (_, QueryOptions.Exact(Similarity.Jaccard)) =>
+    vector match {
+      case v: Vec.SparseBool =>
+        (mapping, queryOptions) match {
+          case (_: Mapping.SparseBool, QueryOptions.Exact(Similarity.Jaccard)) =>
             new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Jaccard)
-          case (_, QueryOptions.Exact(Similarity.Hamming)) =>
+          case (_: Mapping.SparseBool, QueryOptions.Exact(Similarity.Hamming)) =>
             new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Hamming)
-          case (Some(SparseBoolModelOptions.JaccardIndexed), QueryOptions.JaccardIndexed) => JaccardIndexedQuery(c, field, v)
-          case (Some(mopts: SparseBoolModelOptions.JaccardLsh), qopts: QueryOptions.JaccardLsh) =>
-            JaccardLshQuery(c, field, mopts, qopts, v)
           case _ => throw incompatible(mapping, vector, queryOptions)
         }
-      case (m: Mapping.DenseFloatOld, v: Vec.DenseFloat) =>
-        (m.modelOptions, queryOptions) match {
-          case (_, QueryOptions.Exact(Similarity.L1))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L1)
-          case (_, QueryOptions.Exact(Similarity.L2))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L2)
-          case (_, QueryOptions.Exact(Similarity.Angular)) => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Angular)
-          case _                                           => throw incompatible(mapping, vector, queryOptions)
+      case v: Vec.DenseFloat =>
+        (mapping, queryOptions) match {
+          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.L1)) =>
+            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L1)
+          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.L2)) =>
+            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L2)
+          case (_: Mapping.DenseFloat, QueryOptions.Exact(Similarity.Angular)) =>
+            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Angular)
+          case _ => throw incompatible(mapping, vector, queryOptions)
         }
       case _ => throw incompatible(mapping, vector, queryOptions)
     }

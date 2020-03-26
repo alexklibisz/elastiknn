@@ -2,7 +2,8 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, SparseBoolModelOptions, Vec}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
+import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
@@ -16,35 +17,39 @@ import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
+import scala.util.{Failure, Success, Try}
+
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[Mapping.SparseBoolOld, Vec.SparseBool] =
-    new VectorMapper[Mapping.SparseBoolOld, Vec.SparseBool] {
+  val sparseBoolVector: VectorMapper[Vec.SparseBool] =
+    new VectorMapper[Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: Mapping.SparseBoolOld, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
-        if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
-        ExactSimilarityQuery.index(field, vec).foreach(doc.add)
-        doc.add(new StoredField("foo", vec.totalIndices))
-        doc.add(new StoredField("bar", ByteArrayCodec.encode(vec)))
-        mapping.modelOptions match {
-          case Some(SparseBoolModelOptions.JaccardIndexed)          =>
-          case Some(SparseBoolModelOptions.JaccardLsh(bands, rows)) =>
-          case None                                                 =>
+      override def checkAndSetFields(mapping: Mapping, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Try[Unit] =
+        if (mapping.dims != vec.totalIndices)
+          Failure(VectorDimensionException(vec.totalIndices, mapping.dims))
+        else {
+          val sorted = vec.sorted()
+          ExactSimilarityQuery.index(field, sorted).foreach(doc.add)
+          mapping match {
+            case Mapping.SparseBool(_)       => Success(())
+            case Mapping.SparseIndexed(_)    => Success(())
+            case Mapping.JaccardLsh(_, _, _) => Success(())
+            case _ =>
+              val msg = s"Mapping [${encode(mapping).noSpaces}] is not compatible with vector [${encode(vec).noSpaces}]"
+              Failure(new IllegalArgumentException(msg))
+          }
         }
-      }
     }
-  val denseFloatVector: VectorMapper[Mapping.DenseFloatOld, Vec.DenseFloat] =
-    new VectorMapper[Mapping.DenseFloatOld, Vec.DenseFloat] {
+  val denseFloatVector: VectorMapper[Vec.DenseFloat] =
+    new VectorMapper[Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.DenseFloatOld, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
-        ExactSimilarityQuery.index(field, vec).foreach(doc.add)
-      }
+      override def checkAndSetFields(mapping: Mapping, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Try[Unit] = ???
     }
 }
 
-abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: ElasticsearchCodec] { self =>
+abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
   val CONTENT_TYPE: String
-  def index(mapping: M, field: String, vec: V, doc: ParseContext.Document): Unit
+  def checkAndSetFields(mapping: Mapping, field: String, vec: V, doc: ParseContext.Document): Try[Unit]
 
   private val fieldType = new this.FieldType
 
@@ -52,15 +57,15 @@ abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: Elastics
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
-      val mappingTry = implicitly[ElasticsearchCodec[M]].decodeJson(node.asJson).toTry
-      val builder = new Builder(name, mappingTry.get)
+      val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
+      val builder: Builder = new Builder(name, mapping)
       TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
       builder
     }
   }
 
-  private class Builder(name: String, mapping: M) extends FieldMapper.Builder[Builder, FieldMapper](name, fieldType, fieldType) {
+  private class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder[Builder, FieldMapper](field, fieldType, fieldType) {
 
     /** Populate the given builder from the given Json. */
     private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
@@ -97,12 +102,12 @@ abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: Elastics
     override def build(context: Mapper.BuilderContext): FieldMapper = {
       super.setupFieldType(context)
 
-      new FieldMapper(name, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
+      new FieldMapper(field, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
-          val json: Json = context.parser().map().asJson
+          val json: Json = context.parser.map.asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          self.index(mapping, name, vec, doc)
+          self.checkAndSetFields(mapping, name, vec, doc)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")

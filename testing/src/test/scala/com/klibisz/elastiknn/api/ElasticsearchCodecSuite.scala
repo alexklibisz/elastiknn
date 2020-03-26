@@ -196,6 +196,14 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "model": "sparse_indexed"
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseIndexed(100)
+
+    """
+      |{
+      | "type": "elastiknn_dense_float_vector",
+      | "dims": 100,
+      | "model": "sparse_indexed"
+      |}
+      |""".stripMargin.shouldNotDecodeTo[Mapping]
   }
 
   test("nearest neighbor queries (revised)") {
