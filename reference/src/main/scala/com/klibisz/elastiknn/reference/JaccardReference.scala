@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.reference
 
 import com.klibisz.elastiknn.SparseBoolVector
-import com.klibisz.elastiknn.models.ExactSimilarity
+import com.klibisz.elastiknn.models.{ExactSimilarityModelOld, ExactSimilarityScore}
 import com.klibisz.elastiknn.utils.Utils._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature.MinHashLSH
@@ -25,9 +25,9 @@ object ExactJaccardModel extends JaccardModel {
       yield
         corpus.zipWithIndex
           .map {
-            case (v, i) => i -> ExactSimilarity.jaccard(v, query).get
+            case (v, i) => i -> ExactSimilarityModelOld.jaccard(v, query).get
           }
-          .topK(k, _._2)
+          .topK(k, _._2.score)
           .map(_._1)
           .toVector
 
@@ -94,9 +94,10 @@ class MinhashJaccardModel(numTables: Int, numBands: Int, numRows: Int) extends J
       } yield c
 
       // Compute the actual distance to each candidate.
-      val candidateSims = candidateIndices.distinct.map(i => i -> ExactSimilarity.jaccard(corpus(i), q).get)
+      val candidateSims: IndexedSeq[(Int, ExactSimilarityScore)] =
+        candidateIndices.distinct.map(i => i -> ExactSimilarityModelOld.jaccard(corpus(i), q).get)
 
-      candidateSims.topK(k, _._2).map(_._1).toVector
+      candidateSims.topK(k, _._2.score).map(_._1).toVector
     }
   }
 }
@@ -134,7 +135,7 @@ class MinhashJaccardModel2(numTables: Int) extends JaccardModel {
           case (t, i) => sameBucket(transformedQuery, t)
         }
         .map(_._2)
-      candidateIndices.map(i => i -> ExactSimilarity.jaccard(corpus(i), q).get).topK(k, _._2).map(_._1).toVector
+      candidateIndices.map(i => i -> ExactSimilarityModelOld.jaccard(corpus(i), q).get).topK(k, _._2.distance).map(_._1).toVector
     }
   }
 }

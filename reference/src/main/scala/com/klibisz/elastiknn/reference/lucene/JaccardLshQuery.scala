@@ -6,7 +6,7 @@ import java.util.Objects
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
-import com.klibisz.elastiknn.models.{ExactSimilarity, JaccardLshModel}
+import com.klibisz.elastiknn.models.{ExactSimilarityModelOld, ExactSimilarityScore, JaccardLshModel}
 import com.klibisz.elastiknn.utils.SparseBoolVectorUtils
 import com.klibisz.elastiknn.{ElastiKnnVector, JaccardLshModelOptions, SparseBoolVector}
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec
@@ -111,7 +111,7 @@ object JaccardLshQuery extends SparseBoolVectorUtils {
           val doc = searcher.doc(docId)
           val ekvBytes = doc.getField(fieldVector(field)).binaryValue.bytes
           val ekv = SparseBoolVector.parseFrom(ekvBytes.take(ekvBytes.length))
-          val (score, _) = ExactSimilarity
+          val ExactSimilarityScore(score, _) = ExactSimilarityModelOld
             .apply(
               SIMILARITY_JACCARD,
               ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(queryVector)),

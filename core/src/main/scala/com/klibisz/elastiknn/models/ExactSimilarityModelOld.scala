@@ -6,19 +6,19 @@ import com.klibisz.elastiknn.utils.ArrayUtils._
 
 import scala.util.{Failure, Try}
 
-object ExactSimilarity {
+object ExactSimilarityModelOld {
 
-  def jaccard(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
+  def jaccard(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[ExactSimilarityScore] =
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
     else
       Try {
         val isec = sortedIntersectionCount(sbv1.trueIndices, sbv2.trueIndices)
         val sim: Double = isec.toDouble / (sbv1.trueIndices.length + sbv2.trueIndices.length - isec)
-        (sim, 1 - sim)
+        ExactSimilarityScore(sim, 1 - sim)
       }
 
-  def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[(Double, Double)] =
+  def hamming(sbv1: SparseBoolVector, sbv2: SparseBoolVector): Try[ExactSimilarityScore] =
     if (sbv1.totalIndices != sbv2.totalIndices)
       Failure(VectorDimensionException(sbv2.totalIndices, sbv1.totalIndices))
     else
@@ -29,10 +29,10 @@ object ExactSimilarity {
         val sbv2TrueCount = sbv2.trueIndices.length
         val neqTrueCount = (sbv1TrueCount - eqTrueCount).max(0) + (sbv2TrueCount - eqTrueCount).max(0)
         val sim = (totalCount - neqTrueCount).toDouble / totalCount
-        (sim, 1 - sim)
+        ExactSimilarityScore(sim, 1 - sim)
       }
 
-  def l1(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+  def l1(fv1: FloatVector, fv2: FloatVector): Try[ExactSimilarityScore] =
     if (fv1.values.length != fv2.values.length)
       Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
     else
@@ -43,10 +43,10 @@ object ExactSimilarity {
           sumAbsDiff += (fv1.values(i) - fv2.values(i)).abs
           i += 1
         }
-        (1.0 / sumAbsDiff.max(1e-6), sumAbsDiff)
+        ExactSimilarityScore(1.0 / sumAbsDiff.max(1e-6), sumAbsDiff)
       }
 
-  def l2(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+  def l2(fv1: FloatVector, fv2: FloatVector): Try[ExactSimilarityScore] =
     if (fv1.values.length != fv2.values.length)
       Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
     else
@@ -58,10 +58,10 @@ object ExactSimilarity {
           i += 1
         }
         val dist = Math.sqrt(sumSqrDiff)
-        (1.0 / dist.max(1e-6), sumSqrDiff)
+        ExactSimilarityScore(1.0 / dist.max(1e-6), sumSqrDiff)
       }
 
-  def angular(fv1: FloatVector, fv2: FloatVector): Try[(Double, Double)] =
+  def angular(fv1: FloatVector, fv2: FloatVector): Try[ExactSimilarityScore] =
     if (fv1.values.length != fv2.values.length)
       Failure(VectorDimensionException(fv2.values.length, fv1.values.length))
     else
@@ -77,10 +77,10 @@ object ExactSimilarity {
           i += 1
         }
         val sim = dotProd / (math.sqrt(fv1SqrSum) * math.sqrt(fv2SqrSum))
-        (1 + sim, 1 - sim)
+        ExactSimilarityScore(1 + sim, 1 - sim)
       }
 
-  def apply(similarity: Similarity, ekv1: ElastiKnnVector, ekv2: ElastiKnnVector): Try[(Double, Double)] = {
+  def apply(similarity: Similarity, ekv1: ElastiKnnVector, ekv2: ElastiKnnVector): Try[ExactSimilarityScore] = {
     import ElastiKnnVector.Vector.{FloatVector, SparseBoolVector}
     (similarity, ekv1.vector, ekv2.vector) match {
       case (SIMILARITY_JACCARD, SparseBoolVector(sbv1), SparseBoolVector(sbv2)) => jaccard(sbv1, sbv2)

@@ -7,6 +7,7 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.Query.NearestNeighborsQuery
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
@@ -65,8 +66,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     (mapping, vector) match {
       case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
         (m.modelOptions, queryOptions) match {
-          case (_, QueryOptions.Exact(Similarity.Jaccard))                                => ExactSimilarityQuery.jaccard(c, field, v)
-          case (_, QueryOptions.Exact(Similarity.Hamming))                                => ExactSimilarityQuery.hamming(c, field, v)
+          case (_, QueryOptions.Exact(Similarity.Jaccard)) =>
+            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Jaccard)
+          case (_, QueryOptions.Exact(Similarity.Hamming)) =>
+            new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Hamming)
           case (Some(SparseBoolModelOptions.JaccardIndexed), QueryOptions.JaccardIndexed) => JaccardIndexedQuery(c, field, v)
           case (Some(mopts: SparseBoolModelOptions.JaccardLsh), qopts: QueryOptions.JaccardLsh) =>
             JaccardLshQuery(c, field, mopts, qopts, v)

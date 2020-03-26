@@ -6,7 +6,7 @@ import java.util.Objects
 import com.google.common.cache._
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper
-import com.klibisz.elastiknn.models.ExactSimilarity
+import com.klibisz.elastiknn.models.{ExactSimilarityModelOld, ExactSimilarityScore}
 import com.klibisz.elastiknn._
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.Explanation
@@ -58,7 +58,7 @@ class KnnExactScoreFunction(val similarity: Similarity,
           val storedVector: ElastiKnnVector = if (useCache) {
             vectorCache.get((ctx, docId), () => atomicFieldData.getElastiKnnVector(docId).get)
           } else atomicFieldData.getElastiKnnVector(docId).get
-          val (sim, _) = ExactSimilarity(similarity, queryVector, storedVector).get
+          val ExactSimilarityScore(sim, _) = ExactSimilarityModelOld(similarity, queryVector, storedVector).get
           sim / subQueryScore
         } else 0
       }

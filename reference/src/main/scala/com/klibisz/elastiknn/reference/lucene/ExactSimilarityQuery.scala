@@ -5,7 +5,7 @@ import java.util
 import java.util.Objects
 
 import com.klibisz.elastiknn.Similarity.SIMILARITY_JACCARD
-import com.klibisz.elastiknn.models.ExactSimilarity
+import com.klibisz.elastiknn.models.{ExactSimilarityModelOld, ExactSimilarityScore}
 import com.klibisz.elastiknn.utils.ElastiKnnVectorUtils
 import com.klibisz.elastiknn.{ElastiKnnVector, Similarity, SparseBoolVector}
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
@@ -52,7 +52,7 @@ object ExactSimilarityQuery extends ElastiKnnVectorUtils {
         if (binaryDocValues.advanceExact(iterator.docID())) {
           val bv = binaryDocValues.binaryValue()
           val ekv = ElastiKnnVector.parseFrom(bv.bytes.take(bv.length))
-          val (score, _) = ExactSimilarity.apply(sim, queryVector, ekv).get
+          val ExactSimilarityScore(score, _) = ExactSimilarityModelOld.apply(sim, queryVector, ekv).get
           score.toFloat
         } else 0f
 

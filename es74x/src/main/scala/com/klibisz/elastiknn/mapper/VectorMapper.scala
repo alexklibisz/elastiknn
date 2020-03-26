@@ -2,7 +2,8 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolModelOptions}
+import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolModelOptions, Vec}
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
 import io.circe.syntax._
@@ -15,12 +16,12 @@ import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[api.Mapping.SparseBool, api.Vec.SparseBool] =
-    new VectorMapper[api.Mapping.SparseBool, api.Vec.SparseBool] {
+  val sparseBoolVector: VectorMapper[Mapping.SparseBool, Vec.SparseBool] =
+    new VectorMapper[Mapping.SparseBool, Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: api.Mapping.SparseBool, vec: api.Vec.SparseBool, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.SparseBool, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
-        ExactSimilarityQuery.index(vec).foreach(doc.add)
+        ExactSimilarityQuery.index("", vec).foreach(doc.add(_))
         mapping.modelOptions match {
           case Some(SparseBoolModelOptions.JaccardIndexed)          =>
           case Some(SparseBoolModelOptions.JaccardLsh(bands, rows)) =>
@@ -28,16 +29,16 @@ object VectorMapper {
         }
       }
     }
-  val denseFloatVector: VectorMapper[api.Mapping.DenseFloat, api.Vec.DenseFloat] =
-    new VectorMapper[api.Mapping.DenseFloat, api.Vec.DenseFloat] {
+  val denseFloatVector: VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] =
+    new VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.DenseFloat, vec: api.Vec.DenseFloat, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.DenseFloat, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
         ()
       }
     }
 }
 
-abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vec: ElasticsearchCodec] {
+abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: ElasticsearchCodec] {
 
   val CONTENT_TYPE: String
   def index(mapping: M, vec: V, doc: ParseContext.Document): Unit
@@ -98,8 +99,8 @@ abstract class VectorMapper[M <: api.Mapping: ElasticsearchCodec, V <: api.Vec: 
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser().map().asJson
-          val vecTry = implicitly[ElasticsearchCodec[V]].decodeJson(json).toTry
-          mapper.index(mapping, vecTry.get, doc)
+          val vec = ElasticsearchCodec.decodeJsonGet[V](json)
+          mapper.index(mapping, vec, doc)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
