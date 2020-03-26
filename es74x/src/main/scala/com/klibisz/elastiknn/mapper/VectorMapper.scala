@@ -32,7 +32,7 @@ object VectorMapper {
     new VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
       override def index(mapping: Mapping.DenseFloat, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
-        ()
+        ExactSimilarityQuery.index(field, vec).foreach(doc.add)
       }
     }
 }

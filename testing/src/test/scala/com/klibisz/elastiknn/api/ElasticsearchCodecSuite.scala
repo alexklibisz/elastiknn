@@ -163,6 +163,22 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |""".stripMargin.shouldNotDecodeTo[Mapping]
   }
 
+  test("nearest neighbor queries") {
+
+    """
+      |{
+      | "field": "foo",
+      | "vector": {
+      |   "true_indices": [1,2,3],
+      |   "total_indices": 99
+      | }
+      | "type": "exact",
+      | "similarity": "jaccard"
+      |}
+      |""".stripMargin
+
+  }
+
   test("query options") {
     """
       |{
