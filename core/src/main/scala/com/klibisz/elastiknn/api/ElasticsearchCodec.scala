@@ -183,7 +183,42 @@ object ElasticsearchCodec {
     }
   }
 
-  implicit val nearestNeighborsQuery: ESC[Query.NearestNeighborsQuery] = new ESC[Query.NearestNeighborsQuery] {
+  implicit val exactNNQ: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
+  implicit val sparseNNQ: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
+  implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
+
+  implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
+    import NearestNeighborsQuery._
+    override def apply(a: NearestNeighborsQuery): Json = {
+      val default = JsonObject(
+        FIELD -> a.field,
+        VECTOR -> ElasticsearchCodec.encode(a.vector),
+        SIMILARITY -> ElasticsearchCodec.encode(a.similarity)
+      )
+      a match {
+        case q: Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
+        case q: SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
+        case q: JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+      }
+    }
+    override def apply(c: HCursor): Result[NearestNeighborsQuery] =
+      for {
+        model <- c.downField(MODEL).as[String]
+        sim <- c.downField(SIMILARITY).as[Json].flatMap(ElasticsearchCodec.decodeJson[Similarity])
+        nnq <- model match {
+          case EXACT          => esc.decode[Exact](c)
+          case SPARSE_INDEXED => esc.decode[SparseIndexed](c)
+          case LSH =>
+            sim match {
+              case Similarity.Jaccard => esc.decode[JaccardLsh](c)
+              case other              => fail(s"Similarity [$other] is not compatible with $TYPE [$LSH]")
+            }
+          case other => failTypes(MODEL, Seq(EXACT, SPARSE_INDEXED, LSH), other)
+        }
+      } yield nnq
+  }
+
+  implicit val queryNearestNeighbors: ESC[Query.NearestNeighborsQuery] = new ESC[Query.NearestNeighborsQuery] {
     override def apply(t: Query.NearestNeighborsQuery): Json =
       JsonObject(FIELD -> t.field, VECTOR -> encode(t.vector))
     override def apply(c: HCursor): Either[DecodingFailure, Query.NearestNeighborsQuery] = {

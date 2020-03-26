@@ -35,17 +35,9 @@ package object api {
     def dims: Int
   }
   object Mapping {
-
-    // Sparse bool vector with no model.
     final case class SparseBool(dims: Int) extends Mapping
-
-    // Sparse bool vector with true indices indexed for faster intersections.
     final case class SparseIndexed(dims: Int) extends Mapping
-
-    // Dense float vector with no model.
     final case class DenseFloat(dims: Int) extends Mapping
-
-    // Sparse bool vector hashed using minhashing.
     final case class JaccardLsh(dims: Int, bands: Int, rows: Int) extends Mapping
   }
 
@@ -56,8 +48,18 @@ package object api {
     case class JaccardLsh(candidates: Int, refine: Boolean) extends QueryOptions
   }
 
-  sealed trait NearestNeighborsQuery
-  object NearestNeighborsQuery {}
+  sealed trait NearestNeighborsQuery {
+    def field: String
+    def vector: Vec
+    def similarity: Similarity
+  }
+  object NearestNeighborsQuery {
+    final case class Exact(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery
+    final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery
+    final case class JaccardLsh(field: String, vector: Vec, candidates: Int, refine: Boolean) extends NearestNeighborsQuery {
+      val similarity: Similarity = Similarity.Jaccard
+    }
+  }
 
   sealed trait Query
   object Query {

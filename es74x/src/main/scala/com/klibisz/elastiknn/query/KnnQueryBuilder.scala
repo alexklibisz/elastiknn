@@ -35,9 +35,8 @@ object KnnQueryBuilder {
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
     override def read(in: StreamInput): KnnQueryBuilder = {
-      // https://github.com/elastic/elasticsearch/blob/master/server/src/main/java/org/elasticsearch/index/query/AbstractQueryBuilder.java#L66-L68
-      in.readFloat()
-      in.readOptionalString()
+      in.readFloat() // boost
+      in.readOptionalString() // query name
       new KnnQueryBuilder(ElasticsearchCodec.decodeB64Get[NearestNeighborsQuery](in.readString()))
     }
   }

@@ -84,85 +84,6 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |""".stripMargin.shouldNotDecodeTo[Vec]
   }
 
-//  test("mappings w/o models") {
-//    """
-//      |{
-//      | "type": "elastiknn_sparse_bool_vector",
-//      | "dims": 100
-//      |}
-//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, None)
-//
-//    """
-//      |{
-//      | "type": "elastiknn_dense_float_vector",
-//      | "dims": 100
-//      |}
-//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.DenseFloatOld(100, None)
-//
-//  }
-//
-//  test("mappings w/ invalid types") {
-//    """
-//      |{
-//      | "type": "elastiknn_wrong",
-//      | "dims": 100
-//      |}
-//      |""".stripMargin.shouldNotDecodeTo[Mapping]
-//
-//    """
-//      |{
-//      | "type": "",
-//      | "dims": 100
-//      |}
-//      |""".stripMargin.shouldNotDecodeTo[Mapping]
-//  }
-//
-//  test("mappings w/ jaccard_indexed models") {
-//    """
-//      |{
-//      | "type": "elastiknn_sparse_bool_vector",
-//      | "dims": 100,
-//      | "model_options": {
-//      |  "type": "jaccard_indexed"
-//      | }
-//      |}
-//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, Some(SparseBoolModelOptions.JaccardIndexed))
-//  }
-//
-//  test("mappings w/ jaccard_lsh models") {
-//    """
-//      |{
-//      | "type": "elastiknn_sparse_bool_vector",
-//      | "dims": 100,
-//      | "model_options": {
-//      |   "type": "jaccard_lsh",
-//      |   "bands": 99,
-//      |   "rows": 1
-//      | }
-//      |}
-//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, Some(SparseBoolModelOptions.JaccardLsh(99, 1)))
-//  }
-//
-//  test("mappings w/ invalid models") {
-//    """
-//      |{
-//      | "type": "elastiknn_sparse_bool_vector",
-//      | "dims": 100,
-//      | "model_options": {
-//      |  "type": "jaccard_index"
-//      | }
-//      |}
-//      |""".stripMargin.shouldNotDecodeTo[Mapping]
-//
-//    """
-//      |{
-//      | "type": "elastiknn_sparse_bool_vector",
-//      | "dims": 100,
-//      | "model_options": { }
-//      |}
-//      |""".stripMargin.shouldNotDecodeTo[Mapping]
-//  }
-
   test("mappings") {
     """
       |{
@@ -207,34 +128,37 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
   }
 
   test("nearest neighbor queries (revised)") {
+
+    import NearestNeighborsQuery._
+
     """
       |{
       | "field": "vec",
-      | "type": "exact",
+      | "model": "exact",
       | "similarity": "jaccard",
       | "vector": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] Exact("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Jaccard)
 
     """
       |{
       | "field": "vec",
       | "model": "sparse_indexed",
-      | "similarity": "jaccard",
+      | "similarity": "hamming",
       | "vector": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Hamming)
 
     """
       |{
       | "field": "vec",
-      | "type": "lsh",
+      | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
       | "refine": true,
@@ -243,30 +167,6 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", Vec.SparseBool(Array(1, 2, 3), 99), 100, refine = true)
   }
-
-//  test("query options") {
-//    """
-//      |{
-//      | "type": "exact",
-//      | "similarity": "jaccard"
-//      |}
-//      |""".stripMargin shouldDecodeTo [QueryOptions] QueryOptions.Exact(Similarity.Jaccard)
-//
-//    """
-//      |{
-//      | "type": "jaccard_indexed"
-//      |}
-//      |""".stripMargin.shouldDecodeTo[QueryOptions](QueryOptions.JaccardIndexed)
-//
-//    """
-//      |{
-//      | "type": "jaccard_lsh",
-//      | "candidates": 99,
-//      | "refine": true
-//      |}
-//      |""".stripMargin shouldDecodeTo [QueryOptions] QueryOptions.JaccardLsh(99, true)
-//  }
-
 }
