@@ -62,7 +62,6 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   override def doToQuery(c: QueryShardContext): Query = {
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
-    checkDims(mapping, vector)
     (mapping, vector) match {
       case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
         (m.modelOptions, queryOptions) match {
@@ -84,14 +83,6 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         }
       case _ => throw incompatible(mapping, vector, queryOptions)
     }
-  }
-
-  private def checkDims(m: Mapping, v: Vec): Unit = (m, v) match {
-    case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
-      require(m.dims == v.totalIndices, s"mapping dims [${m.dims}] must equal vector dims [${v.totalIndices}]")
-    case (m: Mapping.DenseFloat, v: Vec.DenseFloat) =>
-      require(m.dims == v.values.length, s"Mapping dims [${m.dims}] must equal vector dims [${v.values.length}]")
-    case _ => ()
   }
 
   private def incompatible(m: Mapping, v: Vec, q: QueryOptions): Exception = {
@@ -147,7 +138,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             try {
               val srcMap = response.getSourceAsMap
                 .get(ixv.field)
-                .asInstanceOf[java.util.Map[String, AnyRef]]
+                .asInstanceOf[JavaJsonMap]
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.copy(vector = vector)))

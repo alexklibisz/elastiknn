@@ -2,8 +2,7 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, SparseBoolModelOptions, Vec}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, SparseBoolModelOptions, Vec}
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
 import io.circe.syntax._
@@ -48,7 +47,7 @@ abstract class VectorMapper[M <: Mapping: ElasticsearchCodec, V <: Vec: Elastics
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: util.Map[String, AnyRef], parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
+    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
       val mappingTry = implicitly[ElasticsearchCodec[M]].decodeJson(node.asJson).toTry
       val builder = new Builder(name, mappingTry.get)
       TypeParsers.parseField(builder, name, node, parserContext)
