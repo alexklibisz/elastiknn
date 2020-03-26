@@ -54,6 +54,9 @@ package object api {
     case class JaccardLsh(candidates: Int, refine: Boolean) extends QueryOptions
   }
 
+  sealed trait NearestNeighborsQuery
+  object NearestNeighborsQuery {}
+
   sealed trait Query
   object Query {
     final case class NearestNeighborsQuery(field: String, vector: Vec, queryOptions: QueryOptions) extends Query

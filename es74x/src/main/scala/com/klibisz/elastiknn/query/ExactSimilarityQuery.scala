@@ -27,24 +27,32 @@ class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val sim
     override def scorer(context: LeafReaderContext): Scorer = {
       val existsScorer = existsWeight.scorer(context)
       val existsIter = if (existsScorer != null) existsScorer.iterator() else DocIdSetIterator.empty()
-      new ExactSimilarityScorer(this, context, existsIter)
+      new ExactSimilarityScorer(this, searcher, context, existsIter)
     }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class ExactSimilarityScorer(weight: Weight, context: LeafReaderContext, iterator: DocIdSetIterator) extends Scorer(weight) {
+  class ExactSimilarityScorer(weight: Weight, searcher: IndexSearcher, context: LeafReaderContext, iterator: DocIdSetIterator)
+      extends Scorer(weight) {
     private val reader = context.reader()
     private val binaryDocValues = reader.getBinaryDocValues(storedField)
     override def iterator(): DocIdSetIterator = iterator
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
-    override def score(): Float =
-      if (binaryDocValues.advanceExact(iterator.docID())) {
+    override def score(): Float = {
+      val docId = iterator.docID()
+      if (binaryDocValues.advanceExact(docId)) {
         val bv: BytesRef = binaryDocValues.binaryValue()
         val barr = bv.bytes.take(bv.length)
         val storedVec: V = codec(barr).get
         val simScore: ExactSimilarityScore = simFunc(queryVec, storedVec).get
+
+        val doc = searcher.doc(docId)
+        val foo = doc.getField("foo").numericValue().intValue()
+        val bar = doc.getField("bar").binaryValue().bytes
+        val baz = codec(bar).get
         simScore.score.toFloat
       } else 0f
+    }
     override def docID(): Int = iterator.docID()
   }
 
@@ -67,11 +75,5 @@ object ExactSimilarityQuery {
 
   def index[V <: Vec](field: String, vec: V)(implicit codec: ByteArrayCodec[V]): Seq[IndexableField] =
     Seq(new BinaryDocValuesField(storedVectorField(field), new BytesRef(codec(vec))))
-
-  def l1(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(storedVectorField(field))
-
-  def l2(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(storedVectorField(field))
-
-  def angular(c: QueryShardContext, field: String, v: Vec.DenseFloat): Query = new DocValuesFieldExistsQuery(storedVectorField(field))
 
 }

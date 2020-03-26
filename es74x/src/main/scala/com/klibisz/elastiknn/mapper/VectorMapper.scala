@@ -4,9 +4,11 @@ import java.util
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, SparseBoolModelOptions, Vec}
 import com.klibisz.elastiknn.query.ExactSimilarityQuery
+import com.klibisz.elastiknn.storage.ByteArrayCodec
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException, api}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
+import org.apache.lucene.document.{IntPoint, StoredField}
 import org.apache.lucene.index.IndexableField
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
@@ -21,6 +23,8 @@ object VectorMapper {
       override def index(mapping: Mapping.SparseBool, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
         ExactSimilarityQuery.index(field, vec).foreach(doc.add)
+        doc.add(new StoredField("foo", vec.totalIndices))
+        doc.add(new StoredField("bar", ByteArrayCodec.encode(vec)))
         mapping.modelOptions match {
           case Some(SparseBoolModelOptions.JaccardIndexed)          =>
           case Some(SparseBoolModelOptions.JaccardLsh(bands, rows)) =>

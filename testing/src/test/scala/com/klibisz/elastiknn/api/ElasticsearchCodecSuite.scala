@@ -167,13 +167,39 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
     """
       |{
-      | "field": "foo",
+      | "field": "vec",
+      | "type": "exact",
+      | "similarity": "jaccard",
       | "vector": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
-      | "type": "exact",
-      | "similarity": "jaccard"
+      |}
+      |""".stripMargin
+
+    """
+      |{
+      | "field": "vec",
+      | "type": "indexed",
+      | "similarity": "jaccard",
+      | "vector": {
+      |   "true_indices": [1,2,3],
+      |   "total_indices": 99
+      | }
+      |}
+      |""".stripMargin
+
+    """
+      |{
+      | "field": "vec",
+      | "type": "lsh",
+      | "similarity": "jaccard",
+      | "candidates": 100,
+      | "refine": true,
+      | "vector": {
+      |   "true_indices": [1,2,3],
+      |   "total_indices": 99
+      | }
       |}
       |""".stripMargin
 

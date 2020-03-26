@@ -76,9 +76,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         }
       case (m: Mapping.DenseFloat, v: Vec.DenseFloat) =>
         (m.modelOptions, queryOptions) match {
-          case (_, QueryOptions.Exact(Similarity.L1))      => ExactSimilarityQuery.l1(c, field, v)
-          case (_, QueryOptions.Exact(Similarity.L2))      => ExactSimilarityQuery.l2(c, field, v)
-          case (_, QueryOptions.Exact(Similarity.Angular)) => ExactSimilarityQuery.angular(c, field, v)
+          case (_, QueryOptions.Exact(Similarity.L1))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L1)
+          case (_, QueryOptions.Exact(Similarity.L2))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L2)
+          case (_, QueryOptions.Exact(Similarity.Angular)) => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Angular)
           case _                                           => throw incompatible(mapping, vector, queryOptions)
         }
       case _ => throw incompatible(mapping, vector, queryOptions)

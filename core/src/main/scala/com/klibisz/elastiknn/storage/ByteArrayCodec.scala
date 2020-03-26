@@ -11,6 +11,9 @@ trait ByteArrayCodec[T] {
 
 object ByteArrayCodec {
 
+  def encode[T: ByteArrayCodec](t: T): Array[Byte] = implicitly[ByteArrayCodec[T]].apply(t)
+  def decode[T: ByteArrayCodec](a: Array[Byte]): Try[T] = implicitly[ByteArrayCodec[T]].apply(a)
+
   implicit val sparseBoolVector: ByteArrayCodec[Vec.SparseBool] = new ByteArrayCodec[Vec.SparseBool] {
     override def apply(t: Vec.SparseBool): Array[Byte] = SparseBoolVector(t.trueIndices, t.totalIndices).toByteArray
     override def apply(a: Array[Byte]): Try[Vec.SparseBool] = Try {
