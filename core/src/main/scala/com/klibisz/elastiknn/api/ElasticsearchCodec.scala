@@ -43,7 +43,7 @@ private object Keys {
   val VECTOR = "vector"
 }
 
-object ElasticsearchCodec {
+object ElasticsearchCodec { esc =>
 
   import Keys._
 
@@ -55,7 +55,7 @@ object ElasticsearchCodec {
   private def apply[A](encoder: Encoder[A], decoder: Decoder[A]): ESC[A] = apply(Codec.from(decoder, encoder))
 
   private type ESC[T] = ElasticsearchCodec[T]
-  private val esc = this
+  private type JO = JsonObject
 
   private def fail[T](msg: String): Either[DecodingFailure, T] = Left(DecodingFailure(msg, List.empty))
   private def failTypes[T](field: String, good: Seq[String], bad: String): Either[DecodingFailure, T] =
@@ -67,6 +67,9 @@ object ElasticsearchCodec {
   private implicit def strToJson(s: String): Json = Json.fromString(s)
   private implicit class EitherSyntax[+L1, +R1](either: Either[L1, R1]) {
     def orElse[L2 >: L1, R2 >: R1](other: Either[L2, R2]): Either[L2, R2] = if (either.isRight) either else other
+  }
+  private implicit class JsonSyntax(j: Json) {
+    def ++(other: Json): Json = j.deepMerge(other)
   }
   private implicit class JsonObjectSyntax(j: JsonObject) {
     def ++(other: Json): Json = j.deepMerge(other)
@@ -136,15 +139,18 @@ object ElasticsearchCodec {
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
     override def apply(t: Mapping): Json = t match {
-      case m: Mapping.SparseBool    => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR) ++ esc.encode(m)
-      case m: Mapping.DenseFloat    => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR) ++ esc.encode(m)
-      case m: Mapping.SparseIndexed => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, MODEL -> SPARSE_INDEXED) ++ esc.encode(m)
-      case m: Mapping.JaccardLsh    => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, MODEL -> LSH, SIMILARITY -> JACCARD) ++ esc.encode(m)
+      case m: Mapping.SparseBool => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
+      case m: Mapping.DenseFloat => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
+      case m: Mapping.SparseIndexed =>
+        JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> SPARSE_INDEXED)))
+      case m: Mapping.JaccardLsh =>
+        JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
       for {
         typ <- c.downField(TYPE).as[String]
+        c <- c.downField(ELASTIKNN_NAME).as[Json].map(_.hcursor)
         modelOpt = c.value.findAllByKey(MODEL).headOption.flatMap(_.asString)
         simOpt = c.value.findAllByKey(SIMILARITY).headOption.flatMap(ElasticsearchCodec.decodeJson[Similarity](_).toOption)
         mapping <- (typ, modelOpt, simOpt) match {

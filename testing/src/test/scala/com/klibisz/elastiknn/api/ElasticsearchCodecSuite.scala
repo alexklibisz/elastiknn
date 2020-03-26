@@ -88,41 +88,51 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
     """
       |{
       | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100
+      | "elastiknn": {
+      |  "dims": 100
+      | }
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBool(100)
 
     """
       |{
       | "type": "elastiknn_dense_float_vector",
-      | "dims": 100
+      | "elastiknn": {
+      |  "dims": 100
+      | }
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.DenseFloat(100)
 
     """
       |{
       | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100,
-      | "model": "lsh",
-      | "similarity": "jaccard",
-      | "bands": 99,
-      | "rows": 1
+      | "elastiknn": {
+      |  "dims": 100,
+      |  "model": "lsh",
+      |  "similarity": "jaccard",
+      |  "bands": 99,
+      |  "rows": 1
+      | }
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.JaccardLsh(100, 99, 1)
 
     """
       |{
       | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100,
-      | "model": "sparse_indexed"
+      | "elastiknn": {
+      |  "dims": 100,
+      |  "model": "sparse_indexed"
+      | }
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseIndexed(100)
 
     """
       |{
       | "type": "elastiknn_dense_float_vector",
-      | "dims": 100,
-      | "model": "sparse_indexed"
+      | "elastiknn": {
+      |  "dims": 100,
+      |  "model": "sparse_indexed"
+      | }
       |}
       |""".stripMargin.shouldNotDecodeTo[Mapping]
   }
