@@ -136,9 +136,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new ActionListener[GetResponse] {
           override def onResponse(response: GetResponse): Unit =
             try {
-              val srcMap = response.getSourceAsMap
-                .get(ixv.field)
-                .asInstanceOf[JavaJsonMap]
+              val srcMap = response.getSourceAsMap.get(ixv.field).asInstanceOf[JavaJsonMap]
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.copy(vector = vector)))

@@ -59,8 +59,9 @@ object ElasticsearchCodec {
   private val esc = this
 
   private def fail[T](msg: String): Either[DecodingFailure, T] = Left(DecodingFailure(msg, List.empty))
-  private def failTypes[T](good: Seq[String], bad: String): Either[DecodingFailure, T] =
-    Left(DecodingFailure(s"Expected $TYPE to be one of (${good.mkString(", ")}) but got $bad", List.empty))
+  private def failTypes[T](field: String, good: Seq[String], bad: String): Either[DecodingFailure, T] =
+    fail(s"Expected field $field to be one of (${good.mkString(", ")}) but got $bad")
+  private def failTypes[T](good: Seq[String], bad: String): Either[DecodingFailure, T] = failTypes(TYPE, good, bad)
 
   private implicit def jsonObjToJson(jo: JsonObject): Json = Json.fromJsonObject(jo)
   private implicit def intToJson(i: Int): Json = Json.fromInt(i)
@@ -87,16 +88,26 @@ object ElasticsearchCodec {
   def parseB64Get[T: ElasticsearchCodec](s: String): Json = parseB64(s).toTry.get
 
   implicit val similarity: ESC[Similarity] = new ESC[Similarity] {
-    // The apply methods account for lowercasing. Otherwise we could just use the derived codec.
-    private val codec = deriveEnumerationCodec[Similarity]
+    // Circe's default enumeration codec is case-sensitive and gives useless errors.
     override def apply(c: HCursor): Result[Similarity] =
       for {
         str <- c.as[String]
-        cur = Json.fromString(str.head.toUpper + str.tail.toLowerCase).hcursor
-        sim <- codec(cur)
+        sim <- str.toLowerCase match {
+          case JACCARD => Right(Similarity.Jaccard)
+          case HAMMING => Right(Similarity.Hamming)
+          case L1      => Right(Similarity.L1)
+          case L2      => Right(Similarity.L2)
+          case ANGULAR => Right(Similarity.Angular)
+          case other   => failTypes(SIMILARITY, Seq(JACCARD, HAMMING, L1, L2, ANGULAR), other)
+        }
       } yield sim
-    override def apply(a: Similarity): Json =
-      codec(a).asString.map(_.toLowerCase).map(Json.fromString).getOrElse(codec(a))
+    override def apply(a: Similarity): Json = a match {
+      case Similarity.Jaccard => JACCARD
+      case Similarity.Hamming => HAMMING
+      case Similarity.L1      => L1
+      case Similarity.L2      => L2
+      case Similarity.Angular => ANGULAR
+    }
   }
 
   implicit val denseFloatVector: ESC[DenseFloat] = ElasticsearchCodec(deriveCodec)
