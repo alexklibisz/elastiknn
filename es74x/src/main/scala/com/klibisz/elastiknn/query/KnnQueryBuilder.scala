@@ -86,9 +86,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   }
 
   private def incompatible(m: Mapping, v: Vec, q: QueryOptions): Exception = {
-    val msg = s"Incompatible combination of mapping [${ElasticsearchCodec.encode(m).noSpaces}], " +
-      s"vector [${ElasticsearchCodec.encode(v).noSpaces}], " +
-      s"and query options [${ElasticsearchCodec.encode(q).noSpaces}]}"
+    val msg = s"Incompatible combination of mapping [${ElasticsearchCodec.encode(m).spaces2}], " +
+      s"vector [${ElasticsearchCodec.encode(v).spaces2}], " +
+      s"and query options [${ElasticsearchCodec.encode(q).spaces2}]}"
     new IllegalArgumentException(msg)
   }
 

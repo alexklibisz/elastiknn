@@ -12,14 +12,10 @@ import io.circe._
 
 import scala.language.implicitConversions
 
-trait ElasticsearchEncoder[A] extends Encoder[A] {
-  def apply(a: A): Json
-}
-
-trait ElasticsearchDecoder[A] extends Decoder[A] {
-  def apply(c: HCursor): Decoder.Result[A]
-}
-
+/**
+  * Typeclass for handling idiomatic elasticsearch JSON using Circe.
+  * @tparam A
+  */
 trait ElasticsearchCodec[A] extends Codec[A]
 
 private object Keys {
