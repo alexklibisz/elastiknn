@@ -34,8 +34,11 @@ private object Keys {
   val JACCARD_LSH = "jaccard_lsh"
   val L1 = "l1"
   val L2 = "l2"
+  val LSH = "lsh"
+  val MODEL = "model"
   val QUERY_OPTIONS = "query_options"
   val SIMILARITY = "similarity"
+  val SPARSE_INDEXED = "sparse_indexed"
   val TYPE = "type"
   val VECTOR = "vector"
 }
@@ -62,8 +65,11 @@ object ElasticsearchCodec {
   private implicit def jsonObjToJson(jo: JsonObject): Json = Json.fromJsonObject(jo)
   private implicit def intToJson(i: Int): Json = Json.fromInt(i)
   private implicit def strToJson(s: String): Json = Json.fromString(s)
-  private implicit class EitherWithOrElse[+L1, +R1](either: Either[L1, R1]) {
+  private implicit class EitherSyntax[+L1, +R1](either: Either[L1, R1]) {
     def orElse[L2 >: L1, R2 >: R1](other: Either[L2, R2]): Either[L2, R2] = if (either.isRight) either else other
+  }
+  private implicit class JsonObjectSyntax(j: JsonObject) {
+    def ++(other: Json): Json = j.deepMerge(other)
   }
 
   private val b64 = BaseEncoding.base64()
@@ -158,53 +164,69 @@ object ElasticsearchCodec {
       } yield mopts
   }
 
-  implicit val mappingDenseFloatVector: ESC[Mapping.DenseFloat] = new ESC[Mapping.DenseFloat] {
-    override def apply(t: Mapping.DenseFloat): Json = t.modelOptions match {
+  implicit val mappingDenseFloatVectorOld: ESC[Mapping.DenseFloatOld] = new ESC[Mapping.DenseFloatOld] {
+    override def apply(t: Mapping.DenseFloatOld): Json = t.modelOptions match {
       case Some(mopts) => JsonObject(DIMS -> t.dims, MODEL_OPTIONS -> encode(mopts))
       case None        => JsonObject(DIMS -> t.dims)
     }
-    override def apply(c: HCursor): Either[DecodingFailure, Mapping.DenseFloat] =
+    override def apply(c: HCursor): Either[DecodingFailure, Mapping.DenseFloatOld] =
       for {
         dims <- c.downField(DIMS).as[Int]
         mopts <- c.value.findAllByKey(MODEL_OPTIONS).headOption match {
           case Some(moptsJson) => esc.decodeJson[DenseFloatModelOptions](moptsJson).map(Some(_))
           case None            => Right(None)
         }
-      } yield Mapping.DenseFloat(dims, mopts)
+      } yield Mapping.DenseFloatOld(dims, mopts)
   }
 
-  implicit val mappingSparseBoolVector: ESC[Mapping.SparseBool] = new ESC[Mapping.SparseBool] {
-    override def apply(t: Mapping.SparseBool): Json = t.modelOptions match {
+  implicit val mappingSparseBoolVectorOld: ESC[Mapping.SparseBoolOld] = new ESC[Mapping.SparseBoolOld] {
+    override def apply(t: Mapping.SparseBoolOld): Json = t.modelOptions match {
       case Some(mopts) => JsonObject(DIMS -> t.dims, MODEL_OPTIONS -> encode(mopts))
       case None        => JsonObject(DIMS -> t.dims)
     }
 
-    override def apply(c: HCursor): Either[DecodingFailure, Mapping.SparseBool] =
+    override def apply(c: HCursor): Either[DecodingFailure, Mapping.SparseBoolOld] =
       for {
         dims <- c.downField(DIMS).as[Int]
         mopts <- c.value.findAllByKey(MODEL_OPTIONS).headOption match {
           case Some(moptsJson) => esc.decodeJson[SparseBoolModelOptions](moptsJson).map(Some(_))
           case None            => Right(None)
         }
-      } yield Mapping.SparseBool(dims, mopts)
+      } yield Mapping.SparseBoolOld(dims, mopts)
   }
+
+  implicit val mappingSparseBool: ESC[Mapping.SparseBool] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingDenseFloat: ESC[Mapping.DenseFloat] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingSparseIndexed: ESC[Mapping.SparseIndexed] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingJaccardLsh: ESC[Mapping.JaccardLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
     override def apply(t: Mapping): Json = t match {
-      case sbv: Mapping.SparseBool => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR).deepMerge(encode(sbv))
-      case dfv: Mapping.DenseFloat => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR).deepMerge(encode(dfv))
+      case m: Mapping.SparseBool    => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR) ++ esc.encode(m)
+      case m: Mapping.DenseFloat    => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR) ++ esc.encode(m)
+      case m: Mapping.SparseIndexed => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, MODEL -> SPARSE_INDEXED) ++ esc.encode(m)
+      case m: Mapping.JaccardLsh    => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, MODEL -> LSH, SIMILARITY -> JACCARD) ++ esc.encode(m)
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
       for {
         typ <- c.downField(TYPE).as[String]
-        mapping <- typ match {
-          case EKNN_SPARSE_BOOL_VECTOR => ElasticsearchCodec.decode[Mapping.SparseBool](c)
-          case EKNN_DENSE_FLOAT_VECTOR => ElasticsearchCodec.decode[Mapping.DenseFloat](c)
-          case other                   => failTypes(Seq(EKNN_DENSE_FLOAT_VECTOR, EKNN_SPARSE_BOOL_VECTOR), other)
+        modelOpt = c.value.findAllByKey(MODEL).headOption.flatMap(_.asString)
+        simOpt = c.value.findAllByKey(SIMILARITY).headOption.flatMap(ElasticsearchCodec.decodeJson[Similarity](_).toOption)
+        mapping <- (typ, modelOpt, simOpt) match {
+          case (EKNN_SPARSE_BOOL_VECTOR, None, None) =>
+            esc.decode[Mapping.SparseBool](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, None, None) =>
+            esc.decode[Mapping.DenseFloat](c)
+          case (EKNN_SPARSE_BOOL_VECTOR, Some(SPARSE_INDEXED), None) =>
+            esc.decode[Mapping.SparseIndexed](c)
+          case (EKNN_SPARSE_BOOL_VECTOR, Some(LSH), Some(Similarity.Jaccard)) =>
+            esc.decode[Mapping.JaccardLsh](c)
+          case _ =>
+            val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
+            fail[Mapping](msg)
         }
       } yield mapping
-
   }
 
   implicit val exactQueryOptions: ESC[QueryOptions.Exact] = ElasticsearchCodec(deriveCodec)

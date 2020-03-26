@@ -63,7 +63,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
     (mapping, vector) match {
-      case (m: Mapping.SparseBool, v: Vec.SparseBool) =>
+      case (m: Mapping.SparseBoolOld, v: Vec.SparseBool) =>
         (m.modelOptions, queryOptions) match {
           case (_, QueryOptions.Exact(Similarity.Jaccard)) =>
             new ExactSimilarityQuery(field, v, ExactSimilarityFunction.Jaccard)
@@ -74,7 +74,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             JaccardLshQuery(c, field, mopts, qopts, v)
           case _ => throw incompatible(mapping, vector, queryOptions)
         }
-      case (m: Mapping.DenseFloat, v: Vec.DenseFloat) =>
+      case (m: Mapping.DenseFloatOld, v: Vec.DenseFloat) =>
         (m.modelOptions, queryOptions) match {
           case (_, QueryOptions.Exact(Similarity.L1))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L1)
           case (_, QueryOptions.Exact(Similarity.L2))      => new ExactSimilarityQuery(field, v, ExactSimilarityFunction.L2)

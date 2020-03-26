@@ -17,10 +17,10 @@ import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 
 object VectorMapper {
-  val sparseBoolVector: VectorMapper[Mapping.SparseBool, Vec.SparseBool] =
-    new VectorMapper[Mapping.SparseBool, Vec.SparseBool] {
+  val sparseBoolVector: VectorMapper[Mapping.SparseBoolOld, Vec.SparseBool] =
+    new VectorMapper[Mapping.SparseBoolOld, Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def index(mapping: Mapping.SparseBool, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.SparseBoolOld, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Unit = {
         if (vec.totalIndices != mapping.dims) throw VectorDimensionException(vec.totalIndices, mapping.dims)
         ExactSimilarityQuery.index(field, vec).foreach(doc.add)
         doc.add(new StoredField("foo", vec.totalIndices))
@@ -32,10 +32,10 @@ object VectorMapper {
         }
       }
     }
-  val denseFloatVector: VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] =
-    new VectorMapper[Mapping.DenseFloat, Vec.DenseFloat] {
+  val denseFloatVector: VectorMapper[Mapping.DenseFloatOld, Vec.DenseFloat] =
+    new VectorMapper[Mapping.DenseFloatOld, Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def index(mapping: Mapping.DenseFloat, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
+      override def index(mapping: Mapping.DenseFloatOld, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Unit = {
         ExactSimilarityQuery.index(field, vec).foreach(doc.add)
       }
     }

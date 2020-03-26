@@ -13,23 +13,6 @@ package object api {
     case object Angular extends Similarity
   }
 
-  sealed trait SparseBoolModelOptions
-  object SparseBoolModelOptions {
-    case object JaccardIndexed extends SparseBoolModelOptions
-    final case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolModelOptions
-  }
-
-  sealed trait DenseFloatModelOptions
-  object DenseFloatModelOptions {
-    final case class AngularLsh() extends DenseFloatModelOptions
-  }
-
-  sealed trait Mapping
-  object Mapping {
-    final case class SparseBool(dims: Int, modelOptions: Option[SparseBoolModelOptions]) extends Mapping
-    final case class DenseFloat(dims: Int, modelOptions: Option[DenseFloatModelOptions]) extends Mapping
-  }
-
   sealed trait Vec
   object Vec {
     final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec {
@@ -45,6 +28,36 @@ package object api {
       }
     }
     final case class Indexed(index: String, id: String, field: String) extends Vec
+  }
+
+  sealed trait SparseBoolModelOptions
+  object SparseBoolModelOptions {
+    case object JaccardIndexed extends SparseBoolModelOptions
+    final case class JaccardLsh(bands: Int, rows: Int) extends SparseBoolModelOptions
+  }
+
+  sealed trait DenseFloatModelOptions
+  object DenseFloatModelOptions {
+    final case class AngularLsh() extends DenseFloatModelOptions
+  }
+
+  sealed trait Mapping
+  object Mapping {
+
+    // Sparse bool vector with no model.
+    final case class SparseBool(dims: Int) extends Mapping
+
+    // Sparse bool vector with true indices indexed for faster intersections.
+    final case class SparseIndexed(dims: Int) extends Mapping
+
+    // Dense float vector with no model.
+    final case class DenseFloat(dims: Int) extends Mapping
+
+    // Sparse bool vector hashed using minhashing.
+    final case class JaccardLsh(dims: Int, bands: Int, rows: Int) extends Mapping
+
+    final case class SparseBoolOld(dims: Int, modelOptions: Option[SparseBoolModelOptions]) extends Mapping
+    final case class DenseFloatOld(dims: Int, modelOptions: Option[DenseFloatModelOptions]) extends Mapping
   }
 
   sealed trait QueryOptions

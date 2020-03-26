@@ -9,7 +9,7 @@ import scala.language.postfixOps
 class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
   implicit class CodecMatcher(s: String) {
-    def decodesTo[T: ElasticsearchCodec](obj: T): Assertion = {
+    def shouldDecodeTo[T: ElasticsearchCodec](obj: T): Assertion = {
 
       lazy val parsed: Either[circe.Error, Json] = ElasticsearchCodec.parse(s)
       lazy val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
@@ -45,13 +45,13 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "true_indices": [1,2,3],
       | "total_indices": 99
       |}
-      |""".stripMargin decodesTo [Vec] Vec.SparseBool(Array(1, 2, 3), 99)
+      |""".stripMargin shouldDecodeTo [Vec] Vec.SparseBool(Array(1, 2, 3), 99)
 
     """
       |{
       | "values": [0.1, 1, 11]
       |}
-      |""".stripMargin decodesTo [Vec] Vec.DenseFloat(Array(0.1f, 1f, 11f))
+      |""".stripMargin shouldDecodeTo [Vec] Vec.DenseFloat(Array(0.1f, 1f, 11f))
 
     """
       |{
@@ -59,7 +59,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |  "id": "abc",
       |  "field": "vec"
       |}
-      |""".stripMargin decodesTo [Vec] Vec.Indexed("foo", "abc", "vec")
+      |""".stripMargin shouldDecodeTo [Vec] Vec.Indexed("foo", "abc", "vec")
   }
 
   test("vectors w/ invalid contents") {
@@ -84,87 +84,121 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |""".stripMargin.shouldNotDecodeTo[Vec]
   }
 
-  test("mappings w/o models") {
+//  test("mappings w/o models") {
+//    """
+//      |{
+//      | "type": "elastiknn_sparse_bool_vector",
+//      | "dims": 100
+//      |}
+//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, None)
+//
+//    """
+//      |{
+//      | "type": "elastiknn_dense_float_vector",
+//      | "dims": 100
+//      |}
+//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.DenseFloatOld(100, None)
+//
+//  }
+//
+//  test("mappings w/ invalid types") {
+//    """
+//      |{
+//      | "type": "elastiknn_wrong",
+//      | "dims": 100
+//      |}
+//      |""".stripMargin.shouldNotDecodeTo[Mapping]
+//
+//    """
+//      |{
+//      | "type": "",
+//      | "dims": 100
+//      |}
+//      |""".stripMargin.shouldNotDecodeTo[Mapping]
+//  }
+//
+//  test("mappings w/ jaccard_indexed models") {
+//    """
+//      |{
+//      | "type": "elastiknn_sparse_bool_vector",
+//      | "dims": 100,
+//      | "model_options": {
+//      |  "type": "jaccard_indexed"
+//      | }
+//      |}
+//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, Some(SparseBoolModelOptions.JaccardIndexed))
+//  }
+//
+//  test("mappings w/ jaccard_lsh models") {
+//    """
+//      |{
+//      | "type": "elastiknn_sparse_bool_vector",
+//      | "dims": 100,
+//      | "model_options": {
+//      |   "type": "jaccard_lsh",
+//      |   "bands": 99,
+//      |   "rows": 1
+//      | }
+//      |}
+//      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBoolOld(100, Some(SparseBoolModelOptions.JaccardLsh(99, 1)))
+//  }
+//
+//  test("mappings w/ invalid models") {
+//    """
+//      |{
+//      | "type": "elastiknn_sparse_bool_vector",
+//      | "dims": 100,
+//      | "model_options": {
+//      |  "type": "jaccard_index"
+//      | }
+//      |}
+//      |""".stripMargin.shouldNotDecodeTo[Mapping]
+//
+//    """
+//      |{
+//      | "type": "elastiknn_sparse_bool_vector",
+//      | "dims": 100,
+//      | "model_options": { }
+//      |}
+//      |""".stripMargin.shouldNotDecodeTo[Mapping]
+//  }
+
+  test("mappings") {
     """
       |{
       | "type": "elastiknn_sparse_bool_vector",
       | "dims": 100
       |}
-      |""".stripMargin decodesTo (Mapping.SparseBool(100, None): Mapping)
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseBool(100)
 
     """
       |{
       | "type": "elastiknn_dense_float_vector",
       | "dims": 100
       |}
-      |""".stripMargin decodesTo [Mapping] Mapping.DenseFloat(100, None)
-
-  }
-
-  test("mappings w/ invalid types") {
-    """
-      |{
-      | "type": "elastiknn_wrong",
-      | "dims": 100
-      |}
-      |""".stripMargin.shouldNotDecodeTo[Mapping]
-
-    """
-      |{
-      | "type": "",
-      | "dims": 100
-      |}
-      |""".stripMargin.shouldNotDecodeTo[Mapping]
-  }
-
-  test("mappings w/ jaccard_indexed models") {
-    """
-      |{
-      | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100,
-      | "model_options": {
-      |  "type": "jaccard_indexed"
-      | }
-      |}
-      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolModelOptions.JaccardIndexed))
-  }
-
-  test("mappings w/ jaccard_lsh models") {
-    """
-      |{
-      | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100,
-      | "model_options": {
-      |   "type": "jaccard_lsh",
-      |   "bands": 99,
-      |   "rows": 1
-      | }
-      |}
-      |""".stripMargin decodesTo [Mapping] Mapping.SparseBool(100, Some(SparseBoolModelOptions.JaccardLsh(99, 1)))
-  }
-
-  test("mappings w/ invalid models") {
-    """
-      |{
-      | "type": "elastiknn_sparse_bool_vector",
-      | "dims": 100,
-      | "model_options": {
-      |  "type": "jaccard_index"
-      | }
-      |}
-      |""".stripMargin.shouldNotDecodeTo[Mapping]
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.DenseFloat(100)
 
     """
       |{
       | "type": "elastiknn_sparse_bool_vector",
       | "dims": 100,
-      | "model_options": { }
+      | "model": "lsh",
+      | "similarity": "jaccard",
+      | "bands": 99,
+      | "rows": 1
       |}
-      |""".stripMargin.shouldNotDecodeTo[Mapping]
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.JaccardLsh(100, 99, 1)
+
+    """
+      |{
+      | "type": "elastiknn_sparse_bool_vector",
+      | "dims": 100,
+      | "model": "sparse_indexed"
+      |}
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseIndexed(100)
   }
 
-  test("nearest neighbor queries") {
-
+  test("nearest neighbor queries (revised)") {
     """
       |{
       | "field": "vec",
@@ -180,7 +214,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
     """
       |{
       | "field": "vec",
-      | "type": "indexed",
+      | "model": "sparse_indexed",
       | "similarity": "jaccard",
       | "vector": {
       |   "true_indices": [1,2,3],
@@ -202,30 +236,29 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | }
       |}
       |""".stripMargin
-
   }
 
-  test("query options") {
-    """
-      |{
-      | "type": "exact",
-      | "similarity": "jaccard"
-      |}
-      |""".stripMargin decodesTo [QueryOptions] QueryOptions.Exact(Similarity.Jaccard)
-
-    """
-      |{
-      | "type": "jaccard_indexed"
-      |}
-      |""".stripMargin.decodesTo[QueryOptions](QueryOptions.JaccardIndexed)
-
-    """
-      |{
-      | "type": "jaccard_lsh",
-      | "candidates": 99,
-      | "refine": true
-      |}
-      |""".stripMargin decodesTo [QueryOptions] QueryOptions.JaccardLsh(99, true)
-  }
+//  test("query options") {
+//    """
+//      |{
+//      | "type": "exact",
+//      | "similarity": "jaccard"
+//      |}
+//      |""".stripMargin shouldDecodeTo [QueryOptions] QueryOptions.Exact(Similarity.Jaccard)
+//
+//    """
+//      |{
+//      | "type": "jaccard_indexed"
+//      |}
+//      |""".stripMargin.shouldDecodeTo[QueryOptions](QueryOptions.JaccardIndexed)
+//
+//    """
+//      |{
+//      | "type": "jaccard_lsh",
+//      | "candidates": 99,
+//      | "refine": true
+//      |}
+//      |""".stripMargin shouldDecodeTo [QueryOptions] QueryOptions.JaccardLsh(99, true)
+//  }
 
 }
