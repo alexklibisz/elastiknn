@@ -4,7 +4,7 @@ import java.util
 import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
-import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, ExactSimilarityScore}
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import org.apache.lucene.document.BinaryDocValuesField

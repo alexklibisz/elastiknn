@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.storage
 
+import com.google.protobuf.wrappers.Int32Value
 import com.klibisz.elastiknn.api.Vec
 
 import scala.util.Try
@@ -28,6 +29,11 @@ object ByteArrayCodec {
       val stored = DenseFloatVector.parseFrom(a)
       Vec.DenseFloat(stored.values)
     }
+  }
+
+  implicit val int: ByteArrayCodec[Int] = new ByteArrayCodec[Int] {
+    override def apply(t: Int): Array[Byte] = Int32Value(t).toByteArray
+    override def apply(a: Array[Byte]): Try[Int] = Try(Int32Value.parseFrom(a).value)
   }
 
 }

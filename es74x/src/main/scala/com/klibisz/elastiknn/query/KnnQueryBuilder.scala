@@ -20,8 +20,6 @@ import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
 
-import scala.util.{Failure, Try}
-
 object KnnQueryBuilder {
 
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
@@ -61,21 +59,30 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
+
     (query, mapping) match {
-      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _) =>
+      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
+            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
 
-      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _) =>
+      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
+            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
+
+      case (JaccardIndexed(f, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
+        new SparseIndexedQuery(f, sbv, Similarity.Jaccard)
+
+      case (HammingIndexed(f, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
+        new SparseIndexedQuery(f, sbv, Similarity.Hamming)
 
       case _ => throw incompatible(mapping, query)
     }

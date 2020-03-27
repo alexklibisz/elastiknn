@@ -37,8 +37,9 @@ package object api {
   object Mapping {
     final case class SparseBool(dims: Int) extends Mapping
     final case class SparseIndexed(dims: Int) extends Mapping
-    final case class DenseFloat(dims: Int) extends Mapping
     final case class JaccardLsh(dims: Int, bands: Int, rows: Int) extends Mapping
+    final case class HammingLsh(dims: Int, bands: Int, rows: Int) extends Mapping
+    final case class DenseFloat(dims: Int) extends Mapping
   }
 
   sealed trait NearestNeighborsQuery {

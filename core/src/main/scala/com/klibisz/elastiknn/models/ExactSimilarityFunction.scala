@@ -26,6 +26,7 @@ sealed trait ExactSimilarityFunction[V <: Vec] extends ((V, V) => Try[ExactSimil
 }
 
 object ExactSimilarityFunction {
+
   object Jaccard extends ExactSimilarityFunction[Vec.SparseBool] {
     override def similarity: Similarity = Similarity.Jaccard
     override def apply(v1: Vec.SparseBool, v2: Vec.SparseBool): Try[ExactSimilarityScore] =

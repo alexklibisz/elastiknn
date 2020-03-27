@@ -80,6 +80,7 @@ object ElasticsearchCodec { esc =>
 
   def encode[T: ElasticsearchCodec](t: T): Json = implicitly[ElasticsearchCodec[T]].apply(t)
   def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
+  def nospaces[T: ElasticsearchCodec](t: T): String = encode(t).noSpaces
   def decode[T: ElasticsearchCodec](c: HCursor): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].apply(c)
   def decodeJson[T: ElasticsearchCodec](j: Json): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].decodeJson(j)
   def decodeB64[T: ElasticsearchCodec](s: String): Either[circe.Error, T] = parseB64(s).flatMap(decodeJson[T])
@@ -146,6 +147,7 @@ object ElasticsearchCodec { esc =>
         JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> SPARSE_INDEXED)))
       case m: Mapping.JaccardLsh =>
         JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
+      case m: Mapping.HammingLsh => ???
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
