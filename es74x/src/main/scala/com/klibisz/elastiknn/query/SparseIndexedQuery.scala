@@ -7,8 +7,8 @@ import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
-import org.apache.lucene.document.{Field, FieldType, StoredField}
-import org.apache.lucene.index.{IndexOptions, IndexableField, LeafReaderContext, Term}
+import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField, StoredField}
+import org.apache.lucene.index.{IndexOptions, IndexableField, LeafReaderContext, NumericDocValues, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
@@ -34,21 +34,24 @@ class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val si
     private val intersectionWeight = intersectionQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
     override def extractTerms(terms: util.Set[Term]): Unit = ()
     override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
-    override def scorer(context: LeafReaderContext): Scorer =
-      new SparseIndexedScorer(this, searcher, intersectionWeight.scorer(context))
+    override def scorer(context: LeafReaderContext): Scorer = {
+      val ndv: NumericDocValues = context.reader().getNumericDocValues(storedNumTrueField)
+      new SparseIndexedScorer(this, searcher, intersectionWeight.scorer(context), ndv)
+    }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class SparseIndexedScorer(weight: Weight, searcher: IndexSearcher, intersectionScorer: Scorer) extends Scorer(weight) {
+  class SparseIndexedScorer(weight: Weight, searcher: IndexSearcher, intersectionScorer: Scorer, numericDocValues: NumericDocValues)
+      extends Scorer(weight) {
     override val iterator: DocIdSetIterator = if (intersectionScorer != null) intersectionScorer.iterator() else DocIdSetIterator.empty()
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
     override def score(): Float = {
       val intersection = intersectionScorer.score()
-      val docId = iterator.docID()
-      val doc = searcher.doc(docId)
-      val numTrue = doc.getField(storedNumTrueField).numericValue().intValue()
-      val scoreTry = simFunc(queryVec, intersection.toInt, numTrue)
-      scoreTry.get.score.toFloat
+      if (numericDocValues.advanceExact(docID())) {
+        val numTrue = numericDocValues.longValue().toInt
+        val scoreTry = simFunc(queryVec, intersection.toInt, numTrue)
+        scoreTry.get.score.toFloat
+      } else 0f
     }
     override def docID(): Int = iterator.docID()
   }
@@ -81,9 +84,14 @@ object SparseIndexedQuery {
 
   def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
     val indexedIndicesFieldName = this.indexedIndicesField(field)
+//    ExactSimilarityQuery.index(field, vec) ++ vec.trueIndices.map { ti =>
+//      new Field(indexedIndicesFieldName, ByteArrayCodec.encode(ti), indexedIndicesFieldType)
+//    } :+ new StoredField(storedNumTrueField(field), vec.trueIndices.length)
+
     ExactSimilarityQuery.index(field, vec) ++ vec.trueIndices.map { ti =>
       new Field(indexedIndicesFieldName, ByteArrayCodec.encode(ti), indexedIndicesFieldType)
-    } :+ new StoredField(storedNumTrueField(field), vec.trueIndices.length)
+    } :+ new NumericDocValuesField(storedNumTrueField(field), vec.trueIndices.length)
+
   }
 
 }
