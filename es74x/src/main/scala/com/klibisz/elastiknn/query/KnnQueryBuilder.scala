@@ -62,28 +62,19 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
     (query, mapping) match {
-      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseBool) =>
+      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
 
-      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
-
-      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard), _: Mapping.JaccardLsh) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
-
-      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseBool) =>
+      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
 
-      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
-
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
 
       case _ => throw incompatible(mapping, query)

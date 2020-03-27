@@ -51,12 +51,17 @@ package object api {
     final case class Exact(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
       override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
     }
-    final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+    final case class JaccardIndexed(field: String, vector: Vec) extends NearestNeighborsQuery {
       override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+      override def similarity: Similarity = Similarity.Jaccard
+    }
+    final case class HammingIndexed(field: String, vector: Vec) extends NearestNeighborsQuery {
+      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+      override def similarity: Similarity = Similarity.Hamming
     }
     final case class JaccardLsh(field: String, vector: Vec, candidates: Int, refine: Boolean) extends NearestNeighborsQuery {
-      val similarity: Similarity = Similarity.Jaccard
       override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+      override def similarity: Similarity = Similarity.Jaccard
     }
   }
 }

@@ -15,7 +15,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       lazy val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
 
       withClue("can't parse the given json string") {
-        parsed shouldBe ('right)
+        parsed shouldBe 'right
       }
 
       withClue("parsed json doesn't match encoded object") {
@@ -163,7 +163,19 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Hamming)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] HammingIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99))
+
+    """
+      |{
+      | "field": "vec",
+      | "model": "sparse_indexed",
+      | "similarity": "jaccard",
+      | "vector": {
+      |   "true_indices": [1,2,3],
+      |   "total_indices": 99
+      | }
+      |}
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{
