@@ -6,7 +6,7 @@ import java.util.Objects
 import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.ExactSimilarityFunction
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
@@ -79,10 +79,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, Similarity.Jaccard)
+        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, Similarity.Hamming)
+        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case _ => throw incompatible(mapping, query)
     }
