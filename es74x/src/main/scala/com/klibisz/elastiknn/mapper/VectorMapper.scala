@@ -21,32 +21,41 @@ object VectorMapper {
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
     new VectorMapper[Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def checkAndSetFields(mapping: Mapping, field: String, vec: Vec.SparseBool, doc: ParseContext.Document): Try[Unit] =
+      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
         if (mapping.dims != vec.totalIndices)
           Failure(VectorDimensionException(vec.totalIndices, mapping.dims))
         else {
-          val sorted = vec.sorted()
+          val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
-            case Mapping.SparseBool(_)       => Try(ExactSimilarityQuery.index(field, sorted).foreach(doc.add))
-            case Mapping.SparseIndexed(_)    => Try(SparseIndexedQuery.index(field, sorted).foreach(doc.add))
-            case Mapping.JaccardLsh(_, _, _) => Success(())
-            case _ =>
-              val msg = s"Mapping [${encode(mapping).noSpaces}] is not compatible with vector [${encode(vec).noSpaces}]"
-              Failure(new IllegalArgumentException(msg))
+            case Mapping.SparseBool(_)       => Try(ExactSimilarityQuery.index(field, sorted))
+            case Mapping.SparseIndexed(_)    => Try(SparseIndexedQuery.index(field, sorted))
+            case Mapping.JaccardLsh(_, _, _) => Success(Seq.empty)
+            case _                           => Failure(incompatible(mapping, vec))
           }
         }
     }
   val denseFloatVector: VectorMapper[Vec.DenseFloat] =
     new VectorMapper[Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def checkAndSetFields(mapping: Mapping, field: String, vec: Vec.DenseFloat, doc: ParseContext.Document): Try[Unit] = ???
+      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
+        if (mapping.dims != vec.values.length)
+          Failure(VectorDimensionException(vec.values.length, mapping.dims))
+        else
+          mapping match {
+            case Mapping.DenseFloat(_) => Try(ExactSimilarityQuery.index(field, vec))
+            case _                     => Failure(incompatible(mapping, vec))
+          }
     }
+
+  private def incompatible(m: Mapping, v: Vec): Exception = new IllegalArgumentException(
+    s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
+  )
 }
 
 abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
   val CONTENT_TYPE: String
-  def checkAndSetFields(mapping: Mapping, field: String, vec: V, doc: ParseContext.Document): Try[Unit]
+  def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
   private val fieldType = new this.FieldType
 
@@ -104,7 +113,8 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser.map.asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          self.checkAndSetFields(mapping, name, vec, doc).get
+          val fields = self.checkAndCreateFields(mapping, name, vec).get
+          fields.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")

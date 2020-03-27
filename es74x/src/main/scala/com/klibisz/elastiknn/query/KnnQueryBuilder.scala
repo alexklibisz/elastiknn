@@ -63,20 +63,20 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     (query, mapping) match {
       case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
+        new ExactSimilarityQuery(c, f, v, ExactSimilarityFunction.Jaccard)
 
       case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
+        new ExactSimilarityQuery(c, f, v, ExactSimilarityFunction.Hamming)
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1)
+        new ExactSimilarityQuery(c, f, v, ExactSimilarityFunction.L1)
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2)
+        new ExactSimilarityQuery(c, f, v, ExactSimilarityFunction.L2)
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
+        new ExactSimilarityQuery(c, f, v, ExactSimilarityFunction.Angular)
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)

@@ -24,7 +24,11 @@ object ByteArrayCodec {
   }
 
   implicit val denseFloatVector: ByteArrayCodec[Vec.DenseFloat] = new ByteArrayCodec[Vec.DenseFloat] {
-    override def apply(t: Vec.DenseFloat): Array[Byte] = DenseFloatVector(t.values).toByteArray
+    override def apply(t: Vec.DenseFloat): Array[Byte] = {
+      val dfv = DenseFloatVector(t.values)
+      val barr = dfv.toByteArray
+      barr
+    }
     override def apply(a: Array[Byte]): Try[Vec.DenseFloat] = Try {
       val stored = DenseFloatVector.parseFrom(a)
       Vec.DenseFloat(stored.values)
