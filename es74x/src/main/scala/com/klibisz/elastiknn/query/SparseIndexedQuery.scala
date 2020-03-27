@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import java.util
+import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api._
@@ -12,7 +13,7 @@ import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 
-class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: SparseIndexedSimilarityFunction) extends Query {
+class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val simFunc: SparseIndexedSimilarityFunction) extends Query {
 
   private val indexedIndicesField: String = SparseIndexedQuery.indexedIndicesField(field)
   private val storedNumTrueField: String = SparseIndexedQuery.storedNumTrueField(field)
@@ -55,9 +56,15 @@ class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: Spars
   override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight =
     new SparseIndexedWeight(searcher)
 
-  override def toString(field: String): String = ???
-  override def equals(obj: Any): Boolean = ???
-  override def hashCode(): Int = ???
+  override def toString(field: String): String =
+    s"SparseIndexedQuery for field [$field], query vector [${ElasticsearchCodec.nospaces(queryVec)}], similarity [${simFunc.similarity}]"
+
+  override def equals(other: Any): Boolean = other match {
+    case q: SparseIndexedQuery => q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
+    case _                     => false
+  }
+
+  override def hashCode(): Int = Objects.hashCode(field, queryVec, simFunc)
 }
 
 object SparseIndexedQuery {

@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.ExactSimilarityQuery
+import com.klibisz.elastiknn.query.{ExactSimilarityQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
@@ -26,10 +26,9 @@ object VectorMapper {
           Failure(VectorDimensionException(vec.totalIndices, mapping.dims))
         else {
           val sorted = vec.sorted()
-          ExactSimilarityQuery.index(field, sorted).foreach(doc.add)
           mapping match {
-            case Mapping.SparseBool(_)       => Success(())
-            case Mapping.SparseIndexed(_)    => Success(())
+            case Mapping.SparseBool(_)       => Try(ExactSimilarityQuery.index(field, sorted).foreach(doc.add))
+            case Mapping.SparseIndexed(_)    => Try(SparseIndexedQuery.index(field, sorted).foreach(doc.add))
             case Mapping.JaccardLsh(_, _, _) => Success(())
             case _ =>
               val msg = s"Mapping [${encode(mapping).noSpaces}] is not compatible with vector [${encode(vec).noSpaces}]"

@@ -4,7 +4,7 @@ import java.util
 import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
-import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Vec}
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import org.apache.lucene.document.StoredField
@@ -12,8 +12,9 @@ import org.apache.lucene.index.{IndexableField, LeafReaderContext, Term}
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 
-class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val simFunc: ExactSimilarityFunction[V])(
-    implicit codec: ByteArrayCodec[V])
+class ExactSimilarityQuery[V <: Vec: ElasticsearchCodec: ByteArrayCodec](val field: String,
+                                                                         val queryVec: V,
+                                                                         val simFunc: ExactSimilarityFunction[V])
     extends Query {
 
   private val storedVectorField = ExactSimilarityQuery.storedVectorField(field)
@@ -35,7 +36,7 @@ class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val sim
       val docId = iterator.docID()
       val doc = searcher.doc(docId)
       val vecBytes = doc.getField(storedVectorField).binaryValue.bytes
-      val vec = codec(vecBytes).get
+      val vec = implicitly[ByteArrayCodec[V]].apply(vecBytes).get
       val scoreTry = simFunc(queryVec, vec)
       scoreTry.get.score.toFloat
     }
@@ -45,14 +46,14 @@ class ExactSimilarityQuery[V <: Vec](val field: String, val queryVec: V, val sim
   override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new ExactSimilarityWeight(searcher)
 
   override def toString(field: String): String =
-    s"ExactSimilarityQuery for field [$field], query vector [$queryVec], similarity [${simFunc.similarity}]"
+    s"ExactSimilarityQuery for field [$field], query vector [${ElasticsearchCodec.nospaces(queryVec)}], similarity [${simFunc.similarity}]"
 
   override def equals(other: Any): Boolean = other match {
-    case q: ExactSimilarityQuery[V] => q.storedVectorField == storedVectorField && q.queryVec == queryVec && q.simFunc == simFunc
+    case q: ExactSimilarityQuery[V] => q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
     case _                          => false
   }
 
-  override def hashCode(): Int = Objects.hashCode(storedVectorField, queryVec, simFunc)
+  override def hashCode(): Int = Objects.hashCode(field, queryVec, simFunc)
 
 }
 
