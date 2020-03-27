@@ -7,6 +7,11 @@ import org.apache.lucene.document.{Field, FieldType, StoredField}
 import org.apache.lucene.index.{IndexOptions, IndexableField}
 import org.apache.lucene.search.Query
 
+//sealed trait SparseIndexedSupport[S <: Similarity]
+//object SparseIndexedSupport {
+//  case object Jaccard extends SparseIndexedSupport[]
+//}
+
 class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, sim: Similarity) extends Query {
 
   override def toString(field: String): String = ???

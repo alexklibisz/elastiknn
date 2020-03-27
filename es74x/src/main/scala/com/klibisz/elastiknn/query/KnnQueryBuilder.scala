@@ -78,10 +78,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
 
-      case (JaccardIndexed(f, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
+      case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, Similarity.Jaccard)
 
-      case (HammingIndexed(f, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
+      case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, Similarity.Hamming)
 
       case _ => throw incompatible(mapping, query)

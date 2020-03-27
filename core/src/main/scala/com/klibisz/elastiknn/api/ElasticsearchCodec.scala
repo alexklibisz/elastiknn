@@ -173,8 +173,7 @@ object ElasticsearchCodec { esc =>
   }
 
   implicit val exactNNQ: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
-  implicit val jaccardIndexedNNQ: ESC[NearestNeighborsQuery.JaccardIndexed] = ElasticsearchCodec(deriveCodec)
-  implicit val hammingIndexedNNQ: ESC[NearestNeighborsQuery.HammingIndexed] = ElasticsearchCodec(deriveCodec)
+  implicit val jaccardIndexedNNQ: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
@@ -182,10 +181,9 @@ object ElasticsearchCodec { esc =>
     override def apply(a: NearestNeighborsQuery): Json = {
       val default = JsonObject(FIELD -> a.field, VECTOR -> esc.encode(a.vector), SIMILARITY -> esc.encode(a.similarity))
       a match {
-        case q: Exact          => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
-        case q: JaccardIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
-        case q: HammingIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
-        case q: JaccardLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
+        case q: SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
+        case q: JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
       }
     }
     override def apply(c: HCursor): Result[NearestNeighborsQuery] =
@@ -193,13 +191,8 @@ object ElasticsearchCodec { esc =>
         model <- c.downField(MODEL).as[String]
         sim <- c.downField(SIMILARITY).as[Json].flatMap(esc.decodeJson[Similarity])
         nnq <- model match {
-          case EXACT => esc.decode[Exact](c)
-          case SPARSE_INDEXED =>
-            sim match {
-              case Similarity.Jaccard => esc.decode[JaccardIndexed](c)
-              case Similarity.Hamming => esc.decode[HammingIndexed](c)
-              case other              => fail(s"$SIMILARITY [$other] is not compatible with $MODEL [$SPARSE_INDEXED]")
-            }
+          case EXACT          => esc.decode[Exact](c)
+          case SPARSE_INDEXED => esc.decode[SparseIndexed](c)
           case LSH =>
             sim match {
               case Similarity.Jaccard => esc.decode[JaccardLsh](c)
