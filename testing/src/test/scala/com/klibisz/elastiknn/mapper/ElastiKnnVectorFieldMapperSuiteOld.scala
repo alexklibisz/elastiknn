@@ -14,7 +14,7 @@ import scalapb_circe.JsonFormat
 import scala.concurrent.Future
 import scala.util.{Random, Try}
 
-class ElastiKnnVectorFieldMapperSuite
+class ElastiKnnVectorFieldMapperSuiteOld
     extends AsyncFunSuite
     with Matchers
     with Inspectors

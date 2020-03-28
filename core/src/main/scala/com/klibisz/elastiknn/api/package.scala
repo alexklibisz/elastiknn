@@ -4,7 +4,8 @@ import scala.util.Random
 
 package object api {
 
-  type JavaJsonMap = java.util.Map[String, AnyRef]
+  type JavaJsonMap = java.util.Map[String, Object]
+  type ScalaJsonMap = Map[String, AnyRef]
 
   sealed trait Similarity
   object Similarity {
@@ -28,13 +29,13 @@ package object api {
 
     object SparseBool {
 
-      def random(totalIndices: Int, bias: Double = 0.5)(implicit rng: Random): Vec.SparseBool = {
+      def random(totalIndices: Int, bias: Double = 0.5)(implicit rng: Random): SparseBool = {
         var trueIndices = Array.empty[Int]
         (0 until totalIndices).foreach(i => if (rng.nextDouble() <= bias) trueIndices :+= i else ())
-        Vec.SparseBool(trueIndices, totalIndices)
+        SparseBool(trueIndices, totalIndices)
       }
 
-      def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[Vec.SparseBool] =
+      def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[SparseBool] =
         (0 until n).map(_ => random(totalIndices, bias)).toVector
     }
 
@@ -43,6 +44,14 @@ package object api {
         case other: DenseFloat => other.values.deep == values.deep
         case _                 => false
       }
+    }
+
+    object DenseFloat {
+      def random(length: Int, multiple: Float = 3.14f)(implicit rng: Random): DenseFloat =
+        DenseFloat((0 until length).toArray.map(_ => rng.nextFloat() * multiple))
+
+      def randoms(length: Int, n: Int, multiple: Float = 3.14f)(implicit rng: Random): Vector[DenseFloat] =
+        (0 until n).map(_ => random(length, multiple)).toVector
     }
 
     final case class Indexed(index: String, id: String, field: String) extends Vec

@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn
 
+import com.klibisz.elastiknn.client.ElastiknnClient
 import com.sksamuel.elastic4s.{ElasticClient, Executor}
 import com.sksamuel.elastic4s.http.JavaClient
 import org.apache.http.HttpHost
@@ -22,5 +23,7 @@ trait ElasticAsyncClient {
     val jc = new JavaClient(rc)
     ElasticClient(jc)
   }
+
+  protected lazy val eknn: ElastiknnClient[Future] = ElastiknnClient.futureClient()
 
 }

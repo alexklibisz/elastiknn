@@ -13,10 +13,8 @@ import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
-import scala.util.Random
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
@@ -75,13 +73,13 @@ object ElastiknnClient {
     new ElastiknnClient[Future] {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
       implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
-      val elasticClient = ElasticClient(jc)
+      val elasticClient: ElasticClient = ElasticClient(jc)
       override def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[Response[U]] = {
         val future: Future[Response[U]] = elasticClient.execute(t)
         if (strictFailure) future.flatMap { res =>
           checkResponse(res) match {
-            case Left(err) => Future.failed(err.asException)
-            case Right(_)  => Future.successful(res)
+            case Left(ex) => Future.failed(ex)
+            case Right(_) => Future.successful(res)
           }
         } else future
       }
@@ -89,9 +87,9 @@ object ElastiknnClient {
     }
   }
 
-  def checkResponse[U](res: Response[U]): Either[ElasticError, U] = {
+  private def checkResponse[U](res: Response[U]): Either[Throwable, U] = {
     @tailrec
-    def findError(bulkResponseItems: Seq[BulkResponseItem], acc: Option[ElasticError] = None): Option[ElasticError] =
+    def findBulkError(bulkResponseItems: Seq[BulkResponseItem], acc: Option[ElasticError] = None): Option[ElasticError] =
       if (bulkResponseItems.isEmpty) acc
       else
         bulkResponseItems.head.error match {
@@ -107,45 +105,19 @@ object ElastiknnClient {
                            None,
                            None,
                            Seq.empty))
-          case None => findError(bulkResponseItems.tail, acc)
+          case None => findBulkError(bulkResponseItems.tail, acc)
         }
-    if (res.isError) Left(res.error)
+    if (res.isError) Left(res.error.asException)
+    else if (res.status != 200) Left(new RuntimeException(s"Returned non-200 response: [$res]"))
     else
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
-          findError(bulkResponse.items) match {
-            case Some(err) => Left(err)
-            case None      => Left(ElasticError.fromThrowable(new RuntimeException(s"Unknown bulk execution error in response $res")))
+          findBulkError(bulkResponse.items) match {
+            case Some(err) => Left(err.asException)
+            case None      => Left(new RuntimeException(s"Unknown bulk execution error in response $res"))
           }
         case other => Right(other)
       }
   }
 
-}
-
-object Foo {
-
-  def main(args: Array[String]): Unit = {
-    implicit val rng: Random = new Random(0)
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-    val client: ElastiknnClient[Future] = ElastiknnClient.futureClient()
-    lazy val pipeline = for {
-      res <- client.execute(createIndex("foo"))
-      _ = println(res)
-      res <- client.putMapping("foo", "vec", Mapping.SparseBool(10))
-      _ = println(res)
-      res <- client.index("foo", "vec", Vec.SparseBool.randoms(10, 100), refresh = RefreshPolicy.IMMEDIATE)
-      _ = println(res)
-      queryVec = Vec.SparseBool.random(10)
-      res <- client.nearestNeighbors("foo", NearestNeighborsQuery.Exact("vec", queryVec, Similarity.Jaccard), 10)
-      _ = println((queryVec, res))
-
-      res <- client.nearestNeighbors("blah", NearestNeighborsQuery.Exact("vec", queryVec, Similarity.Jaccard), 10)
-      check = ElastiknnClient.checkResponse(res)
-      _ = println(check)
-    } yield ()
-    try Await.result(pipeline, Duration("10s"))
-    finally client.close()
-
-  }
 }
