@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import scala.util.Random
+
 package object api {
 
   type JavaJsonMap = java.util.Map[String, AnyRef]
@@ -15,6 +17,7 @@ package object api {
 
   sealed trait Vec
   object Vec {
+
     final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec {
       def sorted(): SparseBool = copy(trueIndices.sorted)
       override def equals(other: Any): Boolean = other match {
@@ -22,12 +25,26 @@ package object api {
         case _                 => false
       }
     }
+
+    object SparseBool {
+
+      def random(totalIndices: Int, bias: Double = 0.5)(implicit rng: Random): Vec.SparseBool = {
+        var trueIndices = Array.empty[Int]
+        (0 until totalIndices).foreach(i => if (rng.nextDouble() <= bias) trueIndices :+= i else ())
+        Vec.SparseBool(trueIndices, totalIndices)
+      }
+
+      def randoms(totalIndices: Int, n: Int, bias: Double = 0.5)(implicit rng: Random): Vector[Vec.SparseBool] =
+        (0 until n).map(_ => random(totalIndices, bias)).toVector
+    }
+
     final case class DenseFloat(values: Array[Float]) extends Vec {
       override def equals(other: Any): Boolean = other match {
         case other: DenseFloat => other.values.deep == values.deep
         case _                 => false
       }
     }
+
     final case class Indexed(index: String, id: String, field: String) extends Vec
   }
 

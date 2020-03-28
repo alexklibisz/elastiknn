@@ -14,8 +14,7 @@ import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.query.QueryShardContext
 
-class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val queryShardContext: QueryShardContext,
-                                                                         val field: String,
+class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val field: String,
                                                                          val queryVec: V,
                                                                          val simFunc: ExactSimilarityFunction[V])
     extends Query {
@@ -40,10 +39,10 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val que
     override def score(): Float = {
       val docId = this.docID()
       if (vectorDocValues.advanceExact(docId)) {
-        val vecBytes = vectorDocValues.binaryValue.bytes
-        val vecBytesTrimmed = vecBytes.take(vecBytes.length)
+        val binaryValue = vectorDocValues.binaryValue
+        val vecBytes = binaryValue.bytes.take(binaryValue.length)
         val scoreTry = for {
-          storedVec <- implicitly[ByteArrayCodec[V]].apply(vecBytesTrimmed)
+          storedVec <- implicitly[ByteArrayCodec[V]].apply(vecBytes)
           simScore <- simFunc(queryVec, storedVec)
         } yield simScore.score.toFloat
         scoreTry.get
@@ -58,9 +57,8 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val que
     s"ExactSimilarityQuery for field [$field], query vector [${nospaces(queryVec)}], similarity [${simFunc.similarity}]"
 
   override def equals(other: Any): Boolean = other match {
-    case q: ExactSimilarityQuery[V] =>
-      q.queryShardContext == queryShardContext && q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
-    case _ => false
+    case q: ExactSimilarityQuery[V] => q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
+    case _                          => false
   }
 
   override def hashCode(): Int = Objects.hashCode(field, queryVec, simFunc)
