@@ -18,7 +18,11 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Futu
 import scala.language.higherKinds
 import scala.util.Random
 
-class ElastiknnClient[F[_]](val elasticClient: ElasticClient)(implicit executor: Executor[F], functor: Functor[F]) extends AutoCloseable {
+trait ElastiknnClient[F[_]] extends AutoCloseable {
+
+  val elasticClient: ElasticClient
+
+  def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
   def putMapping(indexName: String, fieldName: String, fieldMapping: Mapping): F[Response[PutMappingResponse]] = {
     val mappingJsonString =
@@ -30,7 +34,7 @@ class ElastiknnClient[F[_]](val elasticClient: ElasticClient)(implicit executor:
         |}
         |""".stripMargin
     val req: PutMappingRequest = ElasticDsl.putMapping(Indexes(indexName)).rawSource(mappingJsonString)
-    elasticClient.execute(req)
+    execute(req)
   }
 
   def index(indexName: String,
@@ -46,7 +50,7 @@ class ElastiknnClient[F[_]](val elasticClient: ElasticClient)(implicit executor:
         }
       case _ => reqs
     }
-    elasticClient.execute(bulk(withIds).refresh(refresh))
+    execute(bulk(withIds).refresh(refresh))
   }
 
   def nearestNeighbors(indexName: String,
@@ -54,21 +58,35 @@ class ElastiknnClient[F[_]](val elasticClient: ElasticClient)(implicit executor:
                        k: Int,
                        fetchSource: Boolean = true): F[Response[SearchResponse]] = {
     val req = search(indexName).query(ElastiknnRequests.nearestNeighborsQuery(query)).fetchSource(fetchSource).size(k)
-    elasticClient.execute(req)
+    execute(req)
   }
 
-  override def close(): Unit = elasticClient.close()
+  def close(): Unit
 
 }
 
 object ElastiknnClient {
 
-  def futureClient(hostName: String = "localhost", port: Int = 9200, strict: Boolean = false)(
+  def futureClient(hostName: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
       implicit ec: ExecutionContext): ElastiknnClient[Future] = {
     val host = new HttpHost(hostName, port)
     val rc: RestClient = RestClient.builder(host).build()
     val jc: JavaClient = new JavaClient(rc)
-    new ElastiknnClient(ElasticClient(jc))(Executor.FutureExecutor(ec), Functor.FutureFunctor(ec))
+    new ElastiknnClient[Future] {
+      implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
+      implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
+      val elasticClient = ElasticClient(jc)
+      override def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[Response[U]] = {
+        val future: Future[Response[U]] = elasticClient.execute(t)
+        if (strictFailure) future.flatMap { res =>
+          checkResponse(res) match {
+            case Left(err) => Future.failed(err.asException)
+            case Right(_)  => Future.successful(res)
+          }
+        } else future
+      }
+      override def close(): Unit = elasticClient.close()
+    }
   }
 
   def checkResponse[U](res: Response[U]): Either[ElasticError, U] = {
@@ -110,10 +128,9 @@ object Foo {
   def main(args: Array[String]): Unit = {
     implicit val rng: Random = new Random(0)
     implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-    val client: ElastiknnClient[Future] = ElastiknnClient.futureClient(strict = true)
+    val client: ElastiknnClient[Future] = ElastiknnClient.futureClient()
     lazy val pipeline = for {
-      _ <- client.elasticClient.execute(deleteIndex("foo"))
-      res <- client.elasticClient.execute(createIndex("foo"))
+      res <- client.execute(createIndex("foo"))
       _ = println(res)
       res <- client.putMapping("foo", "vec", Mapping.SparseBool(10))
       _ = println(res)
