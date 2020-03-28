@@ -5,6 +5,7 @@ import com.klibisz.elastiknn.api.Vec
 
 import scala.util.Try
 
+// Codec for writing/reading objects to/from byte arrays. Mostly used for storing values.
 trait ByteArrayCodec[T] {
   def apply(t: T): Array[Byte]
   def apply(a: Array[Byte]): Try[T]
@@ -36,7 +37,13 @@ object ByteArrayCodec {
   }
 
   implicit val int: ByteArrayCodec[Int] = new ByteArrayCodec[Int] {
-    override def apply(t: Int): Array[Byte] = Int32Value(t).toByteArray
+    override def apply(t: Int): Array[Byte] = {
+      // Another way to do it. Not sure which is faster, but using the protobufs is easier to decode.
+      // val buf = java.nio.ByteBuffer.allocate(4)
+      // buf.putInt(t)
+      // buf.array()
+      Int32Value(t).toByteArray
+    }
     override def apply(a: Array[Byte]): Try[Int] = Try(Int32Value.parseFrom(a).value)
   }
 

@@ -20,52 +20,34 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val que
                                                                          val simFunc: ExactSimilarityFunction[V])
     extends Query {
 
-  private val storedVectorField = ExactSimilarityQuery.storedVectorField(field)
-//  private val existsQuery = new ExistsQueryBuilder("i").toQuery(queryShardContext)
-  private val matchAllQuery = new MatchAllDocsQuery()
+  private val vectorDocValuesField = ExactSimilarityQuery.vectorDocValuesField(field)
+  private val hasVectorQuery = new DocValuesFieldExistsQuery(vectorDocValuesField)
 
   class ExactSimilarityWeight(searcher: IndexSearcher) extends Weight(this) {
-    private val matchAllWeight = matchAllQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
+    private val hasVectorWeight = hasVectorQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
     override def extractTerms(terms: util.Set[Term]): Unit = ()
     override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
     override def scorer(context: LeafReaderContext): Scorer = {
-//      val iter = DocIdSetIterator.all(context.reader().maxDoc())
-      val bdv: BinaryDocValues = context.reader().getBinaryDocValues(storedVectorField)
-      val scorer = matchAllWeight.scorer(context)
-      new ExactSimilarityScorer(this, searcher, scorer, bdv)
+      val vectorDocValues: BinaryDocValues = context.reader.getBinaryDocValues(vectorDocValuesField)
+      val scorer = hasVectorWeight.scorer(context)
+      new ExactSimilarityScorer(this, scorer, vectorDocValues)
     }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class ExactSimilarityScorer(weight: Weight, searcher: IndexSearcher, scorer: Scorer, binaryDocValues: BinaryDocValues)
-      extends FilterScorer(scorer, weight) {
-
+  class ExactSimilarityScorer(weight: Weight, scorer: Scorer, vectorDocValues: BinaryDocValues) extends FilterScorer(scorer, weight) {
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
-
     override def score(): Float = {
-      if (binaryDocValues.advanceExact(this.docID())) {
-        val vecBytes = binaryDocValues.binaryValue.bytes
-        val vec: V = implicitly[ByteArrayCodec[V]].apply(vecBytes.take(vecBytes.length)).get
-        val score = simFunc(queryVec, vec)
-        score.get.score.toFloat
-        //      val vecString = doc.getField(storedVectorField).stringValue()
-        //      val vec = ElasticsearchCodec.decodeB64Get[V](vecString)
-        //      val vecBinaryValue = doc.getField(storedVectorField).binaryValue()
-        //      val vecBytes = vecBinaryValue.bytes.take(vecBinaryValue.length)
-        //      val vec = implicitly[ByteArrayCodec[V]].apply(vecBytes).get
-        //      val scoreTry = simFunc(queryVec, vec)
-        //      scoreTry.get.score.toFloat
-      } else 0f
-
-//      val docId = docID()
-//      val doc = searcher.doc(docId)
-//      val vecString = doc.getField(storedVectorField).stringValue()
-//      val vec = ElasticsearchCodec.decodeB64Get[V](vecString)
-//      val vecBinaryValue = doc.getField(storedVectorField).binaryValue()
-//      val vecBytes = vecBinaryValue.bytes.take(vecBinaryValue.length)
-//      val vec = implicitly[ByteArrayCodec[V]].apply(vecBytes).get
-//      val scoreTry = simFunc(queryVec, vec)
-//      scoreTry.get.score.toFloat
+      val docId = this.docID()
+      if (vectorDocValues.advanceExact(docId)) {
+        val vecBytes = vectorDocValues.binaryValue.bytes
+        val vecBytesTrimmed = vecBytes.take(vecBytes.length)
+        val scoreTry = for {
+          storedVec <- implicitly[ByteArrayCodec[V]].apply(vecBytesTrimmed)
+          simScore <- simFunc(queryVec, storedVec)
+        } yield simScore.score.toFloat
+        scoreTry.get
+      } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
     }
 
   }
@@ -87,10 +69,10 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val que
 
 object ExactSimilarityQuery {
 
-  def storedVectorField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
+  def vectorDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
   def index[V <: Vec: ByteArrayCodec](field: String, vec: V): Seq[IndexableField] = {
-    Seq(new BinaryDocValuesField(storedVectorField(field), new BytesRef(implicitly[ByteArrayCodec[V]].apply(vec))))
+    Seq(new BinaryDocValuesField(vectorDocValuesField(field), new BytesRef(implicitly[ByteArrayCodec[V]].apply(vec))))
   }
 
 }

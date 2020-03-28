@@ -12,5 +12,5 @@ class JaccardLshQuery() extends Query {
 
 object JaccardLshQuery {
   def apply(context: QueryShardContext, field: String, mapping: Mapping.JaccardLsh, vec: Vec.SparseBool): Query =
-    new DocValuesFieldExistsQuery(ExactSimilarityQuery.storedVectorField(field))
+    new DocValuesFieldExistsQuery(ExactSimilarityQuery.vectorDocValuesField(field))
 }
