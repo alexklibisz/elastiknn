@@ -14,6 +14,7 @@ package object api {
     case object L1 extends Similarity
     case object L2 extends Similarity
     case object Angular extends Similarity
+    val values: Seq[Similarity] = Seq(Jaccard, Hamming, L1, L2, Angular)
   }
 
   sealed trait Vec
