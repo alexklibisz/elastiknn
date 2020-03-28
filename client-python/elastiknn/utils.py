@@ -5,6 +5,7 @@ from typing import List, Iterator, Union
 import numpy as np
 from scipy.sparse import csr_matrix
 
+from elastiknn.api import Vec
 from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector, ElastiKnnVector
 
 _rng = Random(0)
@@ -46,12 +47,12 @@ def float_vectors_to_ndarray(fvs: List[FloatVector]) -> np.ndarray:
     return arr
 
 
-def ndarray_to_float_vectors(arr: np.ndarray) -> Iterator[FloatVector]:
-    return map(lambda row: FloatVector(values=list(row)), arr)
+def ndarray_to_dense_float_vectors(arr: np.ndarray) -> Iterator[Vec.DenseFloat]:
+    return map(lambda row: Vec.DenseFloat(values=list(row)), arr)
 
 
-def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[SparseBoolVector]:
-    return map(lambda row: SparseBoolVector(true_indices=list(np.nonzero(row)[0]), total_indices=len(row)), arr)
+def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[Vec.SparseBool]:
+    return map(lambda row: Vec.SparseBool(true_indices=[i for (i, b) in enumerate(row) if b], total_indices=len(row)), arr)
 
 
 def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> Iterator[ElastiKnnVector]:
@@ -59,7 +60,7 @@ def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> 
         if canonical.dtype == np.bool:
             return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), ndarray_to_sparse_bool_vectors(canonical))
         else:
-            return map(lambda fv: ElastiKnnVector(float_vector=fv), ndarray_to_float_vectors(canonical))
+            return map(lambda fv: ElastiKnnVector(float_vector=fv), ndarray_to_dense_float_vectors(canonical))
     elif isinstance(canonical, csr_matrix):
         return map(lambda sbv: ElastiKnnVector(sparse_bool_vector=sbv), csr_to_sparse_bool_vectors(canonical))
     elif isinstance(canonical, list) and isinstance(canonical[0], SparseBoolVector):

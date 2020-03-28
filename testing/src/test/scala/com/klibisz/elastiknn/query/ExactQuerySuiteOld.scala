@@ -11,7 +11,7 @@ import org.scalatest._
 /**
   * Tests for the exact query functionality, using test data generated via Python and scikit-learn.
   */
-class ExactQuerySuite
+class ExactQuerySuiteOld
     extends AsyncFunSuite
     with QuerySuite
     with Matchers

@@ -4,7 +4,7 @@ import numpy as np
 
 from elastiknn.elastiknn_pb2 import SparseBoolVector, FloatVector
 from elastiknn.utils import random_sparse_bool_vector, sparse_bool_vectors_to_csr, csr_to_sparse_bool_vectors, \
-    float_vectors_to_ndarray, ndarray_to_float_vectors, ndarray_to_sparse_bool_vectors
+    float_vectors_to_ndarray, ndarray_to_dense_float_vectors, ndarray_to_sparse_bool_vectors
 
 
 class TestUtils:
@@ -44,7 +44,7 @@ class TestUtils:
         arr = float_vectors_to_ndarray(fvs)
         cmp = np.array([v.values for v in fvs])
         assert np.all(arr == cmp)
-        fvs2 = list(ndarray_to_float_vectors(arr))
+        fvs2 = list(ndarray_to_dense_float_vectors(arr))
         assert fvs2 == fvs
 
 
