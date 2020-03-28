@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.rest
 
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.client.ElastiKnnClient
+import com.klibisz.elastiknn.client.ElastiKnnClientOld
 import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient, JaccardLshModelOptions, ProcessorOptions}
 import com.sksamuel.elastic4s.ElasticDsl
 import io.circe.parser._
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 class PrepareMappingSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient with ElasticDsl {
 
   test("prepare mapping works with existing field") {
-    val eknn = new ElastiKnnClient()
+    val eknn = new ElastiKnnClientOld()
     val index = "test-prepare-mapping"
     val rawField = "the_raw_field"
     val procField = "the_processed_field"

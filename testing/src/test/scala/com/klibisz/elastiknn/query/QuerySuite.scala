@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.KNearestNeighborsQuery._
 import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-import com.klibisz.elastiknn.client.ElastiKnnClient
+import com.klibisz.elastiknn.client.ElastiKnnClientOld
 import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy.Immediate
@@ -38,7 +38,7 @@ trait QuerySuite extends ElasticAsyncClient with ElasticDsl {
                                            modelOptions: M) {
 
     val popts: ProcessorOptions = ProcessorOptions(fieldRaw, dimension, implicitly[ModelOptionsLike[M]].apply(modelOptions))
-    val eknn: ElastiKnnClient = new ElastiKnnClient()
+    val eknn: ElastiKnnClientOld = new ElastiKnnClientOld()
     val queryVectorIdPrefix: String = "q"
     val corpusVectorIdPrefix: String = "c"
 

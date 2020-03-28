@@ -23,7 +23,7 @@ import scala.util.{Failure, Success, Try}
   * @param elastic4sClient A client provided by the elastic4s library.
   * @param executionContext The execution context where [[Future]]s are executed.
   */
-final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) extends AutoCloseable {
+final class ElastiKnnClientOld()(implicit elastic4sClient: ElasticClient, executionContext: ExecutionContext) extends AutoCloseable {
 
   import Elastic4sUtils._
   import ElasticDsl._
@@ -96,12 +96,12 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   /**
     * Index a set of vectors. It's better to use this with batches of vectors rather than single vectors.
     *
-    * @param index The index where vectors are stored.
-    * @param pipelineId The pipeline used to process the vectors. Corresponds to the pipelineId used for [[ElastiKnnClient.createPipeline]].
-    * @param rawField The name of the field where raw vector data is stored in each document.
-    * @param vectors A seq of vector-like objects.
-    * @param ids optional list of ids. There should be one per vector, otherwise they'll be ignored.
-    * @param refresh if you want to immediately query for the vectors, set this to [[RefreshPolicy.Immediate]].
+    * @param index      The index where vectors are stored.
+    * @param pipelineId The pipeline used to process the vectors. Corresponds to the pipelineId used for [[ElastiKnnClientOld.createPipeline]].
+    * @param rawField   The name of the field where raw vector data is stored in each document.
+    * @param vectors    A seq of vector-like objects.
+    * @param ids        optional list of ids. There should be one per vector, otherwise they'll be ignored.
+    * @param refresh    if you want to immediately query for the vectors, set this to [[RefreshPolicy.Immediate]].
     * @tparam V A vector-like type implementing the [[ElastiKnnVectorLike]] typeclass.
     * @return Returns the elastic4s [[BulkResponse]] resulting from indexing the vectors.
     */
@@ -151,16 +151,16 @@ final class ElastiKnnClient()(implicit elastic4sClient: ElasticClient, execution
   def close(): Unit = elastic4sClient.close()
 }
 
-object ElastiKnnClient {
+object ElastiKnnClientOld {
 
-  def apply(host: HttpHost)(implicit ec: ExecutionContext): ElastiKnnClient = {
+  def apply(host: HttpHost)(implicit ec: ExecutionContext): ElastiKnnClientOld = {
     implicit def fex: Executor[Future] = Executor.FutureExecutor(ec)
     val rc: RestClient = RestClient.builder(host).build()
     val jc: JavaClient = new JavaClient(rc)
     implicit val es: ElasticClient = ElasticClient(jc)
-    new ElastiKnnClient()
+    new ElastiKnnClientOld()
   }
 
-  def apply(hostname: String = "localhost", port: Int = 9200)(implicit ec: ExecutionContext): ElastiKnnClient =
-    ElastiKnnClient(new HttpHost(hostname, port))
+  def apply(hostname: String = "localhost", port: Int = 9200)(implicit ec: ExecutionContext): ElastiKnnClientOld =
+    ElastiKnnClientOld(new HttpHost(hostname, port))
 }
