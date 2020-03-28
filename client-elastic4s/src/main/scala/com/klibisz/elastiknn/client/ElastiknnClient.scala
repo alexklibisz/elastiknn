@@ -1,29 +1,24 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Similarity, Vec}
+import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.requests.bulk.BulkResponse
+import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import com.sksamuel.elastic4s.requests.indexes.{IndexRequest, PutMappingResponse}
+import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.language.higherKinds
 import scala.util.Random
 
-trait ElastiknnClient[F[_]] extends AutoCloseable {
-
-  protected implicit val executor: Executor[F]
-  protected implicit val functor: Functor[F]
-
-  val elasticClient: ElasticClient
+class ElastiknnClient[F[_]](val elasticClient: ElasticClient)(implicit executor: Executor[F], functor: Functor[F]) extends AutoCloseable {
 
   def putMapping(indexName: String, fieldName: String, fieldMapping: Mapping): F[Response[PutMappingResponse]] = {
     val mappingJsonString =
@@ -62,23 +57,51 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     elasticClient.execute(req)
   }
 
+  override def close(): Unit = elasticClient.close()
+
 }
 
 object ElastiknnClient {
 
-  def futureClient(host: HttpHost)(implicit ec: ExecutionContext): ElastiknnClient[Future] = {
+  def futureClient(hostName: String = "localhost", port: Int = 9200, strict: Boolean = false)(
+      implicit ec: ExecutionContext): ElastiknnClient[Future] = {
+    val host = new HttpHost(hostName, port)
     val rc: RestClient = RestClient.builder(host).build()
     val jc: JavaClient = new JavaClient(rc)
-    new ElastiknnClient[Future] {
-      protected implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
-      protected implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
-      override val elasticClient: ElasticClient = ElasticClient(jc)
-      override def close(): Unit = elasticClient.close()
-    }
+    new ElastiknnClient(ElasticClient(jc))(Executor.FutureExecutor(ec), Functor.FutureFunctor(ec))
   }
 
-  def futureClient(hostname: String = "localhost", port: Int = 9200)(implicit ec: ExecutionContext): ElastiknnClient[Future] =
-    futureClient(new HttpHost(hostname, port))
+  def checkResponse[U](res: Response[U]): Either[ElasticError, U] = {
+    @tailrec
+    def findError(bulkResponseItems: Seq[BulkResponseItem], acc: Option[ElasticError] = None): Option[ElasticError] =
+      if (bulkResponseItems.isEmpty) acc
+      else
+        bulkResponseItems.head.error match {
+          case Some(err) =>
+            Some(
+              ElasticError(err.`type`,
+                           err.reason,
+                           Some(err.index_uuid),
+                           Some(err.index),
+                           Some(err.shard.toString),
+                           Seq.empty,
+                           None,
+                           None,
+                           None,
+                           Seq.empty))
+          case None => findError(bulkResponseItems.tail, acc)
+        }
+    if (res.isError) Left(res.error)
+    else
+      res.result match {
+        case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
+          findError(bulkResponse.items) match {
+            case Some(err) => Left(err)
+            case None      => Left(ElasticError.fromThrowable(new RuntimeException(s"Unknown bulk execution error in response $res")))
+          }
+        case other => Right(other)
+      }
+  }
 
 }
 
@@ -87,7 +110,7 @@ object Foo {
   def main(args: Array[String]): Unit = {
     implicit val rng: Random = new Random(0)
     implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-    val client: ElastiknnClient[Future] = ElastiknnClient.futureClient()
+    val client: ElastiknnClient[Future] = ElastiknnClient.futureClient(strict = true)
     lazy val pipeline = for {
       _ <- client.elasticClient.execute(deleteIndex("foo"))
       res <- client.elasticClient.execute(createIndex("foo"))
@@ -99,6 +122,10 @@ object Foo {
       queryVec = Vec.SparseBool.random(10)
       res <- client.nearestNeighbors("foo", NearestNeighborsQuery.Exact("vec", queryVec, Similarity.Jaccard), 10)
       _ = println((queryVec, res))
+
+      res <- client.nearestNeighbors("blah", NearestNeighborsQuery.Exact("vec", queryVec, Similarity.Jaccard), 10)
+      check = ElastiknnClient.checkResponse(res)
+      _ = println(check)
     } yield ()
     try Await.result(pipeline, Duration("10s"))
     finally client.close()
