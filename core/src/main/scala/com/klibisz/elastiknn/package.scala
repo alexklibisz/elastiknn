@@ -1,8 +1,5 @@
 package com.klibisz
 
-import com.klibisz.elastiknn.KNearestNeighborsQuery._
-import com.klibisz.elastiknn.ProcessorOptions.ModelOptions
-
 package object elastiknn {
 
   val ELASTIKNN_NAME: String = "elastiknn"
@@ -16,55 +13,7 @@ package object elastiknn {
   final case class ParseVectorException(msg: String = "Failed to parse vector", cause: Option[Throwable] = None)
       extends IllegalArgumentException(msg, cause.orNull)
 
-  final case class SimilarityAndTypeException(similarity: Similarity, vector: ElastiKnnVector)
-      extends IllegalArgumentException(s"Similarity ${similarity} is not compatible with vector ${vector}")
-
   private[elastiknn] def illArgEx(msg: String, cause: Option[Throwable] = None): IllegalArgumentException =
     new IllegalArgumentException(msg, cause.orNull)
-
-  trait ElastiKnnVectorLike[A] {
-    def apply(a: A): ElastiKnnVector
-  }
-
-  object ElastiKnnVectorLike {
-    implicit val id: ElastiKnnVectorLike[ElastiKnnVector] = identity
-    implicit val fv: ElastiKnnVectorLike[FloatVector] = (a: FloatVector) => ElastiKnnVector(ElastiKnnVector.Vector.FloatVector(a))
-    implicit val sbv: ElastiKnnVectorLike[SparseBoolVector] = (a: SparseBoolVector) =>
-      ElastiKnnVector(ElastiKnnVector.Vector.SparseBoolVector(a))
-  }
-
-  trait QueryVectorLike[T] {
-    def apply(a: T): QueryVector
-  }
-
-  object QueryVectorLike {
-    implicit val id: QueryVectorLike[QueryVector] = identity
-    implicit val ekv: QueryVectorLike[ElastiKnnVector] = QueryVector.Given(_)
-    implicit val iqv: QueryVectorLike[IndexedQueryVector] = QueryVector.Indexed(_)
-    implicit def ekvLike[A: ElastiKnnVectorLike]: QueryVectorLike[A] =
-      (a: A) => QueryVector.Given(implicitly[ElastiKnnVectorLike[A]].apply(a))
-  }
-
-  trait ModelOptionsLike[T] {
-    def apply(a: T): ProcessorOptions.ModelOptions
-  }
-
-  object ModelOptionsLike {
-    implicit val id: ModelOptionsLike[ModelOptions] = identity
-    implicit val excmp: ModelOptionsLike[ExactComputedModelOptions] = ModelOptions.ExactComputed(_)
-    implicit val jaccix: ModelOptionsLike[JaccardIndexedModelOptions] = ModelOptions.JaccardIndexed(_)
-    implicit val jacclsh: ModelOptionsLike[JaccardLshModelOptions] = ModelOptions.JaccardLsh(_)
-  }
-
-  trait QueryOptionsLike[T] {
-    def apply(a: T): KNearestNeighborsQuery.QueryOptions
-  }
-
-  object QueryOptionsLike {
-    implicit val id: QueryOptionsLike[QueryOptions] = identity
-    implicit val excmp: QueryOptionsLike[ExactComputedQueryOptions] = QueryOptions.ExactComputed(_)
-    implicit val jaccix: QueryOptionsLike[JaccardIndexedQueryOptions] = QueryOptions.JaccardIndexed(_)
-    implicit val jacclsh: QueryOptionsLike[JaccardLshQueryOptions] = QueryOptions.JaccardLsh(_)
-  }
 
 }

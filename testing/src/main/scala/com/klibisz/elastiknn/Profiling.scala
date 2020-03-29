@@ -1,7 +1,8 @@
 package com.klibisz.elastiknn
 
+import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.JaccardLshModel
-import com.klibisz.elastiknn.utils.{ArrayUtils, SparseBoolVectorUtils}
+import com.klibisz.elastiknn.utils.ArrayUtils
 
 import scala.util.Random
 
@@ -9,11 +10,11 @@ import scala.util.Random
 // One quirk with using VisualVM for profiling is that it has to be running on the same JVM as the app.
 // For me it was enough to folow this comment: https://github.com/oracle/visualvm/issues/130#issuecomment-483898542
 
-object ProfileVectorHashing extends SparseBoolVectorUtils {
+object ProfileVectorHashing {
   def main(args: Array[String]): Unit = {
     implicit val r: Random = new Random(100)
     val m = new JaccardLshModel(0, 150, 1)
-    val vecs = SparseBoolVector.randoms(100, 5000)
+    val vecs = Vec.SparseBool.randoms(100, 5000)
     while (true) {
       val t0 = System.currentTimeMillis()
       vecs.foreach(v => m.hash(v.trueIndices))
@@ -22,10 +23,10 @@ object ProfileVectorHashing extends SparseBoolVectorUtils {
   }
 }
 
-object ProfileSortedIntersection extends SparseBoolVectorUtils {
+object ProfileSortedIntersection {
   def main(args: Array[String]): Unit = {
     implicit val r: Random = new Random(100)
-    val vecs = SparseBoolVector.randoms(100, 5000)
+    val vecs = Vec.SparseBool.randoms(100, 5000)
     while (true) {
       val t0 = System.currentTimeMillis()
       vecs.drop(1).zip(vecs).map {

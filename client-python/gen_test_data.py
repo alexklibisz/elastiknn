@@ -52,6 +52,7 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, num_neighbors: i
         np_corpus_vecs = np.random.rand(corpus_size, dim)
         np_query_vecs = np.random.rand(num_queries, dim)
 
+
     knn = NearestNeighbors(n_neighbors=num_neighbors, algorithm='brute', metric=metric)
     (dists, inds) = knn.fit(np_corpus_vecs).kneighbors(np_query_vecs)
 

@@ -7,11 +7,10 @@ import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.mapper.ElastiKnnVectorFieldMapper.FieldType
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, JaccardLshModel}
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
-import org.apache.lucene.document.Field
+import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.search.similarities.BooleanSimilarity
