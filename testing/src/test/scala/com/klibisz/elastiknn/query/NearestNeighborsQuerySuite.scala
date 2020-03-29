@@ -125,11 +125,10 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
           val recallCount: Int = (query.similarities.length * recall).toInt
           var hitScoresRemaining = hitScores.toVector
           forAtLeast(recallCount, correctScores) { s =>
-            val i = hitScoresRemaining.indexWhere(_ == s)
-            if (i >= 0) hitScoresRemaining = hitScoresRemaining.patch(i, Nil, 1)
-            withClue(s"Couldn't find score $s in ${hitScoresRemaining.mkString(",")}") {
-              i shouldBe >=(0)
-            }
+            val a = hitScoresRemaining should contain(s)
+            val i = hitScoresRemaining.indexOf(s)
+            hitScoresRemaining = hitScoresRemaining.patch(i, Nil, 1)
+            a
           }
         }
 
