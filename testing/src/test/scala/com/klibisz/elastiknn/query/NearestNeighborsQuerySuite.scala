@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
-import com.klibisz.elastiknn.utils.ArrayUtils
 import com.oblac.nomen.Nomen
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
