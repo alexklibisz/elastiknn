@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
+import com.klibisz.elastiknn.utils.ArrayUtils
 import com.oblac.nomen.Nomen
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
@@ -13,27 +14,23 @@ import scala.concurrent.Future
 
 class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
+  private val testDataDims = Seq(10, 128, 512)
+  private val testDataNumQueries = 30
+
   private case class Test(mkMappings: Int => Seq[Mapping],
                           mkQuery: (String, Vec) => NearestNeighborsQuery,
                           recall: Double = 1d,
                           scorePrecision: Int = 3)
 
   private val tests = Seq(
+    // Exact
     Test(
       d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)
     ),
     Test(
-      d => Seq(Mapping.SparseIndexed(d)),
-      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)
-    ),
-    Test(
       d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Hamming)
-    ),
-    Test(
-      d => Seq(Mapping.SparseIndexed(d)),
-      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)
     ),
     Test(
       d => Seq(Mapping.DenseFloat(d)),
@@ -46,6 +43,26 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     Test(
       d => Seq(Mapping.DenseFloat(d)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
+    ),
+    // Sparse indexed
+    Test(
+      d => Seq(Mapping.SparseIndexed(d)),
+      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)
+    ),
+    Test(
+      d => Seq(Mapping.SparseIndexed(d)),
+      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)
+    ),
+    // Jaccard Lsh
+    Test(
+      d => Seq(Mapping.JaccardLsh(d, 20, 1)),
+      (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, testDataNumQueries * 2),
+      0.8
+    ),
+    Test(
+      d => Seq(Mapping.JaccardLsh(d, 40, 2)),
+      (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, testDataNumQueries * 2),
+      0.67
     )
   )
 
@@ -54,7 +71,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
 
   for {
     Test(mkMappings, mkQuery, recall, scorePrecision) <- tests
-    dims <- Seq(10, 128, 512)
+    dims <- testDataDims
     mapping <- mkMappings(dims)
   } {
     val fieldName = "vec"
@@ -109,8 +126,10 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
           var hitScoresRemaining = hitScores.toVector
           forAtLeast(recallCount, correctScores) { s =>
             val i = hitScoresRemaining.indexWhere(_ == s)
-            hitScoresRemaining = hitScoresRemaining.patch(i, Nil, 1)
-            i shouldBe >=(0)
+            if (i >= 0) hitScoresRemaining = hitScoresRemaining.patch(i, Nil, 1)
+            withClue(s"Couldn't find score $s in ${hitScoresRemaining.mkString(",")}") {
+              i shouldBe >=(0)
+            }
           }
         }
 

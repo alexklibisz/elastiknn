@@ -84,6 +84,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
+      case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
+        new JaccardLshQuery(f, v, m, candidates, ExactSimilarityFunction.Jaccard)
+
       case _ => throw incompatible(mapping, query)
     }
   }

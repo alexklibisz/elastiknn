@@ -76,7 +76,7 @@ object SparseIndexedQuery {
   def trueIndicesTermField(field: String): String = s"$field.$ELASTIKNN_NAME.true_indices"
   def numTrueDocValueField(field: String): String = s"$field.$ELASTIKNN_NAME.num_true"
 
-  val indexedIndicesFieldType: FieldType = {
+  private val indexedIndicesFieldType: FieldType = {
     val ft = new FieldType
     ft.setIndexOptions(IndexOptions.DOCS)
     ft.setTokenized(false)

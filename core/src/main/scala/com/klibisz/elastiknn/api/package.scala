@@ -84,7 +84,7 @@ package object api {
     final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
       override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
     }
-    final case class JaccardLsh(field: String, vector: Vec, candidates: Int, refine: Boolean) extends NearestNeighborsQuery {
+    final case class JaccardLsh(field: String, vector: Vec, candidates: Int) extends NearestNeighborsQuery {
       override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
       override def similarity: Similarity = Similarity.Jaccard
     }

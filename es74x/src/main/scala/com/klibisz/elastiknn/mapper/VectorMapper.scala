@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactSimilarityQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactSimilarityQuery, JaccardLshQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
@@ -27,10 +27,10 @@ object VectorMapper {
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
-            case Mapping.SparseBool(_)       => Try(ExactSimilarityQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_)    => Try(SparseIndexedQuery.index(field, sorted))
-            case Mapping.JaccardLsh(_, _, _) => Try(ExactSimilarityQuery.index(field, sorted))
-            case _                           => Failure(incompatible(mapping, vec))
+            case Mapping.SparseBool(_)    => Try(ExactSimilarityQuery.index(field, sorted))
+            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted))
+            case m: Mapping.JaccardLsh    => Try(JaccardLshQuery.index(field, sorted, m))
+            case _                        => Failure(incompatible(mapping, vec))
           }
         }
     }
