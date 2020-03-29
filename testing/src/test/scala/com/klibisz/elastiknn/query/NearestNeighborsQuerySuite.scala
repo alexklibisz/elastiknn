@@ -1,13 +1,14 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.testing.TestData
+import com.klibisz.elastiknn.testing.{Query, TestData}
 import com.klibisz.elastiknn.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.oblac.nomen.Nomen
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.searches.SearchHit
 import org.apache.commons.math3.util.Precision
-import org.scalatest.{AsyncFunSuite, Inspectors, Matchers, Succeeded}
+import org.scalatest.{Assertion, AsyncFunSuite, Inspectors, Matchers, Succeeded}
 
 import scala.concurrent.Future
 
@@ -47,7 +48,8 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     )
   )
 
-  private def corpusId(i: Int): String = s"c$i"
+  private val corpusIdPrefix: String = "c"
+  private def corpusId(i: Int): String = s"$corpusIdPrefix$i"
   private def queryId(i: Int): String = s"q$i"
 
   for {
@@ -84,30 +86,47 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         _ <- eknn.index(indexName, fieldName, testData.queries.map(_.vector), Some(queryIds), RefreshPolicy.IMMEDIATE)
 
         // Search using the indexed query vectors.
-        kIndexed = kLiteral + queryIds.length + 1
+        // Increase k to account for the fact that there are queryIds.length new vectors in the corpus.
+        kIndexed = kLiteral + queryIds.length
+        indexedKnnReqs = queryIds.map { id =>
+          eknn.nearestNeighbors(indexName, initQuery.withVector(Vec.Indexed(indexName, id, fieldName)), kIndexed)
+        }
+        indexedKnnRes <- Future.sequence(indexedKnnReqs)
 
       } yield {
+
+        def checkHitsVsQuery(hits: Array[SearchHit], query: Query): Assertion = {
+
+          hits should have length kLiteral
+
+          // Create tuples of ids and rounded scores.
+          val hitIdsAndScores = hits.map(h => h.id -> Precision.round(h.score, scorePrecision))
+          val correctIdsAndScores = query.indices.map(corpusId).zip(query.similarities.map(Precision.round(_, scorePrecision)))
+
+          // The smallest hit score should equal the smallest correct score.
+          val minHitScore = hitIdsAndScores.map(_._2).min
+          val minCorrectScore = correctIdsAndScores.map(_._2).min
+          minHitScore shouldBe minCorrectScore
+
+          // Each of the correct (id, score) tuples should be returned as a hit, unless it's equal to the min score,
+          // since that means it could have been excluded as an edge case.
+          forAtLeast((query.similarities.length * recall).toInt, correctIdsAndScores) {
+            case (id, score) =>
+              if (score == minCorrectScore) Succeeded
+              else hitIdsAndScores should contain((id, score))
+          }
+        }
+
+        // Test the literal query results.
         forAll(testData.queries.zip(literalKnnRes).silent) {
+          case (query, res) => checkHitsVsQuery(res.result.hits.hits, query)
+        }
+
+        // Test the indexed query results.
+        forAll(testData.queries.zip(indexedKnnRes).silent) {
           case (query, res) =>
-            val hits = res.result.hits.hits
-            hits should have length kLiteral
-
-            // Create tuples of ids and rounded scores.
-            val hitIdsAndScores = hits.map(h => h.id -> Precision.round(h.score, scorePrecision))
-            val correctIdsAndScores = query.indices.map(corpusId).zip(query.similarities.map(Precision.round(_, scorePrecision)))
-
-            // The smallest hit score should equal the smallest correct score.
-            val minHitScore = hitIdsAndScores.map(_._2).min
-            val minCorrectScore = correctIdsAndScores.map(_._2).min
-            minHitScore shouldBe minCorrectScore
-
-            // Each of the correct (id, score) tuples should be returned as a hit, unless it's equal to the min score,
-            // since that means it could have been excluded as an edge case.
-            forAtLeast((query.similarities.length * recall).toInt, correctIdsAndScores) {
-              case (id, score) =>
-                if (score == minCorrectScore) Succeeded
-                else hitIdsAndScores should contain((id, score))
-            }
+            val hits = res.result.hits.hits.filter(_.id.startsWith(corpusIdPrefix)).take(kLiteral)
+            checkHitsVsQuery(hits, query)
         }
       }
     }
