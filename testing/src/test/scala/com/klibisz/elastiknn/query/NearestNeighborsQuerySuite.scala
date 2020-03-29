@@ -14,54 +14,55 @@ import scala.concurrent.Future
 
 class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
-  private case class Test(similarity: Similarity,
-                          mkMappings: Int => Seq[Mapping],
+  private case class Test(mkMappings: Int => Seq[Mapping],
                           mkQuery: (String, Vec) => NearestNeighborsQuery,
                           recall: Double = 1d,
                           scorePrecision: Int = 3)
 
   private val tests = Seq(
     Test(
-      Similarity.Jaccard,
-      (dims: Int) => Seq(Mapping.SparseBool(dims), Mapping.SparseIndexed(dims), Mapping.JaccardLsh(dims, 10, 1)),
-      (field: String, vec: Vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Jaccard)
+      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
+      (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)
     ),
     Test(
-      Similarity.Hamming,
-      (dims: Int) => Seq(Mapping.SparseBool(dims), Mapping.SparseIndexed(dims), Mapping.JaccardLsh(dims, 10, 1)),
-      (field: String, vec: Vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)
+      d => Seq(Mapping.SparseIndexed(d)),
+      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)
     ),
     Test(
-      Similarity.L1,
-      (dims: Int) => Seq(Mapping.DenseFloat(dims)),
-      (field: String, vec: Vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.L1)
+      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
+      (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Hamming)
     ),
     Test(
-      Similarity.L2,
-      (dims: Int) => Seq(Mapping.DenseFloat(dims)),
-      (field: String, vec: Vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.L2)
+      d => Seq(Mapping.SparseIndexed(d)),
+      (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)
     ),
     Test(
-      Similarity.Angular,
-      (dims: Int) => Seq(Mapping.DenseFloat(dims)),
-      (field: String, vec: Vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Angular)
+      d => Seq(Mapping.DenseFloat(d)),
+      (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L1)
+    ),
+    Test(
+      d => Seq(Mapping.DenseFloat(d)),
+      (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)
+    ),
+    Test(
+      d => Seq(Mapping.DenseFloat(d)),
+      (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
     )
   )
 
-  private val corpusIdPrefix: String = "c"
-  private def corpusId(i: Int): String = s"$corpusIdPrefix$i"
+  private def corpusId(i: Int): String = s"c$i"
   private def queryId(i: Int): String = s"q$i"
 
   for {
-    Test(similarity, mkMappings, mkQuery, recall, scorePrecision) <- tests
+    Test(mkMappings, mkQuery, recall, scorePrecision) <- tests
     dims <- Seq(10, 128, 512)
     mapping <- mkMappings(dims)
   } {
     val fieldName = "vec"
-    val testData = TestData.read(similarity, dims).get
-    val initQuery = mkQuery(fieldName, testData.queries.head.vector)
+    val fakeQuery = mkQuery(fieldName, Vec.Indexed("", "", ""))
+    val testData = TestData.read(fakeQuery.similarity, dims).get
     val indexName = Nomen.randomName()
-    val testName = f"$indexName%-30s $similarity%-16s $mapping%-30s $initQuery%-60s"
+    val testName = f"$indexName%-30s ${fakeQuery.similarity}%-16s $mapping%-30s ${fakeQuery.withVector(testData.queries.head.vector)}%-60s"
 
     test(testName) {
 
@@ -77,7 +78,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Search using literal vectors.
         kLiteral = testData.queries.head.similarities.length
         literalKnnReqs = testData.queries.map { q =>
-          eknn.nearestNeighbors(indexName, initQuery.withVector(q.vector), kLiteral, fetchSource = false)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVector(q.vector), kLiteral, fetchSource = false)
         }
         literalKnnRes <- Future.sequence(literalKnnReqs)
 
@@ -89,7 +90,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Increase k to account for the fact that there are queryIds.length new vectors in the corpus.
         kIndexed = kLiteral + queryIds.length
         indexedKnnReqs = queryIds.map { id =>
-          eknn.nearestNeighbors(indexName, initQuery.withVector(Vec.Indexed(indexName, id, fieldName)), kIndexed)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVector(Vec.Indexed(indexName, id, fieldName)), kIndexed)
         }
         indexedKnnRes <- Future.sequence(indexedKnnReqs)
 
@@ -99,21 +100,18 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
 
           hits should have length kLiteral
 
-          // Create tuples of ids and rounded scores.
-          val hitIdsAndScores = hits.map(h => h.id -> Precision.round(h.score, scorePrecision))
-          val correctIdsAndScores = query.indices.map(corpusId).zip(query.similarities.map(Precision.round(_, scorePrecision)))
+          // Round the scores for easier comparison.
+          val hitScores = hits.map(_.score).map(Precision.round(_, scorePrecision))
+          val correctScores = query.similarities.map(Precision.round(_, scorePrecision))
 
-          // The smallest hit score should equal the smallest correct score.
-          val minHitScore = hitIdsAndScores.map(_._2).min
-          val minCorrectScore = correctIdsAndScores.map(_._2).min
-          minHitScore shouldBe minCorrectScore
-
-          // Each of the correct (id, score) tuples should be returned as a hit, unless it's equal to the min score,
-          // since that means it could have been excluded as an edge case.
-          forAtLeast((query.similarities.length * recall).toInt, correctIdsAndScores) {
-            case (id, score) =>
-              if (score == minCorrectScore) Succeeded
-              else hitIdsAndScores should contain((id, score))
+          // You can only really compare scores, not ids, since multiple vectors can have the same score.
+          // There should be at least recallCount matching scores
+          val recallCount: Int = (query.similarities.length * recall).toInt
+          var hitScoresRemaining = hitScores.toVector
+          forAtLeast(recallCount, correctScores) { s =>
+            val i = hitScoresRemaining.indexWhere(_ == s)
+            hitScoresRemaining = hitScoresRemaining.patch(i, Nil, 1)
+            i shouldBe >=(0)
           }
         }
 
@@ -125,7 +123,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Test the indexed query results.
         forAll(testData.queries.zip(indexedKnnRes).silent) {
           case (query, res) =>
-            val hits = res.result.hits.hits.filter(_.id.startsWith(corpusIdPrefix)).take(kLiteral)
+            val hits = res.result.hits.hits.filter(h => corpusIds.contains(h.id)).take(kLiteral)
             checkHitsVsQuery(hits, query)
         }
       }
