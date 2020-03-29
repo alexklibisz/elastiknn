@@ -3,12 +3,12 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{Query, TestData}
 import com.klibisz.elastiknn.{ElasticAsyncClient, SilentMatchers}
-import com.sksamuel.elastic4s.ElasticDsl._
 import com.oblac.nomen.Nomen
+import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.SearchHit
 import org.apache.commons.math3.util.Precision
-import org.scalatest.{Assertion, AsyncFunSuite, Inspectors, Matchers, Succeeded}
+import org.scalatest.{Assertion, AsyncFunSuite, Inspectors, Matchers}
 
 import scala.concurrent.Future
 
