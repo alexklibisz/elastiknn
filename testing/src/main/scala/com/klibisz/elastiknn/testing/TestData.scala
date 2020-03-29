@@ -20,8 +20,8 @@ object Query {
 case class TestData(corpus: Vector[Vec], queries: Vector[Query])
 object TestData {
   implicit val dec: Decoder[TestData] = deriveDecoder[TestData]
-  def read(sim: Similarity, dim: Int): Try[TestData] = {
-    val name = s"similarity_${sim.toString.toLowerCase}-$dim.json"
+  def read(similarity: Similarity, dims: Int): Try[TestData] = {
+    val name = s"similarity_${similarity.toString.toLowerCase}-$dims.json"
     val resource = getClass.getResource(name)
     val contents = Files.readString(Path.of(resource.toURI))
     decode[TestData](contents).toTry

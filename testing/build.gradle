@@ -38,6 +38,7 @@ dependencies {
     implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.3.1"
     implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+    testImplementation 'com.oblac:nomen-est-omen:2.0.0'
     testImplementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }
