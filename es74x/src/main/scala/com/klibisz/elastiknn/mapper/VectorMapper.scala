@@ -29,7 +29,7 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)       => Try(ExactSimilarityQuery.index(field, sorted))
             case Mapping.SparseIndexed(_)    => Try(SparseIndexedQuery.index(field, sorted))
-            case Mapping.JaccardLsh(_, _, _) => Success(Seq.empty)
+            case Mapping.JaccardLsh(_, _, _) => Try(ExactSimilarityQuery.index(field, sorted))
             case _                           => Failure(incompatible(mapping, vec))
           }
         }

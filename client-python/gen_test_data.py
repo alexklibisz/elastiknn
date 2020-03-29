@@ -37,7 +37,7 @@ def dist2sim(metric: str) -> Callable[[float], float]:
         return lambda d: d
 
 
-def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, output_path: str):
+def gen_test_data(dim: int, corpus_size: int, num_queries: int, num_neighbors: int, metric: str, output_path: str):
     np.random.seed(dim)
 
     boolean = metric in {"hamming", "jaccard"}
@@ -52,7 +52,7 @@ def gen_test_data(dim: int, corpus_size: int, num_queries: int, metric: str, out
         np_corpus_vecs = np.random.rand(corpus_size, dim)
         np_query_vecs = np.random.rand(num_queries, dim)
 
-    knn = NearestNeighbors(n_neighbors=10, algorithm='brute', metric=metric)
+    knn = NearestNeighbors(n_neighbors=num_neighbors, algorithm='brute', metric=metric)
     (dists, inds) = knn.fit(np_corpus_vecs).kneighbors(np_query_vecs)
 
     if boolean:
@@ -79,7 +79,7 @@ def main(argv: List[str]):
 
     for dim in dims:
         for metric in metrics:
-            gen_test_data(dim, 100, 10, metric, f'{output_dir}/similarity_{metric}-{dim}.json')
+            gen_test_data(dim, 100, 10, 30, metric, f'{output_dir}/similarity_{metric}-{dim}.json')
 
 
 if __name__ == "__main__":

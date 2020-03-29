@@ -40,5 +40,6 @@ dependencies {
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     testImplementation 'com.oblac:nomen-est-omen:2.0.0'
     testImplementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
+    testImplementation 'org.apache.commons:commons-math3:3.6.1'
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }

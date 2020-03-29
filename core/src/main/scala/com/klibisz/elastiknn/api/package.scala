@@ -26,6 +26,7 @@ package object api {
         case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
         case _                 => false
       }
+      override def toString: String = s"SparseBool(${trueIndices.take(3).mkString(",")},...,$totalIndices)"
     }
 
     object SparseBool {
@@ -45,6 +46,7 @@ package object api {
         case other: DenseFloat => other.values.deep == values.deep
         case _                 => false
       }
+      override def toString: String = s"DenseFloat(${values.take(3).map(n => f"$n%.2f").mkString(",")},...,${values.length})"
     }
 
     object DenseFloat {

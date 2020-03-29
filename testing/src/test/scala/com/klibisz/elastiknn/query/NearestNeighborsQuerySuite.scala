@@ -6,6 +6,7 @@ import com.klibisz.elastiknn.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.oblac.nomen.Nomen
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import org.apache.commons.math3.util.Precision
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers, Succeeded}
 
 import scala.concurrent.Future
@@ -15,7 +16,8 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
   private case class Test(similarity: Similarity,
                           mkMappings: Int => Seq[Mapping],
                           mkQuery: (String, Vec) => NearestNeighborsQuery,
-                          recall: Double = 1d)
+                          recall: Double = 1d,
+                          scorePrecision: Int = 3)
 
   private val tests = Seq(
     Test(
@@ -49,14 +51,15 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
   private def queryId(i: Int): String = s"q$i"
 
   for {
-    Test(similarity, mkMappings, mkQuery, recall) <- tests
+    Test(similarity, mkMappings, mkQuery, recall, scorePrecision) <- tests
     dims <- Seq(10, 128, 512)
     mapping <- mkMappings(dims)
   } {
     val fieldName = "vec"
-    val initQuery = mkQuery(fieldName, Vec.Indexed("index", "id", fieldName))
+    val testData = TestData.read(similarity, dims).get
+    val initQuery = mkQuery(fieldName, testData.queries.head.vector)
     val indexName = Nomen.randomName()
-    val testName = f"$indexName%-30s $similarity%-16s $mapping%-30s $initQuery%-50s"
+    val testName = f"$indexName%-30s $similarity%-16s $mapping%-30s $initQuery%-60s"
 
     test(testName) {
 
@@ -66,26 +69,46 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         _ <- eknn.putMapping(indexName, fieldName, mapping)
 
         // Read and index the test data corpus.
-        testData <- Future.fromTry(TestData.read(similarity, dims))
         corpusIds = testData.corpus.indices.map(corpusId)
         _ <- eknn.index(indexName, fieldName, testData.corpus, Some(corpusIds), RefreshPolicy.IMMEDIATE)
 
         // Search using literal vectors.
-        k = testData.queries.head.similarities.length
+        kLiteral = testData.queries.head.similarities.length
         literalKnnReqs = testData.queries.map { q =>
-          eknn.nearestNeighbors(indexName, initQuery.withVector(q.vector), k, fetchSource = false)
+          eknn.nearestNeighbors(indexName, initQuery.withVector(q.vector), kLiteral, fetchSource = false)
         }
         literalKnnRes <- Future.sequence(literalKnnReqs)
 
         // Index the query vectors.
-        // ...
+        queryIds = testData.queries.indices.map(queryId)
+        _ <- eknn.index(indexName, fieldName, testData.queries.map(_.vector), Some(queryIds), RefreshPolicy.IMMEDIATE)
+
         // Search using the indexed query vectors.
+        kIndexed = kLiteral + queryIds.length + 1
 
       } yield {
-//        println(testData)
-//        println(indexName)
-//        println(literalKnnRes)
-        Succeeded
+        forAll(testData.queries.zip(literalKnnRes).silent) {
+          case (query, res) =>
+            val hits = res.result.hits.hits
+            hits should have length kLiteral
+
+            // Create tuples of ids and rounded scores.
+            val hitIdsAndScores = hits.map(h => h.id -> Precision.round(h.score, scorePrecision))
+            val correctIdsAndScores = query.indices.map(corpusId).zip(query.similarities.map(Precision.round(_, scorePrecision)))
+
+            // The smallest hit score should equal the smallest correct score.
+            val minHitScore = hitIdsAndScores.map(_._2).min
+            val minCorrectScore = correctIdsAndScores.map(_._2).min
+            minHitScore shouldBe minCorrectScore
+
+            // Each of the correct (id, score) tuples should be returned as a hit, unless it's equal to the min score,
+            // since that means it could have been excluded as an edge case.
+            forAtLeast((query.similarities.length * recall).toInt, correctIdsAndScores) {
+              case (id, score) =>
+                if (score == minCorrectScore) Succeeded
+                else hitIdsAndScores should contain((id, score))
+            }
+        }
       }
     }
   }
