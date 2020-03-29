@@ -12,7 +12,6 @@ import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{BinaryDocValues, IndexableField, LeafReaderContext, Term}
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.index.query.QueryShardContext
 
 class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val field: String,
                                                                          val queryVec: V,
@@ -29,13 +28,17 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
     override def scorer(context: LeafReaderContext): Scorer = {
       val vectorDocValues: BinaryDocValues = context.reader.getBinaryDocValues(vectorDocValuesField)
       val scorer = hasVectorWeight.scorer(context)
-      new ExactSimilarityScorer(this, scorer, vectorDocValues)
+      val iterator = if (scorer == null) DocIdSetIterator.empty() else scorer.iterator()
+      new ExactSimilarityScorer(this, iterator, vectorDocValues)
     }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class ExactSimilarityScorer(weight: Weight, scorer: Scorer, vectorDocValues: BinaryDocValues) extends FilterScorer(scorer, weight) {
+  class ExactSimilarityScorer(weight: Weight, hasVectorIterator: DocIdSetIterator, vectorDocValues: BinaryDocValues)
+      extends Scorer(weight) {
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
+    override def iterator(): DocIdSetIterator = hasVectorIterator
+    override def docID(): Int = hasVectorIterator.docID()
     override def score(): Float = {
       val docId = this.docID()
       if (vectorDocValues.advanceExact(docId)) {
@@ -48,7 +51,6 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
         scoreTry.get
       } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
     }
-
   }
 
   override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new ExactSimilarityWeight(searcher)

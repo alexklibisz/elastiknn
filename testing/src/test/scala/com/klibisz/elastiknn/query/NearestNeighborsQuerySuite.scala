@@ -56,7 +56,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     val fieldName = "vec"
     val initQuery = mkQuery(fieldName, Vec.Indexed("index", "id", fieldName))
     val indexName = Nomen.randomName()
-    val testName = f"$indexName%-20s $similarity%-16s $mapping%-30s $initQuery%-50s"
+    val testName = f"$indexName%-30s $similarity%-16s $mapping%-30s $initQuery%-50s"
 
     test(testName) {
 
