@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.mapper
 import java.util.UUID
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, Vec}
-import com.klibisz.elastiknn.{Elastic4sMatchers, ElasticAsyncClient}
+import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{Indexes, Response}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy

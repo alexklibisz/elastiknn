@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.testing
 
-import com.klibisz.elastiknn.SilentMatchers
 import com.klibisz.elastiknn.api.{Similarity, Vec}
 import org.scalatest.{Assertions, FunSuite, Inspectors, Matchers}
 

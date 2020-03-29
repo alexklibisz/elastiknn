@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn
+package com.klibisz.elastiknn.testing
 
 import com.sksamuel.elastic4s.Response
 import org.scalatest.{Assertion, Matchers}
