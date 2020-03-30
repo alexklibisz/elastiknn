@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.api
 
-import com.klibisz.elastiknn.api.Vec.{DenseFloat, Indexed, SparseBool}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe
 import io.circe.Decoder.Result
+import io.circe._
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto._
 import io.circe.generic.semiauto.deriveCodec
-import io.circe._
 
 import scala.language.implicitConversions
 
@@ -109,18 +108,18 @@ object ElasticsearchCodec { esc =>
     }
   }
 
-  implicit val denseFloatVector: ESC[DenseFloat] = ElasticsearchCodec(deriveCodec)
-  implicit val indexedVector: ESC[Indexed] = ElasticsearchCodec(deriveCodec)
-  implicit val sparseBoolVector: ESC[SparseBool] = {
+  implicit val denseFloatVector: ESC[Vec.DenseFloat] = ElasticsearchCodec(deriveCodec)
+  implicit val indexedVector: ESC[Vec.Indexed] = ElasticsearchCodec(deriveCodec)
+  implicit val sparseBoolVector: ESC[Vec.SparseBool] = {
     implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
     ElasticsearchCodec(deriveConfiguredCodec)
   }
 
   implicit val vector: ESC[api.Vec] = new ESC[api.Vec] {
     override def apply(t: Vec): Json = t match {
-      case ixv: Indexed    => encode(ixv)
-      case sbv: SparseBool => encode(sbv)
-      case dfv: DenseFloat => encode(dfv)
+      case ixv: Vec.Indexed    => encode(ixv)
+      case sbv: Vec.SparseBool => encode(sbv)
+      case dfv: Vec.DenseFloat => encode(dfv)
     }
     override def apply(c: HCursor): Either[DecodingFailure, Vec] =
       denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c))
@@ -169,13 +168,12 @@ object ElasticsearchCodec { esc =>
   implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
-    import NearestNeighborsQuery._
     override def apply(a: NearestNeighborsQuery): Json = {
       val default = JsonObject(FIELD -> a.field, VECTOR -> esc.encode(a.vector), SIMILARITY -> esc.encode(a.similarity))
       a match {
-        case q: Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
-        case q: SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
-        case q: JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
       }
     }
     override def apply(c: HCursor): Result[NearestNeighborsQuery] =
@@ -183,11 +181,11 @@ object ElasticsearchCodec { esc =>
         model <- c.downField(MODEL).as[String]
         sim <- c.downField(SIMILARITY).as[Json].flatMap(esc.decodeJson[Similarity])
         nnq <- model match {
-          case EXACT          => esc.decode[Exact](c)
-          case SPARSE_INDEXED => esc.decode[SparseIndexed](c)
+          case EXACT          => esc.decode[NearestNeighborsQuery.Exact](c)
+          case SPARSE_INDEXED => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
           case LSH =>
             sim match {
-              case Similarity.Jaccard => esc.decode[JaccardLsh](c)
+              case Similarity.Jaccard => esc.decode[NearestNeighborsQuery.JaccardLsh](c)
               case other              => fail(s"$SIMILARITY [$other] is not compatible with $MODEL [$LSH]")
             }
           case other => failTypes(MODEL, Seq(EXACT, SPARSE_INDEXED, LSH), other)

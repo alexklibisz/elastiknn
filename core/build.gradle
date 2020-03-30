@@ -4,13 +4,9 @@ buildscript {
         mavenCentral()
         jcenter()
     }
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
-    }
 }
 
 plugins {
-    id 'com.google.protobuf' version '0.8.8'
     id 'java-library'
     id 'maven-publish'
     id 'signing'
@@ -18,7 +14,6 @@ plugins {
 
 
 dependencies {
-    compile project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
@@ -32,47 +27,9 @@ dependencies {
     implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
 }
 
-protobuf {
-    protoc {
-        artifact = 'com.google.protobuf:protoc:3.10.0'
-    }
-    plugins {
-        scalapb {
-            artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
-                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:windows@bat" :
-                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:unix@sh"
-        }
-    }
-
-    generateProtoTasks {
-        all().each { task ->
-            task.builtins {
-                remove java
-            }
-            task.plugins {
-                scalapb {
-                    // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
-                    option 'flat_package'
-                    option 'no_lenses'
-                }
-            }
-        }
-    }
-}
-
-// Add geneated Scala code as a source directory
-sourceSets {
-    main {
-        scala {
-            srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
-        }
-    }
-}
-
 task sourceJar(type: Jar) {
     classifier 'sources'
     from sourceSets.main.allSource
-    from sourceSets.main.proto
 }
 
 task javadocJar(type: Jar) {

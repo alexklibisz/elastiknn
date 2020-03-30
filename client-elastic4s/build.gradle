@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    compile project(':core')
     compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.3.1'
     compile "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
