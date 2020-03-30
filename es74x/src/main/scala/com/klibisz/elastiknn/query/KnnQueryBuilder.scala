@@ -4,6 +4,7 @@ import java.time.Duration
 import java.util.Objects
 
 import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
@@ -24,6 +25,10 @@ object KnnQueryBuilder {
 
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
+  private val b64 = BaseEncoding.base64()
+  private def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
+  private def decodeB64[T: ElasticsearchCodec](s: String): T = parse(new String(b64.decode(s))).flatMap(decodeJson[T]).toTry.get
+
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       val json: Json = javaMapEncoder(parser.map)
@@ -36,7 +41,7 @@ object KnnQueryBuilder {
     override def read(in: StreamInput): KnnQueryBuilder = {
       in.readFloat() // boost
       in.readOptionalString() // query name
-      new KnnQueryBuilder(ElasticsearchCodec.decodeB64Get[NearestNeighborsQuery](in.readString()))
+      new KnnQueryBuilder(decodeB64[NearestNeighborsQuery](in.readString()))
     }
   }
 
@@ -46,7 +51,7 @@ object KnnQueryBuilder {
 
 final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  override def doWriteTo(out: StreamOutput): Unit = out.writeString(ElasticsearchCodec.encodeB64(query))
+  override def doWriteTo(out: StreamOutput): Unit = out.writeString(KnnQueryBuilder.encodeB64(query))
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 

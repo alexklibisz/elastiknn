@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.api
 
-import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.Vec.{DenseFloat, Indexed, SparseBool}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe
@@ -76,23 +75,16 @@ object ElasticsearchCodec { esc =>
     def ++(other: Json): Json = j.deepMerge(other)
   }
 
-  private val b64 = BaseEncoding.base64()
-
   def encode[T: ElasticsearchCodec](t: T): Json = implicitly[ElasticsearchCodec[T]].apply(t)
-  def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
   def nospaces[T: ElasticsearchCodec](t: T): String = encode(t).noSpaces
   def decode[T: ElasticsearchCodec](c: HCursor): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].apply(c)
   def decodeJson[T: ElasticsearchCodec](j: Json): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].decodeJson(j)
-  def decodeB64[T: ElasticsearchCodec](s: String): Either[circe.Error, T] = parseB64(s).flatMap(decodeJson[T])
   def parse(s: String): Either[circe.Error, Json] = io.circe.parser.parse(s)
-  def parseB64(s: String): Either[circe.Error, Json] = parse(new String(b64.decode(s)))
 
   // Danger zone.
   def decodeGet[T: ElasticsearchCodec](c: HCursor): T = decode[T](c).toTry.get
   def decodeJsonGet[T: ElasticsearchCodec](j: Json): T = decodeJson[T](j).toTry.get
-  def decodeB64Get[T: ElasticsearchCodec](s: String): T = decodeB64[T](s).toTry.get
   def parseGet[T: ElasticsearchCodec](s: String): Json = parse(s).toTry.get
-  def parseB64Get[T: ElasticsearchCodec](s: String): Json = parseB64(s).toTry.get
 
   implicit val similarity: ESC[Similarity] = new ESC[Similarity] {
     // Circe's default enumeration codec is case-sensitive and gives useless errors.

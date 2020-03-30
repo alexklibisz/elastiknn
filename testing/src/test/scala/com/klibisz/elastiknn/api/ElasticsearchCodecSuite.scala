@@ -25,11 +25,6 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       withClue("given json string doesn't decode to match the given object") {
         decoded shouldBe Right(obj)
       }
-
-      withClue("base64 encoding doesn't decode to match the given object") {
-        val enc = ElasticsearchCodec.encodeB64(obj)
-        ElasticsearchCodec.decodeB64(enc) shouldBe Right(obj)
-      }
     }
 
     def shouldNotDecodeTo[T: ElasticsearchCodec]: Assertion = {

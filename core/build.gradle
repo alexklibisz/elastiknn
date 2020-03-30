@@ -18,6 +18,7 @@ plugins {
 
 
 dependencies {
+    compile project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
