@@ -12,19 +12,12 @@ plugins {
     id 'signing'
 }
 
-
 dependencies {
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
-    runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
-    implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
-    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
-    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-    implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-    implementation "com.google.guava:guava:28.1-jre"
-    runtime "com.google.guava:guava:28.1-jre"
-    implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
+    implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+    compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
 }
 
 task sourceJar(type: Jar) {

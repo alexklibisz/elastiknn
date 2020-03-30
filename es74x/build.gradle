@@ -40,15 +40,8 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
     implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
-    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
-    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
-    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-    implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-    implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.3.1"
     implementation "com.google.guava:guava:28.1-jre"
     runtime "com.google.guava:guava:28.1-jre"
-    compileOnly "org.elasticsearch.plugin:elasticsearch-scripting-painless-spi:${esVersion}"
-    testImplementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
 }
 
 protobuf {
