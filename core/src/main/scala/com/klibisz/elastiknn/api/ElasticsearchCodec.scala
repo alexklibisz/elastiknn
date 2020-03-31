@@ -39,7 +39,7 @@ private object Keys {
   val SIMILARITY = "similarity"
   val SPARSE_INDEXED = "sparse_indexed"
   val TYPE = "type"
-  val VECTOR = "vector"
+  val VEC = "vec"
 }
 
 object ElasticsearchCodec { esc =>
@@ -169,7 +169,7 @@ object ElasticsearchCodec { esc =>
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {
-      val default = JsonObject(FIELD -> a.field, VECTOR -> esc.encode(a.vector), SIMILARITY -> esc.encode(a.similarity))
+      val default = JsonObject(FIELD -> a.field, VEC -> esc.encode(a.vec), SIMILARITY -> esc.encode(a.similarity))
       a match {
         case q: NearestNeighborsQuery.Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))

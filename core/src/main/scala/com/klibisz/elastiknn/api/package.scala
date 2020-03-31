@@ -73,19 +73,19 @@ package object api {
 
   sealed trait NearestNeighborsQuery {
     def field: String
-    def vector: Vec
+    def vec: Vec
     def similarity: Similarity
-    def withVector(v: Vec): NearestNeighborsQuery
+    def withVec(v: Vec): NearestNeighborsQuery
   }
   object NearestNeighborsQuery {
-    final case class Exact(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
-      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+    final case class Exact(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
-    final case class SparseIndexed(field: String, vector: Vec, similarity: Similarity) extends NearestNeighborsQuery {
-      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+    final case class SparseIndexed(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
-    final case class JaccardLsh(field: String, vector: Vec, candidates: Int) extends NearestNeighborsQuery {
-      override def withVector(v: Vec): NearestNeighborsQuery = copy(vector = v)
+    final case class JaccardLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Jaccard
     }
   }

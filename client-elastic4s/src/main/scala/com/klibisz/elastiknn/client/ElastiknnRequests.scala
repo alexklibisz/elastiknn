@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
 
 trait ElastiknnRequests {
 
-  def indexVector(indexName: String, fieldName: String, vec: Vec, id: Option[String] = None): IndexRequest = {
+  def indexVec(indexName: String, fieldName: String, vec: Vec, id: Option[String] = None): IndexRequest = {
     val xcb = XContentFactory.jsonBuilder.rawField(fieldName, ElasticsearchCodec.nospaces(vec))
     IndexRequest(indexName, source = Some(xcb.string()), id = id)
   }

@@ -55,7 +55,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.vector match {
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.vec match {
     case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
     case _                => this
   }
@@ -148,7 +148,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
               val srcMap = response.getSourceAsMap.get(ixv.field).asInstanceOf[JavaJsonMap]
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
-              supplier.set(copy(query.withVector(vector)))
+              supplier.set(copy(query.withVec(vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
               case e: Exception => l.onFailure(ex(e))

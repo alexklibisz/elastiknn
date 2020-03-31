@@ -22,25 +22,25 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
-  def putMapping(indexName: String, fieldName: String, fieldMapping: Mapping): F[Response[PutMappingResponse]] = {
+  def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] = {
     val mappingJsonString =
       s"""
         |{
         |  "properties": {
-        |    "$fieldName": ${ElasticsearchCodec.encode(fieldMapping).spaces2}
+        |    "$field": ${ElasticsearchCodec.encode(mapping).spaces2}
         |  }
         |}
         |""".stripMargin
-    val req: PutMappingRequest = ElasticDsl.putMapping(Indexes(indexName)).rawSource(mappingJsonString)
+    val req: PutMappingRequest = ElasticDsl.putMapping(Indexes(index)).rawSource(mappingJsonString)
     execute(req)
   }
 
-  def index(indexName: String,
-            fieldName: String,
+  def index(index: String,
+            field: String,
             vecs: Seq[Vec],
             ids: Option[Seq[String]] = None,
             refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
-    val reqs = vecs.map(v => ElastiknnRequests.indexVector(indexName, fieldName, v))
+    val reqs = vecs.map(v => ElastiknnRequests.indexVec(index, field, v))
     val withIds = ids match {
       case Some(idSeq) if idSeq.length == reqs.length =>
         reqs.zip(idSeq).map {
@@ -65,10 +65,9 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
 object ElastiknnClient {
 
-  def futureClient(hostName: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
+  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
       implicit ec: ExecutionContext): ElastiknnClient[Future] = {
-    val host = new HttpHost(hostName, port)
-    val rc: RestClient = RestClient.builder(host).build()
+    val rc: RestClient = RestClient.builder(new HttpHost(host, port)).build()
     val jc: JavaClient = new JavaClient(rc)
     new ElastiknnClient[Future] {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)

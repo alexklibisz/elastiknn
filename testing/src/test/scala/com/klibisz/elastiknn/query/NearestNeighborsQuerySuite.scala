@@ -77,7 +77,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     val fakeQuery = mkQuery(fieldName, Vec.Indexed("", "", ""))
     val testData = TestData.read(fakeQuery.similarity, dims).get
     val indexName = Nomen.randomName()
-    val testName = f"$indexName%-30s ${fakeQuery.similarity}%-16s $mapping%-30s ${fakeQuery.withVector(testData.queries.head.vector)}%-60s"
+    val testName = f"$indexName%-30s ${fakeQuery.similarity}%-16s $mapping%-30s ${fakeQuery.withVec(testData.queries.head.vector)}%-60s"
 
     test(testName) {
 
@@ -93,7 +93,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Search using literal vectors.
         kLiteral = testData.queries.head.similarities.length
         literalKnnReqs = testData.queries.map { q =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVector(q.vector), kLiteral, fetchSource = false)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(q.vector), kLiteral, fetchSource = false)
         }
         literalKnnRes <- Future.sequence(literalKnnReqs)
 
@@ -105,7 +105,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Increase k to account for the fact that there are queryIds.length new vectors in the corpus.
         kIndexed = kLiteral + queryIds.length
         indexedKnnReqs = queryIds.map { id =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVector(Vec.Indexed(indexName, id, fieldName)), kIndexed)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(Vec.Indexed(indexName, id, fieldName)), kIndexed)
         }
         indexedKnnRes <- Future.sequence(indexedKnnReqs)
 

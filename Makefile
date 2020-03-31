@@ -32,36 +32,18 @@ clean:
 .mk/client-python-install: .mk/client-python-venv
 	cd client-python \
 		&& $(vpip) install -q -r requirements.txt \
-		&& $(vpip) install -q grpcio-tools pytest mypy-protobuf twine
+		&& $(vpip) install -q pytest twine
 	touch $@
 
 .mk/gradle-compile: $(src_all)
 	$(gradle) compileScala compileJava compileTestScala compileTestJava
 	touch $@
 
-.mk/gradle-gen-proto: $(src_all)
-	$(gradle) generateProto
-	touch $@
-
 .mk/gradle-publish-local: version $(src_all)
 	$(gradle) assemble publishToMavenLocal
 	touch $@
 
-.mk/client-python-compile: .mk/client-python-install .mk/gradle-gen-proto
-	cd client-python \
-		&& cp $(core)/src/main/proto/elastiknn/elastiknn.proto elastiknn \
-		&& $(vpy) -m grpc_tools.protoc \
-			--proto_path=$(core)/src/main/proto \
-			--proto_path=$(core)/build/extracted-include-protos/main \
-			--python_out=. \
-			--plugin=protoc-gen-mypy=venv/bin/protoc-gen-mypy \
-			--mypy_out=. \
-			$(core)/src/main/proto/elastiknn/elastiknn.proto \
-			$(core)/build/extracted-include-protos/main/scalapb/scalapb.proto \
-		&& $(vpy) -c "from elastiknn.elastiknn_pb2 import Similarity; x = Similarity.values()"
-	touch $@
-
-.mk/client-python-publish-local: version .mk/client-python-compile
+.mk/client-python-publish-local: version
 	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
@@ -79,9 +61,7 @@ clean:
 
 compile/gradle: .mk/gradle-compile
 
-compile/python: .mk/client-python-compile
-
-compile: compile/gradle compile/python
+compile: compile/gradle
 
 run/cluster: .mk/run-cluster
 
@@ -103,7 +83,7 @@ test/python:
 test/gradle:
 	$(gradle) test
 
-test: clean compile/python run/cluster
+test: clean run/cluster
 	$(MAKE) test/gradle
 	$(MAKE) test/python
 

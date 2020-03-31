@@ -141,7 +141,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "field": "vec",
       | "model": "exact",
       | "similarity": "jaccard",
-      | "vector": {
+      | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
@@ -153,7 +153,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "field": "vec",
       | "model": "sparse_indexed",
       | "similarity": "hamming",
-      | "vector": {
+      | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
@@ -165,7 +165,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "field": "vec",
       | "model": "sparse_indexed",
       | "similarity": "jaccard",
-      | "vector": {
+      | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
@@ -178,7 +178,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
-      | "vector": {
+      | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
