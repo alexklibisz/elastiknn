@@ -93,7 +93,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Search using literal vectors.
         kLiteral = testData.queries.head.similarities.length
         literalKnnReqs = testData.queries.map { q =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVec(q.vector), kLiteral, fetchSource = false)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(q.vector), kLiteral, fetchSource = true)
         }
         literalKnnRes <- Future.sequence(literalKnnReqs)
 
@@ -105,7 +105,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Increase k to account for the fact that there are queryIds.length new vectors in the corpus.
         kIndexed = kLiteral + queryIds.length
         indexedKnnReqs = queryIds.map { id =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVec(Vec.Indexed(indexName, id, fieldName)), kIndexed)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(Vec.Indexed(indexName, id, fieldName)), kIndexed, fetchSource = false)
         }
         indexedKnnRes <- Future.sequence(indexedKnnReqs)
 

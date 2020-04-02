@@ -33,7 +33,7 @@ class ElastiKnnClient(object):
             for vec, _id in zip(vecs, ids):
                 d = { "_op_type": "index", "_index": index, field_name:vec.to_dict()}
                 if _id:
-                    d["_id"] = _id
+                    d["_id"] = str(_id)
                 elif "_id" in d:
                     del d["_id"]
                 yield d
