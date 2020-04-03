@@ -43,7 +43,7 @@ clean:
 	$(gradle) assemble publishToMavenLocal
 	touch $@
 
-.mk/client-python-publish-local: version
+.mk/client-python-publish-local: version .mk/client-python-venv
 	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
