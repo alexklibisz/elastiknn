@@ -82,8 +82,8 @@ class ElastiknnModel(object):
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.
         self._eknn.index(self._index, self._field, vecs, ids, refresh=True)
 
-    def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]],
-                   n_neighbors: int = None, return_similarity: bool = False, allow_missing: bool = False):
+    def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
+                   n_neighbors: int, return_similarity: bool = False, allow_missing: bool = False):
         futures = []
         for vec in canonical_vectors_to_elastiknn(X):
             args = (self._index, self._query.with_vec(vec), n_neighbors, False)

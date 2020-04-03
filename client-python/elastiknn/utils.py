@@ -46,7 +46,7 @@ def ndarray_to_dense_float_vectors(arr: np.ndarray) -> Iterator[Vec.DenseFloat]:
 
 
 def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[Vec.SparseBool]:
-    return map(lambda row: Vec.SparseBool(true_indices=[i for (i, b) in enumerate(row) if b], total_indices=len(row)), arr)
+    return map(lambda row: Vec.SparseBool(true_indices=list(map(int, np.where(row)[0])), total_indices=len(row)), arr)
 
 
 def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> Iterator[Union[Vec.SparseBool, Vec.DenseFloat]]:
@@ -57,8 +57,9 @@ def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> 
             return ndarray_to_dense_float_vectors(canonical)
     elif isinstance(canonical, csr_matrix):
         return csr_to_sparse_bool_vectors(canonical)
-    else:
-        raise TypeError(f"Expected a numpy array or a csr matrix but got {type(canonical)}")
+    elif isinstance(canonical, list) and isinstance(canonical[0], Vec.Base):
+        return canonical
+    raise TypeError(f"Expected a numpy array or a csr matrix but got {type(canonical)}")
 
 
 def vector_length(vec: Vec.Base) -> int:

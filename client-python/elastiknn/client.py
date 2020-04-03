@@ -3,8 +3,6 @@ from typing import Iterable
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
-from elasticsearch import Elasticsearch
-
 from .api import *
 
 

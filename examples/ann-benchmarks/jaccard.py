@@ -1,32 +1,23 @@
-import itertools
 import os
-import sys
 from time import time
 
-import matplotlib.pyplot as plt
-import numpy as np
-from elastiknn.models import ElastiKnnModel
+from elastiknn.models import ElastiknnModel
 
-from utils import open_dataset, ANNB_ROOT, Dataset, pareto_max
+from utils import open_dataset, ANNB_ROOT, Dataset
 
 
-def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
+def evaluate(dataset: Dataset):
     index = "ann-benchmarks-jaccard"
-    pipeline_id = f"ingest-{index}-{num_bands}-{num_rows}"
-    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='indexed', metric='jaccard', n_jobs=1,
-                          # algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
-                          index="ann-benchmarks-jaccard", pipeline_id=pipeline_id)
+    n_neighbors = len(dataset.queries[0].indices)
+    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=index)
     print("Checking subset...")
-    eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
-    eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
+    eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1)
+    eknn.kneighbors([q.vector for q in dataset.queries[:5]], allow_missing=True, n_neighbors=n_neighbors)
     print("Indexing...")
-    # eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
-    eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
-    # eknn.kneighbors([q.vector for q in dataset.queries[:1]], return_distance=False, allow_missing=True)
-    # return 0, 0
+    eknn.fit(dataset.corpus, shards=os.cpu_count() - 1)
     print("Searching...")
     t0 = time()
-    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True, use_cache=True)
+    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], allow_missing=True, n_neighbors=n_neighbors)
     queries_per_sec = len(dataset.queries) / (time() - t0)
     recalls = [
         len(set(q.indices).intersection(p)) / len(q.indices)
@@ -36,7 +27,7 @@ def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
     return recall,  queries_per_sec
 
 
-if __name__ == "__main__":
+def main():
 
     dsname = "kosarak-jaccard"
 
@@ -46,7 +37,7 @@ if __name__ == "__main__":
 
     # Useful for sampling/profiling.
     for _ in range(10000):
-        loss = evaluate(dataset, 165, 1)
+        loss = evaluate(dataset)
         print(loss)
 
     # num_bands = [('num_bands', b) for b in range(10, 601, 10)]
@@ -79,3 +70,6 @@ if __name__ == "__main__":
     #         continue
     #     finally:
     #         print('-' * 100)
+
+if __name__ == "__main__":
+    main()
