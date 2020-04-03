@@ -10,7 +10,7 @@ with open("../version") as fp:
 setup(
     name='elastiknn-client',
     version=version,
-    packages=["elastiknn", "scalapb"],
+    packages=["elastiknn"],
     author='Alex Klibisz',
     author_email='aklibisz@gmail.com',
     url='https://github.com/alexklibisz/elastiknn',
