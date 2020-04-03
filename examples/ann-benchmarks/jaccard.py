@@ -1,40 +1,50 @@
 import itertools
 import os
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
 from time import time
 
-import matplotlib.pyplot as plt
-import numpy as np
-from elastiknn.models import ElastiKnnModel
+from elastiknn.models import ElastiknnModel
 
 from utils import open_dataset, ANNB_ROOT, Dataset, pareto_max
 
+INDEX = "ann-benchmarks-jaccard"
 
-def evaluate(dataset: Dataset, num_bands: int, num_rows: int):
-    index = "ann-benchmarks-jaccard"
-    pipe = f"ingest-{index}-{num_bands}-{num_rows}"
-    eknn = ElastiKnnModel(n_neighbors=len(dataset.queries[0].indices), algorithm='lsh', metric='jaccard', n_jobs=1,
-                          algorithm_params=dict(num_bands=num_bands, num_rows=num_rows),
-                          index="ann-benchmarks-jaccard", pipeline_id=pipe)
-    print("Checking subset...")
-    eknn.fit(dataset.corpus[:100], shards=os.cpu_count() - 1, recreate_index=True)
-    eknn.kneighbors([q.vector for q in dataset.queries[:5]], return_distance=False, allow_missing=True)
-    print("Indexing...")
-    eknn.fit(dataset.corpus, shards=os.cpu_count() - 1, recreate_index=True)
-    print("Searching...")
+
+def evaluate(dataset: Dataset, eknn: ElastiknnModel):
+    n_neighbors = len(dataset.queries[0].indices)
+    eknn.fit(dataset.corpus, shards=os.cpu_count() - 1)
     t0 = time()
-    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], return_distance=False, allow_missing=True,
-                                     use_cache=True)
+    neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], allow_missing=True, n_neighbors=n_neighbors)
     queries_per_sec = len(dataset.queries) / (time() - t0)
     recalls = [
         len(set(q.indices).intersection(p)) / len(q.indices)
         for (q, p) in zip(dataset.queries, neighbors_pred)
     ]
     recall = sum(recalls) / len(recalls)
-    return recall,  queries_per_sec
+    return recall, queries_per_sec
 
 
-if __name__ == "__main__":
+def exact(dataset: Dataset):
+    eknn = ElastiknnModel(algorithm='exact', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
+    return evaluate(dataset, eknn)
+
+
+def indexed(dataset: Dataset):
+    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
+    return evaluate(dataset, eknn)
+
+
+def lsh(dataset: Dataset, bands: int = 165, rows: int = 1, candidates: float = 1.5):
+    n_neighbors = len(dataset.queries[0].indices)
+    eknn = ElastiknnModel(algorithm='lsh', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}",
+                          mapping_params={"bands": bands, "rows": rows},
+                          query_params={"candidates": int(candidates * n_neighbors)})
+    return evaluate(dataset, eknn)
+
+
+def main():
 
     dsname = "kosarak-jaccard"
 
@@ -42,21 +52,29 @@ if __name__ == "__main__":
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    # Useful for sampling/profiling.
-    # while True:
-    #     loss = evaluate(dataset, 165, 1)
-    #     print(loss)
+    # for _ in range(3):
+    #     loss = exact(dataset)
+    #     print(f"exact: {loss}")
+    #
+    # for _ in range(3):
+    #     loss = indexed(dataset)
+    #     print(f"jaccard indexed: {loss}")
+    #
+    # for _ in range(3):
+    #     loss = lsh(dataset, 165, 1, 1.5)
+    #     print(f"lsh: {loss}")
 
-    num_bands = [('num_bands', b) for b in range(10, 601, 10)]
-    num_rows = [('num_rows', r) for r in range(1, 2)]
+    bands = [('bands', b) for b in range(10, 601, 10)]
+    rows = [('rows', r) for r in range(1, 2)]
+    candidates = [('candidates', c) for c in np.linspace(0, 10, 21)]
 
-    combinations = list(map(dict, itertools.product(num_bands, num_rows)))
+    combinations = list(map(dict, itertools.product(bands, rows, candidates)))
     metrics = np.zeros((len(combinations), 2))
 
     for i, params in enumerate(combinations):
         print(f"Running {i + 1} of {len(combinations)}: {params}...")
         try:
-            (x, y) = evaluate(dataset, **params)
+            (x, y) = lsh(dataset, **params)
             print(f"Loss = {(x, y)}")
             metrics[i] = [x, y]
             pmax = pareto_max(metrics)
@@ -77,3 +95,6 @@ if __name__ == "__main__":
             continue
         finally:
             print('-' * 100)
+
+if __name__ == "__main__":
+    main()

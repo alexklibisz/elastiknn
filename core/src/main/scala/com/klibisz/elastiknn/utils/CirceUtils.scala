@@ -1,40 +1,31 @@
 package com.klibisz.elastiknn.utils
 
-import java.lang
-import java.util
+import java.{lang, util}
 
-import io.circe.syntax._
-import io.circe.{Encoder, Json}
+import io.circe.{Encoder, Json, JsonObject}
 
 import scala.collection.JavaConverters._
 
 trait CirceUtils {
 
-  // This is a hack around not being able to figure out XContentParser and the related garbage for Json parsing.
-  implicit def objectEncoder: Encoder[Object] = {
-    def encode(obj: Any): Json = obj match {
-      case s: lang.String  => s.asJson
-      case l: lang.Long    => l.asJson
-      case i: lang.Integer => i.asJson
-      case d: lang.Double  => d.asJson
-      case f: lang.Float   => f.asJson
-      case b: lang.Boolean => b.asJson
-      case l: util.List[_] => Json.fromValues(l.asScala.map(encode))
-      case m: util.Map[_, _] if m.keySet.asScala.forall(_.isInstanceOf[String]) =>
-        m.asScala.map {
-          case (k, v) => k.asInstanceOf[String] -> encode(v)
-        }.asJson
-      case null => null
+  // Most of the Elasticsearch Json inputs are available as Maps.
+  // This encoder converts the map to a Json so it can then be parsed into case classes.
+  implicit def javaMapEncoder: Encoder[util.Map[String, Object]] = new Encoder[util.Map[String, Object]] {
+    private def encodeAny(a: Any): Json = a match {
+      case s: lang.String  => Json.fromString(s)
+      case l: lang.Long    => Json.fromLong(l)
+      case i: lang.Integer => Json.fromInt(i)
+      case d: lang.Double  => Json.fromDoubleOrNull(d)
+      case f: lang.Float   => Json.fromFloatOrNull(f)
+      case b: lang.Boolean => Json.fromBoolean(b)
+      case l: util.List[_] => Json.fromValues(l.asScala.map(encodeAny))
+      case m: util.Map[_, _] =>
+        val iterable = m.asScala.map(x => x._1.toString -> encodeAny(x._2))
+        Json.fromJsonObject(JsonObject.fromIterable(iterable))
+      case null  => null
+      case other => throw new RuntimeException(s"Couldn't encode object $other to Json")
     }
-    encode _
-  }
-
-  implicit def javaMapEncoder: Encoder[util.Map[lang.String, Object]] = {
-    case m: util.Map[String, Object] => m.asScala.asJson
-  }
-
-  implicit def scalaMapEncoder: Encoder[Map[String, AnyRef]] = {
-    case m: Map[String, AnyRef] => m.asInstanceOf[Map[String, Object]].asJson
+    override def apply(a: util.Map[String, Object]): Json = encodeAny(a)
   }
 
 }

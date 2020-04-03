@@ -1,5 +1,5 @@
-import com.klibisz.elastiknn.SparseBoolVector
-import com.klibisz.elastiknn.client.ElastiKnnClient
+import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.client.ElastiknnClient
 
 import scala.concurrent._
 
@@ -11,10 +11,10 @@ import scala.concurrent._
 object Example {
   def main(args: Array[String]): Unit = {
     implicit val ec: ExecutionContextExecutor = ExecutionContext.global
-    val eknn = ElastiKnnClient("localhost", 9200)
+    val eknn = ElastiknnClient.futureClient()
     println(eknn)
     eknn.close()
-    val vec = SparseBoolVector(Array(1,2,3), 10)
+    val vec = Vec.SparseBool(Array(1,2,3), 10)
     println(vec)
   }
 }

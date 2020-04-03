@@ -124,6 +124,8 @@ In no particular order:
 - [Mining of Massive Datasets (MMDS) by Leskovec, et. al](http://www.mmds.org/), particularly chapter 3, is a great reference for approximate similarity search.
 - [The Read Only Rest Plugin](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin) served as an example for much of the Gradle and testing setup.
 - [The Scalable Data Science Lectures on Youtube](https://www.youtube.com/playlist?list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul) were helpful for better understanding LSH. I think much of that content is also based on the MMDS book.
+- [_Build Your Own Custom Lucene Query and Scorer_, Doug Turnball](https://opensourceconnections.com/blog/2014/01/20/build-your-own-custom-lucene-query-and-scorer/) was extremely helpful
+for implementing custom Lucene indexing and queries.
 
 <!-- Links -->
 

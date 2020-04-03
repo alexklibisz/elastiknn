@@ -70,8 +70,6 @@ jobs:
     # Actual Build
     - name: Compile JVM
       run: make compile/gradle
-    - name: Compile Python
-      run: make compile/python
     - name: Start Testing Cluster
       run: make run/cluster
     - name: Test JVM

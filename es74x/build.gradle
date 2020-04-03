@@ -7,7 +7,12 @@ buildscript {
     }
     dependencies {
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
     }
+}
+
+plugins {
+    id 'com.google.protobuf' version '0.8.8'
 }
 
 version = "${version}_es${esVersion}"
@@ -35,14 +40,45 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     runtime "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
     implementation "com.thesamet.scalapb:scalapb-runtime_${scalaVersion}:${scalapbVersion}"
-    implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
-    runtime "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
-    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-    implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.3.1"
     implementation "com.google.guava:guava:28.1-jre"
     runtime "com.google.guava:guava:28.1-jre"
-    compileOnly "org.elasticsearch.plugin:elasticsearch-scripting-painless-spi:${esVersion}"
-    testImplementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.10.0'
+    }
+    plugins {
+        scalapb {
+            artifact = (org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) ?
+                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:windows@bat" :
+                    "com.thesamet.scalapb:protoc-gen-scala:${scalapbVersion}:unix@sh"
+        }
+    }
+
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                remove java
+            }
+            task.plugins {
+                scalapb {
+                    // add any ScalaPB generator options here. See: https://scalapb.github.io/scalapbc.html#passing-generator-parameters
+                    option 'flat_package'
+                    option 'no_lenses'
+                }
+            }
+        }
+    }
+}
+
+// Add geneated Scala code as a source directory
+sourceSets {
+    main {
+        scala {
+            srcDirs "${protobuf.generatedFilesBaseDir}/main/scalapb"
+        }
+    }
 }
 
 esplugin {

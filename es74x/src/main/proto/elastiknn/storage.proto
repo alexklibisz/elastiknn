@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package klibisz.elastiknn.storage;
+
+option java_package = "com.klibisz.elastiknn.storage";
+
+import "scalapb/scalapb.proto";
+
+// Protobuf objects for serializing vectors in the elasticsearch index.
+message SparseBoolVector {
+    repeated uint32 true_indices = 1 [(scalapb.field).collection_type="Array"];
+    uint32 total_indices = 2;
+}
+
+message DenseFloatVector {
+    repeated float values = 1 [(scalapb.field).collection_type="Array"];
+}

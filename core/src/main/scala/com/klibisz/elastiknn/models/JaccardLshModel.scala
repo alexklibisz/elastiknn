@@ -22,8 +22,6 @@ import scala.util.Random
   */
 final private[elastiknn] class JaccardLshModel(seed: Long, numBands: Int, numRows: Int) {
 
-  import VectorHashingModel.HASH_PRIME
-
   private val rng: Random = new Random(seed)
   private val alphas: Array[Int] = (0 until numBands * numRows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
   private val betas: Array[Int] = (0 until numBands * numRows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray

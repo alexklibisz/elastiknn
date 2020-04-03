@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.datasets import load_digits
 from sklearn.neighbors import NearestNeighbors
 
-from elastiknn.models import ElastiKnnModel
+from elastiknn.models import ElastiknnModel
 
 digits = load_digits(10)["data"] > 0
 digits_train = digits[:1400]
@@ -21,10 +21,12 @@ class TestModel:
     def test_exact_jaccard_mnist(self):
         # First run the query and make sure the results have the right form.
         n_neighbors = 20
-        model = ElastiKnnModel(n_neighbors, algorithm='exact', metric='jaccard')
+        model = ElastiknnModel('exact', 'jaccard')
         model.fit(digits_train)
-        inds1 = model.kneighbors(digits_validate, return_distance=False)
-        inds2, dists2 = model.kneighbors(digits_validate)
+
+        inds1 = model.kneighbors(digits_validate, n_neighbors)
+        inds2, dists2 = model.kneighbors(digits_validate, n_neighbors, return_similarity=True)
+
         assert np.all(inds1 == inds2)
         assert inds1.shape == (digits_validate.shape[0], n_neighbors)
         assert dists2.shape == inds2.shape

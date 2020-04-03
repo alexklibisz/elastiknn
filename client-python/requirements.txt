@@ -2,4 +2,3 @@ scikit-learn==0.22
 elasticsearch==7.1.0
 dataclasses==0.6
 dataclasses-json==0.3.7
-protobuf==3.11.2
