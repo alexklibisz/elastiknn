@@ -189,18 +189,19 @@ class NearestNeighborsQuery:
     class JaccardLsh(Base):
         field: str
         vec: Vec.Base
-        candidates: int = 1000
         similarity: Similarity = Similarity.Jaccard
+        candidates: int = 1000
 
         def to_dict(self):
             return {
                 "field": self.field,
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
-                "candidates": self.candidates
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.JaccardLsh(self.field, vec, self.candidates, self.similarity)
+            return NearestNeighborsQuery.JaccardLsh(self.field, vec, self.similarity, self.candidates)
 
 
