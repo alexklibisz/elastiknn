@@ -27,18 +27,18 @@ def evaluate(dataset: Dataset, eknn: ElastiknnModel):
 
 
 def exact(dataset: Dataset):
-    eknn = ElastiknnModel(algorithm='exact', metric='jaccard', n_jobs=1, index=INDEX)
+    eknn = ElastiknnModel(algorithm='exact', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
     return evaluate(dataset, eknn)
 
 
 def indexed(dataset: Dataset):
-    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=INDEX)
+    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
     return evaluate(dataset, eknn)
 
 
 def lsh(dataset: Dataset, bands: int = 165, rows: int = 1, candidates: float = 1.5):
     n_neighbors = len(dataset.queries[0].indices)
-    eknn = ElastiknnModel(algorithm='lsh', metric='jaccard', n_jobs=1, index=INDEX,
+    eknn = ElastiknnModel(algorithm='lsh', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}",
                           mapping_params={"bands": bands, "rows": rows},
                           query_params={"candidates": int(candidates * n_neighbors)})
     return evaluate(dataset, eknn)
@@ -52,28 +52,29 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    for _ in range(3):
-        loss = exact(dataset)
-        print(f"exact: {loss}")
+    # for _ in range(3):
+    #     loss = exact(dataset)
+    #     print(f"exact: {loss}")
+    #
+    # for _ in range(3):
+    #     loss = indexed(dataset)
+    #     print(f"jaccard indexed: {loss}")
+    #
+    # for _ in range(3):
+    #     loss = lsh(dataset, 165, 1, 1.5)
+    #     print(f"lsh: {loss}")
 
-    for _ in range(3):
-        loss = indexed(dataset)
-        print(f"jaccard indexed: {loss}")
+    bands = [('bands', b) for b in range(10, 601, 10)]
+    rows = [('rows', r) for r in range(1, 2)]
+    candidates = [('candidates', c) for c in np.linspace(0, 10, 21)]
 
-    for _ in range(3):
-        loss = lsh(dataset, 165, 1, 1.5)
-        print(f"lsh: {loss}")
-
-    bands = [('num_bands', b) for b in range(10, 601, 10)]
-    rows = [('num_rows', r) for r in range(1, 2)]
-
-    combinations = list(map(dict, itertools.product(bands, rows)))
+    combinations = list(map(dict, itertools.product(bands, rows, candidates)))
     metrics = np.zeros((len(combinations), 2))
 
     for i, params in enumerate(combinations):
         print(f"Running {i + 1} of {len(combinations)}: {params}...")
         try:
-            (x, y) = evaluate(dataset, **params)
+            (x, y) = lsh(dataset, **params)
             print(f"Loss = {(x, y)}")
             metrics[i] = [x, y]
             pmax = pareto_max(metrics)
