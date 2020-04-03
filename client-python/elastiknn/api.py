@@ -138,10 +138,6 @@ class Mapping:
                 }
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            raise NotImplementedError
-
 
 class NearestNeighborsQuery:
 
@@ -150,6 +146,9 @@ class NearestNeighborsQuery:
         field: str
         vec: Vec.Base
         similarity: Similarity
+
+        def with_vec(self, vec: Vec.Base):
+            raise NotImplementedError
 
     @dataclass(frozen=True)
     class Exact(Base):
@@ -166,9 +165,8 @@ class NearestNeighborsQuery:
                 "vec": self.vec.to_dict()
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            pass
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.Exact(self.field, vec, self.similarity)
 
     @dataclass(frozen=True)
     class SparseIndexed(Base):
@@ -184,9 +182,8 @@ class NearestNeighborsQuery:
                 "vec": self.vec.to_dict()
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            pass
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.SparseIndexed(self.field, vec, self.similarity)
 
     @dataclass(frozen=True)
     class JaccardLsh(Base):
@@ -203,8 +200,7 @@ class NearestNeighborsQuery:
                 "candidates": self.candidates
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            pass
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.JaccardLsh(self.field, vec, self.candidates, self.similarity)
 
 

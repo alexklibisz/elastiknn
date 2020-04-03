@@ -9,14 +9,14 @@ from elastiknn.api import Vec
 
 _rng = Random(0)
 
-valid_metrics_algorithms = [
-    ('l1', 'exact'),
-    ('l2', 'exact'),
-    ('angular', 'exact'),
-    ('hamming', 'exact'),
-    ('jaccard', 'exact'),
-    ('jaccard', 'indexed'),
-    ('jaccard', 'lsh')
+valid_metrics_algos = [
+    ('exact', 'l1'),
+    ('exact', 'l2'),
+    ('exact', 'angular'),
+    ('exact', 'hamming'),
+    ('exact', 'jaccard'),
+    ('sparse_indexed', 'jaccard'),
+    ('lsh', 'jaccard')
 ]
 
 

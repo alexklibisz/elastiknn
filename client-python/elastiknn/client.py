@@ -3,7 +3,6 @@ from typing import Iterable
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
-from .api import *
 from elasticsearch import Elasticsearch
 
 from .api import *
@@ -17,21 +16,21 @@ class ElastiKnnClient(object):
         self.hosts = hosts
         self.es = Elasticsearch(self.hosts)
 
-    def put_mapping(self, index: str, field_name: str, mapping: Mapping.Base):
+    def put_mapping(self, index: str, field: str, mapping: Mapping.Base):
         body = {
             "properties": {
-                field_name: mapping.to_dict()
+                field: mapping.to_dict()
             }
         }
         return self.es.transport.perform_request("PUT", f"/{index}/_mapping", body=body)
 
-    def index(self, index: str, field_name: str, vecs: Iterable[Vec.Base], ids: List[str] = None, refresh: bool = False) -> (int, List):
+    def index(self, index: str, field: str, vecs: Iterable[Vec.Base], ids: List[str] = None, refresh: bool = False) -> (int, List):
         if ids is None or ids == []:
             ids = [None for _ in vecs]
 
         def gen():
             for vec, _id in zip(vecs, ids):
-                d = { "_op_type": "index", "_index": index, field_name:vec.to_dict()}
+                d = { "_op_type": "index", "_index": index, field: vec.to_dict()}
                 if _id:
                     d["_id"] = str(_id)
                 elif "_id" in d:

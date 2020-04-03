@@ -1,7 +1,3 @@
-from random import Random
-
-import numpy as np
-
 from elastiknn.utils import *
 
 
