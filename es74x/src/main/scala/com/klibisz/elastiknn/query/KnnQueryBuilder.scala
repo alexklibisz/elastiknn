@@ -91,7 +91,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
-        new JaccardLshQuery(f, v, m, candidates, ExactSimilarityFunction.Jaccard)
+        new JaccardLshQuery(index, f, v, m, candidates, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
 
       case _ => throw incompatible(mapping, query)
     }
@@ -122,7 +122,6 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             .asInstanceOf[JavaJsonMap]
           val srcJson = javaMapEncoder(srcMap)
           val mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
-          KnnQueryBuilder.mappingCache.put((index, query.field), mapping)
           mapping
         } catch {
           case e: Exception => throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e)

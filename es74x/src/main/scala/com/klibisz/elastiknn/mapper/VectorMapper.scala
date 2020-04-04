@@ -114,6 +114,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           val json: Json = context.parser.map.asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
           val fields = self.checkAndCreateFields(mapping, name, vec).get
+          fields.map(_.name()).distinct.foreach(context.addIgnoredField)
           fields.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =

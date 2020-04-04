@@ -52,17 +52,17 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    for _ in range(33):
-        loss = exact(dataset)
-        print(f"exact: {loss}")
-
-    for _ in range(3):
-        loss = indexed(dataset)
-        print(f"jaccard indexed: {loss}")
+    # for _ in range(33):
+    #     loss = exact(dataset)
+    #     print(f"exact: {loss}")
     #
     # for _ in range(3):
-    #     loss = lsh(dataset, 165, 1, 1.5)
-    #     print(f"lsh: {loss}")
+    #     loss = indexed(dataset)
+    #     print(f"jaccard indexed: {loss}")
+
+    for _ in range(3):
+        loss = lsh(dataset, 165, 1, 1.5)
+        print(f"lsh: {loss}")
 
     bands = [('bands', b) for b in range(10, 601, 10)]
     rows = [('rows', r) for r in range(1, 2)]

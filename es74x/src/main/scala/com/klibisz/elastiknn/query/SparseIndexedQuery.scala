@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.query
 import java.util
 import java.util.Objects
 
-import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
@@ -15,14 +14,11 @@ import org.apache.lucene.util.BytesRef
 
 class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val simFunc: SparseIndexedSimilarityFunction) extends Query {
 
-  private val indexedIndicesField: String = SparseIndexedQuery.trueIndicesTermField(field)
-  private val numTrueDocValueField: String = SparseIndexedQuery.numTrueDocValueField(field)
-
   private val intersectionQuery: BooleanQuery = {
     val builder = new BooleanQuery.Builder
-    builder.add(new BooleanClause(new DocValuesFieldExistsQuery(numTrueDocValueField), BooleanClause.Occur.MUST))
+    builder.add(new BooleanClause(new DocValuesFieldExistsQuery(field), BooleanClause.Occur.MUST))
     queryVec.trueIndices.foreach { ti =>
-      val term = new Term(indexedIndicesField, new BytesRef(ByteArrayCodec.encode(ti)))
+      val term = new Term(field, new BytesRef(ByteArrayCodec.encode(ti)))
       val termQuery = new TermQuery(term)
       val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
       builder.add(clause)
@@ -36,7 +32,7 @@ class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val si
     override def extractTerms(terms: util.Set[Term]): Unit = ()
     override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
     override def scorer(context: LeafReaderContext): Scorer = {
-      val numTrueDocValues: NumericDocValues = context.reader.getNumericDocValues(numTrueDocValueField)
+      val numTrueDocValues: NumericDocValues = context.reader.getNumericDocValues(field)
       val scorer = intersectionWeight.scorer(context)
       new SparseIndexedScorer(this, scorer, numTrueDocValues)
     }
@@ -73,21 +69,18 @@ class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val si
 
 object SparseIndexedQuery {
 
-  def trueIndicesTermField(field: String): String = s"$field.$ELASTIKNN_NAME.true_indices"
-  def numTrueDocValueField(field: String): String = s"$field.$ELASTIKNN_NAME.num_true"
-
-  private val indexedIndicesFieldType: FieldType = {
+  private val trueIndicesFieldType: FieldType = {
     val ft = new FieldType
-    ft.setIndexOptions(IndexOptions.DOCS)
+    ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
     ft.setTokenized(false)
+    ft.freeze()
     ft
   }
 
   def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
-    val indexedIndicesFieldName = this.trueIndicesTermField(field)
-    ExactSimilarityQuery.index(field, vec) ++ vec.trueIndices.map { ti =>
-      new Field(indexedIndicesFieldName, ByteArrayCodec.encode(ti), indexedIndicesFieldType)
-    } :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
+    vec.trueIndices.map { ti =>
+      new Field(field, ByteArrayCodec.encode(ti), trueIndicesFieldType)
+    } ++ ExactSimilarityQuery.index(field, vec) :+ new NumericDocValuesField(field, vec.trueIndices.length)
   }
 
 }
