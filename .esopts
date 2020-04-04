@@ -1,0 +1,3 @@
+-Dtests.heap.size=4G
+-Dtests.es.thread_pool.write.size=1
+-Dtests.es.thread_pool.search.size=1

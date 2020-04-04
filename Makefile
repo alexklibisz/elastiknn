@@ -67,11 +67,11 @@ run/cluster: .mk/run-cluster
 
 run/gradle:
 	cd testing && $(dc) down
-	$(gradle) clean run -Dtests.heap.size=4G # TODO: Can you set tests.heap.size in build.gradle?
+	$(gradle) run $(shell cat .esopts | xargs)
 
 run/debug:
 	cd testing && $(dc) down
-	$(gradle) run --debug-jvm
+	$(gradle) run $(shell cat .esopts | xargs) --debug-jvm
 
 run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
