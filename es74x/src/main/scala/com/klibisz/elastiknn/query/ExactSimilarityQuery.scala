@@ -76,6 +76,7 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val ind
 
 object ExactSimilarityQuery {
 
+  // Docvalue fields can have a custom name, but "regular" values (e.g. Terms) must keep the name of the field.
   def vectorDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
   def index[V <: Vec: ByteArrayCodec](field: String, vec: V): Seq[IndexableField] = {

@@ -14,7 +14,7 @@ INDEX = "ann-benchmarks-jaccard"
 
 def evaluate(dataset: Dataset, eknn: ElastiknnModel):
     n_neighbors = len(dataset.queries[0].indices)
-    eknn.fit(dataset.corpus, shards=1)
+    eknn.fit(dataset.corpus * 20, shards=1)
     t0 = time()
     neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], allow_missing=True, n_neighbors=n_neighbors)
     queries_per_sec = len(dataset.queries) / (time() - t0)
@@ -52,9 +52,9 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    # for _ in range(33):
-    #     loss = exact(dataset)
-    #     print(f"exact: {loss}")
+    for _ in range(33):
+        loss = exact(dataset)
+        print(f"exact: {loss}")
     #
     # for _ in range(3):
     #     loss = indexed(dataset)
