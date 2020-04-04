@@ -77,6 +77,7 @@ class ElastiknnModel(object):
         self._eknn.es.indices.create(self._index, body=json.dumps(body))
         self._eknn.es.indices.refresh(self._index)
         self._eknn.put_mapping(self._index, self._field, mapping=self._mapping)
+        self._eknn.es.indices.refresh(self._index)
 
         self._logger.info(f"indexing {len(vecs)} vectors into index {self._index}")
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.

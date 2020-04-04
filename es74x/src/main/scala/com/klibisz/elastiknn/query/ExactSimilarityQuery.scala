@@ -8,15 +8,20 @@ import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Vec}
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
+import com.klibisz.elastiknn.storage.VecCache.{ContextCache, DocIdCache}
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{BinaryDocValues, IndexableField, LeafReaderContext, Term}
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 
-class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val field: String,
+class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val index: String,
+                                                                         val field: String,
                                                                          val queryVec: V,
-                                                                         val simFunc: ExactSimilarityFunction[V])
+                                                                         val simFunc: ExactSimilarityFunction[V],
+                                                                         val contextCache: ContextCache[V])
     extends Query {
+
+//  System.err.println(s"Instantiated ${this.toString()}")
 
   private val vectorDocValuesField = ExactSimilarityQuery.vectorDocValuesField(field)
   private val hasVectorQuery = new DocValuesFieldExistsQuery(vectorDocValuesField)
@@ -29,27 +34,29 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
       val vectorDocValues: BinaryDocValues = context.reader.getBinaryDocValues(vectorDocValuesField)
       val scorer = hasVectorWeight.scorer(context)
       val iterator = if (scorer == null) DocIdSetIterator.empty() else scorer.iterator()
-      new ExactSimilarityScorer(this, iterator, vectorDocValues)
+      new ExactSimilarityScorer(this, iterator, vectorDocValues, contextCache.get(context))
     }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class ExactSimilarityScorer(weight: Weight, hasVectorIterator: DocIdSetIterator, vectorDocValues: BinaryDocValues)
+  class ExactSimilarityScorer(weight: Weight, hasVecIterator: DocIdSetIterator, vecDocValues: BinaryDocValues, docIdCache: DocIdCache[V])
       extends Scorer(weight) {
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
-    override def iterator(): DocIdSetIterator = hasVectorIterator
-    override def docID(): Int = hasVectorIterator.docID()
+    override def iterator(): DocIdSetIterator = hasVecIterator
+    override def docID(): Int = hasVecIterator.docID()
     override def score(): Float = {
       val docId = this.docID()
-      if (vectorDocValues.advanceExact(docId)) {
-        val binaryValue = vectorDocValues.binaryValue
-        val vecBytes = binaryValue.bytes.take(binaryValue.length)
-        val scoreTry = for {
-          storedVec <- implicitly[ByteArrayCodec[V]].apply(vecBytes)
-          simScore <- simFunc(queryVec, storedVec)
-        } yield simScore.score.toFloat
-        scoreTry.get
-      } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+      val storedVec = docIdCache.get(
+        docId,
+        () =>
+          if (vecDocValues.advanceExact(docId)) {
+            val binaryValue = vecDocValues.binaryValue
+            val vecBytes = binaryValue.bytes.take(binaryValue.length)
+            implicitly[ByteArrayCodec[V]].apply(vecBytes).get
+          } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+      )
+      val scoreTry = simFunc(queryVec, storedVec)
+      scoreTry.get.score.toFloat
     }
   }
 
@@ -59,11 +66,11 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
     s"ExactSimilarityQuery for field [$field], query vector [${nospaces(queryVec)}], similarity [${simFunc.similarity}]"
 
   override def equals(other: Any): Boolean = other match {
-    case q: ExactSimilarityQuery[V] => q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
+    case q: ExactSimilarityQuery[V] => q.index == index && q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
     case _                          => false
   }
 
-  override def hashCode(): Int = Objects.hashCode(field, queryVec, simFunc)
+  override def hashCode(): Int = Objects.hashCode(index, field, queryVec, simFunc)
 
 }
 
