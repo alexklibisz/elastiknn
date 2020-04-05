@@ -2,7 +2,6 @@ package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.models.{JaccardLshModel, LshFunction}
 import com.klibisz.elastiknn.utils.ArrayUtils
 
 import scala.util.Random
