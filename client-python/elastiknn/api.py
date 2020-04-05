@@ -32,7 +32,7 @@ class Vec:
             return self.__dict__
 
         def __len__(self):
-            return len(self.true_indices)
+            return self.total_indices
 
         @staticmethod
         def from_dict(d: Dict):
