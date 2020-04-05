@@ -27,7 +27,7 @@ class JaccardLshQuery(val index: String,
 
   private val model: JaccardLshModel = JaccardLshQuery.modelCache.get(mapping)
   private val vectorDocValuesField: String = ExactSimilarityQuery.vectorDocValuesField(field)
-  private val candidateHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create[java.lang.Float]()
+  private val candidateHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create[lang.Float]()
 
   private val intersectionQuery: BooleanQuery = {
     val builder = new BooleanQuery.Builder
@@ -62,8 +62,7 @@ class JaccardLshQuery(val index: String,
     override val iterator: DocIdSetIterator = if (isecScorer == null) DocIdSetIterator.empty() else isecScorer.iterator()
     override def docID(): Int = iterator.docID()
 
-    private def exactScore(): Float = {
-      val docId = this.docID()
+    private def exactScore(docId: Int): Float = {
       val storedVec = docIdCache.get(
         docId,
         () =>
@@ -81,11 +80,11 @@ class JaccardLshQuery(val index: String,
       if (candidates == 0) intersection
       else if (candidateHeap.size() < candidates) {
         candidateHeap.add(intersection)
-        exactScore()
+        exactScore(this.docID())
       } else if (intersection > candidateHeap.peekFirst()) {
         candidateHeap.removeFirst()
         candidateHeap.add(intersection)
-        exactScore()
+        exactScore(this.docID())
       } else 0f
     }
 

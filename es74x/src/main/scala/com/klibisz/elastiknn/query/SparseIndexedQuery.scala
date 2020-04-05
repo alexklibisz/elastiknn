@@ -3,9 +3,8 @@ package com.klibisz.elastiknn.query
 import java.util
 import java.util.Objects
 
-import com.klibisz.elastiknn.ELASTIKNN_NAME
+import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.api.ElasticsearchCodec.nospaces
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField}
