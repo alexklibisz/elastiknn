@@ -44,6 +44,7 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_) => Try(ExactSimilarityQuery.index(field, vec))
+            case m: Mapping.AngularLsh => Try(LshQuery.index(field, vec, m))
             case _                     => Failure(incompatible(mapping, vec))
           }
     }

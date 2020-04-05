@@ -97,6 +97,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (HammingLsh(f, v: Vec.SparseBool, candidates), m: Mapping.HammingLsh) =>
         new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
 
+      case (AngularLsh(f, v: Vec.DenseFloat, candidates), m: Mapping.AngularLsh) =>
+        new LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
+
       case _ => throw incompatible(mapping, query)
     }
   }

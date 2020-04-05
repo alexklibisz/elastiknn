@@ -13,6 +13,8 @@ import scala.concurrent.Future
 
 class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
+  // TODO: find a way to test how recall is affected by different parameter settings.
+
   private val testDataDims = Seq(10, 128, 512)
   private val testDataNumQueries = 30
 
@@ -68,6 +70,12 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
       d => Seq(Mapping.HammingLsh(d, (d * 0.5).toInt)),
       (f, v) => NearestNeighborsQuery.HammingLsh(f, v, testDataNumQueries * 2),
       0.9
+    ),
+    // Angular Lsh
+    Test(
+      d => Seq(Mapping.AngularLsh(d, d / 2, 1)),
+      (f, v) => NearestNeighborsQuery.AngularLsh(f, v, testDataNumQueries * 3 / 2),
+      0.67
     )
   )
 

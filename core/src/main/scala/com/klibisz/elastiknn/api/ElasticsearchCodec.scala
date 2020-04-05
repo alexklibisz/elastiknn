@@ -130,6 +130,7 @@ object ElasticsearchCodec { esc =>
   implicit val mappingSparseIndexed: ESC[Mapping.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val mappingJaccardLsh: ESC[Mapping.JaccardLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingHammingLsh: ESC[Mapping.HammingLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingAngularLsh: ESC[Mapping.AngularLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
     override def apply(t: Mapping): Json = t match {
@@ -141,6 +142,8 @@ object ElasticsearchCodec { esc =>
         JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
       case m: Mapping.HammingLsh =>
         JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> HAMMING)))
+      case m: Mapping.AngularLsh =>
+        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> ANGULAR)))
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
@@ -160,6 +163,8 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.JaccardLsh](c)
           case (EKNN_SPARSE_BOOL_VECTOR, Some(LSH), Some(Similarity.Hamming)) =>
             esc.decode[Mapping.HammingLsh](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, Some(LSH), Some(Similarity.Angular)) =>
+            esc.decode[Mapping.AngularLsh](c)
           case _ =>
             val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
             fail[Mapping](msg)
@@ -171,6 +176,7 @@ object ElasticsearchCodec { esc =>
   implicit val jaccardIndexedNNQ: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
   implicit val hammingLshNNQ: ESC[NearestNeighborsQuery.HammingLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val angularLshNNQ: ESC[NearestNeighborsQuery.AngularLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {
@@ -180,6 +186,7 @@ object ElasticsearchCodec { esc =>
         case q: NearestNeighborsQuery.SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.HammingLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.AngularLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
       }
     }
     override def apply(c: HCursor): Result[NearestNeighborsQuery] =
@@ -193,6 +200,7 @@ object ElasticsearchCodec { esc =>
             sim match {
               case Similarity.Jaccard => esc.decode[NearestNeighborsQuery.JaccardLsh](c)
               case Similarity.Hamming => esc.decode[NearestNeighborsQuery.HammingLsh](c)
+              case Similarity.Angular => esc.decode[NearestNeighborsQuery.AngularLsh](c)
               case other              => fail(s"$SIMILARITY [$other] is not compatible with $MODEL [$LSH]")
             }
           case other => failTypes(MODEL, Seq(EXACT, SPARSE_INDEXED, LSH), other)

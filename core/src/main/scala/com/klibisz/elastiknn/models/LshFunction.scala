@@ -37,7 +37,7 @@ object LshFunction {
     private val rng: Random = new Random(0)
     private val alphas: Array[Int] = (0 until bands * rows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
     private val betas: Array[Int] = (0 until bands * rows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-    private lazy val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
+    private val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
 
     override def apply(v: Vec.SparseBool): Array[Int] =
       if (v.trueIndices.isEmpty) emptyHashes
@@ -81,7 +81,7 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private[models] val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
+    private val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {
       val hashes = new Array[Int](bits)
@@ -111,6 +111,49 @@ object LshFunction {
         si += 1
       }
       hashes
+    }
+  }
+
+  /**
+    * Locality sensitive hashing for Angular similarity using random hyperplanes as described in Chapter 3 of Mining Massive Datasets.
+    *
+    * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
+    *
+    * @param mapping AngularLsh Mapping. The members are used as follows:
+    *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
+    *                 bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
+    *                 rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
+    */
+  class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
+
+    import mapping._
+    private implicit val rng: Random = new Random(0)
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims, -1f, 1f)).toArray
+
+    override def apply(v: Vec.DenseFloat): Array[Int] = {
+      val bandHashes = new Array[Int](bands)
+      var ixBandHashes = 0
+      var ixHashVecs = 0
+      while (ixBandHashes < bandHashes.length) {
+        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
+        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
+        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
+        var bandHash = ixBandHashes * (1 << rows)
+        var ixRows = 0
+        while (ixRows < rows) {
+          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
+          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
+          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
+          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
+          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
+          ixRows += 1
+          ixHashVecs += 1
+        }
+        bandHashes.update(ixBandHashes, bandHash)
+        ixBandHashes += 1
+      }
+      bandHashes
     }
   }
 
