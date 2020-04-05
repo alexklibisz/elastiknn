@@ -31,6 +31,9 @@ class Vec:
         def to_dict(self):
             return self.__dict__
 
+        def __len__(self):
+            return self.total_indices
+
         @staticmethod
         def from_dict(d: Dict):
             return Vec.SparseBool(d["true_indices"], d["total_indices"])
@@ -46,6 +49,9 @@ class Vec:
 
         def to_dict(self):
             return self.__dict__
+
+        def __len__(self):
+            return len(self.values)
 
         @staticmethod
         def from_dict(d: Dict):

@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 from . import ELASTIKNN_NAME
 from .api import Mapping, Vec, NearestNeighborsQuery, Similarity
 from .client import ElastiKnnClient
-from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, vector_length
+from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos
 
 
 class ElastiknnModel(object):
@@ -65,7 +65,7 @@ class ElastiknnModel(object):
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         vecs = list(canonical_vectors_to_elastiknn(X))
-        dims = vector_length(vecs[0])
+        dims = len(vecs[0])
         (self._mapping, self._query) = self._mk_mapping_query(dims)
 
         if self._index is None:
@@ -77,6 +77,7 @@ class ElastiknnModel(object):
         self._eknn.es.indices.create(self._index, body=json.dumps(body))
         self._eknn.es.indices.refresh(self._index)
         self._eknn.put_mapping(self._index, self._field, mapping=self._mapping)
+        self._eknn.es.indices.refresh(self._index)
 
         self._logger.info(f"indexing {len(vecs)} vectors into index {self._index}")
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.

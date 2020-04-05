@@ -1,3 +1,8 @@
+- Introduced a cache for exact similarity queries that maintains deserialized vectors in memory instead of repeatedly
+reading them and deserializing them. By default the cache entries expire after 90 seconds.
+- Fixed a mapping issue that was causing warnings to be printed at runtime. Specifically, the term fields corresponding
+to a vector should be given the same name as the field where the vector is stored. A bit confusing, but it works.
+---
 - Remove the usage of Protobufs at the API level. Instead implemented a more idiomatic Elasticsearch API. Now using c
 ustom case classes in scala and data classes in Python, which is more tedious, but worth it for a more intuitive API. 
 - Remove the pipelines in favor of processing/indexing vectors in the custom mapping. The model parameters are defined in 

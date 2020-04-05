@@ -14,7 +14,7 @@ INDEX = "ann-benchmarks-jaccard"
 
 def evaluate(dataset: Dataset, eknn: ElastiknnModel):
     n_neighbors = len(dataset.queries[0].indices)
-    eknn.fit(dataset.corpus, shards=os.cpu_count() - 1)
+    eknn.fit(dataset.corpus, shards=1)
     t0 = time()
     neighbors_pred = eknn.kneighbors([q.vector for q in dataset.queries], allow_missing=True, n_neighbors=n_neighbors)
     queries_per_sec = len(dataset.queries) / (time() - t0)
@@ -27,18 +27,18 @@ def evaluate(dataset: Dataset, eknn: ElastiknnModel):
 
 
 def exact(dataset: Dataset):
-    eknn = ElastiknnModel(algorithm='exact', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
+    eknn = ElastiknnModel(algorithm='exact', metric='jaccard', n_jobs=1, index=f"{INDEX}-exact")
     return evaluate(dataset, eknn)
 
 
 def indexed(dataset: Dataset):
-    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}")
+    eknn = ElastiknnModel(algorithm='sparse_indexed', metric='jaccard', n_jobs=1, index=f"{INDEX}-indexed")
     return evaluate(dataset, eknn)
 
 
 def lsh(dataset: Dataset, bands: int = 165, rows: int = 1, candidates: float = 1.5):
     n_neighbors = len(dataset.queries[0].indices)
-    eknn = ElastiknnModel(algorithm='lsh', metric='jaccard', n_jobs=1, index=f"{INDEX}-{int(time())}",
+    eknn = ElastiknnModel(algorithm='lsh', metric='jaccard', n_jobs=1, index=f"{INDEX}-lsh",
                           mapping_params={"bands": bands, "rows": rows},
                           query_params={"candidates": int(candidates * n_neighbors)})
     return evaluate(dataset, eknn)
@@ -52,17 +52,17 @@ def main():
     dataset = open_dataset(os.path.join(ANNB_ROOT, f"{dsname}.hdf5"))
     print(f"Loaded {len(dataset.corpus)} vectors and {len(dataset.queries)} queries")
 
-    # for _ in range(3):
-    #     loss = exact(dataset)
-    #     print(f"exact: {loss}")
-    #
-    # for _ in range(3):
-    #     loss = indexed(dataset)
-    #     print(f"jaccard indexed: {loss}")
-    #
-    # for _ in range(3):
-    #     loss = lsh(dataset, 165, 1, 1.5)
-    #     print(f"lsh: {loss}")
+    for _ in range(1):
+        loss = exact(dataset)
+        print(f"exact: {loss}")
+
+    for _ in range(1):
+        loss = indexed(dataset)
+        print(f"jaccard indexed: {loss}")
+
+    for _ in range(1):
+        loss = lsh(dataset, 55, 1, 1)
+        print(f"lsh: {loss}")
 
     bands = [('bands', b) for b in range(10, 601, 10)]
     rows = [('rows', r) for r in range(1, 2)]
@@ -95,6 +95,7 @@ def main():
             continue
         finally:
             print('-' * 100)
+
 
 if __name__ == "__main__":
     main()

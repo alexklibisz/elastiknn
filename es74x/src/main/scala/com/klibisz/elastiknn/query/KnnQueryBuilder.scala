@@ -8,6 +8,7 @@ import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
+import com.klibisz.elastiknn.storage.VecCache
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
@@ -64,24 +65,24 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
-
+    val index = c.index.getName
     (query, mapping) match {
       case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard)
+        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming)
+        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1)
+        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2)
+        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular)
+        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
@@ -90,7 +91,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
-        new JaccardLshQuery(f, v, m, candidates, ExactSimilarityFunction.Jaccard)
+        new JaccardLshQuery(index, f, v, m, candidates, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
 
       case _ => throw incompatible(mapping, query)
     }
@@ -121,7 +122,6 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             .asInstanceOf[JavaJsonMap]
           val srcJson = javaMapEncoder(srcMap)
           val mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
-          KnnQueryBuilder.mappingCache.put((index, query.field), mapping)
           mapping
         } catch {
           case e: Exception => throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e)

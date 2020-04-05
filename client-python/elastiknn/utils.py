@@ -60,12 +60,3 @@ def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> 
     elif isinstance(canonical, list) and isinstance(canonical[0], Vec.Base):
         return canonical
     raise TypeError(f"Expected a numpy array or a csr matrix but got {type(canonical)}")
-
-
-def vector_length(vec: Vec.Base) -> int:
-    if isinstance(vec, Vec.SparseBool):
-        return vec.total_indices
-    elif isinstance(vec, Vec.DenseFloat):
-        return len(vec.values)
-    else:
-        raise TypeError
