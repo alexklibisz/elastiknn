@@ -117,11 +117,12 @@ object LshFunction {
   /**
     * Locality sensitive hashing for Angular similarity using random hyperplanes as described in Chapter 3 of Mining Massive Datasets.
     *
+    * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
+    *
     * @param mapping AngularLsh Mapping. The members are used as follows:
     *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
     *                 bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
     *                 rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
-    *
     */
   class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
     override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
@@ -154,7 +155,6 @@ object LshFunction {
       }
       bandHashes
     }
-
   }
 
 }
