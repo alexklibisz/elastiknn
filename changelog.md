@@ -1,3 +1,6 @@
+- Implemented LSH for Hamming similarity. This is a first-pass implementation, so it's not necessarily optimal but does
+pass tests.
+---
 - Introduced a cache for exact similarity queries that maintains deserialized vectors in memory instead of repeatedly
 reading them and deserializing them. By default the cache entries expire after 90 seconds.
 - Fixed a mapping issue that was causing warnings to be printed at runtime. Specifically, the term fields corresponding

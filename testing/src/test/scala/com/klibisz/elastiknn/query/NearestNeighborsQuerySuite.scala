@@ -24,11 +24,11 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
   private val tests = Seq(
     // Exact
     Test(
-      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
+      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1), Mapping.HammingLsh(d, d - 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)
     ),
     Test(
-      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1)),
+      d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1), Mapping.HammingLsh(d, d - 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Hamming)
     ),
     Test(
@@ -62,6 +62,12 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
       d => Seq(Mapping.JaccardLsh(d, 40, 2)),
       (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, testDataNumQueries * 2),
       0.67
+    ),
+    // Hamming Lsh
+    Test(
+      d => Seq(Mapping.HammingLsh(d, (d * 0.5).toInt)),
+      (f, v) => NearestNeighborsQuery.HammingLsh(f, v, testDataNumQueries * 2),
+      0.9
     )
   )
 

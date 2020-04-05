@@ -14,14 +14,11 @@ import org.apache.lucene.index.{BinaryDocValues, IndexableField, LeafReaderConte
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 
-class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val index: String,
-                                                                         val field: String,
+class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val field: String,
                                                                          val queryVec: V,
                                                                          val simFunc: ExactSimilarityFunction[V],
                                                                          val contextCache: ContextCache[V])
     extends Query {
-
-//  System.err.println(s"Instantiated ${this.toString()}")
 
   private val vectorDocValuesField = ExactSimilarityQuery.vectorDocValuesField(field)
   private val hasVectorQuery = new DocValuesFieldExistsQuery(vectorDocValuesField)
@@ -66,11 +63,11 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val ind
     s"ExactSimilarityQuery for field [$field], query vector [${nospaces(queryVec)}], similarity [${simFunc.similarity}]"
 
   override def equals(other: Any): Boolean = other match {
-    case q: ExactSimilarityQuery[V] => q.index == index && q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
+    case q: ExactSimilarityQuery[V] => q.field == field && q.queryVec == queryVec && q.simFunc == simFunc
     case _                          => false
   }
 
-  override def hashCode(): Int = Objects.hashCode(index, field, queryVec, simFunc)
+  override def hashCode(): Int = Objects.hashCode(field, queryVec, simFunc)
 
 }
 

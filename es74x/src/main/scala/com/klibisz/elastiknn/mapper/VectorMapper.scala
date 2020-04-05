@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactSimilarityQuery, JaccardLshQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactSimilarityQuery, LshQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
@@ -29,7 +29,8 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactSimilarityQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted))
-            case m: Mapping.JaccardLsh    => Try(JaccardLshQuery.index(field, sorted, m))
+            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, sorted, m))
+            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, sorted, m))
             case _                        => Failure(incompatible(mapping, vec))
           }
         }
