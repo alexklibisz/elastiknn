@@ -37,7 +37,7 @@ object LshFunction {
     private val rng: Random = new Random(0)
     private val alphas: Array[Int] = (0 until bands * rows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
     private val betas: Array[Int] = (0 until bands * rows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-    private lazy val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
+    private val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
 
     override def apply(v: Vec.SparseBool): Array[Int] =
       if (v.trueIndices.isEmpty) emptyHashes
@@ -81,7 +81,7 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private[models] val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
+    private val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {
       val hashes = new Array[Int](bits)
@@ -112,6 +112,34 @@ object LshFunction {
       }
       hashes
     }
+  }
+
+  class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
+
+    import mapping._
+    private implicit val rng: Random = new Random(0)
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims, -1f, 1f)).toArray
+
+    override def apply(v: Vec.DenseFloat): Array[Int] = {
+      val bandHashes = new Array[Int](bands)
+      var ixBandHashes = 0
+      var ixHashVecs = 0
+      while (ixBandHashes < bandHashes.length) {
+        var bandHash = ixBandHashes * (1 << rows)
+        var ixRows = 0
+        while (ixRows < rows) {
+          val hashVec = hashVecs(ixHashVecs)
+          if (hashVec.dot(v) > 0) bandHash += 1 << ixRows
+          ixRows += 1
+          ixHashVecs += 1
+        }
+        bandHashes.update(ixBandHashes, bandHash)
+        ixBandHashes += 1
+      }
+      bandHashes
+    }
+
   }
 
 }
