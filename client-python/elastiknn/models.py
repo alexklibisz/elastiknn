@@ -11,7 +11,7 @@ from scipy.sparse import csr_matrix
 from . import ELASTIKNN_NAME
 from .api import Mapping, Vec, NearestNeighborsQuery, Similarity
 from .client import ElastiKnnClient
-from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, vector_length
+from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos
 
 
 class ElastiknnModel(object):
@@ -65,7 +65,7 @@ class ElastiknnModel(object):
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         vecs = list(canonical_vectors_to_elastiknn(X))
-        dims = vector_length(vecs[0])
+        dims = len(vecs[0])
         (self._mapping, self._query) = self._mk_mapping_query(dims)
 
         if self._index is None:
