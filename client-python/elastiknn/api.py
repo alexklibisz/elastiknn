@@ -2,7 +2,7 @@ from abc import ABC
 from enum import Enum
 from random import Random
 from time import time
-from typing import List, Dict
+from typing import List
 
 from dataclasses import dataclass
 
@@ -35,10 +35,6 @@ class Vec:
             return self.total_indices
 
         @staticmethod
-        def from_dict(d: Dict):
-            return Vec.SparseBool(d["true_indices"], d["total_indices"])
-
-        @staticmethod
         def random(total_indices: int, rng: Random = Random(time())):
             true_indices = [i for i in range(total_indices) if rng.randint(0, 1)]
             return Vec.SparseBool(true_indices, total_indices)
@@ -53,10 +49,6 @@ class Vec:
         def __len__(self):
             return len(self.values)
 
-        @staticmethod
-        def from_dict(d: Dict):
-            return Vec.DenseFloat(d["values"])
-
     @dataclass(frozen=True)
     class Indexed(Base):
         index: str
@@ -65,10 +57,6 @@ class Vec:
 
         def to_dict(self):
             return self.__dict__
-
-        @staticmethod
-        def from_dict(d: Dict):
-            return Vec.Indexed(d["index"], d["id"], d["field"])
 
 
 class Mapping:
@@ -89,10 +77,6 @@ class Mapping:
                 }
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            raise NotImplementedError
-
     @dataclass(frozen=True)
     class SparseIndexed(Base):
         dims: int
@@ -105,10 +89,6 @@ class Mapping:
                     "model": "sparse_indexed"
                 }
             }
-
-        @staticmethod
-        def from_dict(d: Dict):
-            raise NotImplementedError
 
     @dataclass(frozen=True)
     class JaccardLsh(Base):
@@ -128,9 +108,21 @@ class Mapping:
                 }
             }
 
-        @staticmethod
-        def from_dict(d: Dict):
-            raise NotImplementedError
+    @dataclass(frozen=True)
+    class HammingLsh(Base):
+        dims: int
+        bits: int
+
+        def to_dict(self):
+            return {
+                "type": "elastiknn_sparse_bool_vector",
+                "elastiknn": {
+                    "model": "lsh",
+                    "similarity": "jaccard",
+                    "dims": self.dims,
+                    "bits": self.bits
+                }
+            }
 
     @dataclass(frozen=True)
     class DenseFloat(Base):
@@ -209,5 +201,24 @@ class NearestNeighborsQuery:
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.JaccardLsh(self.field, vec, self.similarity, self.candidates)
+
+    @dataclass(frozen=True)
+    class HammingLsh(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.Hamming
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.HammingLsh(self.field, vec, self.similarity, self.candidates)
 
 
