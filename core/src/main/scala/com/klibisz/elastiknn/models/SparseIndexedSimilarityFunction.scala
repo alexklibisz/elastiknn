@@ -11,14 +11,14 @@ sealed trait SparseIndexedSimilarityFunction extends ((Vec.SparseBool, Int, Int)
 
 object SparseIndexedSimilarityFunction {
   object Jaccard extends SparseIndexedSimilarityFunction {
-    override def similarity: Similarity = ???
+    override def similarity: Similarity = Similarity.Jaccard
     override def apply(queryVec: Vec.SparseBool, intersection: Int, numTrue: Int): Try[ExactSimilarityScore] = Try {
       val sim = intersection * 1.0 / (queryVec.trueIndices.length + numTrue - intersection)
       ExactSimilarityScore(sim, 1 - sim)
     }
   }
   object Hamming extends SparseIndexedSimilarityFunction {
-    override def similarity: Similarity = ???
+    override def similarity: Similarity = Similarity.Hamming
     override def apply(queryVec: Vec.SparseBool, intersection: Int, numTrue: Int): Try[ExactSimilarityScore] = Try {
       val eqTrue = intersection
       val total = queryVec.totalIndices

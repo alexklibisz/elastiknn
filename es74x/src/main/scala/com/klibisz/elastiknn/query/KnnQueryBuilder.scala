@@ -3,14 +3,14 @@ package com.klibisz.elastiknn.query
 import java.time.Duration
 import java.util.Objects
 
-import com.google.common.cache.{Cache, CacheBuilder}
+import com.google.common.cache.{Cache, CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, LshFunction, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.storage.VecCache
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api, models}
 import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -46,7 +46,8 @@ object KnnQueryBuilder {
     }
   }
 
-  private val mappingCache: Cache[(String, String), Mapping] = CacheBuilder.newBuilder.expireAfterWrite(Duration.ofMinutes(1)).build()
+  private val mappingCache: Cache[(String, String), Mapping] =
+    CacheBuilder.newBuilder.expireAfterWrite(Duration.ofMinutes(1)).build()
 
 }
 
@@ -69,20 +70,20 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     (query, mapping) match {
       case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f))
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f))
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f))
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
-        new ExactSimilarityQuery(index, f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
+        new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
@@ -91,7 +92,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
-        new JaccardLshQuery(index, f, v, m, candidates, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
+        new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
+
+      case (HammingLsh(f, v: Vec.SparseBool, candidates), m: Mapping.HammingLsh) =>
+        new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
 
       case _ => throw incompatible(mapping, query)
     }
