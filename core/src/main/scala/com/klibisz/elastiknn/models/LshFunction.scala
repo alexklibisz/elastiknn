@@ -114,6 +114,15 @@ object LshFunction {
     }
   }
 
+  /**
+    * Locality sensitive hashing for Angular similarity using random hyperplanes as described in Chapter 3 of Mining Massive Datasets.
+    *
+    * @param mapping AngularLsh Mapping. The members are used as follows:
+    *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
+    *                 bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
+    *                 rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
+    *
+    */
   class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
     override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
 
@@ -126,11 +135,17 @@ object LshFunction {
       var ixBandHashes = 0
       var ixHashVecs = 0
       while (ixBandHashes < bandHashes.length) {
+        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
+        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
+        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
         var bandHash = ixBandHashes * (1 << rows)
         var ixRows = 0
         while (ixRows < rows) {
-          val hashVec = hashVecs(ixHashVecs)
-          if (hashVec.dot(v) > 0) bandHash += 1 << ixRows
+          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
+          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
+          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
+          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
+          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
           ixRows += 1
           ixHashVecs += 1
         }
