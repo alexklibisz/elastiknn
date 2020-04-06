@@ -158,6 +158,7 @@ object LshFunction {
 
   /**
     * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3.
+    * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
     *
     * @param mapping L2Lsh Mapping. The members are used as follows:
     *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
