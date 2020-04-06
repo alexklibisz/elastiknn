@@ -71,6 +71,7 @@ jobs:
       working-directory: docs
       run: |
         sudo snap install ruby --classic
+        gem install jekyll bundler
         bundle install
         jekyll build -s docs -d build
 
