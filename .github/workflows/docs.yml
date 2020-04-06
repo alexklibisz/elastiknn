@@ -19,4 +19,4 @@ jobs:
         env:
           JEKYLL_PAT: ${{ secrets.JEKYLL_PAT }}
         with:
-          JEKYLL_SRC: 'docs'
+          jekyll_src: 'docs'
