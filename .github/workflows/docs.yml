@@ -6,12 +6,13 @@ on:
       - master
 
 jobs:
-  jekyll:
+  Jekyll:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v1
         
-      - name: copy gemfile
+      # Need to do this otherwise the action breaks.
+      - name: Copy Gemfile
         run: cp docs/Gemfile .      
 
       # Specify the Jekyll source location as a parameter
