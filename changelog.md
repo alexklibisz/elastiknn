@@ -1,5 +1,5 @@
-- Implemented LSH for Hamming similarity. This is a first-pass implementation, so it's not necessarily optimal but does
-pass tests.
+- Implemented LSH for Hamming, Angular, and L2 similarities.
+- First pass at a documentation website. 
 ---
 - Introduced a cache for exact similarity queries that maintains deserialized vectors in memory instead of repeatedly
 reading them and deserializing them. By default the cache entries expire after 90 seconds.

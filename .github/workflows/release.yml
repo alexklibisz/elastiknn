@@ -34,8 +34,22 @@ jobs:
       with:
         java-version: 12.0.2
 
-    # Release
-    - name: Release if version changed (on push to master)
+    # Release docs
+    - name: Setup Docs
+      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      run: |
+        cp docs/Gemfile .
+
+    # Specify the Jekyll source location as a parameter
+    - uses: helaili/jekyll-action@2.0.0
+      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      env:
+        JEKYLL_PAT: ${{ secrets.JEKYLL_PAT }}
+      with:
+        jekyll_src: 'docs'
+
+    # Release software
+    - name: Release software artifacts
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
