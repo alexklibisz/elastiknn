@@ -66,15 +66,6 @@ jobs:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
-    # Docs.
-    - name: Build Docs
-      working-directory: docs
-      run: |
-        sudo snap install ruby --classic
-        gem install jekyll bundler
-        bundle install
-        jekyll build -s docs -d build
-
     # Actual Build
     - name: Compile JVM
       run: make compile/gradle
