@@ -1,18 +1,14 @@
-name: Testing the GitHub Pages publication
+name: Publish Docs
 
-on:
-  push
+pull_request:
+  branches:
+    - master
 
 jobs:
   jekyll:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
-
-      # Standard usage
-      - uses:  helaili/jekyll-action@2.0.0
-        env:
-          JEKYLL_PAT: ${{ secrets.JEKYLL_PAT }}
 
       # Specify the Jekyll source location as a parameter
       - uses: helaili/jekyll-action@2.0.0
