@@ -70,6 +70,7 @@ jobs:
     - name: Build Docs
       working-directory: docs
       run: |
+        sudo snap install ruby --classic
         bundle install
         jekyll build -s docs -d build
 
