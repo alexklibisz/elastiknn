@@ -33,16 +33,17 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
       d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1), Mapping.HammingLsh(d, d - 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Hamming)
     ),
+    // TODO: Use Lsh mappings with exact queries.
     Test(
-      d => Seq(Mapping.DenseFloat(d)),
+      d => Seq(Mapping.DenseFloat(d), Mapping.AngularLsh(d, 10, 1), Mapping.L2Lsh(d, 10, 1, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L1)
     ),
     Test(
-      d => Seq(Mapping.DenseFloat(d)),
+      d => Seq(Mapping.DenseFloat(d), Mapping.AngularLsh(d, 10, 1), Mapping.L2Lsh(d, 10, 1, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)
     ),
     Test(
-      d => Seq(Mapping.DenseFloat(d)),
+      d => Seq(Mapping.DenseFloat(d), Mapping.AngularLsh(d, 10, 1), Mapping.L2Lsh(d, 10, 1, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
     ),
     // Sparse indexed
@@ -67,7 +68,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     ),
     // Hamming Lsh
     Test(
-      d => Seq(Mapping.HammingLsh(d, (d * 0.5).toInt)),
+      d => Seq(Mapping.HammingLsh(d, d / 2)),
       (f, v) => NearestNeighborsQuery.HammingLsh(f, v, testDataNumQueries * 2),
       0.9
     ),
@@ -75,6 +76,12 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     Test(
       d => Seq(Mapping.AngularLsh(d, d / 2, 1)),
       (f, v) => NearestNeighborsQuery.AngularLsh(f, v, testDataNumQueries * 3 / 2),
+      0.67
+    ),
+    // L2 Lsh
+    Test(
+      d => Seq(Mapping.L2Lsh(d, d * 2 / 3, 1, 3)),
+      (f, v) => NearestNeighborsQuery.L2Lsh(f, v, testDataNumQueries * 3 / 2),
       0.67
     )
   )
@@ -107,7 +114,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Search using literal vectors.
         kLiteral = testData.queries.head.similarities.length
         literalKnnReqs = testData.queries.map { q =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVec(q.vector), kLiteral, fetchSource = true)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(q.vector), kLiteral)
         }
         literalKnnRes <- Future.sequence(literalKnnReqs)
 
@@ -119,7 +126,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
         // Increase k to account for the fact that there are queryIds.length new vectors in the corpus.
         kIndexed = kLiteral + queryIds.length
         indexedKnnReqs = queryIds.map { id =>
-          eknn.nearestNeighbors(indexName, fakeQuery.withVec(Vec.Indexed(indexName, id, fieldName)), kIndexed, fetchSource = false)
+          eknn.nearestNeighbors(indexName, fakeQuery.withVec(Vec.Indexed(indexName, id, fieldName)), kIndexed)
         }
         indexedKnnRes <- Future.sequence(indexedKnnReqs)
 

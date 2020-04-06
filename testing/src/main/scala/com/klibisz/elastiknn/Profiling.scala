@@ -36,3 +36,27 @@ object ProfileSortedIntersection {
     }
   }
 }
+
+object PairingFunctions {
+  def main(args: Array[String]): Unit = {
+    // Based on https://stackoverflow.com/a/14051714
+    def szudzik(a: Int, b: Int): Int = {
+      val c = if (a >= 0) 2 * a else -2 * a - 1
+      val d = if (b >= 0) 2 * b else -2 * b - 1
+      if (c >= d) c * c + c + d else c + d * d
+    }
+    val r = new Random(System.currentTimeMillis())
+    val n = 10
+    var uniq = Set.empty[Int]
+    var i = 0
+    while (i - uniq.size < 100) {
+      var bandHash = r.nextInt(80)
+      (0 until n)
+        .map(_ => r.nextInt(Int.MaxValue) - r.nextInt(Int.MaxValue))
+        .foreach(h => bandHash = szudzik(bandHash, h))
+      uniq = uniq + bandHash
+      i += 1
+      println(s"$i, ${uniq.size}")
+    }
+  }
+}

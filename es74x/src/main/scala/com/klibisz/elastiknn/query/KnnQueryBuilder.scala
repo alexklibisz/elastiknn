@@ -76,13 +76,13 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f))
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f))
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f))
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat) =>
+      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         new ExactSimilarityQuery(f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
@@ -98,6 +98,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
 
       case (AngularLsh(f, v: Vec.DenseFloat, candidates), m: Mapping.AngularLsh) =>
+        new LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
+
+      case (L2Lsh(f, v: Vec.DenseFloat, candidates), m: Mapping.L2Lsh) =>
         new LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
 
       case _ => throw incompatible(mapping, query)
