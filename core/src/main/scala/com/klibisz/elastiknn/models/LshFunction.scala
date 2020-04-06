@@ -26,8 +26,8 @@ object LshFunction {
     * perform equivalently.
     *
     * @param mapping JaccardLsh Mapping. The members are used as follows:
-    *                bands: The number of LSH bands. See Mining Massive Datasets, Chapter 3 for precise description.
-    *                rows: The number of rows in each LSH band. Again, see Mining Massive Datasets, Chapter.
+    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
+    *                rows: number of rows in each band. Generally, more rows yield higher precision.
     */
   final class Jaccard(override val mapping: Mapping.JaccardLsh) extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool] {
 
@@ -120,8 +120,8 @@ object LshFunction {
     *
     * @param mapping AngularLsh Mapping. The members are used as follows:
     *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
-    *                bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
-    *                rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
+    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
+    *                rows: number of rows per band. Generally, more rows yield higher precision.
     */
   final class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
     override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
@@ -160,8 +160,11 @@ object LshFunction {
     * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3.
     *
     * @param mapping L2Lsh Mapping. The members are used as follows:
-    *                dims: sets the dimension of the random hyperplanes used to hash given vectors.
-    *                 bands:
+    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
+    *                       Note that this often referred to as `L`, or the number of hash tables.
+    *                rows: number of rows per band. Generally, more rows yield higher precision.
+    *                      Note that this is oten called `k`, or the number of functions per hash table.
+    *                width: width of the interval that determines two floating-point hashed values are equivalent.
     *
     */
   final class L2(override val mapping: Mapping.L2Lsh) extends LshFunction[Mapping.L2Lsh, Vec.DenseFloat] {
