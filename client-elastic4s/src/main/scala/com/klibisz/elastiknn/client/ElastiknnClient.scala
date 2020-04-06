@@ -54,7 +54,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   def nearestNeighbors(indexName: String,
                        query: NearestNeighborsQuery,
                        k: Int,
-                       fetchSource: Boolean = true): F[Response[SearchResponse]] = {
+                       fetchSource: Boolean = false): F[Response[SearchResponse]] = {
     val req = search(indexName).query(ElastiknnRequests.nearestNeighborsQuery(query)).fetchSource(fetchSource).size(k)
     execute(req)
   }

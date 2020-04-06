@@ -61,11 +61,11 @@ package object api {
     }
 
     object DenseFloat {
-      def random(length: Int, min: Float = -1f, max: Float = 1f)(implicit rng: Random): DenseFloat =
-        DenseFloat((0 until length).toArray.map(_ => rng.nextFloat() * (max - min) + min))
+      def random(length: Int)(implicit rng: Random): DenseFloat =
+        DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat))
 
-      def randoms(length: Int, n: Int, multiple: Float = 3.14f)(implicit rng: Random): Vector[DenseFloat] =
-        (0 until n).map(_ => random(length, multiple)).toVector
+      def randoms(length: Int, n: Int)(implicit rng: Random): Vector[DenseFloat] =
+        (0 until n).map(_ => random(length)).toVector
     }
 
     final case class Indexed(index: String, id: String, field: String) extends Vec
@@ -81,6 +81,7 @@ package object api {
     final case class HammingLsh(dims: Int, bits: Int) extends Mapping
     final case class DenseFloat(dims: Int) extends Mapping
     final case class AngularLsh(dims: Int, bands: Int, rows: Int) extends Mapping
+    final case class L2Lsh(dims: Int, bands: Int, rows: Int, width: Int) extends Mapping
   }
 
   sealed trait NearestNeighborsQuery {
@@ -108,5 +109,10 @@ package object api {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Angular
     }
+    final case class L2Lsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
+      override def similarity: Similarity = Similarity.L2
+    }
+
   }
 }

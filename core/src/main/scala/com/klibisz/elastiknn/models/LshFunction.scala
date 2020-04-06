@@ -15,8 +15,8 @@ object LshFunction {
     * Locality Sensitive Hashing for Jaccard similarity using the minhashing algorithm.
     *
     * Implementation is based on several sources:
+    * - Chapter 3 from Mining Massive Datasets (MMDS) (Leskovec, Rajaraman, Ullman)
     * - The Spark MinHashLsh implementation: https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance
-    * - Chapter 3 from Mining Massive Datasets (Leskovec, Rajaraman, Ullman)
     * - The tdebatty/java-LSH project on Github: https://github.com/tdebatty/java-LSH
     * - The "Minhash for dummies" blog post: http://matthewcasperson.blogspot.com/2013/11/minhash-for-dummies.html
     *
@@ -29,7 +29,7 @@ object LshFunction {
     *                bands: The number of LSH bands. See Mining Massive Datasets, Chapter 3 for precise description.
     *                rows: The number of rows in each LSH band. Again, see Mining Massive Datasets, Chapter.
     */
-  class Jaccard(override val mapping: Mapping.JaccardLsh) extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool] {
+  final class Jaccard(override val mapping: Mapping.JaccardLsh) extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool] {
 
     override val exact: ExactSimilarityFunction[Vec.SparseBool] = ExactSimilarityFunction.Jaccard
 
@@ -70,13 +70,12 @@ object LshFunction {
   }
 
   /**
-    * Hamming Lsh model using the bit sampling technique from Chapter 3 of Mining Massive Datasets
-    * (Leskovec, Rajaraman, Ullman).
+    * Locality sensitive hashing for hamming similarity using the index sampling technique from MMDS Chapter 3.
     *
     * @param mapping HammingLsh Mapping. The members are used as follows:
     *                 bits: determines the number of randomly sampled indices.
     */
-  class Hamming(override val mapping: Mapping.HammingLsh) extends LshFunction[Mapping.HammingLsh, Vec.SparseBool] {
+  final class Hamming(override val mapping: Mapping.HammingLsh) extends LshFunction[Mapping.HammingLsh, Vec.SparseBool] {
     override val exact: ExactSimilarityFunction[Vec.SparseBool] = ExactSimilarityFunction.Hamming
 
     import mapping._
@@ -115,21 +114,21 @@ object LshFunction {
   }
 
   /**
-    * Locality sensitive hashing for Angular similarity using random hyperplanes as described in Chapter 3 of Mining Massive Datasets.
+    * Locality sensitive hashing for Angular similarity using random hyperplanes as described in MMDS Chapter 3.
     *
     * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
     *
     * @param mapping AngularLsh Mapping. The members are used as follows:
     *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
-    *                 bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
-    *                 rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
+    *                bands: same as bands in Jaccard Lsh. Generally, more bands yield higher recall.
+    *                rows: same as rows in Jaccard Lsh. Generally, more rows yield higher precision.
     */
-  class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
+  final class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
     override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
 
     import mapping._
     private implicit val rng: Random = new Random(0)
-    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims, -1f, 1f)).toArray
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Int] = {
       val bandHashes = new Array[Int](bands)
@@ -147,6 +146,42 @@ object LshFunction {
           // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
           // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
           if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
+          ixRows += 1
+          ixHashVecs += 1
+        }
+        bandHashes.update(ixBandHashes, bandHash)
+        ixBandHashes += 1
+      }
+      bandHashes
+    }
+  }
+
+  /**
+    * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3.
+    *
+    * @param mapping L2Lsh Mapping. The members are used as follows:
+    *                dims: sets the dimension of the random hyperplanes used to hash given vectors.
+    *                 bands:
+    *
+    */
+  final class L2(override val mapping: Mapping.L2Lsh) extends LshFunction[Mapping.L2Lsh, Vec.DenseFloat] {
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.L2
+
+    import mapping._
+    private implicit val rng: Random = new Random(0)
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
+    private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
+
+    override def apply(v: Vec.DenseFloat): Array[Int] = {
+      val bandHashes = new Array[Int](bands)
+      var ixBandHashes = 0
+      var ixHashVecs = 0
+      while (ixBandHashes < bandHashes.length) {
+        var bandHash = ixBandHashes
+        var ixRows = 0
+        while (ixRows < rows) {
+          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / width).toInt
+          bandHash = (31 * bandHash + hash) % HASH_PRIME // TODO: is this a sufficient Pairing function?
           ixRows += 1
           ixHashVecs += 1
         }

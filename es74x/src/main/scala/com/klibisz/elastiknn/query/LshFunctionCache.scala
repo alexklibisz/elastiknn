@@ -27,4 +27,7 @@ object LshFunctionCache {
   implicit object Angular extends LshFunctionCache[Mapping.AngularLsh, Vec.DenseFloat] {
     def load(m: Mapping.AngularLsh): LshFunction[Mapping.AngularLsh, Vec.DenseFloat] = new LshFunction.Angular(m)
   }
+  implicit object L2 extends LshFunctionCache[Mapping.L2Lsh, Vec.DenseFloat] {
+    def load(m: Mapping.L2Lsh): LshFunction[Mapping.L2Lsh, Vec.DenseFloat] = new LshFunction.L2(m)
+  }
 }

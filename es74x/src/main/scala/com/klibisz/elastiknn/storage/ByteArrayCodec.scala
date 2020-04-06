@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.storage
 
 import com.google.protobuf.wrappers.Int32Value
 import com.klibisz.elastiknn.api.Vec
+import scalapb.descriptors.{PInt, PRepeated}
 
 import scala.util.Try
 
