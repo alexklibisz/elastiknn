@@ -22,5 +22,22 @@ allprojects {
     ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
     ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : ""
     ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
+}
 
+task aggregatedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
+    Set docProjects = ["core", "client-elastic4s"]
+    destinationDir = file("$buildDir/docs/scaladoc")
+    title = "$project.name $version"
+    scalaDocOptions = new ScalaDocOptions()
+    subprojects.each { proj ->
+        if (docProjects.contains(proj.name)) {
+            proj.tasks.withType(ScalaDoc).each {
+                source += proj.sourceSets.main.allJava
+                source += proj.sourceSets.main.allScala
+                classpath += proj.sourceSets.main.compileClasspath
+                excludes += scaladoc.excludes
+                includes += scaladoc.includes
+            }
+        }
+    }
 }
