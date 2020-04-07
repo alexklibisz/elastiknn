@@ -14,7 +14,7 @@ A default instance for Scala `Future`s ships with the client.
 
 ## Documentation
 
-<a href="/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs are hosted here.</a> These cover the client and related code from the `core` project.
+<a href="{{ site.baseurl}}/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs are hosted here.</a> These cover the client and related code from the `core` project.
 
 ## Versions
 
