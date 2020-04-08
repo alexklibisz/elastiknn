@@ -24,7 +24,7 @@ allprojects {
     ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
 }
 
-task aggregatedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
+task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
     Set docProjects = ["core", "client-elastic4s"]
     destinationDir = file("$buildDir/docs/scaladoc")
     title = "$project.name $version"

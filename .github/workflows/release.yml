@@ -48,8 +48,7 @@ jobs:
 #      with:
 #        jekyll_src: 'docs'
 
-    # Release software
-    - name: Release software artifacts
+    - name: Release Software Artifacts
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
@@ -62,3 +61,5 @@ jobs:
         make publish/release/python
         make publish/release/sonatype
         make publish/release/plugin
+
+    - name:

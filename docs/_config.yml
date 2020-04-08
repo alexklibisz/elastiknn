@@ -5,12 +5,13 @@ description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "/elastiknn" # the subpath of your site, e.g. /blog
 url: "https://alexklibisz.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
-# Build settings
 theme: just-the-docs
-# color_scheme: "dark"
 
 footer_content: "Copyright &copy; 2019-2020 <a href=\"http://alex.klibisz.com\" target=\"_blank\">Alex Klibisz</a>."
 
 aux_links:
   "Elastiknn on Github":
     - "//github.com/alexklibisz/elastiknn"
+
+exclude:
+  - gencfg.py

@@ -1,3 +1,5 @@
+"""Python dataclasses representing the Elastiknn Json API."""
+
 from abc import ABC
 from enum import Enum
 from random import Random

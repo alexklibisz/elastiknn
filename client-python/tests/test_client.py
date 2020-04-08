@@ -15,7 +15,7 @@ class TestClient:
         eknn.es.indices.refresh()
         eknn.es.indices.create(index)
         eknn.es.indices.refresh()
-        eknn.put_mapping(index, field, mapping)
+        m = eknn.put_mapping(index, field, mapping)
 
         vecs = [Vec.SparseBool.random(dim) for _ in range(n)]
         ids = [f"vec-{i}" for i in range(n)]

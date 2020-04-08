@@ -114,3 +114,18 @@ publish/snapshot/python: .mk/client-python-publish-local
 publish/release/python: .mk/client-python-publish-local
 	cd client-python \
 	&& $(vpy) -m twine upload -r pypi dist/*
+
+
+.mk/gradle-compile-docs:
+	$(gradle) unifiedScaladocs
+	touch $@
+
+.mk/jekyll-versioned-config: docs/_config.yml version
+	cd docs \
+	&& echo $((shell cat _config.yml | grep title)) $(version) > _config_versioned.yml
+
+
+
+compile/docs: .mk/gradle-compile-docs
+
+
