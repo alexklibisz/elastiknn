@@ -10,6 +10,9 @@ build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
 version = $(shell cat version)
 src_all = $(shell git diff --name-only --diff-filter=ACMR)
+site_srvr = elastiknn-site
+site_main = elastiknn.klibisz.com
+site_arch = archive.elastiknn.klibisz.com
 
 clean:
 	./gradlew clean
@@ -115,8 +118,7 @@ publish/release/python: .mk/client-python-publish-local
 	cd client-python \
 	&& $(vpy) -m twine upload -r pypi dist/*
 
-
-.mk/gradle-compile-docs: $(src_all)
+.mk/gradle-docs: $(src_all)
 	$(gradle) unifiedScaladocs
 	touch $@
 
@@ -132,8 +134,10 @@ publish/release/python: .mk/client-python-publish-local
 	&& bundle exec jekyll build
 	touch $@
 
-publish/site: .mk/jekyll-site-build .mk/gradle-compile-docs .mk/client-python-docs
-	ssh elastiknn-site mkdir -p archive.elastiknn.klibisz.com/$(version)
-	rsync -av --delete build/docs/scaladoc elastiknn-site:archive.elastiknn.klibisz.com/$(version)
-	rsync -av --delete client-python/pdoc/elastiknn/ elastiknn-site:archive.elastiknn.klibisz.com/$(version)/pdoc
-	rsync -av --delete docs/_site/ elastiknn-site:elastiknn.klibisz.com
+docs: .mk/gradle-docs .mk/client-python-docs .mk/jekyll-site-build
+
+publish/docs: docs
+	ssh elastiknn-site mkdir -p $(site_arch)/$(version)
+	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_arch)/$(version)
+	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_arch)/$(version)/pdoc
+	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)

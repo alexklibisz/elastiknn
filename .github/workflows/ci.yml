@@ -40,6 +40,11 @@ jobs:
       with:
         java-version: 12.0.2
 
+    - name: Setup Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.6'
+
     # Caching Setup
     - name: Cache Gradle
       uses: actions/cache@v1
@@ -65,6 +70,10 @@ jobs:
       with:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+
+    # Docs Build
+    - name: Build Docs
+      run: make docs
 
     # Actual Build
     - name: Compile JVM
