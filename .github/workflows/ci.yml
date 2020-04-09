@@ -76,10 +76,6 @@ jobs:
         path: ~/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
-    # Docs Build
-    - name: Build Docs
-      run: make docs
-
     # Actual Build
     - name: Compile JVM
       run: make compile/gradle
@@ -91,6 +87,10 @@ jobs:
       run: make test/python
     - name: Run Examples
       run: make examples
+
+    # Docs Build
+    - name: Build Docs
+      run: make docs
 
     # Snapshot Releases
     - name: Set Version (PR)

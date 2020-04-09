@@ -1,6 +1,7 @@
 import json
 from concurrent.futures import wait
 from concurrent.futures.thread import ThreadPoolExecutor
+from elasticsearch import Elasticsearch
 from logging import Logger
 from time import time
 from typing import List, Union
@@ -16,10 +17,9 @@ from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos
 
 class ElastiknnModel(object):
 
-    def __init__(self, algorithm='exact', metric='jaccard', hosts: List[str] = None, mapping_params: dict = None,
+    def __init__(self, algorithm='exact', metric='jaccard', es: Elasticsearch = None, mapping_params: dict = None,
                  query_params: dict = None, n_jobs=1, index: str = None):
         self._logger = Logger(self.__class__.__name__)
-        self._hosts = hosts
         self._n_jobs = n_jobs
         self._tpex = ThreadPoolExecutor(self._n_jobs)
         self._field = "vec"
@@ -56,12 +56,7 @@ class ElastiknnModel(object):
         self._mk_mapping_query = lambda dims: _mk_mapping_query(dims)
         self._mapping = None
         self._query = None
-
-        if self._hosts is None:
-            self._hosts = ["http://localhost:9200"]
-            self._logger.warning(f"hosts were not given, using {self._hosts} instead")
-
-        self._eknn = ElastiKnnClient(self._hosts)
+        self._eknn = ElastiKnnClient(es)
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         vecs = list(canonical_vectors_to_elastiknn(X))
