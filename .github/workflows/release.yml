@@ -36,9 +36,6 @@ jobs:
     - name: Publish Docs
       if: env.GET_RELEASE == '404'
       run: |
-        ssh-keyscan
-        ssh-keyscan server119.web-hosting.com >> $HOME/.ssh/known_hosts
-        cat $HOME/.ssh/known_hosts
         ssh elastiknn-site ls
 
     # # Language Setup
