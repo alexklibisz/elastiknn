@@ -45,6 +45,11 @@ jobs:
       with:
         ruby-version: '2.6'
 
+    - name: Install Global Packages
+      run: |
+        gem install jekyll bundler
+        sudo snap install hub --classic
+
     # Caching Setup
     - name: Cache Gradle
       uses: actions/cache@v1
@@ -111,7 +116,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cp version-sonatype version
-        sudo snap install hub --classic
         make publish/snapshot/plugin
 
     # Cleanup
