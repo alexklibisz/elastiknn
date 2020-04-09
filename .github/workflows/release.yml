@@ -54,6 +54,8 @@ jobs:
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
       run: ./.github/scripts/setup-secrets.sh
 
     - name: Publish Docs
