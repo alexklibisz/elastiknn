@@ -51,7 +51,9 @@ jobs:
       run: ./.github/scripts/setup-env.sh
 
     - name: Publish Site
-      run: make publish/site
+      run: |
+        gem install bundler
+        make publish/site
 
     - name: Publish Docs
       if: env.GET_RELEASE == '404'
@@ -60,6 +62,7 @@ jobs:
     - name: Release Artifacts
       if: env.GET_RELEASE == '404'
       run: |
+        sudo snap install hub --classic
         make publish/release/python
         make publish/release/sonatype
         make publish/release/plugin

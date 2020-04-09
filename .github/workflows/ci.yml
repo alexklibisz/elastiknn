@@ -88,7 +88,9 @@ jobs:
 
     # Site and Docs
     - name: Compile Site and Docs
-      run: make compile/site compile/docs
+      run: |
+        gem install bundler
+        make compile/site compile/docs
 
     # Snapshot Releases
     - name: Set Version (PR)
@@ -113,6 +115,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        sudo snap install hub --classic  
         cp version-sonatype version
         make publish/snapshot/plugin
 
