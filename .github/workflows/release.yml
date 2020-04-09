@@ -4,9 +4,7 @@ on:
   push:
     branches: 
       - master
-  pull_request:
-    branches:
-      - master
+
 jobs:
   release:
     runs-on: ubuntu-18.04
@@ -23,27 +21,51 @@ jobs:
 
     # Language Setup
     - name: Setup Python
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      if: env.GET_RELEASE == '404'
       run: |
         python3 --version
         sudo apt-get install -y python3-setuptools
 
     - name: Setup Java
       uses: actions/setup-java@v1
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      if: env.GET_RELEASE == '404'
       with:
         java-version: 12.0.2
 
-    - name: Release Software Artifacts
+    - name: Setup Ruby
+      uses: actions/setup-ruby@v1
+      if: env.GET_RELEASE == '404'
+      with:
+        ruby-version: '2.6'
+
+    - name: Install Global Packages
+      if: env.GET_RELEASE == '404'
+      run: |
+        sudo snap install hub --classic  
+        gem install bundler
+
+    - name: Setup Secrets
+      if: env.GET_RELEASE == '404'
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
-      run: |
-        sudo snap install hub --classic
-        ./.github/scripts/setup-secrets.sh
-        make publish/release/python
-        make publish/release/sonatype
-        make publish/release/plugin
+      run: ./.github/scripts/setup-secrets.sh
+
+    - name: Publish Docs
+      if: env.GET_RELEASE == '404'
+      run: make publish/docs
+
+    # - name: Release Artifacts
+    #   env:
+    #     GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+    #     GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+    #     PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   if: env.GET_RELEASE == '404'
+    #   run: |
+    #     ./.github/scripts/setup-secrets.sh
+    #     make publish/release/python
+    #     make publish/release/sonatype
+    #     make publish/release/plugin
