@@ -47,5 +47,3 @@ jobs:
         make publish/release/python
         make publish/release/sonatype
         make publish/release/plugin
-
-    - name:
