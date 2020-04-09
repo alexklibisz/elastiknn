@@ -9,4 +9,5 @@ echo $PYPIRC_B64 | base64 --decode > ~/.pypirc
 echo $SSH_CONFIG_B64 | base64 --decode > ~/.ssh/config
 echo $SSH_IDRSA_B64 | base64 --decode > ~/.ssh/id_rsa
 cat ~/.ssh/id_rsa | md5sum
+cat ~/.ssh/config
 chmod 400 ~/.ssh/id_rsa
