@@ -4,9 +4,6 @@ on:
   push:
     branches: 
       - master
-  pull_request:
-    branches: 
-      - master
 
 jobs:
   release:
@@ -21,17 +18,6 @@ jobs:
     - name: Will release run?
       if: env.GET_RELEASE == '404'
       run: echo Yes
-
-    - name: Setup Secrets
-      if: env.GET_RELEASE == '404'
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
-        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
-      run: ./.github/scripts/setup-secrets.sh
 
     # Language Setup
     - name: Setup Python
@@ -52,26 +38,28 @@ jobs:
       with:
         ruby-version: '2.6'
 
-    - name: Install Global Packages
+    # Has to run after installing languages.
+    - name: Setup Environment
       if: env.GET_RELEASE == '404'
-      run: |
-        sudo snap install hub --classic  
-        gem install bundler
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+      run: ./.github/scripts/setup-env.sh
+
+    - name: Publish Site
+      run: make publish/site
 
     - name: Publish Docs
       if: env.GET_RELEASE == '404'
-      run: |
-        make publish/docs
+      run: make publish/docs
 
-    # - name: Release Artifacts
-    #   env:
-    #     GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-    #     GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-    #     PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   if: env.GET_RELEASE == '404'
-    #   run: |
-    #     ./.github/scripts/setup-secrets.sh
-    #     make publish/release/python
-    #     make publish/release/sonatype
-    #     make publish/release/plugin
+    - name: Release Artifacts
+      if: env.GET_RELEASE == '404'
+      run: |
+        make publish/release/python
+        make publish/release/sonatype
+        make publish/release/plugin

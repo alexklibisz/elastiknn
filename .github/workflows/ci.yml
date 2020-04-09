@@ -21,14 +21,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # Secrets used for publishing.
-    - name: Setup Secrets
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-      run: ./.github/scripts/setup-secrets.sh
-
     # Language Setup
     - name: Setup Python
       run: |
@@ -45,10 +37,16 @@ jobs:
       with:
         ruby-version: '2.6'
 
-    - name: Install Global Packages
-      run: |
-        sudo snap install hub --classic  
-        gem install bundler
+    # Needs to run after language setup.
+    - name: Setup Environment
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+      run: ./.github/scripts/setup-env.sh
 
     # Caching Setup
     - name: Cache Gradle
@@ -88,9 +86,9 @@ jobs:
     - name: Run Examples
       run: make examples
 
-    # Docs Build
-    - name: Build Docs
-      run: make docs
+    # Site and Docs
+    - name: Compile Site and Docs
+      run: make compile/site compile/docs
 
     # Snapshot Releases
     - name: Set Version (PR)
