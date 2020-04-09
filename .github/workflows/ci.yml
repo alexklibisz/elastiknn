@@ -47,8 +47,8 @@ jobs:
 
     - name: Install Global Packages
       run: |
-        gem install jekyll bundler
-        sudo snap install hub --classic
+      sudo snap install hub --classic  
+      gem install bundler
 
     # Caching Setup
     - name: Cache Gradle
