@@ -33,18 +33,18 @@ jobs:
         SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
       run: ./.github/scripts/setup-secrets.sh
 
-    # # Language Setup
-    # - name: Setup Python
-    #   if: env.GET_RELEASE == '404'
-    #   run: |
-    #     python3 --version
-    #     sudo apt-get install -y python3-setuptools
+    # Language Setup
+    - name: Setup Python
+      if: env.GET_RELEASE == '404'
+      run: |
+        python3 --version
+        sudo apt-get install -y python3-setuptools
 
-    # - name: Setup Java
-    #   uses: actions/setup-java@v1
-    #   if: env.GET_RELEASE == '404'
-    #   with:
-    #     java-version: 12.0.2
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      if: env.GET_RELEASE == '404'
+      with:
+        java-version: 12.0.2
 
     - name: Setup Ruby
       uses: actions/setup-ruby@v1
