@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "wtf"
+
 mkdir -p $HOME/.gnupg $HOME/.gradle $HOME/.ssh
 
 echo $GPG_SECRET_B64 | base64 --decode > $HOME/.gnupg/secring.gpg
