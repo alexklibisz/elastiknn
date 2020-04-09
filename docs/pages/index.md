@@ -19,7 +19,7 @@ permalink: /
 
 ### Intended Use Cases
 
-1. Distributed nearest neighbor search
+1. Horizontally scalable nearest neighbors search
 2. Visual similarity search
 3. Text embedding search
 

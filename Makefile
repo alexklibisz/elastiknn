@@ -29,10 +29,10 @@ clean:
 	cd client-python && python3 -m virtualenv venv
 	touch $@
 
-.mk/client-python-install: .mk/client-python-venv
+.mk/client-python-install: .mk/client-python-venv client-python/requirements*.txt
 	cd client-python \
 		&& $(vpip) install -q -r requirements.txt \
-		&& $(vpip) install -q pytest twine
+		&& $(vpip) install -q -r requirements-build.txt
 	touch $@
 
 .mk/gradle-compile: $(src_all)
@@ -116,16 +116,24 @@ publish/release/python: .mk/client-python-publish-local
 	&& $(vpy) -m twine upload -r pypi dist/*
 
 
-.mk/gradle-compile-docs:
+.mk/gradle-compile-docs: $(src_all)
 	$(gradle) unifiedScaladocs
 	touch $@
 
-.mk/jekyll-versioned-config: docs/_config.yml version
+.mk/client-python-docs: $(src_all) .mk/client-python-install
+	cd client-python \
+	&& rm -rf pdoc \
+	&& venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
+	touch $@
+
+.mk/jekyll-site-build: docs/**/*
 	cd docs \
-	&& echo $((shell cat _config.yml | grep title)) $(version) > _config_versioned.yml
+	&& bundle install \
+	&& bundle exec jekyll build
+	touch $@
 
-
-
-compile/docs: .mk/gradle-compile-docs
-
-
+publish/site: .mk/jekyll-site-build .mk/gradle-compile-docs .mk/client-python-docs
+	ssh elastiknn-site mkdir -p archive.elastiknn.klibisz.com/$(version)
+	rsync -av --delete build/docs/scaladoc elastiknn-site:archive.elastiknn.klibisz.com/$(version)
+	rsync -av --delete client-python/pdoc/elastiknn/ elastiknn-site:archive.elastiknn.klibisz.com/$(version)/pdoc
+	rsync -av --delete docs/_site/ elastiknn-site:elastiknn.klibisz.com
