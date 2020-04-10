@@ -8,13 +8,14 @@ permalink: /scala-client/
 
 # Scala Client
 
-The Scala client provides a type-safe, asynchronous interface for using the Elastiknn plugin from your Scala projects.
+The Scala client provides type-safe, asynchronous methods for using the Elastiknn plugin from your Scala projects.
 It's built on top of the popular [elastic4s library](https://github.com/sksamuel/elastic4s) and abstracts over effect types.
 A default instance for Scala `Future`s ships with the client.
 
 ## Documentation
 
-<a href="{{ site.baseurl}}/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs are hosted here.</a> These cover the client and related code from the `core` project.
+- **<a href="/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs for the latest release</a>**
+- <a href="http://archive.elastiknn.klibisz.com" target="_blank">Scaladocs for previous releases</a>
 
 ## Versions
 

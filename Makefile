@@ -132,6 +132,9 @@ publish/release/python: .mk/client-python-publish-local
 	cd docs && bundle install && bundle exec jekyll build
 	touch $@
 
+run/docs:
+	cd docs && bundle exec jekyll serve
+
 compile/docs: .mk/gradle-docs .mk/client-python-docs
 
 compile/site: .mk/jekyll-site-build
