@@ -4,9 +4,7 @@ on:
   push:
     branches: 
       - master
-  pull_request:
-    branches:
-      - master
+
 jobs:
   release:
     runs-on: ubuntu-18.04
@@ -23,42 +21,48 @@ jobs:
 
     # Language Setup
     - name: Setup Python
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      if: env.GET_RELEASE == '404'
       run: |
         python3 --version
         sudo apt-get install -y python3-setuptools
 
     - name: Setup Java
       uses: actions/setup-java@v1
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+      if: env.GET_RELEASE == '404'
       with:
         java-version: 12.0.2
 
-#    # Release docs
-#    - name: Setup Docs
-#      if: github.event_name == 'push' && env.GET_RELEASE == '404'
-#      run: |
-#        cp docs/Gemfile .
-#
-#    # Specify the Jekyll source location as a parameter
-#    - uses: helaili/jekyll-action@2.0.0
-#      if: github.event_name == 'push' && env.GET_RELEASE == '404'
-#      env:
-#        JEKYLL_PAT: ${{ secrets.JEKYLL_PAT }}
-#      with:
-#        jekyll_src: 'docs'
+    - name: Setup Ruby
+      uses: actions/setup-ruby@v1
+      if: env.GET_RELEASE == '404'
+      with:
+        ruby-version: '2.6'
 
-    # Release software
-    - name: Release software artifacts
+    # Has to run after installing languages.
+    - name: Setup Environment
+      if: env.GET_RELEASE == '404'
       env:
         GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
         GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
         PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: github.event_name == 'push' && env.GET_RELEASE == '404'
+        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+      run: ./.github/scripts/setup-env.sh
+
+    - name: Publish Site
+      run: |
+        gem install bundler
+        make publish/site
+
+    - name: Publish Docs
+      if: env.GET_RELEASE == '404'
+      run: make publish/docs
+
+    - name: Release Artifacts
+      if: env.GET_RELEASE == '404'
       run: |
         sudo snap install hub --classic
-        ./.github/scripts/setup-secrets.sh
         make publish/release/python
         make publish/release/sonatype
         make publish/release/plugin

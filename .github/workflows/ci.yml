@@ -21,14 +21,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # Secrets used for publishing.
-    - name: Setup Secrets
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-      run: ./.github/scripts/setup-secrets.sh
-
     # Language Setup
     - name: Setup Python
       run: |
@@ -39,6 +31,22 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 12.0.2
+
+    - name: Setup Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.6'
+
+    # Needs to run after language setup.
+    - name: Setup Environment
+      env:
+        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+      run: ./.github/scripts/setup-env.sh
 
     # Caching Setup
     - name: Cache Gradle
@@ -78,6 +86,12 @@ jobs:
     - name: Run Examples
       run: make examples
 
+    # Site and Docs
+    - name: Compile Site and Docs
+      run: |
+        gem install bundler
+        make compile/site compile/docs
+
     # Snapshot Releases
     - name: Set Version (PR)
       if: github.event_name == 'pull_request'
@@ -101,8 +115,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        sudo snap install hub --classic  
         cp version-sonatype version
-        sudo snap install hub --classic
         make publish/snapshot/plugin
 
     # Cleanup

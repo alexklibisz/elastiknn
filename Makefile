@@ -10,6 +10,9 @@ build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
 version = $(shell cat version)
 src_all = $(shell git diff --name-only --diff-filter=ACMR)
+site_srvr = elastiknn-site
+site_main = elastiknn.klibisz.com
+site_arch = archive.elastiknn.klibisz.com
 
 clean:
 	./gradlew clean
@@ -29,10 +32,10 @@ clean:
 	cd client-python && python3 -m virtualenv venv
 	touch $@
 
-.mk/client-python-install: .mk/client-python-venv
+.mk/client-python-install: .mk/client-python-venv client-python/requirements*.txt
 	cd client-python \
 		&& $(vpip) install -q -r requirements.txt \
-		&& $(vpip) install -q pytest twine
+		&& $(vpip) install -q -r requirements-build.txt
 	touch $@
 
 .mk/gradle-compile: $(src_all)
@@ -114,3 +117,32 @@ publish/snapshot/python: .mk/client-python-publish-local
 publish/release/python: .mk/client-python-publish-local
 	cd client-python \
 	&& $(vpy) -m twine upload -r pypi dist/*
+
+.mk/gradle-docs: $(src_all)
+	$(gradle) unifiedScaladocs
+	touch $@
+
+.mk/client-python-docs: $(src_all) .mk/client-python-install
+	cd client-python \
+	&& rm -rf pdoc \
+	&& venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
+	touch $@
+
+.mk/jekyll-site-build: docs/**/*
+	cd docs \
+	&& bundle install \
+	&& bundle exec jekyll build
+	touch $@
+
+compile/docs: .mk/gradle-docs .mk/client-python-docs
+
+compile/site: .mk/jekyll-site-build
+
+publish/docs: .mk/gradle-docs .mk/client-python-docs
+	ssh elastiknn-site mkdir -p $(site_arch)/$(version)
+	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_arch)/$(version)
+	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_arch)/$(version)/pdoc
+
+publish/site: .mk/jekyll-site-build
+	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)
+	
