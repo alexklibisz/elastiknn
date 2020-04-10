@@ -2,7 +2,7 @@
 
 An Elasticsearch plugin for exact and approximate K-nearest-neighbors search in high-dimensional vector spaces.
 
-**[Documentation](http://alexklibisz.github.io/elastiknn)**
+**[Documentation](http://elastiknn.klibisz.com)**
 
 ## Builds and Releases
 

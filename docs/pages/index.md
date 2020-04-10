@@ -20,6 +20,10 @@ permalink: /
 4. Combine nearest neighbor queries with standard Elasticsearch queries.
 5. Scales horizontally with Elasticsearch.
 
+**Additional Features in Progress**
+
+- Approximate queries using Multiprobe Locality Sensitive Hashing.
+
 ### Use Cases
 
 1. Horizontally scalable nearest neighbor search
