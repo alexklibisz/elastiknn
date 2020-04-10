@@ -128,11 +128,8 @@ publish/release/python: .mk/client-python-publish-local
 	&& venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
 	touch $@
 
-.mk/jekyll-site-build: docs/**/* .mk/gradle-docs .mk/client-python-docs
+.mk/jekyll-site-build: docs/**/*
 	cd docs && bundle install && bundle exec jekyll build
-	mkdir -p docs/_site/docs
-	rsync -av --delete build/docs/scaladoc docs/_site/docs
-	rsync -av --delete client-python/pdoc/elastiknn/ docs/_site/docs/pdoc
 	touch $@
 
 compile/docs: .mk/gradle-docs .mk/client-python-docs
@@ -144,6 +141,10 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_arch)/$(version)
 	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_arch)/$(version)/pdoc
 	
+	ssh $(site_srvr) mkdir -p $(site_main)/docs
+	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_main)/docs
+	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_main)/docs/pdoc
+
 publish/site: .mk/jekyll-site-build
 	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)
 	
