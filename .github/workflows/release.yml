@@ -59,10 +59,16 @@ jobs:
       if: env.GET_RELEASE == '404'
       run: make publish/docs
 
-    - name: Release Artifacts
+    - name: Release Python
       if: env.GET_RELEASE == '404'
-      run: |
-        sudo snap install hub --classic
-        make publish/release/python
-        make publish/release/sonatype
-        make publish/release/plugin
+      run: make publish/release/python
+
+    - name: Release Scala
+      if: env.GET_RELEASE == '404'
+      run: make publish/release/sonatype
+
+    - name: Release Plugin
+      if: env.GET_RELEASE == '404'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: make publish/release/plugin

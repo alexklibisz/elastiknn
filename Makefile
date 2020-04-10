@@ -139,9 +139,13 @@ compile/docs: .mk/gradle-docs .mk/client-python-docs
 compile/site: .mk/jekyll-site-build
 
 publish/docs: .mk/gradle-docs .mk/client-python-docs
-	ssh elastiknn-site mkdir -p $(site_arch)/$(version)
+	ssh $(site_srvr) mkdir -p $(site_arch)/$(version)
 	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_arch)/$(version)
 	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_arch)/$(version)/pdoc
+	
+	ssh $(site_srvr) mkdir -p $(site_main)/docs
+	rsync -av --delete build/docs/scaladoc $(site_srvr):$(site_main)/docs
+	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_main)/docs/pdoc
 
 publish/site: .mk/jekyll-site-build
 	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)
