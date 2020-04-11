@@ -18,9 +18,9 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 
 ## Mappings
 
-Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. These determine how to store vectors for various kinds of searches.
+Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. These determine how vectors are indexed to support different kinds of searches.
 
-The general structure of specifying a mapping looks like this:
+The general structure for specifying a mapping looks like this:
 
 ```json
 PUT /my-index/_mapping
@@ -31,7 +31,7 @@ PUT /my-index/_mapping
       "elastiknn": {                            # 4
         "dims": 100,                            # 5
         "model": "sparse_indexed",              # 6
-        "..." : "...",                          # 7
+        ...                                     # 7
       }
     }
   }
@@ -40,17 +40,17 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Dictionary of document fields, same as the [official PUT Mapping API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html)|
+|1|Dictionary of document fields. Same as the [official PUT Mapping API.](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html)|
 |2|Name of the field containing your vector. This is arbitrary and can be nested under other fields.|
 |3|Type of vector you want to store. See datatypes below.|
-|4|Dictionary of elastiknn settings|
+|4|Dictionary of elastiknn settings.|
 |5|Dimensionality of your vector. All vectors stored at this field (`my_vec`) must have the same dimensionality.|
 |6|Model type. This and the model parameters will determine what kind of searches you can run. See more on models below.|
 |7|Additional model parameters. See models below.|
 
 ### elastiknn_sparse_bool_vector Datatype
 
-This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any given document contains a very small fraction of all words. Internally, Elastiknn saves space by only storing a list of the true indices.
+This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any single document contains a very small fraction of all words. Internally, Elastiknn saves space by only storing a list of the true indices.
 
 ```json
 PUT /my-index/_mapping
@@ -60,7 +60,7 @@ PUT /my-index/_mapping
             "type": "elastiknn_sparse_bool_vector",  # 1
             "elastiknn": {
                 "dims": 25000,                       # 2
-                "..." : "...",                       # 3
+                ...                                  # 3
             }
         }
     }
@@ -85,7 +85,7 @@ PUT /my-index/_mapping
             "type": "elastiknn_dense_float_vector",  # 1
             "elastiknn": {
                 "dims": 100,                         # 2
-                "..." : "...",                       # 3
+                ...                                  # 3
             }
         }
     }
@@ -98,7 +98,7 @@ PUT /my-index/_mapping
 |2|Dimensionality of the vector. This shouldn't exceed single-digit thousands. If it does, consider doing some sort of dimensionality reduction.|
 |3|Aditional model parameters. See models below.|
 
-### Exact Model
+### Exact Mapping
 
 The exact model will allow you to run exact searches. These don't levarage any indexing constructs and have `O(n^2)` runtime, where `n` is the total number of documents.
 
@@ -121,11 +121,11 @@ PUT /my-index/_mapping
 |#|Description|
 |:--|:--|
 |1|Vector datatype. Both dense float and sparse bool are supported|
-|2|Vector dimensionality. Always required.|
+|2|Vector dimensionality.|
 
-### Sparse Indexed Model
+### Sparse Indexed Mapping
 
-The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. It indexes each of of true indices as a Lucene term, basically treating true indices like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
+The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. It indexes each of of true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
 
 ```json
 PUT /my-index/_mapping
@@ -144,11 +144,11 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Vector datatype. Only sparse bool vectors are supported with this model.|
-|2|Vector dimensionality. Always required.|
+|1|Vector datatype. Must be sparse bool vector.|
+|2|Vector dimensionality.|
 |3|Model type. This model has no additional parameters.|
 
-### Jaccard LSH Model
+### Jaccard LSH Mapping
 
 The Jaccard LSH Model enables approximate queries for the Jaccard similarity function on sparse bool vectors using the [Minhash algorithm](https://en.wikipedia.org/wiki/MinHash).
 
@@ -176,14 +176,14 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Vector datatype. Only sparse bool vectors are supported with this model.|
-|2|Vector dimensionality. Always required.|
+|1|Vector datatype. Must be sparse bool vector.|
+|2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands will increase [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows will increase [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
+|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
 
-### Hamming LSH Model
+### Hamming LSH Mapping
 
 Enables approximate queries for the Hamming similarity function on sparse bool vectors using the [Bit-Sampling algorithm](http://mlwiki.org/index.php/Bit_Sampling_LSH).
 
@@ -210,15 +210,15 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Vector datatype. Only sparse bool vectors are supported with this model.|
-|2|Vector dimensionality. Always required.|
+|1|Vector datatype. Must be sparse bool vector.|
+|2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bits (indices) to sample from each vector. This should not exceed the dimensionality. Generally, increasing the number of bands will increase [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall).|
+|5|Number of bits (indices) to sample from each vector. This should not exceed the dimensionality. Generally, increasing the number of bits increases [recall.](https://en.wikipedia.org/wiki/Precision_and_recall#Recall)|
 
-### Angular LSH Model
+### Angular LSH Mapping
 
-Enables approximate queries for the Angular similarity function on dense float vectors using [Random Projection algorithm.](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
+Enables approximate queries for the Angular similarity function on dense float vectors using the [Random Projection algorithm.](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
 
 The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
 
@@ -244,14 +244,14 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Vector datatype. Only dense float vectors are supported with this model.|
-|2|Vector dimensionality. Always required.|
+|1|Vector datatype. Must be dense float vector.|
+|2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands will increase [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows will increase [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
+|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
 
-### L2 LSH Model
+### L2 LSH Mapping
 
 Enables approximate queries for the L2 (Euclidean) similarity function on dense float vectors using the [Stable Distributions method.](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Stable_distributions)
 
@@ -279,16 +279,16 @@ PUT /my-index/_mapping
 
 |#|Description|
 |:--|:--|
-|1|Vector datatype. Only dense float vectors are supported with this model.|
-|2|Vector dimensionality. Always required.|
+|1|Vector datatype. Must be dense float vector.|
+|2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands will increase [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows will increase [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
+|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
 
 ## Vectors
 
-You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries with a given query vector. In both cases you use the same JSON structure to define vectors. The examples below show the indexing case; the query case will be covered later.
+You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries with a literal query vector. In both cases you use the same JSON structure to define vectors. The examples below show the indexing case; the query case will be covered later.
 
 ### elastiknn_sparse_bool_vector
 
@@ -298,8 +298,8 @@ This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_
 POST /my-index/_doc
 {
     "my_vec": {
-       "true_indices": [1,3,42,88],     # 1
-       "total_indices":  100,           # 2
+       "true_indices": [1, 3, 5, ...],   # 1
+       "total_indices": 100,             # 2
     }
 }
 
@@ -307,7 +307,7 @@ POST /my-index/_doc
 
 |#|Description|
 |:--|:--|
-|1|A JSON list of the indices which are `true` in your vector.|
+|1|JSON list of the indices which are `true` in your vector.|
 |2|The total number of indices in your vector. This should match the `dims` in your mapping.|
 
 ### elastiknn_dense_float_vector
@@ -318,18 +318,18 @@ This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_f
 POST /my-index/_doc
 {
     "my_vec": {
-        "values": [0.1, 0.22, 0.333, 0.4444, 0.55555]    # 1
+        "values": [0.1, 0.2, 0.3, ...]    # 1
     }
 }
 ```
 
 |#|Description|
 |:--|:--|
-|1|A JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
+|1|JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
 
 ## Nearest Neighbor Queries
 
-Elastiknn provides a new query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like standard Elasticsearch queries. 
+Elastiknn provides a query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like standard Elasticsearch queries. 
 
 The general query structure looks like this:
 
@@ -362,6 +362,8 @@ GET /my-index/_search
 ### Datatypes and Similarities
 
 Jaccard and Hamming similarity only work with sparse bool vectors. Angular, L1, and L2 similarity only work with dense float vectors. The following documentation assume this restriction is known.
+
+These restrictions aren't inherent to the types and algorithms. They just seem uncommon and complicate the implementation, so they were left out initially.
 
 ### Similarity Scoring
 
@@ -409,12 +411,12 @@ GET /my-index/_search
 |#|Description|
 |:--|:--|
 |1|Literal sparse bool query vector.|
-|2|Literal Dense float query vector.|
+|2|Literal dense float query vector.|
 |3|Indexed query vector. This assumes you have another index called `my-other-index` with a document with id `abc123` that contains a valid vector in field `my_vec`.|
 
-### Exact Model
+### Exact Query
 
-Computes the exact similarity of a query vector against all other indexed vectors. The algorithm is not efficient compared to approximate search, but the implementation has been extensively profiled and optimized.
+Computes the exact similarity of a query vector against all indexed vectors. The algorithm is not efficient compared to approximate search, but the implementation has been extensively profiled and optimized.
 
 ```json
 GET /my-index/_search
@@ -438,7 +440,7 @@ GET /my-index/_search
 |2|Model name.|
 |3|Similarity function. Must be compatible with the vector type.|
 
-### Sparse Indexed Model
+### Sparse Indexed Query
 
 Computes the exact similarity of sparse bool vectors using a Lucene Boolean Query to compute the size of the intersection of true indices in the query vector against true indices in the indexed vectors.
 
@@ -470,15 +472,15 @@ GET /my-index/_search
 
 All of the LSH search models follow roughly the same strategy. They first retrieve approximate neighbors based on common hash terms and then compute the slower exact similarity for a small subset of the best approximate candidates. The exact steps are as follows:
 
-1. Hash the query vector using model parameters that were specified in the indexed vectors' mapping.
-2. Convert the hash values to Lucene Terms in a Lucene Boolean Query which uses an inverted index to compute the size of the intersection of hash terms between the query vector and the indexed vectors.
+1. Hash the query vector using model parameters that were specified in the indexed vector's mapping.
+2. Convert the hash values to Lucene Terms in a Lucene Boolean Query which uses an inverted index to compute the size of the intersection of hash terms between the query vector and indexed vectors.
 3. Vectors with non-empty intersections are passed to a scoring function which maintains a min-heap of size `candidates`. Notice `candidates` is a parameter for all LSH queries. The heap maintains the highest-scoring approximate neighbors. If an indexed vector exceeds the lowest approximate score in the heap, we compute its exact similarity and replace it in the heap. Otherwise it gets a score of 0.
 
-If you set `candidates` to 0, the query skip all heap-related logic and exact similarity computations. The score for each vector is the number of intersecting hash terms.
+If you set `candidates` to 0, the query skips all heap-related logic and exact similarity computations. The score for each vector is the number of intersecting hash terms.
 
-It seems reasonable to set `candidates` to 2x to 10x larger than the number of hits you want to return (Elasticsearch defaults to 10 hits). For example, if you have 100,000 vectors in your index, you want the 10 nearest neighbors, and you set `candidates` to 100, then you'll compute the exact similarity roughly 100 times per shard.
+It seems reasonable to set `candidates` to 2x to 10x larger than the number of hits you want to return (Elasticsearch defaults to 10 hits). For example, if you have 100,000 vectors in your index, you want the 10 nearest neighbors, and you set `candidates` to 100, then your query will compute the exact similarity roughly 100 times per shard.
 
-### Jaccard LSH Model
+### Jaccard LSH Query
 
 Retrieve sparse bool vectors based on approximate Jaccard similarity.
 
@@ -502,13 +504,13 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Indexed field. Must use `lsh` mapping model with similarity `jaccard`.|
+|1|Indexed field. Must use `lsh` mapping model with `jaccard` similarity.|
 |2|Query vector. Must be literal sparse bool or a pointer to an indexed sparse bool vector.|
 |3|Model name.|
 |4|Similarity function.|
 |5|Number of candidates. See the section on LSH Search Strategy.|
 
-### Hamming LSH Model
+### Hamming LSH Query
 
 Retrieve sparse bool vectors based on approximate Hamming similarity.
 
@@ -532,15 +534,15 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Indexed field. Must use `lsh` mapping model with similarity `hamming`.|
+|1|Indexed field. Must use `lsh` mapping model with `hamming` similarity.|
 |2|Query vector. Must be literal sparse bool or a pointer to an indexed sparse bool vector.|
 |3|Model name.|
 |4|Similarity function.|
 |5|Number of candidates. See the section on LSH Search Strategy.|
 
-### Angular LSH Model
+### Angular LSH Query
 
-Retrieve dense float vectors bbased on approximate Angular similarity.
+Retrieve dense float vectors based on approximate Angular similarity.
 
 ```json
 GET /my-index/_search
@@ -562,17 +564,17 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Indexed field. Must use `lsh` mapping model with similarity `angular`.|
+|1|Indexed field. Must use `lsh` mapping model with `angular` similarity.|
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
 |4|Similarity function.|
 |5|Number of candidates. See the section on LSH Search Strategy.|
 
-### L1 LSH Model
+### L1 LSH Query
 
 Work in progress.
 
-### L2 LSH Model
+### L2 LSH Query
 
 Retrieve dense float vectors based on approximate L2 similarity.
 
@@ -596,7 +598,7 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Indexed field. Must use `lsh` mapping model with similarity `l2`.|
+|1|Indexed field. Must use `lsh` mapping model with `l2` similarity.|
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
 |4|Similarity function.|
@@ -624,3 +626,17 @@ The tables below show valid model/query combinations. Rows are models and column
 |Exact (i.e. no model specified) |✔ (A, L1, L2) |x           |x      |
 |Angular LSH                     |✔ (A, L1, L2) |✔           |x      |
 |L2 LSH                          |✔ (A, L1, L2) |x           |✔      |
+
+
+## Miscellaneous Implementation Details
+
+Here are some other things worth knowing. Perhaps there will be a more cohesive way to present these in the future.
+
+### Creating and Storing Models
+
+### Computing and Storing Hashes
+
+### Caching Mappings and Vectors
+
+### Parallelism
+
