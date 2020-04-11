@@ -1,59 +1,174 @@
 ---
 layout: default
-title: Concepts and API
+title: REST API
 nav_order: 3
-description: "Describing Elastiknn Concepts and the Associated API"
-permalink: /concepts-and-api/
+description: "Elastiknn REST API"
+permalink: /rest-api
 ---
 
-# JSON API
+# REST API
 {: .no_toc }
+
+This document covers the REST API for using Elastiknn.
+Once you've [installed Elastiknn](/installation/), you can use the REST API just like you would use the [official Elasticsearch REST APIs](https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html).
 
 1. TOC
 {:toc}
 
-## Mappings, Datatypes, Models
+## Mappings
 
-In order to store vectors you first define a [mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html) where one of the fiels uses an Elastiknn vector datatype.
+Before indexing vectors you must define a mapping specifying one of the two vector datatypes and a small handful of other properties. These determine how to store vectors for various kinds of searches.
 
-Alongside the datatype, you specify the vector's dimensions and an optional model. The model determines how each vector is pre-processed to support different kinds of searches. It's not required to support exact (i.e. exhaustive) queries, but is required if you want to run approximate queries.
+The general structure of specifying a mapping looks like this:
 
-A mapping is applied using a PUT request, for example:
-
-```sh
-curl -X PUT "localhost:9200/my-index/_mapping?pretty" -H 'Content-Type: application/json' -d'
+```json
+PUT /my-index/_mapping
 {
-  "properties": {
-    "my_vec": {
-      "type": "elastiknn_sparse_bool_vector",
-      "elastiknn": {
-        "dims": 9999,
-        "model": "sparse_indexed"
+  "properties": {                               # 1
+    "my_vec": {                                 # 2 
+      "type": "elastiknn_sparse_bool_vector",   # 3
+      "elastiknn": {                            # 4
+        "dims": 100,                            # 5
+        "model": "sparse_indexed",              # 6
+        "..." : "...",                          # 7
       }
     }
   }
-}'
+}
 ```
 
-### Datatypes
+|Property|Description|
+|:--|:--|
+|1|Dictionary of document fields, same as the [official PUT Mapping API](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html)|
+|2|Name of the field containing your vector. This is arbitrary and can be nested under other fields.|
+|3|Type of vector you want to store. See datatypes below.|
+|4|Dictionary of elastiknn settings|
+|5|Dimensionality of your vector. All vectors stored at this field (`my_vec`) must have the same dimensionality.|
+|6|Model type. This and the model parameters will determine what kind of searches you can run. See more on models below.|
+|7|Additional model parameters. See models below.|
 
-#### elastiknn_dense_float_vector datatype
+### elastiknn_sparse_bool_vector Datatype
 
-The `elastiknn_dense_float_vector` is optimized for vectors of floating point numbers where all of the indices hold a value. Typically these contain anywhere up to about 1000 values. They can hold more, but you're probably better off performing some dimensionality reduction to get down to 1000 or fewer. Internally they are stored as 32-bit Java Floats.
+This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any given document contains a very small fraction of all words. Internally, Elastiknn saves space by only storing a list of the true indices.
 
-#### elastiknn_sparse_bool_vector datatype
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_sparse_bool_vector",  # 1
+            "elastiknn": {
+                "dims": 25000,                       # 2
+                "..." : "...",                       # 3
+            }
+        }
+    }
+}
+```
 
-The `elastiknn_sparse_bool_vector` is optimized for sparse vectors in which each index is either `true` or `false` (i.e. present/missing) and a small fraction of the indices in any given vector are `true`. 
-They are stored in a way that only enumerates the `true` indices to avoid wasting space.
+|Property|Description|
+|:--|:--|
+|1|The type name. Case sensitive.|
+|2|Dimensionality of the vector. This is the total number of possible indices.|
+|3|Aditional model parameters. See models below.|
 
-### Models
+### elastiknn_dense_float_vector Datatype
 
-TODO
+This type is optimized for vectors where each index is a floating point number, all of the indices are populated, and the dimensionality usually doesn't exceed ~1000. For example, you might store a word embedding or an image vector. Internally, Elastiknn uses Java Floats to store the values.
+
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_dense_float_vector",  # 1
+            "elastiknn": {
+                "dims": 100,                         # 2
+                "..." : "...",                       # 3
+            }
+        }
+    }
+}
+```
+
+|Property|Description|
+|:--|:--|
+|1|The type name. Case sensitive.|
+|2|Dimensionality of the vector. This shouldn't exceed single-digit thousands. If it does, consider doing some sort of dimensionality reduction.|
+|3|Aditional model parameters. See models below.|
+
+### Exact Model
+
+The exact model will allow you to run exact searches. These don't levarage any indexing constructs and have `O(n^2)` runtime, where `n` is the total number of documents.
+
+You don't need to supply any `"model": "..."` value or any model parameters to use this model.
+
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_(dense_float | sparse_bool)_vector",  # 1
+            "elastiknn": {
+                "dims": 100,                                         # 2
+            }
+        }
+    }
+}
+```
+
+|Property|Description|
+|:--|:--|
+|1|Vector datatype. Both dense float and sparse bool are supported|
+|2|Vector dimensionality. Always required.|
+
+### Sparse Indexed Model
+
+The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. Specifically, it indexes each of of true indices as a Lucene term, basically treating true indices like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or experience query failures.
+
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_sparse_bool_vector",  # 1
+            "elastiknn": {
+                "dims": 100,                         # 2
+                "model": "sparse_indexed",           # 3
+            }
+        }
+    }
+}
+```
+
+|Property|Description|
+|:--|:--|
+|1|Vector datatype. Only sparse bool vectors are supported with this model.|
+|2|Vector dimensionality. Always required.|
+|3|Model type. Case sensitive.|
+
+### Jaccard LSH Model
+
+### Hamming LSH Model
+
+### Angular LSH Model
+
+### L1 LSH Model
 
 ## Vectors
 
-TODO
+### elastiknn_sparse_bool_vector
+
+### elastiknn_dense_float_vector
 
 ## Queries
 
-TODO
+### Query Vector
+
+### Exact Model
+
+### Sparse Indexed Model
+
+### Jaccard LSH Model
+
+## Mapping and Query Compatibility
