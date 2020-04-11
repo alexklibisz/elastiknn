@@ -271,6 +271,7 @@ PUT /my-index/_mapping
                 "similarity": "angular",            # 4
                 "bands": 99,                        # 5
                 "rows": 1,                          # 6
+                "width": 3,                         # 7
             }
         }
     }
@@ -285,6 +286,7 @@ PUT /my-index/_mapping
 |4|Similarity.|
 |5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
 |6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|7|Integer bucket width. This determines how close two vectors have to be, when projected onto a third common vector, in order for the two vectors to fall in the same bucket. Typical values are low single-digit integers.|
 
 ## Vectors
 
@@ -632,11 +634,26 @@ The tables below show valid model/query combinations. Rows are models and column
 
 Here are some other things worth knowing. Perhaps there will be a more cohesive way to present these in the future.
 
-### Creating and Storing Models
+### Storing Model Parameters
 
-### Computing and Storing Hashes
+The LSH models all use randomized parameters to hash vectors. The simplest example is the bit-sampling model for Hamming similarity, which is parameterized by a list of randomly sampled indices. A more complicated example is the stable distributions model for L2 similarity, which is parameterized by a set of random unit vectors and a set of random bias values. These parameters aren't actually stored anywhere in Elasticsearch. Rather, they are lazily re-computed from a fixed random seed each time they are needed. The advantage of this is that you don't have to worry about storing and synchronizing potentially large parameter documents somewhere in the cluster. The disadvantage is that it's expensive to re-compute the randomized parameters. So instead we keep an internal cache of models, keyed on the model hyperparameters (e.g. `bands`, `rows`, etc.). The hyperparameters are stored inside the mappings where they are originally defined.
 
-### Caching Mappings and Vectors
+### Transforming and Indexing Vectors
+
+Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. All vectors index a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) containing a serialized version of the vector, as well as term fields based on the vector's mapping. For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in a doc values field and the vector's hash values as a set of Lucene Terms which point back to the document and field containing the vector. All of this transformation is part of the implementation for the `elastiknn_sparse_bool_vector` and `elastiknn_dense_float_vector` datatypes.
+
+### Caching Mappings
+
+When a user submits an `elastiknn_nearest_neighbors` query, Elastiknn has to retrieve the mapping for the indexed vector field in order to validate and hash the query vector. Mappings are typically static, so Elastiknn keeps an in-memory cache of mappings with a one minute expiration to avoid repeatedly requesting an unchanged mapping for every query. This cache is local to each Elasticsearch node.
+
+The practical implication is that if you intend to delete and re-create an index with different Elastiknn mappings, you should wait more than 60 seconds between deleting and running new queries. In reality it usually takes much longer than one minute to delete, re-create, and populate an index.
+
+### Caching Vectors
+
+To compute exact similarities, Elastiknn has to retrieve the serialized version of each indexed vector, deserialize it, and instantiate a new object. Elasticsearch documents are typically static, especially while running high volumes of queries. So Elastiknn keeps an in-memory cache of deserialized vectors with a one minute expiration on each Elasticsearch node.
+
+The practical implication is that you should wait more than one minute between updating vector contents and running queries that might access the modified vectors.
 
 ### Parallelism
 
+From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. This means the simplest way to increase query parallelism is to add shards to your index. Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.

@@ -14,7 +14,7 @@ private[elastiknn] object VecCache {
 
   private def build[V <: Vec]: IndexFieldCache[V] =
     CacheBuilder.newBuilder
-      .expireAfterWrite(90, TimeUnit.SECONDS)
+      .expireAfterWrite(1, TimeUnit.MINUTES)
       .build(new CacheLoader[(String, String), ContextCache[V]] {
         override def load(key: (String, String)): LoadingCache[LeafReaderContext, DocIdCache[V]] =
           CacheBuilder.newBuilder.build(new CacheLoader[LeafReaderContext, DocIdCache[V]] {

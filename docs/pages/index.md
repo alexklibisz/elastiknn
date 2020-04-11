@@ -24,6 +24,7 @@ permalink: /
 
 - Approximate queries for L1 similarity.
 - Approximate queries using Multiprobe Locality Sensitive Hashing.
+- Accessors for using Elastiknn vectors in Painless scripts.
 
 ### Use Cases
 
