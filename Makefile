@@ -149,5 +149,6 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_main)/docs/pdoc
 
 publish/site: .mk/jekyll-site-build
+	# TODO: fix this so that it doesn't delete docs directory.
 	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)
 	
