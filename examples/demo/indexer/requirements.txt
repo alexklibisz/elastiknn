@@ -1,0 +1,5 @@
+-e ../../../client-python/
+requests==2.23.0
+dataclasses==0.6
+dataclasses-json==0.3.7
+keras==2.3.1
