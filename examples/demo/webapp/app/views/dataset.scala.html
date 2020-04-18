@@ -3,8 +3,15 @@
 @main(dataset.prettyName) {
     <h2>@(dataset.prettyName) - @(queryId)</h2>
 
-    @for(x <- results; y <- x) {
-        <p>@(y.id) @(y.score)</p>
-    }
+    <p><a href="@routes.DemoController.dataset(dataset.permalink, None)">Random</a></p>
 
+    @for(x <- results) {
+        @for(y <- x) {
+            @y match {
+                case img: SearchResult.Image => { <img src="data:image/png;base64, @(img.b64)"> }
+                case other => { <p>Other @(other.toString)</p> }
+            }
+        }
+        <hr/>
+    }
 }
