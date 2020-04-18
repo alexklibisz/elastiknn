@@ -8,7 +8,7 @@ import com.sksamuel.elastic4s.requests.searches.{SearchBodyBuilderFn, SearchRequ
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Json}
 
-case class Dataset(prettyName: String, name: String, examples: Seq[Example])
+case class Dataset(prettyName: String, sourceName: String, permalink: String, examples: Seq[Example])
 
 case class Example(name: String, index: String, mapping: PutMappingRequest, query: SearchRequest)
 
@@ -32,6 +32,7 @@ object Dataset extends ElastiknnRequests {
     Dataset(
       "MNIST with Jaccard Similarity",
       "mnist_binary",
+      "mnist-jaccard",
       Seq(
         example("Exact",
                 "mnist-jaccard-exact",
@@ -46,9 +47,32 @@ object Dataset extends ElastiknnRequests {
                 Mapping.JaccardLsh(784, 100, 1),
                 (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 100)),
         example("Jaccard LSH 1",
-                "mnist-jaccard-lsh-1",
-                Mapping.JaccardLsh(784, 100, 1),
+                "mnist-jaccard-lsh-2",
+                Mapping.JaccardLsh(784, 100, 2),
                 (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 100)),
+      )
+    ),
+    Dataset(
+      "MNIST with Hamming Similarity",
+      "mnist_binary",
+      "mnist-hamming",
+      Seq(
+        example("Exact",
+                "mnist-hamming-exact",
+                Mapping.SparseBool(784),
+                (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)),
+        example("Sparse Indexed",
+                "mnist-hamming-sparse-indexed",
+                Mapping.SparseBool(784),
+                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)),
+        example("Jaccard LSH 1",
+                "mnist-hamming-lsh-1",
+                Mapping.HammingLsh(784, 100),
+                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 100)),
+        example("Jaccard LSH 1",
+                "mnist-hamming-lsh-2",
+                Mapping.HammingLsh(784, 200),
+                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 100)),
       )
     )
   )

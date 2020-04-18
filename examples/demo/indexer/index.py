@@ -88,8 +88,8 @@ if __name__ == "__main__":
             es.indices.put_mapping(json.loads(ex.mapping), index=ex.index)
 
             def gen():
-                for _source in docs:
-                    yield {"_op_type": "index", "_index": ex.index, "_source": _source }
+                for i, _source in enumerate(docs):
+                    yield {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
 
             (n, errs) = bulk(es, gen())
             assert len(errs) == 0, errs

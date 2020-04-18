@@ -5,5 +5,5 @@
 
 GET     /                                     controllers.DemoController.index
 GET     /assets/*file                         controllers.Assets.versioned(path="/public", file: Asset)
-GET     /dataset/:datasetId                   controllers.DemoController.dataset(datasetId, queryId: Option[String])
+GET     /dataset/:permalink                   controllers.DemoController.dataset(permalink, queryId: Option[String])
 GET     /datasets                             controllers.DemoController.datasets()

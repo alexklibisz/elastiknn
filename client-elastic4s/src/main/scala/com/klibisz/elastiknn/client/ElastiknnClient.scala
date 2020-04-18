@@ -49,10 +49,10 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 object ElastiknnClient {
 
   def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
-      implicit ec: ExecutionContext): ElastiknnClient[Future] = {
+      implicit ec: ExecutionContext): ElastiknnFutureClient = {
     val rc: RestClient = RestClient.builder(new HttpHost(host, port)).build()
     val jc: JavaClient = new JavaClient(rc)
-    new ElastiknnClient[Future] {
+    new ElastiknnFutureClient {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
       implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
       val elasticClient: ElasticClient = ElasticClient(jc)
@@ -65,6 +65,8 @@ object ElastiknnClient {
           }
         } else future
       }
+
+      override def toString: String = s"${ElastiknnClient.getClass.getSimpleName} connected to $host:$port"
       override def close(): Unit = elasticClient.close()
     }
   }
