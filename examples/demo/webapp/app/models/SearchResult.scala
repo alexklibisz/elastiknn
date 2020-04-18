@@ -1,6 +1,9 @@
 package models
 
 import com.sksamuel.elastic4s.Hit
+import com.sksamuel.elastic4s.requests.indexes.PutMappingBuilderFn
+import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
+import com.sksamuel.elastic4s.requests.searches.{SearchBodyBuilderFn, SearchRequest}
 
 import scala.util.Try
 import io.circe.generic.auto._
@@ -29,4 +32,9 @@ object SearchResult {
     }
   }
 
+}
+
+case class ExampleWithResults(example: Example, query: SearchRequest, results: Seq[SearchResult]) {
+  def mappingJsonString: Try[String] = parse(PutMappingBuilderFn(example.mapping).string()).map(_.spaces2SortKeys).toTry
+  def queryJsonString: Try[String] = parse(SearchBodyBuilderFn(query).string()).map(_.spaces2SortKeys).toTry
 }

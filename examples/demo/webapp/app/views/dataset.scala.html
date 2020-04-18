@@ -1,17 +1,61 @@
-@(dataset: Dataset, queryId: String, results: Seq[Seq[SearchResult]])
+@(dataset: Dataset, queryId: String, ewrs: Seq[ExampleWithResults])
+
+@import views.utils._
 
 @main(dataset.prettyName) {
-    <h2>@(dataset.prettyName) - @(queryId)</h2>
 
-    <p><a href="@routes.DemoController.dataset(dataset.permalink, None)">Random</a></p>
+    <h2>@(dataset.prettyName)</h2>
+    <p>
+        Showing results for @(ewrs.length) queries &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href="@routes.DemoController.dataset(dataset.permalink, None)" class="btn-sm btn-info">Search Again</a>
+    </p>
 
-    @for(x <- results) {
-        @for(y <- x) {
-            @y match {
-                case img: SearchResult.Image => { <img src="data:image/png;base64, @(img.b64)"> }
-                case other => { <p>Other @(other.toString)</p> }
-            }
-        }
-        <hr/>
+    <div class="container">
+
+    @for(ewr <- ewrs) {
+        <h3>@ewr.example.name</h3>
+            <div class="row">
+                <div class="col-7">
+                    <h4>Results</h4>
+<!--                    <table class="table table-hover">-->
+<!--                        <thead>-->
+<!--                        <tr>-->
+<!--                            <th scope="col"></th>-->
+<!--                            <th scope="col">ID</th>-->
+<!--                            <th scope="col">Score</th>-->
+<!--                        </tr>-->
+<!--                        </thead>-->
+<!--                        <tbody>-->
+<!--                        <tr>-->
+<!--                            <th scope="row">Default</th>-->
+<!--                            <td>Column content</td>-->
+<!--                            <td>Column content</td>-->
+<!--                        </tr>-->
+<!--                        <tr class="table-warning">-->
+<!--                            <th scope="row">Warning</th>-->
+<!--                            <td>Column content</td>-->
+<!--                            <td>Column content</td>-->
+<!--                        </tr>-->
+<!--                        </tbody>-->
+<!--                    </table>-->
+                    @for(result <- ewr.results) {
+
+                        @result match {
+                            case img: SearchResult.Image => { <img src="data:image/png;base64, @(img.b64)"> }
+                            case other => { <p>Other @(other.toString)</p> }
+                        }
+                    }
+                </div>
+                <div class="col-5">
+                    <h4>Mapping</h4>
+                    <pre><code>@ewr.mappingJsonString.get</code></pre>
+                    <h4>Query</h4>
+                    <pre><code>@ewr.queryJsonString.get</code></pre>
+                </div>
+                <div class="col-12">
+                    <hr>
+                </div>
+            </div>
     }
+    </div>
 }

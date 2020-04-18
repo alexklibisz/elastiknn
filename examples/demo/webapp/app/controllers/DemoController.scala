@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import javax.inject._
-import models.Dataset
+import models.{Dataset, ExampleWithResults}
 import play.api.libs.circe.Circe
 import play.api.mvc._
 
@@ -30,15 +30,15 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
         queryIdOpt match {
           case Some(queryId) =>
             for {
-              results <- Future.traverse(ds.examples) { ex =>
+              examplesWithResults <- Future.traverse(ds.examples) { ex =>
                 val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
                 for {
                   response <- eknn.execute(q)
                   hits = response.result.hits.hits.toSeq
-                  parsed <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
-                } yield parsed
+                  results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
+                } yield ExampleWithResults(ex, q, results)
               }
-            } yield Ok(views.html.dataset(ds, queryId, results))
+            } yield Ok(views.html.dataset(ds, queryId, examplesWithResults))
           case None =>
             for {
               countRes <- eknn.execute(count(ds.examples.head.index))

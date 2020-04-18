@@ -36,7 +36,7 @@ object Dataset extends ElastiknnRequests {
 
   val defaults: Seq[Dataset] = Seq(
     Dataset(
-      "MNIST with Jaccard Similarity",
+      "MNIST Digits with Jaccard Similarity",
       "mnist_binary",
       "mnist-jaccard",
       Seq(
@@ -59,7 +59,7 @@ object Dataset extends ElastiknnRequests {
       )
     ),
     Dataset(
-      "MNIST with Hamming Similarity",
+      "MNIST Digits with Hamming Similarity",
       "mnist_binary",
       "mnist-hamming",
       Seq(
