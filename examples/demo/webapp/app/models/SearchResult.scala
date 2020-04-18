@@ -26,9 +26,11 @@ object SearchResult {
   }
 
   object WordVector {
-    def parseHit(hit: Hit): Try[WordVector] = {
-      ???
-    }
+    case class Source(word: String)
+    def parseHit(hit: Hit): Try[WordVector] =
+      for {
+        Source(word) <- decode[Source](hit.sourceAsString).toTry
+      } yield WordVector(word = word, hit.id, hit.score)
   }
 
 }

@@ -1,22 +1,29 @@
-@(dataset: Dataset, queryId: String, ewrs: Seq[ExampleWithResults])
+@(dataset: Dataset, queryId: String, corpusSize: Long, ewrs: Seq[ExampleWithResults])
 
 @import views.utils._
 
 @main(dataset.prettyName) {
 
-    <div class="jumbotron">
+    <div class="jumbotron" style="padding:15px">
         <h2>@(dataset.prettyName)</h2>
-        <hr class="my-4">
+        <hr>
         <p class="lead">
-            Showing @(ewrs.length) nearest neighbors searches for @ewrs.head.results.head match {
+            Nearest neighbors for @ewrs.head.results.head match {
                 case img: SearchResult.Image => { image <img src="data:image/png;base64,@(img.b64)" title="Image for item @(queryId)"/> }
-                case other => { Other @(other.toString) }
-            }
+                case wv: SearchResult.WordVector => { word <b>@wv.word</b> }
+            } from a corpus of @(corpusSize) items.
         </p>
         <p>
             <a href="@routes.DemoController.dataset(dataset.permalink, Some(queryId))" class="btn-sm btn-primary">Re-run Same Search</a>
             <a href="@routes.DemoController.dataset(dataset.permalink, None)" class="btn-sm btn-primary">Run a Random Search</a>
         </p>
+        <hr>
+        <p>
+            <small>
+                <em>Each row in the results table shows the neighbor, its similarity score, and a check mark if it's one of the true (i.e. exact) nearest neighbors.</em>
+            </small>
+        </p>
+
     </div>
 
     <hr/>
@@ -42,7 +49,12 @@
                                             <img src="data:image/png;base64,@(img.b64)">
                                         </a>
                                     }
-                                    case other => { <p>Other @(other.toString)</p> }
+                                    case wv: SearchResult.WordVector => {
+                                        <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                           title="Click the word to search for its nearest neighbors">
+                                            @wv.word
+                                        </a>
+                                    }
                                 }
                             </td>
                             <td class="text-right" title="The similarity score for this result was @result.score.">

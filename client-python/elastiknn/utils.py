@@ -42,7 +42,7 @@ def float_vectors_to_ndarray(fvs: List[Vec.DenseFloat]) -> np.ndarray:
 
 
 def ndarray_to_dense_float_vectors(arr: np.ndarray) -> Iterator[Vec.DenseFloat]:
-    return map(lambda row: Vec.DenseFloat(values=list(row)), arr)
+    return map(lambda row: Vec.DenseFloat(values=list(map(float, row))), arr)
 
 
 def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[Vec.SparseBool]:

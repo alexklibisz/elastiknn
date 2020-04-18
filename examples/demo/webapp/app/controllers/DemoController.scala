@@ -30,21 +30,20 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
         queryIdOpt match {
           case Some(queryId) =>
             for {
+              countRes <- eknn.execute(count(ds.examples.head.index))
               examplesWithResults <- Future.traverse(ds.examples) { ex =>
                 val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
-                val t0 = System.currentTimeMillis()
                 for {
                   response <- eknn.execute(q)
-                  dur = System.currentTimeMillis() - t0
                   hits = response.result.hits.hits.toSeq
                   results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
-                } yield ExampleWithResults(ex, q, results, dur)
+                } yield ExampleWithResults(ex, q, results, response.result.took)
               }
-            } yield Ok(views.html.dataset(ds, queryId, examplesWithResults))
+            } yield Ok(views.html.dataset(ds, queryId, countRes.result.count, examplesWithResults))
           case None =>
             for {
               countRes <- eknn.execute(count(ds.examples.head.index))
-              id = Random.nextInt(countRes.result.count.toInt) + 1
+              id = Random.nextInt(countRes.result.count.toInt + 1)
             } yield Redirect(routes.DemoController.dataset(permalink, Some(id.toString)))
         }
 

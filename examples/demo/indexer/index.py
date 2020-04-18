@@ -1,29 +1,29 @@
 import json
 import os
 import sys
-import urllib.request
 from base64 import b64encode
 from io import BytesIO
-from typing import Dict
+from pprint import pprint
+from typing import Any
 
-import h5py
 from PIL import Image
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json, LetterCase
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from elastiknn.utils import *
+from keras.datasets import cifar100, cifar10, mnist
+import gensim.downloader as gensimdl
 from requests import get
-
-DATASETS_DIR = os.path.expanduser("~/.elastiknn-data")
 
 @dataclass_json
 @dataclass
 class Example:
     name: str
     index: str
+    field: str
     mapping: str
-    query: str
+    query: Any
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
@@ -35,32 +35,40 @@ class Dataset:
     examples: List[Example]
 
 
-def load_docs(name: str) -> List[Dict]:
-
-    if not os.path.exists(DATASETS_DIR):
-        os.mkdir(DATASETS_DIR)
+def load_docs(name: str):
 
     if name in {"mnist", "mnist_binary"}:
-        path = f"{DATASETS_DIR}/mnist.hdf5"
-        if not os.path.exists(path):
-            urllib.request.urlretrieve("http://ann-benchmarks.com/mnist-784-euclidean.hdf5", path)
-        with h5py.File(path, "r") as hf:
-            mat = hf['train'][...]
-        if name == "mnist_binary":
-            vecs = canonical_vectors_to_elastiknn(mat / 256 > 0)
-        else:
-            vecs = canonical_vectors_to_elastiknn(mat)
-        # Convert the vec into a base64 grayscale image.
-        docs = []
-        for imgvec, ekvec in zip(mat, vecs):
-            img = Image.fromarray(imgvec.reshape(28, 28)).convert("L")
-            buf = BytesIO()
-            img.save(buf, format="JPEG")
-            b64 = b64encode(buf.getvalue()).decode()
-            docs.append(dict(vec=ekvec.to_dict(), b64=b64))
-        return docs
+        (xtrn, _), (xtst, _) = mnist.load_data()
+        for imgs in [xtrn, xtst]:
+            for img in imgs:
+                jpg = Image.fromarray(img)
+                buf = BytesIO()
+                jpg.save(buf, format="JPEG")
+                b64 = b64encode(buf.getvalue()).decode()
+                [vec] = ndarray_to_sparse_bool_vectors(img.reshape((1, np.product(img.shape))) / 256.0 > 0)
+                yield dict(vec=vec.to_dict(), b64=b64)
 
-    raise NameError
+    elif name == "cifar":
+        (xtrn10, _), (xtst10, _) = cifar10.load_data()
+        (xtrn100, _), (xtst100, _) = cifar100.load_data(label_mode='fine')
+        for imgs in [xtrn10, xtst10, xtrn100, xtst100]:
+            for img in imgs:
+                jpg = Image.fromarray(img)
+                buf = BytesIO()
+                jpg.save(buf, format="JPEG")
+                b64 = b64encode(buf.getvalue()).decode()
+                img_flat_scaled = img.reshape((1, np.product(img.shape))) / 256.0
+                [vec] = ndarray_to_dense_float_vectors(img_flat_scaled)
+                yield dict(vec=vec.to_dict(), b64=b64)
+
+    elif name == "word2vec-google":
+        ds = gensimdl.load('glove-wiki-gigaword-50')
+        for (word, info) in ds.vocab.items():
+            [vec] = ndarray_to_dense_float_vectors(np.expand_dims(ds.vectors[info.index], 0))
+            yield dict(word=word, vec=vec.to_dict())
+
+    else:
+        raise NameError(name)
 
 
 if __name__ == "__main__":
@@ -77,7 +85,6 @@ if __name__ == "__main__":
     index_body = dict(settings=dict(index=dict(number_of_shards=len(data_nodes))))
 
     for ds in datasets:
-        docs = load_docs(ds.source_name)
 
         for ex in ds.examples:
             print(f"Building index {ex.index}")
@@ -89,7 +96,8 @@ if __name__ == "__main__":
             es.indices.put_mapping(json.loads(ex.mapping), index=ex.index)
 
             def gen():
-                for i, _source in enumerate(docs):
+                for i, _source in enumerate(load_docs(ds.source_name)):
+                    print(_source)
                     yield {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
 
             (n, errs) = bulk(es, gen())
