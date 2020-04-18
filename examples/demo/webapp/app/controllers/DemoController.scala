@@ -32,11 +32,13 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
             for {
               examplesWithResults <- Future.traverse(ds.examples) { ex =>
                 val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
+                val t0 = System.currentTimeMillis()
                 for {
                   response <- eknn.execute(q)
+                  dur = System.currentTimeMillis() - t0
                   hits = response.result.hits.hits.toSeq
                   results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
-                } yield ExampleWithResults(ex, q, results)
+                } yield ExampleWithResults(ex, q, results, dur)
               }
             } yield Ok(views.html.dataset(ds, queryId, examplesWithResults))
           case None =>

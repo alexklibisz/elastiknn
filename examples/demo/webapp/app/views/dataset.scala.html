@@ -4,58 +4,71 @@
 
 @main(dataset.prettyName) {
 
-    <h2>@(dataset.prettyName)</h2>
-    <p>
-        Showing results for @(ewrs.length) queries &nbsp;&nbsp;&nbsp;&nbsp;
-        <a href="@routes.DemoController.dataset(dataset.permalink, None)" class="btn-sm btn-info">Search Again</a>
-    </p>
+    <div class="jumbotron">
+        <h2>@(dataset.prettyName)</h2>
+        <hr class="my-4">
+        <p class="lead">
+            Showing @(ewrs.length) nearest neighbors searches for @ewrs.head.results.head match {
+                case img: SearchResult.Image => { image <img src="data:image/png;base64,@(img.b64)" title="Image for item @(queryId)"/> }
+                case other => { Other @(other.toString) }
+            }
+        </p>
+        <p>
+            <a href="@routes.DemoController.dataset(dataset.permalink, Some(queryId))" class="btn-sm btn-primary">Re-run Same Search</a>
+            <a href="@routes.DemoController.dataset(dataset.permalink, None)" class="btn-sm btn-primary">Run a Random Search</a>
+        </p>
+    </div>
 
-    <div class="container">
+    <hr/>
 
     @for(ewr <- ewrs) {
         <h3>@ewr.example.name</h3>
-            <div class="row">
-                <div class="col-7">
-                    <h4>Results</h4>
-<!--                    <table class="table table-hover">-->
-<!--                        <thead>-->
-<!--                        <tr>-->
-<!--                            <th scope="col"></th>-->
-<!--                            <th scope="col">ID</th>-->
-<!--                            <th scope="col">Score</th>-->
-<!--                        </tr>-->
-<!--                        </thead>-->
-<!--                        <tbody>-->
-<!--                        <tr>-->
-<!--                            <th scope="row">Default</th>-->
-<!--                            <td>Column content</td>-->
-<!--                            <td>Column content</td>-->
-<!--                        </tr>-->
-<!--                        <tr class="table-warning">-->
-<!--                            <th scope="row">Warning</th>-->
-<!--                            <td>Column content</td>-->
-<!--                            <td>Column content</td>-->
-<!--                        </tr>-->
-<!--                        </tbody>-->
-<!--                    </table>-->
+        <div class="row">
+            <div class="col-4">
+                <h4>Results
+                <span style="float: right"
+                      class="badge badge-pill badge-light"
+                      title="The search took @durationSeconds(ewr.durationMillis) seconds to run">
+                    <small>@durationSeconds(ewr.durationMillis)</small>
+                </span></h4>
+                <table class="table table-sm">
                     @for(result <- ewr.results) {
-
-                        @result match {
-                            case img: SearchResult.Image => { <img src="data:image/png;base64, @(img.b64)"> }
-                            case other => { <p>Other @(other.toString)</p> }
-                        }
+                        <tr>
+                            <td style="width:100%">
+                                @result match {
+                                    case img: SearchResult.Image => {
+                                        <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                           title="Click the image to search for its nearest neighbors.">
+                                            <img src="data:image/png;base64,@(img.b64)">
+                                        </a>
+                                    }
+                                    case other => { <p>Other @(other.toString)</p> }
+                                }
+                            </td>
+                            <td class="text-right" title="The similarity score for this result was @result.score.">
+                                @(f"${result.score}%.2f")
+                            </td>
+                            @if(resultIsCorrect(result, ewrs.head.results)) {
+                                <td class="text-right" title="This result is a true nearest neighbor">&#10004;</td>
+                            } else {
+                                <td class="text-right" title="This result is _not_ a true nearest neighbor"></td>
+                            }
+                        </tr>
                     }
-                </div>
-                <div class="col-5">
-                    <h4>Mapping</h4>
-                    <pre><code>@ewr.mappingJsonString.get</code></pre>
-                    <h4>Query</h4>
-                    <pre><code>@ewr.queryJsonString.get</code></pre>
-                </div>
-                <div class="col-12">
-                    <hr>
-                </div>
+                </table>
             </div>
+            <div class="col-4">
+                <h4 title="This is the mapping used to store the vectors.">Mapping</h4>
+                <pre><code><small>@ewr.mappingJsonString.get</small></code></pre>
+            </div>
+            <div class="col-4">
+                <h4 title="This is the query used to get the results.">Query</h4>
+                <pre><code><small>@ewr.queryJsonString.get</small></code></pre>
+            </div>
+            <div class="col-12">
+                <hr/>
+            </div>
+        </div>
     }
-    </div>
+
 }
