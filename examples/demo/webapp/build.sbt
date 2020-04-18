@@ -12,6 +12,7 @@ resolvers += Resolver.mavenLocal
 libraryDependencies ++= Seq(
   guice,
   "com.klibisz.elastiknn" %% "client-elastic4s" % "0.1.0-PRE15",
+  "com.sksamuel.elastic4s" %% "elastic4s-json-circe" % "7.6.0",
   "com.dripower" % "play-circe_2.12" % "2812.0",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )

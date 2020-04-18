@@ -1,6 +1,8 @@
 package controllers
 
+import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.client.ElastiknnFutureClient
+import com.klibisz.elastiknn.client.ElastiknnRequests._
 import com.sksamuel.elastic4s.ElasticDsl._
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -27,12 +29,21 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
       case Some(ds) =>
         queryIdOpt match {
           case Some(queryId) =>
-            Future.successful(Ok(views.html.dataset(ds, queryId)))
+            for {
+              results <- Future.traverse(ds.examples) { ex =>
+                val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
+                for {
+                  response <- eknn.execute(q)
+                  hits = response.result.hits.hits.toSeq
+                  parsed <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
+                } yield parsed
+              }
+            } yield Ok(views.html.dataset(ds, queryId, results))
           case None =>
             for {
               countRes <- eknn.execute(count(ds.examples.head.index))
               id = Random.nextInt(countRes.result.count.toInt) + 1
-            } yield Redirect(controllers.routes.DemoController.dataset(permalink, Some(id.toString)))
+            } yield Redirect(routes.DemoController.dataset(permalink, Some(id.toString)))
         }
 
       case None => Future.successful(NotFound(views.html.notfound()))

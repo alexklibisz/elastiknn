@@ -2,19 +2,24 @@ package models
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.ElastiknnRequests
+import com.sksamuel.elastic4s.Hit
 import com.sksamuel.elastic4s.requests.indexes.PutMappingBuilderFn
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
-import com.sksamuel.elastic4s.requests.searches.{SearchBodyBuilderFn, SearchRequest}
 import io.circe.generic.semiauto._
 import io.circe.{Encoder, Json}
 
-case class Dataset(prettyName: String, sourceName: String, permalink: String, examples: Seq[Example])
+import scala.util.Try
 
-case class Example(name: String, index: String, mapping: PutMappingRequest, query: SearchRequest)
+case class Dataset(prettyName: String, sourceName: String, permalink: String, examples: Seq[Example]) {
+  def parseHit(hit: Hit): Try[SearchResult] =
+    if (sourceName.startsWith("mnist")) SearchResult.Image.parseHit(hit) else SearchResult.WordVector.parseHit(hit)
+}
+
+case class Example(name: String, index: String, field: String, mapping: PutMappingRequest, query: NearestNeighborsQuery)
 
 object Example {
   implicit val encodePutMapping: Encoder[PutMappingRequest] = (a: PutMappingRequest) => Json.fromString(PutMappingBuilderFn(a).string())
-  implicit val encodeSearchRequest: Encoder[SearchRequest] = (a: SearchRequest) => Json.fromString(SearchBodyBuilderFn(a).string())
+  implicit val encodeQuery: Encoder[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
   implicit val encoder: Encoder[Example] = deriveEncoder[Example]
 }
 
@@ -24,8 +29,9 @@ object Dataset extends ElastiknnRequests {
     Example(
       name,
       index,
+      "vec",
       putMapping(index, "vec", mapping),
-      nearestNeighborsQuery(index, mkQuery("vec", Vec.Indexed(index, "1", "vec")), 10, true)
+      mkQuery("vec", Vec.Indexed(index, "1", "vec"))
     )
 
   val defaults: Seq[Dataset] = Seq(
@@ -40,7 +46,7 @@ object Dataset extends ElastiknnRequests {
                 (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Jaccard)),
         example("Sparse Indexed",
                 "mnist-jaccard-sparse-indexed",
-                Mapping.SparseBool(784),
+                Mapping.SparseIndexed(784),
                 (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)),
         example("Jaccard LSH 1",
                 "mnist-jaccard-lsh-1",
@@ -63,7 +69,7 @@ object Dataset extends ElastiknnRequests {
                 (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)),
         example("Sparse Indexed",
                 "mnist-hamming-sparse-indexed",
-                Mapping.SparseBool(784),
+                Mapping.SparseIndexed(784),
                 (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)),
         example("Jaccard LSH 1",
                 "mnist-hamming-lsh-1",

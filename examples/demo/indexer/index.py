@@ -29,8 +29,9 @@ class Example:
 @dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class Dataset:
-    name: str
+    source_name: str
     pretty_name: str
+    permalink: str
     examples: List[Example]
 
 
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     index_body = dict(settings=dict(index=dict(number_of_shards=len(data_nodes))))
 
     for ds in datasets:
-        docs = load_docs(ds.name)
+        docs = load_docs(ds.source_name)
 
         for ex in ds.examples:
             print(f"Building index {ex.index}")

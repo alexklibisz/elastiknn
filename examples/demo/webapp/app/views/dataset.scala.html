@@ -1,5 +1,10 @@
-@(dataset: Dataset, id: String)
+@(dataset: Dataset, queryId: String, results: Seq[Seq[SearchResult]])
 
 @main(dataset.prettyName) {
-    <h2>@(dataset.prettyName) - @(id)</h2>
+    <h2>@(dataset.prettyName) - @(queryId)</h2>
+
+    @for(x <- results; y <- x) {
+        <p>@(y.id) @(y.score)</p>
+    }
+
 }
