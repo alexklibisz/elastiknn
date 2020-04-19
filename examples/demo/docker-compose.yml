@@ -15,7 +15,7 @@ services:
       - ELASTICSEARCH_HOST=elasticsearch
       - PLAY_HTTP_SECRET_KEY=${PLAY_HTTP_SECRET_KEY:-changeme}
       - JAVA_OPTS=-Xms50M -Xmx1G
-    restart: on-failure:10
+    restart: on-failure:3
 
   # Single elasticsearch container.
   elasticsearch:
@@ -30,7 +30,7 @@ services:
       - cluster.name=demo
       - cluster.initial_master_nodes=elasticsearch
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms2G -Xmx2G
+      - ES_JAVA_OPTS=-Xms5G -Xmx5G
     ulimits:
       nofile:
         soft: 65536
@@ -40,4 +40,4 @@ services:
         hard: -1
     volumes:
       - ./esdata:/usr/share/elasticsearch/data
-    restart: on-failure:10
+    restart: on-failure:3
