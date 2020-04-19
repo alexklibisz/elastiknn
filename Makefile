@@ -50,8 +50,10 @@ clean:
 	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
-.mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
+.mk/vm-max-map-count:
 	sudo sysctl -w vm.max_map_count=262144
+
+.mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local .mk/vm-max-map-count
 	cd testing \
 	&& $(dc) down \
 	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
@@ -84,6 +86,10 @@ run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
 	docker ps | grep kibana
 
+run/demo/app: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
+	cd examples/demo && \
+	PLAY_HTTP_SECRET_KEY=$(shell sha256sum ~/.ssh/id_rsa | cut -d' ' -f1) $(dc) up --build --detach
+
 test/python: .mk/client-python-install
 	cd client-python && $(vpy) -m pytest
 
@@ -95,11 +101,6 @@ test: clean run/cluster
 	$(MAKE) test/python
 
 examples: .mk/example-scala-sbt-client-usage
-
-run/demo/app: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage
-	cd examples/demo && \
-	sudo sysctl -w vm.max_map_count=262144 && \
-	$(dc) up --build --detach
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
