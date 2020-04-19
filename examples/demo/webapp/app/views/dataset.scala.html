@@ -4,7 +4,7 @@
 
 @main(dataset.prettyName) {
 
-    <div class="jumbotron" style="padding:15px">
+    <div class="jumbotron" style="padding:15px;padding-bottom:5px">
         <h2>@(dataset.prettyName)</h2>
         <hr>
         <p class="lead">
@@ -20,7 +20,12 @@
         <hr>
         <p>
             <small>
-                <em>Each row in the results table shows the neighbor, its similarity score, and a check mark if it's one of the true (i.e. exact) nearest neighbors.</em>
+                Each row in the results table shows the neighbor, its similarity score, and a check mark if it's one of the true (i.e. exact) nearest neighbors.
+            </small>
+        </p>
+        <p>
+            <small>
+                Dataset source: <a href="@dataset.sourceLink">@dataset.sourceLink</a>
             </small>
         </p>
 
@@ -71,11 +76,11 @@
             </div>
             <div class="col-4">
                 <h4 title="This is the mapping used to store the vectors.">Mapping</h4>
-                <pre><code><small>@ewr.mappingJsonString.get</small></code></pre>
+                <pre><code>@ewr.mappingJsonString.get</code></pre>
             </div>
             <div class="col-4">
                 <h4 title="This is the query used to get the results.">Query</h4>
-                <pre><code><small>@ewr.queryJsonString.get</small></code></pre>
+                <pre><code>@ewr.queryJsonString.get</code></pre>
             </div>
             <div class="col-12">
                 <hr/>

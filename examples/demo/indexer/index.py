@@ -1,11 +1,13 @@
 import json
 import os
 import sys
+import urllib.request
 from base64 import b64encode
 from io import BytesIO
 from pprint import pprint
 from time import time
 from typing import Any
+from zipfile import ZipFile
 
 from PIL import Image
 from dataclasses import dataclass
@@ -14,8 +16,10 @@ from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from elastiknn.utils import *
 from keras.datasets import cifar100, cifar10, mnist
-import gensim.downloader as gensimdl
+from more_itertools import chunked
 from requests import get
+
+DATA_DIR = os.path.expanduser("~/.elastiknn-data")
 
 @dataclass_json
 @dataclass
@@ -32,13 +36,29 @@ class Example:
 class Dataset:
     source_name: str
     pretty_name: str
+    source_link: str
     permalink: str
     examples: List[Example]
 
 
-def load_docs(name: str):
+def generate_docs(name: str):
+    if not os.path.exists(DATA_DIR):
+        os.mkdir(DATA_DIR)
 
-    if name in {"mnist", "mnist_binary"}:
+    if name == "word2vec-google-300":
+        zipfile = f"{DATA_DIR}/nlpl-20-1.zip"
+        if not os.path.exists(zipfile):
+            urllib.request.urlretrieve("http://vectors.nlpl.eu/repository/20/1.zip", zipfile)
+        with ZipFile(zipfile, "r") as arch:
+            with arch.open("model.txt") as fp:
+                for i, line in enumerate(fp):
+                    tokens = line.decode().strip().split(' ')
+                    word = tokens[0]
+                    vec = Vec.DenseFloat(list(map(float, tokens[1:])))
+                    if len(vec) == 300:
+                        yield dict(word=word, vec=vec.to_dict())
+
+    elif name in {"mnist", "mnist_binary"}:
         (xtrn, _), (xtst, _) = mnist.load_data()
         for imgs in [xtrn, xtst]:
             for img in imgs:
@@ -62,13 +82,6 @@ def load_docs(name: str):
                 [vec] = ndarray_to_dense_float_vectors(img_flat_scaled)
                 yield dict(vec=vec.to_dict(), b64=b64)
 
-    elif name == "word2vec-google":
-        # ds = gensimdl.load("word2vec-google-news-300")
-        ds = gensimdl.load('glove-wiki-gigaword-50')
-        for (word, info) in ds.vocab.items():
-            [vec] = ndarray_to_dense_float_vectors(np.expand_dims(ds.vectors[info.index], 0))
-            yield dict(word=word, vec=vec.to_dict())
-
     else:
         raise NameError(name)
 
@@ -84,27 +97,27 @@ if __name__ == "__main__":
     datasets: List[Dataset] = Dataset.schema().load(res.json(), many=True)
 
     es = Elasticsearch([es_url])
-    # data_nodes = [n for n in es.nodes.info()['nodes'].values() if 'data' in n['roles']]
     index_body = dict(settings=dict(index=dict(number_of_shards=os.cpu_count())))
 
     for ds in datasets:
 
         for ex in ds.examples:
-            print(f"Building index {ex.index}")
-
             if es.indices.exists(ex.index):
                 es.indices.delete(ex.index)
             es.indices.create(ex.index, body=index_body)
             es.indices.refresh(ex.index)
             es.indices.put_mapping(json.loads(ex.mapping), index=ex.index)
 
-            def gen():
-                for i, _source in enumerate(load_docs(ds.source_name)):
-                    yield {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
+        n_docs, t0 = 0, time()
 
-            t0 = time()
-            (n, errs) = bulk(es, gen())
-            assert len(errs) == 0, errs
-            t1 = time()
-            print(f"Indexed {n} documents in {t1 - t0} seconds")
+        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 1000):
+            n_docs += len(chunk)
+            for ex in ds.examples:
+                docs = [
+                    {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
+                    for i, _source in chunk
+                ]
+                (n, errs) = bulk(es, docs)
+                assert len(errs) == 0, errs
 
+        print(f"Indexed {n_docs} documents in {int(time() - t0)} seconds")
