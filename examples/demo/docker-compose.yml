@@ -15,6 +15,7 @@ services:
       - ELASTICSEARCH_HOST=elasticsearch
       - PLAY_HTTP_SECRET_KEY=${PLAY_HTTP_SECRET_KEY:-changeme}
       - JAVA_OPTS=-Xms50M -Xmx1G
+    restart: on-failure:10
 
   # Single elasticsearch container.
   elasticsearch:
@@ -39,3 +40,4 @@ services:
         hard: -1
     volumes:
       - ./esdata:/usr/share/elasticsearch/data
+    restart: on-failure:10
