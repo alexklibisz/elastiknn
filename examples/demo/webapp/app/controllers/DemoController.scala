@@ -8,6 +8,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import javax.inject._
 import models.{Dataset, ExampleWithResults}
+import play.api.Logging
 import play.api.libs.circe.Circe
 import play.api.mvc._
 
@@ -18,6 +19,7 @@ import scala.util.Random
 class DemoController @Inject()(val controllerComponents: ControllerComponents, protected val eknn: ElastiknnFutureClient)(
     implicit ec: ExecutionContext)
     extends BaseController
+    with Logging
     with Circe {
 
   def index() = Action { implicit request: Request[AnyContent] =>
@@ -31,14 +33,26 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
           case Some(queryId) =>
             for {
               countRes <- eknn.execute(count(ds.examples.head.index))
-              examplesWithResults <- Future.traverse(ds.examples) { ex =>
-                val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
-                for {
-                  response <- eknn.execute(q)
-                  hits = response.result.hits.hits.toSeq
-                  results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
-                } yield ExampleWithResults(ex, q, results, response.result.took)
+              // This ensures the search requests execute serially.
+              examplesWithResults <- ds.examples.foldLeft(Future(Vector.empty[ExampleWithResults])) {
+                case (accF, ex) =>
+                  for {
+                    acc <- accF
+                    q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
+                    response <- eknn.execute(q)
+                    hits = response.result.hits.hits.toSeq
+                    results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
+                  } yield acc :+ ExampleWithResults(ex, q, results, response.result.took)
               }
+//              examplesWithResults <- Future.traverse(ds.examples) { ex =>
+//                val q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
+//                for {
+//                  response <- eknn.execute(q)
+//                  _ = println("Returned")
+//                  hits = response.result.hits.hits.toSeq
+//                  results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)
+//                } yield ExampleWithResults(ex, q, results, response.result.took)
+//              }
             } yield Ok(views.html.dataset(ds, queryId, countRes.result.count, examplesWithResults))
           case None =>
             for {
