@@ -88,7 +88,7 @@ def generate_docs(name: str):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 3, "Usage <script> <webapp url> <elasticsearch url> <datasets directory>"
+    assert len(sys.argv) == 3, "Usage <script> <webapp url> <elasticsearch url>"
     app_url = sys.argv[1]
     es_url = sys.argv[2]
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
         n_docs, t0 = 0, time()
 
-        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 100):
+        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 500):
             n_docs += len(chunk)
             for ex in todo:
                 docs = [
@@ -124,5 +124,7 @@ if __name__ == "__main__":
                 ]
                 (n, errs) = bulk(es, docs)
                 assert len(errs) == 0, errs
+            if n_docs > 1000:
+                break
 
         print(f"Indexed {n_docs} documents in {int(time() - t0)} seconds")

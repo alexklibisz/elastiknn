@@ -28,64 +28,75 @@
                 Dataset source: <a href="@dataset.sourceLink">@dataset.sourceLink</a>
             </small>
         </p>
-
     </div>
 
-    <hr/>
-
-    @for(ewr <- ewrs) {
-        <h3>@ewr.example.name</h3>
-        <div class="row">
+    <div class="row">
+        @for((ewr, i) <- ewrs.zipWithIndex) {
             <div class="col-4">
-                <h4>Results
-                <span style="float: right"
-                      class="badge badge-pill badge-light"
-                      title="The search took @durationSeconds(ewr.durationMillis) seconds to run">
-                    <small>@durationSeconds(ewr.durationMillis)</small>
-                </span></h4>
-                <table class="table table-sm">
-                    @for(result <- ewr.results) {
-                        <tr>
-                            <td style="width:100%">
-                                @result match {
+                <hr/>
+                <h3>
+                    @ewr.example.name
+                    <span style="float: right"
+                          class="badge badge-pill badge-light"
+                          title="The search took @durationSeconds(ewr.durationMillis) seconds to run">
+                            <small>@durationSeconds(ewr.durationMillis)</small></span>
+                </h3>
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#results-@(i)"
+                           title="Results for @ewr.example.name">Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#mapping-@(i)"
+                           title="The mapping which defines how vectors are stored">Mapping</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#query-@(i)"
+                           title="The query used to retrieve these results">Query</a>
+                    </li>
+                </ul>
+                <div class="tab-content" style="padding-top:10px">
+                    <div class="tab-pane active show" id="results-@(i)">
+                        <table class="table table-sm">
+                            @for(result <- ewr.results) {
+                            <tr>
+                                <td style="width:100%">
+                                    @result match {
                                     case img: SearchResult.Image => {
-                                        <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
-                                           title="Click the image to search for its nearest neighbors.">
-                                            <img src="data:image/png;base64,@(img.b64)">
-                                        </a>
+                                    <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                       title="Click the image to search for its nearest neighbors.">
+                                        <img src="data:image/png;base64,@(img.b64)">
+                                    </a>
                                     }
                                     case wv: SearchResult.WordVector => {
-                                        <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
-                                           title="Click the word to search for its nearest neighbors">
-                                            @wv.word
-                                        </a>
+                                    <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                       title="Click the word to search for its nearest neighbors">
+                                        @wv.word
+                                    </a>
                                     }
-                                }
-                            </td>
-                            <td class="text-right" title="The similarity score for this result was @result.score.">
-                                @(f"${result.score}%.2f")
-                            </td>
-                            @if(resultIsCorrect(result, ewrs.head.results)) {
+                                    }
+                                </td>
+                                <td class="text-right" title="The similarity score for this result was @result.score.">
+                                    @(f"${result.score}%.3f")
+                                </td>
+                                @if(resultIsCorrect(result, ewrs.head.results)) {
                                 <td class="text-right" title="This result is a true nearest neighbor">&#10004;</td>
-                            } else {
+                                } else {
                                 <td class="text-right" title="This result is not a true nearest neighbor"></td>
+                                }
+                            </tr>
                             }
-                        </tr>
-                    }
-                </table>
+                        </table>
+                    </div>
+                    <div class="tab-pane" id="mapping-@(i)">
+                        <pre><code>@ewr.mappingJsonString.get</code></pre>
+                    </div>
+                    <div class="tab-pane" id="query-@(i)">
+                        <pre><code>@ewr.queryJsonString.get</code></pre>
+                    </div>
+                </div>
             </div>
-            <div class="col-4">
-                <h4 title="This is the mapping used to store the vectors.">Mapping</h4>
-                <pre><code>@ewr.mappingJsonString.get</code></pre>
-            </div>
-            <div class="col-4">
-                <h4 title="This is the query used to get the results.">Query</h4>
-                <pre><code>@ewr.queryJsonString.get</code></pre>
-            </div>
-            <div class="col-12">
-                <hr/>
-            </div>
-        </div>
-    }
+        }
+    </div>
 
 }
