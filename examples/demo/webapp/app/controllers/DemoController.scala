@@ -64,7 +64,7 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
         ds <- Dataset.defaults
         ex <- ds.examples
       } yield eknn.execute(count(ex.index)))
-      code = if (countResults.forall(_.isSuccess) && countResults.forall(_.result.count > 1000)) 200 else 503
+      code = if (countResults.forall(_.isSuccess) && countResults.forall(_.result.count > 1000)) 200 else 500
     } yield Status(code)
   }
 
