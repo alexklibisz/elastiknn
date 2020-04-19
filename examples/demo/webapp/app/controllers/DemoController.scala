@@ -58,4 +58,14 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
 
   def datasets(): Action[AnyContent] = Action(Ok(Dataset.defaults.asJson))
 
+  def health(): Action[AnyContent] = Action.async { implicit req =>
+    for {
+      countResults <- Future.sequence(for {
+        ds <- Dataset.defaults
+        ex <- ds.examples
+      } yield eknn.execute(count(ex.index)))
+      code = if (countResults.forall(_.isSuccess) && countResults.forall(_.result.count > 1000)) 200 else 503
+    } yield Status(code)
+  }
+
 }

@@ -7,3 +7,4 @@ GET     /                                     controllers.DemoController.index
 GET     /assets/*file                         controllers.Assets.versioned(path="/public", file: Asset)
 GET     /dataset/:permalink                   controllers.DemoController.dataset(permalink, queryId: Option[String])
 GET     /datasets                             controllers.DemoController.datasets()
+GET     /health                               controllers.DemoController.health()
