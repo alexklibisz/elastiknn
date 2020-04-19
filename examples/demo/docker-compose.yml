@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+
+  # App container. Run sbt docker:stage to generate the dockerfile.
+  app:
+    build:
+      context: webapp/target/docker/stage
+      dockerfile: Dockerfile
+    container_name: app
+    ports:
+      - 9000:9000
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - PLAY_HTTP_SECRET_KEY=${PLAY_HTTP_SECRET_KEY:-changeme}
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # Single elasticsearch container.
+  elasticsearch:
+    build:
+      context: ${ES_CONTEXT:-../../es74x}
+      dockerfile: Dockerfile
+    container_name: elasticsearch
+    ports:
+      - 9200:9200
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=demo
+      - cluster.initial_master_nodes=elasticsearch
+      - bootstrap.memory_lock=true
+#      - ES_JAVA_OPTS=-Xms1G -Xmx1G
+      - ES_JAVA_OPTS=-XX:InitialRAMPercentage=85 -XX:MaxRAMPercentage=85
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      resources:
+        limits:
+          memory: 4G

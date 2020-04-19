@@ -37,39 +37,6 @@ object Dataset extends ElastiknnRequests {
 
   val defaults: Seq[Dataset] = Seq(
     Dataset(
-      "Google News 2013 Word Vectors with Angular Similarity",
-      "word2vec-google-300",
-      "word2vec-google-angular",
-      "http://vectors.nlpl.eu/repository",
-      Seq(
-        example(
-          "Exact",
-          "word2vec-google-angular-exact",
-          Mapping.DenseFloat(300),
-          (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
-        ),
-        example("Angular LSH 1",
-                "word2vec-google-angular-lsh-1",
-                Mapping.AngularLsh(300, 100, 1),
-                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 100)),
-        example("Angular LSH 2",
-                "word2vec-google-angular-lsh-2",
-                Mapping.AngularLsh(300, 100, 1),
-                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 20)),
-      )
-    ),
-    Dataset(
-      "CIFAR with L2 Similarity",
-      "cifar",
-      "cifar-l2",
-      "https://keras.io/datasets/",
-      Seq(
-        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
-        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 100)),
-        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 20)),
-      )
-    ),
-    Dataset(
       "MNIST Digits with Jaccard Similarity",
       "mnist_binary",
       "mnist-jaccard",
@@ -112,6 +79,39 @@ object Dataset extends ElastiknnRequests {
                 "mnist-hamming-lsh-2",
                 Mapping.HammingLsh(784, 100),
                 (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 20)),
+      )
+    ),
+    Dataset(
+      "Google News 2013 Word Vectors with Angular Similarity",
+      "word2vec-google-300",
+      "word2vec-google-angular",
+      "http://vectors.nlpl.eu/repository",
+      Seq(
+        example(
+          "Exact",
+          "word2vec-google-angular-exact",
+          Mapping.DenseFloat(300),
+          (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
+        ),
+        example("Angular LSH 1",
+                "word2vec-google-angular-lsh-1",
+                Mapping.AngularLsh(300, 100, 1),
+                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 100)),
+        example("Angular LSH 2",
+                "word2vec-google-angular-lsh-2",
+                Mapping.AngularLsh(300, 100, 1),
+                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 20)),
+      )
+    ),
+    Dataset(
+      "CIFAR with L2 Similarity",
+      "cifar",
+      "cifar-l2",
+      "https://keras.io/datasets/",
+      Seq(
+        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
+        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 100)),
+        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 20)),
       )
     )
   )
