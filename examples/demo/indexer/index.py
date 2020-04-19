@@ -102,7 +102,11 @@ if __name__ == "__main__":
 
     for ds in datasets:
 
-        for ex in ds.examples:
+        todo = list(filter(lambda ex: not es.indices.exists(ex.index), ds.examples))
+        if len(todo) == 0:
+            continue
+
+        for ex in todo:
             if es.indices.exists(ex.index):
                 es.indices.delete(ex.index)
             es.indices.create(ex.index, body=index_body)
@@ -111,9 +115,9 @@ if __name__ == "__main__":
 
         n_docs, t0 = 0, time()
 
-        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 1000):
+        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 400):
             n_docs += len(chunk)
-            for ex in ds.examples:
+            for ex in todo:
                 docs = [
                     {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
                     for i, _source in chunk
