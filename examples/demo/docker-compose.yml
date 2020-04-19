@@ -30,7 +30,7 @@ services:
       - cluster.name=demo
       - cluster.initial_master_nodes=elasticsearch
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms4G -Xmx4G
+      - ES_JAVA_OPTS=-Xms2G -Xmx2G
     ulimits:
       nofile:
         soft: 65536
