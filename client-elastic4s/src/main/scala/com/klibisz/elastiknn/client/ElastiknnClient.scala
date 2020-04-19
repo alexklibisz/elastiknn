@@ -8,7 +8,7 @@ import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
-import com.sksamuel.elastic4s.requests.searches.SearchResponse
+import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
@@ -22,18 +22,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
-  def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] = {
-    val mappingJsonString =
-      s"""
-        |{
-        |  "properties": {
-        |    "$field": ${ElasticsearchCodec.encode(mapping).spaces2}
-        |  }
-        |}
-        |""".stripMargin
-    val req: PutMappingRequest = ElasticDsl.putMapping(Indexes(index)).rawSource(mappingJsonString)
-    execute(req)
-  }
+  def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] =
+    execute(ElastiknnRequests.putMapping(index, field, mapping))
 
   def index(index: String,
             field: String,
@@ -51,25 +41,18 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     execute(bulk(withIds).refresh(refresh))
   }
 
-  def nearestNeighbors(indexName: String,
-                       query: NearestNeighborsQuery,
-                       k: Int,
-                       fetchSource: Boolean = false): F[Response[SearchResponse]] = {
-    val req = search(indexName).query(ElastiknnRequests.nearestNeighborsQuery(query)).fetchSource(fetchSource).size(k)
-    execute(req)
-  }
-
-  def close(): Unit
+  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, fetchSource: Boolean = false): F[Response[SearchResponse]] =
+    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, fetchSource))
 
 }
 
 object ElastiknnClient {
 
   def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
-      implicit ec: ExecutionContext): ElastiknnClient[Future] = {
+      implicit ec: ExecutionContext): ElastiknnFutureClient = {
     val rc: RestClient = RestClient.builder(new HttpHost(host, port)).build()
     val jc: JavaClient = new JavaClient(rc)
-    new ElastiknnClient[Future] {
+    new ElastiknnFutureClient {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
       implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
       val elasticClient: ElasticClient = ElasticClient(jc)
@@ -82,6 +65,8 @@ object ElastiknnClient {
           }
         } else future
       }
+
+      override def toString: String = s"${ElastiknnClient.getClass.getSimpleName} connected to $host:$port"
       override def close(): Unit = elasticClient.close()
     }
   }

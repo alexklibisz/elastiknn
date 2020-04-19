@@ -35,7 +35,7 @@ dependencies {
     implementation project(':client-elastic4s')
     implementation "org.scala-lang:scala-library:$scalaVersion"
     implementation 'com.typesafe:config:1.4.0'
-    implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.3.1"
+    implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
     implementation "io.github.scalapb-json:scalapb-circe_${scalaVersion}:${scalapbCirceVersion}"
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     implementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"

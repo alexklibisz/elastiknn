@@ -50,8 +50,10 @@ clean:
 	cd client-python && rm -rf dist && $(vpy) setup.py sdist bdist_wheel && ls dist
 	touch $@
 
-.mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local
+.mk/vm-max-map-count:
 	sudo sysctl -w vm.max_map_count=262144
+
+.mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local .mk/vm-max-map-count
 	cd testing \
 	&& $(dc) down \
 	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
@@ -60,6 +62,10 @@ clean:
 
 .mk/example-scala-sbt-client-usage: .mk/gradle-publish-local
 	cd examples/scala-sbt-client-usage && sbt run
+	touch $@
+
+.mk/example-demo-sbt-docker-stage: .mk/gradle-publish-local $(src_all)
+	cd examples/demo/webapp && sbt docker:stage
 	touch $@
 
 compile/gradle: .mk/gradle-compile
@@ -80,6 +86,10 @@ run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
 	docker ps | grep kibana
 
+run/demo/app: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
+	cd examples/demo && \
+	PLAY_HTTP_SECRET_KEY=$(shell sha256sum ~/.ssh/id_rsa | cut -d' ' -f1) $(dc) up --build --detach
+
 test/python: .mk/client-python-install
 	cd client-python && $(vpy) -m pytest
 
@@ -90,7 +100,7 @@ test: clean run/cluster
 	$(MAKE) test/gradle
 	$(MAKE) test/python
 
-examples: .mk/example-scala-sbt-client-usage
+examples: .mk/example-scala-sbt-client-usage .mk/example-demo-sbt-docker-stage
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
@@ -149,5 +159,6 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 	rsync -av --delete client-python/pdoc/elastiknn/ $(site_srvr):$(site_main)/docs/pdoc
 
 publish/site: .mk/jekyll-site-build
-	rsync -av --delete docs/_site/ $(site_srvr):$(site_main)
+	mkdir -p docs/_site/docs
+	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
 	

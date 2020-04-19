@@ -3,7 +3,7 @@ layout: default
 title: API
 nav_order: 2
 description: "Elastiknn API"
-permalink: /rest-api/
+permalink: /api/
 ---
 
 # Elastiknn API

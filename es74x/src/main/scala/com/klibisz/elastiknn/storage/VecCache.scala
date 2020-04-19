@@ -14,13 +14,17 @@ private[elastiknn] object VecCache {
 
   private def build[V <: Vec]: IndexFieldCache[V] =
     CacheBuilder.newBuilder
+      .maximumSize(10)
       .expireAfterWrite(1, TimeUnit.MINUTES)
       .build(new CacheLoader[(String, String), ContextCache[V]] {
         override def load(key: (String, String)): LoadingCache[LeafReaderContext, DocIdCache[V]] =
-          CacheBuilder.newBuilder.build(new CacheLoader[LeafReaderContext, DocIdCache[V]] {
-            override def load(key: LeafReaderContext): DocIdCache[V] =
-              CacheBuilder.newBuilder.build[Integer, V]
-          })
+          CacheBuilder.newBuilder
+            .maximumSize(10)
+            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .build(new CacheLoader[LeafReaderContext, DocIdCache[V]] {
+              override def load(key: LeafReaderContext): DocIdCache[V] =
+                CacheBuilder.newBuilder.maximumSize(100).expireAfterWrite(1, TimeUnit.MINUTES).build[Integer, V]
+            })
       })
 
   private val sbv: IndexFieldCache[Vec.SparseBool] = build[Vec.SparseBool]

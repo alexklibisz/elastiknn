@@ -1,3 +1,6 @@
+- Updated client-elastic4s to use elastic4s version 7.6.0.
+- Implemented a demo webapp using Play framework. Hosted at demo.elastiknn.klibisz.com.
+---
 - Implemented LSH for Hamming, Angular, and L2 similarities.
 - First pass at a documentation website. 
 ---

@@ -1,0 +1,102 @@
+@(dataset: Dataset, queryId: String, corpusSize: Long, ewrs: Seq[ExampleWithResults])
+
+@import views.utils._
+
+@main(dataset.prettyName) {
+
+    <div class="jumbotron" style="padding:15px;padding-bottom:5px">
+        <h2>@(dataset.prettyName)</h2>
+        <hr>
+        <p class="lead">
+            Nearest neighbors for @ewrs.head.results.head match {
+                case img: SearchResult.Image => { image <img src="data:image/png;base64,@(img.b64)" title="Image for item @(queryId)"/> }
+                case wv: SearchResult.WordVector => { word <b>@wv.word</b> }
+            } from a corpus of @(corpusSize) documents.
+        </p>
+        <p>
+            <a href="@routes.DemoController.dataset(dataset.permalink, Some(queryId))" class="btn-sm btn-primary">Re-run Same Search</a>
+            <a href="@routes.DemoController.dataset(dataset.permalink, None)" class="btn-sm btn-primary">Run a Random Search</a>
+        </p>
+        <hr>
+        <p>
+            <small>
+                Each row in the results table shows the neighbor, its similarity score, and a check mark if it's one of the true (i.e. exact) nearest neighbors.
+            </small>
+        </p>
+        <p>
+            <small>
+                Dataset source: <a href="@dataset.sourceLink">@dataset.sourceLink</a>
+            </small>
+        </p>
+    </div>
+
+    <div class="row">
+        @for((ewr, i) <- ewrs.zipWithIndex) {
+            <div class="col-4">
+                <hr/>
+                <h3>
+                    @ewr.example.name
+                    <span style="float: right"
+                          class="badge badge-pill badge-light"
+                          title="The search took @durationSeconds(ewr.durationMillis) seconds to run">
+                            <small>@durationSeconds(ewr.durationMillis)</small></span>
+                </h3>
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#results-@(i)"
+                           title="Results for @ewr.example.name">Results</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#mapping-@(i)"
+                           title="The mapping which defines how vectors are stored">Mapping</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#query-@(i)"
+                           title="The query used to retrieve these results">Query</a>
+                    </li>
+                </ul>
+                <div class="tab-content" style="padding-top:10px">
+                    <div class="tab-pane active show" id="results-@(i)">
+                        <table class="table table-sm">
+                            @for(result <- ewr.results) {
+                            <tr>
+                                <td style="width:100%">
+                                    @result match {
+                                    case img: SearchResult.Image => {
+                                    <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                       title="Click the image to search for its nearest neighbors.">
+                                        <img src="data:image/png;base64,@(img.b64)">
+                                    </a>
+                                    }
+                                    case wv: SearchResult.WordVector => {
+                                    <a href="@routes.DemoController.dataset(dataset.permalink, Some(result.id))"
+                                       title="Click the word to search for its nearest neighbors">
+                                        @wv.word
+                                    </a>
+                                    }
+                                    }
+                                </td>
+                                <td class="text-right" title="The similarity score for this result was @result.score.">
+                                    @(f"${result.score}%.3f")
+                                </td>
+                                @if(resultIsCorrect(result, ewrs.head.results)) {
+                                <td class="text-right" title="This result is a true nearest neighbor">&#10004;</td>
+                                } else {
+                                <td class="text-right" title="This result is not a true nearest neighbor"></td>
+                                }
+                            </tr>
+                            }
+                        </table>
+                    </div>
+                    <div class="tab-pane" id="mapping-@(i)">
+                        <pre><code>@ewr.mappingJsonString.get</code></pre>
+                    </div>
+                    <div class="tab-pane" id="query-@(i)">
+                        <pre><code>@ewr.queryJsonString.get</code></pre>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+}
