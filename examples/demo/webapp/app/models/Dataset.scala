@@ -41,64 +41,72 @@ object Dataset extends ElastiknnRequests {
       "word2vec-google",
       "word2vec-google-angular",
       Seq(
-        example("exact",
+        example("Exact",
                 "word2vec-google-angular-exact",
                 Mapping.DenseFloat(50),
-                (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular))
+                (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)),
+        example("Angular LSH 1",
+                "word2vec-google-angular-lsh-1",
+                Mapping.AngularLsh(50, 100, 1),
+                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 100)),
+        example("Angular LSH 2",
+                "word2vec-google-angular-lsh-2",
+                Mapping.AngularLsh(50, 100, 1),
+                (f, v) => NearestNeighborsQuery.AngularLsh(f, v, 10))
       )
     ),
-//    Dataset(
-//      "CIFAR with L2 Similarity",
-//      "cifar",
-//      "cifar-l2",
-//      Seq(
-//        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
-//        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 100)),
-//        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 25))
-//      )
-//    ),
-//    Dataset(
-//      "MNIST Digits with Jaccard Similarity",
-//      "mnist_binary",
-//      "mnist-jaccard",
-//      Seq(
-//        example("Exact", "mnist-jaccard-exact", Mapping.SparseBool(784), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
-//        example("Sparse Indexed",
-//                "mnist-jaccard-sparse-indexed",
-//                Mapping.SparseIndexed(784),
-//                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)),
-//        example("Jaccard LSH #1",
-//                "mnist-jaccard-lsh-1",
-//                Mapping.JaccardLsh(784, 100, 1),
-//                (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 100)),
-//        example("Jaccard LSH #2",
-//                "mnist-jaccard-lsh-2",
-//                Mapping.JaccardLsh(784, 100, 1),
-//                (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 25)),
-//      )
-//    ),
-//    Dataset(
-//      "MNIST Digits with Hamming Similarity",
-//      "mnist_binary",
-//      "mnist-hamming",
-//      Seq(
-//        example("Exact",
-//                "mnist-hamming-exact",
-//                Mapping.SparseBool(784),
-//                (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)),
-//        example("Sparse Indexed",
-//                "mnist-hamming-sparse-indexed",
-//                Mapping.SparseIndexed(784),
-//                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)),
-//        example("Hamming LSH #1",
-//                "mnist-hamming-lsh-1",
-//                Mapping.HammingLsh(784, 100),
-//                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 100)),
-//        example("Hamming LSH #2",
-//                "mnist-hamming-lsh-2",
-//                Mapping.HammingLsh(784, 100),
-//                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 25)),
-//      )
-//    )
+    Dataset(
+      "CIFAR with L2 Similarity",
+      "cifar",
+      "cifar-l2",
+      Seq(
+        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
+        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 100)),
+        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, v, 10))
+      )
+    ),
+    Dataset(
+      "MNIST Digits with Jaccard Similarity",
+      "mnist_binary",
+      "mnist-jaccard",
+      Seq(
+        example("Exact", "mnist-jaccard-exact", Mapping.SparseBool(784), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
+        example("Sparse Indexed",
+                "mnist-jaccard-sparse-indexed",
+                Mapping.SparseIndexed(784),
+                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)),
+        example("Jaccard LSH #1",
+                "mnist-jaccard-lsh-1",
+                Mapping.JaccardLsh(784, 100, 1),
+                (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 100)),
+        example("Jaccard LSH #2",
+                "mnist-jaccard-lsh-2",
+                Mapping.JaccardLsh(784, 100, 1),
+                (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, 10)),
+      )
+    ),
+    Dataset(
+      "MNIST Digits with Hamming Similarity",
+      "mnist_binary",
+      "mnist-hamming",
+      Seq(
+        example("Exact",
+                "mnist-hamming-exact",
+                Mapping.SparseBool(784),
+                (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)),
+        example("Sparse Indexed",
+                "mnist-hamming-sparse-indexed",
+                Mapping.SparseIndexed(784),
+                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)),
+        example("Hamming LSH #1",
+                "mnist-hamming-lsh-1",
+                Mapping.HammingLsh(784, 100),
+                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 100)),
+        example("Hamming LSH #2",
+                "mnist-hamming-lsh-2",
+                Mapping.HammingLsh(784, 100),
+                (f, v) => NearestNeighborsQuery.HammingLsh(f, v, 10)),
+      )
+    )
   )
 }

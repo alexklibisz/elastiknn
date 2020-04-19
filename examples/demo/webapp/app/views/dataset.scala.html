@@ -11,7 +11,7 @@
             Nearest neighbors for @ewrs.head.results.head match {
                 case img: SearchResult.Image => { image <img src="data:image/png;base64,@(img.b64)" title="Image for item @(queryId)"/> }
                 case wv: SearchResult.WordVector => { word <b>@wv.word</b> }
-            } from a corpus of @(corpusSize) items.
+            } from a corpus of @(corpusSize) documents.
         </p>
         <p>
             <a href="@routes.DemoController.dataset(dataset.permalink, Some(queryId))" class="btn-sm btn-primary">Re-run Same Search</a>
@@ -63,7 +63,7 @@
                             @if(resultIsCorrect(result, ewrs.head.results)) {
                                 <td class="text-right" title="This result is a true nearest neighbor">&#10004;</td>
                             } else {
-                                <td class="text-right" title="This result is _not_ a true nearest neighbor"></td>
+                                <td class="text-right" title="This result is not a true nearest neighbor"></td>
                             }
                         </tr>
                     }

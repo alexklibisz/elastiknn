@@ -4,6 +4,7 @@ import sys
 from base64 import b64encode
 from io import BytesIO
 from pprint import pprint
+from time import time
 from typing import Any
 
 from PIL import Image
@@ -62,6 +63,7 @@ def load_docs(name: str):
                 yield dict(vec=vec.to_dict(), b64=b64)
 
     elif name == "word2vec-google":
+        # ds = gensimdl.load("word2vec-google-news-300")
         ds = gensimdl.load('glove-wiki-gigaword-50')
         for (word, info) in ds.vocab.items():
             [vec] = ndarray_to_dense_float_vectors(np.expand_dims(ds.vectors[info.index], 0))
@@ -78,11 +80,12 @@ if __name__ == "__main__":
 
     res = get(f"{app_url}/datasets")
     res.raise_for_status()
+    pprint(res.json())
     datasets: List[Dataset] = Dataset.schema().load(res.json(), many=True)
 
     es = Elasticsearch([es_url])
-    data_nodes = [n for n in es.nodes.info()['nodes'].values() if 'data' in n['roles']]
-    index_body = dict(settings=dict(index=dict(number_of_shards=len(data_nodes))))
+    # data_nodes = [n for n in es.nodes.info()['nodes'].values() if 'data' in n['roles']]
+    index_body = dict(settings=dict(index=dict(number_of_shards=os.cpu_count())))
 
     for ds in datasets:
 
@@ -97,10 +100,11 @@ if __name__ == "__main__":
 
             def gen():
                 for i, _source in enumerate(load_docs(ds.source_name)):
-                    print(_source)
                     yield {"_op_type": "index", "_index": ex.index, "_id": str(i + 1), "_source": _source}
 
+            t0 = time()
             (n, errs) = bulk(es, gen())
             assert len(errs) == 0, errs
-            print(f"Indexed {n} documents")
+            t1 = time()
+            print(f"Indexed {n} documents in {t1 - t0} seconds")
 
