@@ -64,7 +64,7 @@ clean:
 	cd examples/scala-sbt-client-usage && sbt run
 	touch $@
 
-.mk/example-demo-sbt-docker-stage: $(src_all)
+.mk/example-demo-sbt-docker-stage: .mk/gradle-publish-local $(src_all)
 	cd examples/demo/webapp && sbt docker:stage
 	touch $@
 
@@ -100,7 +100,7 @@ test: clean run/cluster
 	$(MAKE) test/gradle
 	$(MAKE) test/python
 
-examples: .mk/example-scala-sbt-client-usage
+examples: .mk/example-scala-sbt-client-usage .mk/example-demo-sbt-docker-stage
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
