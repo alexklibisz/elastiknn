@@ -98,7 +98,7 @@ if __name__ == "__main__":
     datasets: List[Dataset] = Dataset.schema().load(res.json(), many=True)
 
     es = Elasticsearch([es_url])
-    index_body = dict(settings=dict(index=dict(number_of_shards=os.cpu_count())))
+    index_body = dict(settings=dict(index=dict(number_of_shards=os.cpu_count(), number_of_replicas=0)))
 
     for ds in datasets:
 
