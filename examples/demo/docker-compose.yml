@@ -10,13 +10,11 @@ services:
     container_name: app
     ports:
       - 9000:9000
+      - 8097:8097
     environment:
       - ELASTICSEARCH_HOST=elasticsearch
       - PLAY_HTTP_SECRET_KEY=${PLAY_HTTP_SECRET_KEY:-changeme}
-    deploy:
-      resources:
-        limits:
-          memory: 4G
+      - JAVA_OPTS=-Xms800M -Xmx800M
 
   # Single elasticsearch container.
   elasticsearch:
@@ -31,8 +29,7 @@ services:
       - cluster.name=demo
       - cluster.initial_master_nodes=elasticsearch
       - bootstrap.memory_lock=true
-#      - ES_JAVA_OPTS=-Xms1G -Xmx1G
-      - ES_JAVA_OPTS=-XX:InitialRAMPercentage=85 -XX:MaxRAMPercentage=85
+      - ES_JAVA_OPTS=-Xms2700M -Xmx2700M
     ulimits:
       nofile:
         soft: 65536
@@ -40,7 +37,5 @@ services:
       memlock:
         soft: -1
         hard: -1
-    deploy:
-      resources:
-        limits:
-          memory: 4G
+    volumes:
+      - ./esdata:/usr/share/elasticsearch/data

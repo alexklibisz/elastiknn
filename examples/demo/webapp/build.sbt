@@ -18,10 +18,19 @@ libraryDependencies ++= Seq(
 )
 
 dockerBaseImage := "openjdk:11"
+dockerExposedPorts ++= Seq(8097, 9000)
 mainClass in Docker := Some("play.core.server.ProdServerStart")
 
-// https://www.scala-sbt.org/sbt-native-packager/recipes/play.html#application-configuration
 javaOptions in Universal ++= Seq(
+  // https://www.scala-sbt.org/sbt-native-packager/recipes/play.html#application-configuration
   s"-Dpidfile.path=/tmp/play.pid",
   s"-Dconfig.file=/opt/docker/conf/application.conf",
+
+  // Enable VisualVM attachment.
+  "-Dcom.sun.management.jmxremote.ssl=false",
+  "-Dcom.sun.management.jmxremote.authenticate=false",
+  "-Dcom.sun.management.jmxremote.local.only=false",
+  "-Dcom.sun.management.jmxremote.port=8097",
+  "-Dcom.sun.management.jmxremote.rmi.port=8097",
+  "-Djava.rmi.server.hostname=localhost"
 )
