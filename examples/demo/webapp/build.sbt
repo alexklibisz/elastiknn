@@ -17,7 +17,7 @@ libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 
-dockerBaseImage := "openjdk:11"
+dockerBaseImage := "openjdk:12"
 dockerExposedPorts ++= Seq(8097, 9000)
 mainClass in Docker := Some("play.core.server.ProdServerStart")
 

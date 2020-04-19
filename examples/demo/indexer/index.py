@@ -15,7 +15,6 @@ from dataclasses_json import dataclass_json, LetterCase
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 from elastiknn.utils import *
-from keras.datasets import cifar100, cifar10, mnist
 from more_itertools import chunked
 from requests import get
 
@@ -59,6 +58,7 @@ def generate_docs(name: str):
                         yield dict(word=word, vec=vec.to_dict())
 
     elif name in {"mnist", "mnist_binary"}:
+        from keras.datasets import mnist
         (xtrn, _), (xtst, _) = mnist.load_data()
         for imgs in [xtrn, xtst]:
             for img in imgs:
@@ -70,6 +70,7 @@ def generate_docs(name: str):
                 yield dict(vec=vec.to_dict(), b64=b64)
 
     elif name == "cifar":
+        from keras.datasets import cifar100, cifar10
         (xtrn10, _), (xtst10, _) = cifar10.load_data()
         (xtrn100, _), (xtst100, _) = cifar100.load_data(label_mode='fine')
         for imgs in [xtrn10, xtst10, xtrn100, xtst100]:

@@ -62,6 +62,10 @@ clean:
 	cd examples/scala-sbt-client-usage && sbt run
 	touch $@
 
+.mk/example-demo-sbt-docker-stage: $(src_all)
+	cd examples/demo/webapp && sbt docker:stage
+	touch $@
+
 compile/gradle: .mk/gradle-compile
 
 compile: compile/gradle
@@ -91,6 +95,11 @@ test: clean run/cluster
 	$(MAKE) test/python
 
 examples: .mk/example-scala-sbt-client-usage
+
+run/demo/app: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage
+	cd examples/demo && \
+	sudo sysctl -w vm.max_map_count=262144 && \
+	$(dc) up --build --detach
 
 publish/local: .mk/gradle-publish-local .mk/client-python-publish-local
 
