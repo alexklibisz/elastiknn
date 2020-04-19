@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
         n_docs, t0 = 0, time()
 
-        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 400):
+        for chunk in chunked(enumerate(generate_docs(ds.source_name)), 100):
             n_docs += len(chunk)
             for ex in todo:
                 docs = [
