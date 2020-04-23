@@ -587,12 +587,11 @@ GET /my-index/_search
         "elastiknn_nearest_neighbors": {
             "field": "my_vec",                          # 1
             "vec": {                                    # 2
-                "true_indices": [0.1, 0.2, 0.3, ...],
-                "total_indices": 100
+                "values": [0.1, 0.2, 0.3, ...]
             },
             "model": "lsh",                             # 3
             "similarity": "l2",                         # 4
-            "candidates": 50,                           # 5
+            "candidates": 50                            # 5
         }
     }
 }
