@@ -77,9 +77,11 @@ def elastiknn(train, test) -> Tuple[np.ndarray, float]:
     from elastiknn.models import ElastiknnModel
     eknn = ElastiknnModel(algorithm='exact', metric='l2', n_jobs=1, index="elastiknn-cifar")
     eknn.fit(train, shards=1)
-    t0 = time()
-    pred = eknn.kneighbors(test, n_neighbors=10, progbar=True)
-    t1 = time()
+    while True:
+        t0 = time()
+        pred = eknn.kneighbors(test, n_neighbors=10, progbar=True)
+        t1 = time()
+        print(t1 - t0)
     return pred, t1 - t0
 
 

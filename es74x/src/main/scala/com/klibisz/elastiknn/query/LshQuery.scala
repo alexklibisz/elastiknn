@@ -26,7 +26,7 @@ class LshQuery[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: Elast
     extends Query {
 
   private val lshFunc: LshFunction[M, V] = lshFunctionCache(mapping)
-  private val vectorDocValuesField: String = ExactSimilarityQuery.vectorDocValuesField(field)
+  private val vectorDocValuesField: String = ExactSimilarityMapping.vectorDocValuesField(field)
   private val candidateHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create[lang.Float]()
 
   private val intersectionQuery: BooleanQuery = {
@@ -68,7 +68,7 @@ class LshQuery[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: Elast
             implicitly[ByteArrayCodec[V]].apply(vecBytes).get
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
       )
-      lshFunc.exact(query, storedVec).get.score.toFloat
+      lshFunc.exact(query, storedVec).toFloat
     }
 
     override def score(): Float = {
@@ -118,7 +118,7 @@ object LshQuery {
 
   def index[M <: Mapping, V <: Vec: ByteArrayCodec](field: String, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V]): Seq[IndexableField] = {
-    ExactSimilarityQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
+    ExactSimilarityMapping.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
       new Field(field, ByteArrayCodec.encode(h), hashesFieldType)
     }
   }
