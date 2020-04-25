@@ -21,22 +21,23 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
     extends Query {
 
   private val vectorDocValuesField = ExactSimilarityQuery.vectorDocValuesField(field)
-  private val hasVectorQuery = new DocValuesFieldExistsQuery(vectorDocValuesField)
+//  private val hasVectorQuery = new DocValuesFieldExistsQuery(vectorDocValuesField)
 
   class ExactSimilarityWeight(searcher: IndexSearcher) extends Weight(this) {
-    private val hasVectorWeight = hasVectorQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
+//    private val hasVectorWeight = hasVectorQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
     override def extractTerms(terms: util.Set[Term]): Unit = ()
     override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
     override def scorer(context: LeafReaderContext): Scorer = {
       val vectorDocValues: BinaryDocValues = context.reader.getBinaryDocValues(vectorDocValuesField)
-      val scorer = hasVectorWeight.scorer(context)
-      val iterator = if (scorer == null) DocIdSetIterator.empty() else scorer.iterator()
-      new ExactSimilarityScorer(this, iterator, vectorDocValues, contextCache.get(context))
+      val iterator = DocIdSetIterator.all(context.reader().maxDoc())
+//      val scorer = hasVectorWeight.scorer(context)
+//      val iterator = if (scorer == null) DocIdSetIterator.empty() else scorer.iterator()
+      new ExactSimilarityScorer(this, vectorDocValues, iterator, contextCache.get(context))
     }
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
-  class ExactSimilarityScorer(weight: Weight, hasVecIterator: DocIdSetIterator, vecDocValues: BinaryDocValues, docIdCache: DocIdCache[V])
+  class ExactSimilarityScorer(weight: Weight, vectorDocValues: BinaryDocValues, hasVecIterator: DocIdSetIterator, docIdCache: DocIdCache[V])
       extends Scorer(weight) {
     override def getMaxScore(upTo: Int): Float = Float.MaxValue
     override def iterator(): DocIdSetIterator = hasVecIterator
@@ -45,12 +46,13 @@ class ExactSimilarityQuery[V <: Vec: ByteArrayCodec: ElasticsearchCodec](val fie
       val docId = this.docID()
       val storedVec = docIdCache.get(
         docId,
-        () =>
-          if (vecDocValues.advanceExact(docId)) {
-            val binaryValue = vecDocValues.binaryValue
+        () => {
+          if (vectorDocValues.advanceExact(docId)) {
+            val binaryValue = vectorDocValues.binaryValue
             val vecBytes = binaryValue.bytes.take(binaryValue.length)
             implicitly[ByteArrayCodec[V]].apply(vecBytes).get
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+        }
       )
       val scoreTry = simFunc(queryVec, storedVec)
       scoreTry.get.score.toFloat
