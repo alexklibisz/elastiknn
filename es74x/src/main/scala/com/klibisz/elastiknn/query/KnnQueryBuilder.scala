@@ -68,24 +68,23 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
     val index = c.index.getName
-    val mall = new MatchAllQueryBuilder().toQuery(c)
     (query, mapping) match {
       case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new FunctionScoreQuery(mall, new ExactScoreFunction(f, v, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f)))
+        ExactQuery(f, v, ExactSimilarityFunction.Jaccard, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        new FunctionScoreQuery(mall, new ExactScoreFunction(f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f)))
+        ExactQuery(f, v, ExactSimilarityFunction.Hamming, VecCache.SparseBool(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        new FunctionScoreQuery(mall, new ExactScoreFunction(f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f)))
+        ExactQuery(f, v, ExactSimilarityFunction.L1, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        new FunctionScoreQuery(mall, new ExactScoreFunction(f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f)))
+        ExactQuery(f, v, ExactSimilarityFunction.L2, VecCache.DenseFloat(index, f))
 
       case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        new FunctionScoreQuery(mall, new ExactScoreFunction(f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f)))
+        ExactQuery(f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)

@@ -86,7 +86,7 @@ object SparseIndexedQuery {
   def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
       new Field(field, ByteArrayCodec.encode(ti), trueIndicesFieldType)
-    } ++ ExactSimilarityMapping.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
+    } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
   }
 
 }
