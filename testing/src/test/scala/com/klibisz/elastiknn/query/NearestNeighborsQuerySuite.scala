@@ -1,8 +1,9 @@
 package com.klibisz.elastiknn.query
 
+import java.util.UUID
+
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
-import com.oblac.nomen.Nomen
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.searches.SearchHit
@@ -14,6 +15,7 @@ import scala.concurrent.Future
 class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
   // TODO: find a way to test how recall is affected by different parameter settings.
+  // TODO: test vectors in nested fields.
 
   private val testDataDims = Seq(10, 128, 512)
   private val testDataNumQueries = 30
@@ -33,7 +35,6 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
       d => Seq(Mapping.SparseBool(d), Mapping.SparseIndexed(d), Mapping.JaccardLsh(d, 10, 1), Mapping.HammingLsh(d, d - 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Hamming)
     ),
-    // TODO: Use Lsh mappings with exact queries.
     Test(
       d => Seq(Mapping.DenseFloat(d), Mapping.AngularLsh(d, 10, 1), Mapping.L2Lsh(d, 10, 1, 1)),
       (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L1)
@@ -97,7 +98,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     val fieldName = "vec"
     val fakeQuery = mkQuery(fieldName, Vec.Indexed("", "", ""))
     val testData = TestData.read(fakeQuery.similarity, dims).get
-    val indexName = Nomen.randomName()
+    val indexName = s"test-index-${UUID.randomUUID.toString}"
     val testName = f"$indexName%-30s ${fakeQuery.similarity}%-16s $mapping%-30s ${fakeQuery.withVec(testData.queries.head.vector)}%-60s"
 
     test(testName) {
