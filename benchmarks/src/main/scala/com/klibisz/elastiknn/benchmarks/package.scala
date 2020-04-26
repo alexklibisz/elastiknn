@@ -4,7 +4,9 @@ import com.klibisz.elastiknn.api._
 
 package object benchmarks {
 
-  sealed trait Dataset
+  sealed trait Dataset {
+    final def name: String = this.toString.toLowerCase
+  }
   object Dataset {
     case object AmazonHome extends Dataset
     case object AmazonHomeUnit extends Dataset
@@ -34,7 +36,7 @@ package object benchmarks {
       MappingAndQueries(mappingFunc, Seq(queryFunc))
   }
 
-  final case class Experiment(dataset: Dataset, exact: MappingAndQueries, maqs: Seq[MappingAndQueries])
+  final case class Experiment(dataset: Dataset, exact: MappingAndQueries, maqs: Seq[MappingAndQueries], shards: Int = 1)
 
   object Experiment {
     import Dataset._

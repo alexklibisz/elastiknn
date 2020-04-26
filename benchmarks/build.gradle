@@ -1,15 +1,17 @@
 
-//plugins {
-//    id 'application'
-//}
+plugins {
+    id 'application'
+}
 
 dependencies {
     implementation project(':core')
     implementation project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC18-2"
+    implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC18-2"
 }
 
-//application {
-//    mainClassName = 'com.klibisz.elastiknn.benchmarks.Driver'
-//}
+application {
+    mainClassName = 'com.klibisz.elastiknn.benchmarks.Driver'
+}
