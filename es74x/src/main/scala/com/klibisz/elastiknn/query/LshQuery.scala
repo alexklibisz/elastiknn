@@ -1,112 +1,97 @@
 package com.klibisz.elastiknn.query
 
-import java.time.Duration
+import java.lang
 import java.util.Objects
-import java.{lang, util}
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
 import com.google.common.collect.MinMaxPriorityQueue
-import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.ByteArrayCodec
-import com.klibisz.elastiknn.storage.VecCache.{ContextCache, DocIdCache}
+import com.klibisz.elastiknn.storage.VecCache.ContextCache
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
-import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.util.BytesRef
-
-class LshQuery[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: ElasticsearchCodec](
-    val field: String,
-    val mapping: M,
-    val query: V,
-    val candidates: Int,
-    val cache: ContextCache[V])(implicit lshFunctionCache: LshFunctionCache[M, V])
-    extends Query {
-
-  private val lshFunc: LshFunction[M, V] = lshFunctionCache(mapping)
-  private val vectorDocValuesField: String = ExactSimilarityQuery.vectorDocValuesField(field)
-  private val candidateHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create[lang.Float]()
-
-  private val intersectionQuery: BooleanQuery = {
-    val builder = new BooleanQuery.Builder
-    lshFunc(query).foreach { h =>
-      val term = new Term(field, new BytesRef(ByteArrayCodec.encode(h)))
-      val termQuery = new TermQuery(term)
-      val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
-      builder.add(clause)
-    }
-    builder.build()
-  }
-
-  class LshWeight(searcher: IndexSearcher) extends Weight(this) {
-    searcher.setSimilarity(new BooleanSimilarity)
-    private val intersectionWeight = intersectionQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
-    override def extractTerms(terms: util.Set[Term]): Unit = ()
-    override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
-    override def isCacheable(ctx: LeafReaderContext): Boolean = false
-    override def scorer(context: LeafReaderContext): Scorer = {
-      val intersectionScorer = intersectionWeight.scorer(context)
-      val vectorDocValues = context.reader.getBinaryDocValues(vectorDocValuesField)
-      new LshScorer(this, intersectionScorer, vectorDocValues, cache.get(context))
-    }
-  }
-
-  class LshScorer(weight: LshWeight, isecScorer: Scorer, vecDocValues: BinaryDocValues, docIdCache: DocIdCache[V]) extends Scorer(weight) {
-    override def getMaxScore(upTo: Int): Float = Float.MaxValue
-    override val iterator: DocIdSetIterator = if (isecScorer == null) DocIdSetIterator.empty() else isecScorer.iterator()
-    override def docID(): Int = iterator.docID()
-
-    private def exactScore(docId: Int): Float = {
-      val storedVec = docIdCache.get(
-        docId,
-        () =>
-          if (vecDocValues.advanceExact(docId)) {
-            val binaryValue = vecDocValues.binaryValue
-            val vecBytes = binaryValue.bytes.take(binaryValue.length)
-            implicitly[ByteArrayCodec[V]].apply(vecBytes).get
-          } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-      )
-      lshFunc.exact(query, storedVec).get.score.toFloat
-    }
-
-    override def score(): Float = {
-      val intersection = isecScorer.score()
-      if (candidates == 0) intersection
-      else if (candidateHeap.size() < candidates) {
-        candidateHeap.add(intersection)
-        exactScore(this.docID())
-      } else if (intersection > candidateHeap.peekFirst()) {
-        candidateHeap.removeFirst()
-        candidateHeap.add(intersection)
-        exactScore(this.docID())
-      } else 0f
-    }
-
-  }
-
-  override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new LshWeight(searcher)
-
-  override def toString(field: String): String =
-    s"LshQuery for field [$field], mapping [${nospaces(mapping)}], query [${nospaces(query)}], LSH function [${lshFunc}], candidates [$candidates]"
-
-  override def equals(other: Any): Boolean = other match {
-    case q: LshQuery[M, V] =>
-      q.field == field && q.mapping == mapping && q.query == query && q.lshFunc == lshFunc && q.candidates == candidates
-    case _ => false
-  }
-
-  override def hashCode(): Int = Objects.hash(field, query, mapping, lshFunc, candidates.asInstanceOf[AnyRef])
-}
+import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 
 object LshQuery {
 
-  val jaccardCache: LoadingCache[Mapping.JaccardLsh, LshFunction.Jaccard] = CacheBuilder.newBuilder
-    .expireAfterWrite(Duration.ofMinutes(1))
-    .build(new CacheLoader[Mapping.JaccardLsh, LshFunction.Jaccard] {
-      override def load(m: Mapping.JaccardLsh): LshFunction.Jaccard = new LshFunction.Jaccard(m)
-    })
+  private class LshScoreFunction[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: ElasticsearchCodec](
+      val field: String,
+      val query: V,
+      val candidates: Int,
+      val lshFunc: LshFunction[M, V],
+      val contextCache: ContextCache[V])
+      extends ScoreFunction(CombineFunction.REPLACE) {
+
+    private val candsHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create()
+
+    override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
+      val vecDocVals = ctx.reader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
+      val docIdCache = contextCache.get(ctx)
+
+      def exactScore(docId: Int): Float = {
+        val storedVec = docIdCache.get(
+          docId,
+          () =>
+            if (vecDocVals.advanceExact(docId)) {
+              val binaryValue = vecDocVals.binaryValue
+              val vecBytes = binaryValue.bytes.take(binaryValue.length)
+              implicitly[ByteArrayCodec[V]].apply(vecBytes).get
+            } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+        )
+        lshFunc.exact(query, storedVec).toFloat
+      }
+
+      new LeafScoreFunction {
+        override def score(docId: Int, intersection: Float): Double = {
+          if (candidates == 0) intersection
+          else if (candsHeap.size() < candidates) {
+            candsHeap.add(intersection)
+            exactScore(docId)
+          } else if (intersection > candsHeap.peekFirst()) {
+            candsHeap.removeFirst()
+            candsHeap.add(intersection)
+            exactScore(docId)
+          } else 0f
+        }
+
+        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
+          Explanation.`match`(100, "Computing LSH similarity")
+      }
+    }
+
+    override def needsScores(): Boolean = true // This is actually important in the FunctionScoreQuery internals.
+
+    override def doEquals(other: ScoreFunction): Boolean = other match {
+      case q: LshScoreFunction[M, V] =>
+        q.field == field && q.lshFunc == lshFunc && q.query == query && q.lshFunc == lshFunc && q.candidates == candidates
+      case _ => false
+    }
+
+    override def doHashCode(): Int = Objects.hash(field, query, lshFunc, lshFunc, candidates.asInstanceOf[AnyRef])
+  }
+
+  def apply[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: ElasticsearchCodec](
+      field: String,
+      mapping: M,
+      queryVec: V,
+      candidates: Int,
+      cache: ContextCache[V])(implicit lshFunctionCache: LshFunctionCache[M, V]): FunctionScoreQuery = {
+    val lshFunc: LshFunction[M, V] = lshFunctionCache(mapping)
+    val isecQuery: BooleanQuery = {
+      val builder = new BooleanQuery.Builder
+      lshFunc(queryVec).foreach { h =>
+        val term = new Term(field, new BytesRef(ByteArrayCodec.encode(h)))
+        val termQuery = new TermQuery(term)
+        val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
+        builder.add(clause)
+      }
+      builder.build()
+    }
+    val f = new LshScoreFunction(field, queryVec, candidates, lshFunc, cache)
+    new FunctionScoreQuery(isecQuery, f, CombineFunction.REPLACE, 0f, Float.MaxValue)
+  }
 
   private val hashesFieldType: FieldType = {
     val ft = new FieldType
@@ -118,7 +103,7 @@ object LshQuery {
 
   def index[M <: Mapping, V <: Vec: ByteArrayCodec](field: String, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V]): Seq[IndexableField] = {
-    ExactSimilarityQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
+    ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
       new Field(field, ByteArrayCodec.encode(h), hashesFieldType)
     }
   }

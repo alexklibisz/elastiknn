@@ -1,4 +1,5 @@
-scikit-learn==0.22
 elasticsearch==7.1.0
 dataclasses==0.6
 dataclasses-json==0.3.7
+tqdm==4.45.0
+scipy==1.4.1

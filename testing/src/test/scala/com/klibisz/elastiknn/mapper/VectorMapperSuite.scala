@@ -66,15 +66,21 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
           val json = parse(res.body.get)
           json shouldBe 'right
 
-          val mappingJsonOpt = for {
+          val encoded = ElasticsearchCodec.encode(mapping)
+
+          val mappingJsonOpt: Option[JsonObject] = for {
             x <- json.toOption
             x <- x.findAllByKey(indexName).headOption
             x <- x.findAllByKey("mappings").headOption
             x <- x.findAllByKey(fieldName).headOption
             x <- x.findAllByKey("mapping").headOption
             x <- x.findAllByKey(fieldName).headOption
-          } yield x
-          mappingJsonOpt shouldBe Some(ElasticsearchCodec.encode(mapping))
+            x <- x.asObject
+            y <- encoded.asObject
+            // The returned mapping might contain some more items, like similarity, so filter them out.
+          } yield x.filterKeys(y.keys.toSet.contains)
+
+          mappingJsonOpt shouldBe encoded.asObject
       }
 
   }

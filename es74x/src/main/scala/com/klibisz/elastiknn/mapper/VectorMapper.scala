@@ -4,18 +4,20 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactSimilarityQuery, LshQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, LshQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.IndexableField
+import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
+import org.elasticsearch.index.similarity.SimilarityProvider
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 object VectorMapper {
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
@@ -27,7 +29,7 @@ object VectorMapper {
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
-            case Mapping.SparseBool(_)    => Try(ExactSimilarityQuery.index(field, sorted))
+            case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted))
             case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, sorted, m))
             case m: Mapping.HammingLsh    => Try(LshQuery.index(field, sorted, m))
@@ -43,7 +45,7 @@ object VectorMapper {
           Failure(VectorDimensionException(vec.values.length, mapping.dims))
         else
           mapping match {
-            case Mapping.DenseFloat(_) => Try(ExactSimilarityQuery.index(field, vec))
+            case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
             case m: Mapping.AngularLsh => Try(LshQuery.index(field, vec, m))
             case m: Mapping.L2Lsh      => Try(LshQuery.index(field, vec, m))
             case _                     => Failure(incompatible(mapping, vec))
@@ -138,6 +140,10 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   }
 
   class FieldType extends MappedFieldType {
+
+    // We generally only care about the presence or absence of terms, not their counts or anything fancier.
+    this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
+
     override def typeName(): String = CONTENT_TYPE
     override def clone(): FieldType = new FieldType
     override def termQuery(value: Any, context: QueryShardContext): Query =

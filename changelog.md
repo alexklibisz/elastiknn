@@ -1,3 +1,7 @@
+- Internal change from custom Lucene queries to FunctionScoreQueries. This reduces quite a bit of boilerplate code and 
+surface area for bugs and performance regressions.
+- Add optional progress bar to Python ElastiknnModel.
+---
 - Updated client-elastic4s to use elastic4s version 7.6.0.
 - Implemented a demo webapp using Play framework. Hosted at demo.elastiknn.klibisz.com.
 ---
