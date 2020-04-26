@@ -8,8 +8,8 @@ import zio.console._
 
 object Driver extends App {
   override def run(args: List[String]): URIO[Console, Int] = {
-    val storage = new FileStorage(new File("/tmp"), new File("/tmp/foo.json"))
-    val stream = storage.streamDataset[Vec.DenseFloat](Dataset.AmazonHome)
+    val storage = new FileStorage(new File("/home/alex/.elastiknn-data"), new File("/tmp"))
+    val stream = storage.streamDataset[Vec.SparseBool](Dataset.AmazonHomePhash)
     stream
       .foreach(v => putStrLn(v.toString))
       .mapError(System.err.println)
