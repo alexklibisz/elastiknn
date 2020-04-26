@@ -81,16 +81,11 @@ class ElastiknnModel(object):
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
                    n_neighbors: int, return_similarity: bool = False, allow_missing: bool = False, progbar: bool = False):
-        # futures = []
         mapped = self._tpex.map(
             lambda v: self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), n_neighbors, False),
             canonical_vectors_to_elastiknn(X))
-        # for vec in canonical_vectors_to_elastiknn(X):
-        #     args = (self._index, self._query.with_vec(vec), n_neighbors, False)
-        #     futures.append(self._tpex.submit(self._eknn.nearest_neighbors, *args))
         inds = np.ones((len(X), n_neighbors), dtype=np.int32) * -1
         sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
-        # wait(futures)  # Ensures same order as calls.
         for i, res in tqdm(enumerate(mapped), disable=not progbar):
             hits = res['hits']['hits']
             assert allow_missing or len(hits) == n_neighbors, f"Expected {n_neighbors} hits for vector {i} but got {len(hits)}"
