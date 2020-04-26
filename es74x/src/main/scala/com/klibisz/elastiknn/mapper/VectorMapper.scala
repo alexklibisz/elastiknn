@@ -9,11 +9,13 @@ import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.IndexableField
+import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
+import org.elasticsearch.index.similarity.SimilarityProvider
 
 import scala.util.{Failure, Try}
 
@@ -138,6 +140,10 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   }
 
   class FieldType extends MappedFieldType {
+
+    // We generally only care about the presence or absence of terms, not their counts or anything fancier.
+    this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
+
     override def typeName(): String = CONTENT_TYPE
     override def clone(): FieldType = new FieldType
     override def termQuery(value: Any, context: QueryShardContext): Query =

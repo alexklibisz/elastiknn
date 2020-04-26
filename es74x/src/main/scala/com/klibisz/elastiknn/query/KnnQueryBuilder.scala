@@ -93,16 +93,16 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
-        new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
+        LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
 
       case (HammingLsh(f, v: Vec.SparseBool, candidates), m: Mapping.HammingLsh) =>
-        new LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
+        LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))
 
       case (AngularLsh(f, v: Vec.DenseFloat, candidates), m: Mapping.AngularLsh) =>
-        new LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
+        LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
 
       case (L2Lsh(f, v: Vec.DenseFloat, candidates), m: Mapping.L2Lsh) =>
-        new LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
+        LshQuery(f, m, v, candidates, VecCache.DenseFloat(index, f))
 
       case _ => throw incompatible(mapping, query)
     }

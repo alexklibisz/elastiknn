@@ -30,7 +30,7 @@ class SparseIndexedQuery(val field: String, val queryVec: Vec.SparseBool, val si
   }
 
   class SparseIndexedWeight(searcher: IndexSearcher) extends Weight(this) {
-    searcher.setSimilarity(new BooleanSimilarity)
+//    searcher.setSimilarity(new BooleanSimilarity)
     private val intersectionWeight = intersectionQuery.createWeight(searcher, ScoreMode.COMPLETE, 1f)
     override def extractTerms(terms: util.Set[Term]): Unit = ()
     override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
