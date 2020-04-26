@@ -1,3 +1,4 @@
 pytest
 twine
 pdoc3==0.7.5
+scikit-learn
