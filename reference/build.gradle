@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':core')
+    implementation project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation 'org.apache.commons:commons-math3:3.6.1'

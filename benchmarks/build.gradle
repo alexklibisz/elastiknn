@@ -1,0 +1,15 @@
+
+//plugins {
+//    id 'application'
+//}
+
+dependencies {
+    implementation project(':core')
+    implementation project(':client-elastic4s')
+    runtime "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+}
+
+//application {
+//    mainClassName = 'com.klibisz.elastiknn.benchmarks.Driver'
+//}
