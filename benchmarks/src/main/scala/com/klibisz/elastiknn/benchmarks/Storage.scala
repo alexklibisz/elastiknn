@@ -29,6 +29,6 @@ final class FileStorage(datasetsDirectory: File, databaseFile: File) extends Sto
 
   /** Access the given dataset as a [[BufferedSource]]. */
   override def openDataset(dataset: Dataset): Managed[Throwable, BufferedSource] =
-    Managed.makeEffect(Source.fromFile(s"${datasetsDirectory.getAbsolutePath}/${dataset.name}.json"))(_.close())
+    Managed.makeEffect(Source.fromFile(s"${datasetsDirectory.getAbsolutePath}/${dataset.name}/vecs.json"))(_.close())
 
 }

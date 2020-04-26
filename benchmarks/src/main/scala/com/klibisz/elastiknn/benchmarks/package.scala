@@ -10,10 +10,10 @@ package object benchmarks {
   object Dataset {
     case object AmazonHome extends Dataset
     case object AmazonHomeUnit extends Dataset
-    case object AmazonHomeBits extends Dataset
+    case object AmazonHomePhash extends Dataset
     case object AmazonMixed extends Dataset
     case object AmazonMixedUnit extends Dataset
-    case object AmazonMixedBits extends Dataset
+    case object AmazonMixedPhash extends Dataset
     case object EnglishWikiLsa extends Dataset
     case object AnnbDeep1b extends Dataset
     case object AnnbFashionMnist extends Dataset
@@ -96,8 +96,8 @@ package object benchmarks {
       l2(AmazonMixed),
       angular(AmazonHomeUnit),
       angular(AmazonMixedUnit),
-      hamming(AmazonHomeBits),
-      hamming(AmazonMixedBits),
+      hamming(AmazonHomePhash),
+      hamming(AmazonMixedPhash),
       angular(EnglishWikiLsa),
       angular(AnnbDeep1b),
       l2(AnnbFashionMnist),

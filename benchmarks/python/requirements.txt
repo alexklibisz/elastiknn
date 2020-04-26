@@ -1,0 +1,4 @@
+-e ../../client-python/
+imagehash==4.0
+tqdm==4.45.0
+wget==3.2
