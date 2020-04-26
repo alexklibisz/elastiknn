@@ -3,14 +3,14 @@ package com.klibisz.elastiknn.query
 import java.time.Duration
 import java.util.Objects
 
-import com.google.common.cache.{Cache, CacheBuilder, CacheLoader, LoadingCache}
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction, LshFunction, SparseIndexedSimilarityFunction}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.storage.VecCache
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api, models}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -19,7 +19,6 @@ import org.elasticsearch.action.admin.indices.mapping.get._
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.common.lucene.search.function.FunctionScoreQuery
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
 
@@ -87,10 +86,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         ExactQuery(f, v, ExactSimilarityFunction.Angular, VecCache.DenseFloat(index, f))
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
+        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
 
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
+        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
         LshQuery(f, m, v, candidates, VecCache.SparseBool(index, f))

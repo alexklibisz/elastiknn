@@ -18,18 +18,17 @@ object LshQuery {
 
   private class LshScoreFunction[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: ElasticsearchCodec](
       val field: String,
-      val mapping: M,
       val query: V,
       val candidates: Int,
-      val cache: ContextCache[V])(implicit lshFunctionCache: LshFunctionCache[M, V])
+      val lshFunc: LshFunction[M, V],
+      val contextCache: ContextCache[V])
       extends ScoreFunction(CombineFunction.REPLACE) {
 
-    private val lshFunc: LshFunction[M, V] = lshFunctionCache(mapping)
     private val candsHeap: MinMaxPriorityQueue[lang.Float] = MinMaxPriorityQueue.create()
 
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
       val vecDocVals = ctx.reader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
-      val docIdCache = cache.get(ctx)
+      val docIdCache = contextCache.get(ctx)
 
       def exactScore(docId: Int): Float = {
         val storedVec = docIdCache.get(
@@ -66,11 +65,11 @@ object LshQuery {
 
     override def doEquals(other: ScoreFunction): Boolean = other match {
       case q: LshScoreFunction[M, V] =>
-        q.field == field && q.mapping == mapping && q.query == query && q.lshFunc == lshFunc && q.candidates == candidates
+        q.field == field && q.lshFunc == lshFunc && q.query == query && q.lshFunc == lshFunc && q.candidates == candidates
       case _ => false
     }
 
-    override def doHashCode(): Int = Objects.hash(field, query, mapping, lshFunc, candidates.asInstanceOf[AnyRef])
+    override def doHashCode(): Int = Objects.hash(field, query, lshFunc, lshFunc, candidates.asInstanceOf[AnyRef])
   }
 
   def apply[M <: Mapping: ElasticsearchCodec, V <: Vec: ByteArrayCodec: ElasticsearchCodec](
@@ -90,7 +89,7 @@ object LshQuery {
       }
       builder.build()
     }
-    val f = new LshScoreFunction(field, mapping, queryVec, candidates, cache)
+    val f = new LshScoreFunction(field, queryVec, candidates, lshFunc, cache)
     new FunctionScoreQuery(isecQuery, f, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
