@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
+import java.nio.file.Paths
 
 import com.klibisz.elastiknn.api.Vec
 import zio._

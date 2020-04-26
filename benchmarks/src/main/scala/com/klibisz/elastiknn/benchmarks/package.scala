@@ -118,7 +118,7 @@ package object benchmarks {
                           mapping: Mapping,
                           query: NearestNeighborsQuery,
                           k: Int,
-                          recalls: Seq[Float],
+                          recalls: Seq[Double],
                           durations: Seq[Long])
 
 }
