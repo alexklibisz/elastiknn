@@ -67,6 +67,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
     val index = c.index.getName
+
     (query, mapping) match {
       case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
