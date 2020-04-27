@@ -69,6 +69,9 @@ package object api {
     }
 
     final case class Indexed(index: String, id: String, field: String) extends Vec
+
+    private[elastiknn] final case class Empty() extends Vec
+
   }
 
   sealed trait Mapping {

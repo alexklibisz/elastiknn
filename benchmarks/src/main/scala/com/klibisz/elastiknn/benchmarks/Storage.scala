@@ -7,6 +7,7 @@ import com.klibisz.elastiknn.api._
 import io.circe.Codec
 import io.circe.syntax._
 import io.circe.generic.semiauto.deriveCodec
+import io.circe.generic.extras.semiauto.deriveEnumerationCodec
 import io.circe.parser._
 import zio._
 import zio.stream._
@@ -38,9 +39,10 @@ trait Storage[R] {
 
 }
 
+/** Quite dumb Storage implementation that stores all results on disk without any internal state. */
 final class FileStorage(datasetsDirectory: File, databaseFile: File) extends Storage[File] {
 
-  private implicit val datasetCodec: Codec[Dataset] = deriveCodec[Dataset]
+  private implicit val datasetCodec: Codec[Dataset] = deriveEnumerationCodec[Dataset]
   private implicit val mappingCodec: Codec[Mapping] = ElasticsearchCodec.mapping
   private implicit val queryCodec: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
   private implicit val resultCodec: Codec[Result] = deriveCodec[Result]
@@ -91,4 +93,10 @@ final class FileStorage(datasetsDirectory: File, databaseFile: File) extends Sto
     fileSem.flatMap(_.withPermit(readTask))
   }
 
+  override def toString: String = s"FileStorage reading from $datasetsDirectory, writing to $databaseFile"
+
+}
+
+object FileStorage {
+  val eknnDirectory: File = new File(s"${System.getProperty("user.home")}/.elastiknn-data")
 }

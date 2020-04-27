@@ -114,15 +114,17 @@ object ElasticsearchCodec { esc =>
     implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
     ElasticsearchCodec(deriveConfiguredCodec)
   }
+  implicit val emptyVec: ESC[Vec.Empty] = ElasticsearchCodec(deriveCodec)
 
   implicit val vector: ESC[api.Vec] = new ESC[api.Vec] {
     override def apply(t: Vec): Json = t match {
       case ixv: Vec.Indexed    => encode(ixv)
       case sbv: Vec.SparseBool => encode(sbv)
       case dfv: Vec.DenseFloat => encode(dfv)
+      case emp: Vec.Empty      => encode(emp)
     }
     override def apply(c: HCursor): Either[DecodingFailure, Vec] =
-      denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c))
+      denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c)).orElse(emptyVec(c))
   }
 
   implicit val mappingSparseBool: ESC[Mapping.SparseBool] = ElasticsearchCodec(deriveCodec)
