@@ -75,7 +75,7 @@ def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, da
                 try:
                     img = Image.open(bytes)
                 except PIL.UnidentifiedImageError as ex:
-                    print(f"Error for image {asin}: {ex}", file=sys.stderr)
+                    print(f"Error for image {asin}: {ex}\n", file=sys.stderr)
                 ph = phash(img, hash_size)
                 for vec in ndarray_to_sparse_bool_vectors(ph.hash.reshape((1, ph.hash.size))):
                     vecsfp.write(asin + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n')
