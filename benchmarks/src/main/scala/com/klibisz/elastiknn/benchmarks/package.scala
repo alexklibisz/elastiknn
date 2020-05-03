@@ -1,8 +1,11 @@
 package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
+import zio.Has
 
 package object benchmarks {
+
+  type DatasetClient = Has[DatasetClient.Service]
 
   sealed trait Dataset {
     final def name: String = this.toString.toLowerCase
