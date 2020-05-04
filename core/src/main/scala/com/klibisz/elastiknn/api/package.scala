@@ -57,7 +57,6 @@ package object api {
         }
         dp
       }
-
     }
 
     object DenseFloat {

@@ -12,7 +12,7 @@ import scala.io.Source
 object DatasetClient {
 
   trait Service {
-    def streamVectors[V <: Vec: ElasticsearchCodec](dataset: Dataset): Stream[Throwable, V]
+    def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V]
   }
 
   def default: Layer[Throwable, DatasetClient] = local(new File(s"${System.getProperty("user.home")}/.elastiknn-data"))
@@ -20,12 +20,12 @@ object DatasetClient {
   /** Implementation of [[DatasetClient.Service]] that reads from a local directory. */
   def local(datasetsDirectory: File): Layer[Throwable, DatasetClient] = ZLayer.fromFunction { _ =>
     new Service {
-      override def streamVectors[V <: Vec: ElasticsearchCodec](dataset: Dataset): Stream[Throwable, V] = {
+      override def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V] = {
         def parseDecode(s: String): Either[circe.Error, V] =
           ElasticsearchCodec.parse(s).flatMap(j => ElasticsearchCodec.decode[V](j.hcursor))
         val path = s"${datasetsDirectory.getAbsolutePath}/${dataset.name}/vecs_4096.json"
         val iterManaged = Managed.makeEffect(Source.fromFile(path))(_.close())
-        val lines = Stream.fromIteratorManaged(iterManaged.map(_.getLines()))
+        val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines.take(n)).getOrElse(src.getLines)))
         val rawJson = lines.map(_.dropWhile(_ != '{')) // Drop until the Json starts.
         rawJson.mapM(s => ZIO.fromEither(parseDecode(s)))
       }
