@@ -7,6 +7,7 @@ package object benchmarks {
 
   type DatasetClient = Has[DatasetClient.Service]
   type ResultClient = Has[ResultClient.Service]
+  type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed trait Dataset {
     final def name: String = this.toString.toLowerCase
