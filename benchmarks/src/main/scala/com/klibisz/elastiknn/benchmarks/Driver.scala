@@ -13,25 +13,37 @@ object Driver extends App {
                      resultsFile: File = new File("/tmp/results.json"))
 
   private val optionParser = new scopt.OptionParser[Options]("Benchmarks driver") {
-    opt[String]('d', "datasetsDirectory")
-      .action((s, c) => c.copy(datasetsDirectory = new File(s)))
-    opt[String]('e', "elasticsearchUrl")
-      .action((s, c) => c.copy(elasticsearchUrl = s))
-    opt[String]('o', "resultsFile")
-      .action((s, c) => c.copy(resultsFile = new File(s)))
+    opt[String]('d', "datasetsDirectory").action((s, c) => c.copy(datasetsDirectory = new File(s)))
+    opt[String]('e', "elasticsearchUrl").action((s, c) => c.copy(elasticsearchUrl = s))
+    opt[String]('o', "resultsFile").action((s, c) => c.copy(resultsFile = new File(s)))
   }
 
-  private val logic: ZIO[Console with DatasetClient, Throwable, Unit] = for {
+  private val logic: ZIO[Console with DatasetClient with ResultClient, Throwable, Unit] = for {
     datasetClient: DatasetClient.Service <- ZIO.access[DatasetClient](_.get)
+    resultClient: ResultClient.Service <- ZIO.access[ResultClient](_.get)
     s = datasetClient.streamVectors[Vec.SparseBool](Dataset.AmazonHomePhash)
-    _ <- s.foreach(v => putStrLn(v.toString))
+    _ <- s.take(10).zipWithIndex.foreach {
+      case (v, i) => putStrLn(s"$i: $v")
+    }
+    fakeResult = Result(Dataset.AmazonHomePhash,
+                        Mapping.SparseBool(4096),
+                        NearestNeighborsQuery.Exact("", Vec.Empty(), Similarity.Hamming),
+                        20,
+                        Seq.empty,
+                        Seq.empty)
+    _ <- resultClient.save(fakeResult)
+    find <- resultClient.find(fakeResult.dataset, fakeResult.mapping, fakeResult.query, fakeResult.k)
+    _ <- putStrLn(find.toString)
+    all <- resultClient.all
+    _ <- ZIO.collectAll(all.map(r => putStrLn(r.toString)))
   } yield ()
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
     optionParser.parse(args, Options()) match {
       case None => sys.exit(1)
       case Some(opts) =>
-        val layer: ZLayer[Any, Throwable, Console with DatasetClient] = Console.live ++ DatasetClient.local(opts.datasetsDirectory)
+        val layer: ZLayer[Any, Throwable, Console with DatasetClient with ResultClient] =
+          Console.live ++ DatasetClient.local(opts.datasetsDirectory) ++ ResultClient.local(opts.resultsFile)
         logic.provideLayer(layer).mapError(System.err.println).fold(_ => 1, _ => 0)
     }
   }
