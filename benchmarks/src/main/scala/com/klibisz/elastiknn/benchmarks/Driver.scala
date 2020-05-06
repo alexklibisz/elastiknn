@@ -7,7 +7,6 @@ import zio._
 import zio.console._
 
 import scala.concurrent.duration.Duration
-import scala.util
 
 object Driver extends App {
 
@@ -39,13 +38,21 @@ object Driver extends App {
                          shards: Int,
                          dataset: Dataset,
                          holdoutProportion: Double): ZIO[ElastiknnZioClient with DatasetClient, Throwable, (String, Vector[Vec])] = {
-    import com.sksamuel.elastic4s.ElasticDsl.{mapping => m, _}
+    val theMapping = mapping // ElasticDsl also has a member called mapping.
+    import com.sksamuel.elastic4s.ElasticDsl._
     val indexName = s"benchmark-${dataset.name}"
     for {
       eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
       _ <- eknnClient.execute(createIndex(indexName).shards(shards))
-      _ <- eknnClient.putMapping(indexName, vectorField, mapping)
-    } yield (indexName, Vector.empty)
+      _ <- eknnClient.putMapping(indexName, vectorField, theMapping)
+      datasetClient <- ZIO.access[DatasetClient](_.get)
+      stream = datasetClient.stream[Vec](dataset)
+      holdout <- stream.grouped(500L).foldM(Vector.empty[Vec]) {
+        case (acc, vecs) =>
+          val (indexVecs, holdoutVecs) = vecs.partition(_.hashCode.abs % 10 >= 10 * holdoutProportion)
+          eknnClient.index(indexName, vectorField, indexVecs).map(_ => acc ++ holdoutVecs)
+      }
+    } yield (indexName, holdout)
   }
 
   private def searchIndex(index: String,
@@ -100,7 +107,7 @@ object Driver extends App {
         val layer: ZLayer[Any, Throwable, Console with DatasetClient with ResultClient with ElastiknnZioClient] =
           Console.live ++ DatasetClient.local(opts.datasetsDirectory) ++ ResultClient.local(opts.resultsFile) ++
             ElastiknnZioClient.fromFutureClient(opts.elasticsearchHost, opts.elasticsearchPort, strictFailure = true)
-        run(Experiment.defaults, opts.ks, opts.holdoutProportion)
+        run(Experiment.defaults.filter(_.dataset == Dataset.AmazonHomePhash), opts.ks, opts.holdoutProportion)
           .provideLayer(layer)
           .mapError(System.err.println)
           .fold(_ => 1, _ => 0)
