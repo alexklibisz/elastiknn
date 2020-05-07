@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
+import java.util.UUID
 
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -47,7 +48,7 @@ object Driver extends App {
 
   private def buildIndex(mapping: Mapping, shards: Int, dataset: Dataset, holdoutProportion: Double) = {
     // val theMapping = mapping // ElasticDsl also has a member called mapping.
-    val indexName = s"benchmark-${dataset.name}"
+    val indexName = s"benchmark-${dataset.name}-${UUID.randomUUID.toString}"
     for {
       _ <- deleteIndexIfExists(indexName)
       eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
@@ -66,11 +67,17 @@ object Driver extends App {
     } yield (indexName, holdout)
   }
 
-  private def search(index: String, query: NearestNeighborsQuery, holdout: Vector[Vec], k: Int, par: Int = 1): ZIO[ElastiknnZioClient, Throwable, Seq[SearchResult]] =
+  private def search(index: String, query: NearestNeighborsQuery, holdout: Vector[Vec], k: Int, par: Int = 1) =
     for {
       eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
       _ <- eknnClient.execute(refreshIndex(index))
-      requests = holdout.map(query.withVec).map(q => eknnClient.nearestNeighbors(index, q, k))
+      requests = holdout.map(query.withVec).zipWithIndex.map {
+        case (q, i) =>
+          for {
+            (dur, res) <- eknnClient.nearestNeighbors(index, q, k).timed
+            _ <- log.debug(s"Completed query ${i + 1} of ${holdout.length} in ${dur.toMillis} ms")
+          } yield res
+      }
       responses <- ZIO.collectAllParN(par)(requests)
     } yield responses.map(r => SearchResult(r.result.hits.hits.map(_.id).toSeq, r.result.took.millis))
 

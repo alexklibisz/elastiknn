@@ -75,11 +75,11 @@ package object benchmarks {
     def hamming(dataset: Dataset): Experiment = Experiment(
       dataset,
       MappingAndQueries(Mapping.SparseBool(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
-      MappingAndQueries(Mapping.SparseIndexed(dataset.dims), (f, v, _) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)) +:
-        Seq(0.1, 0.5, 0.9).map { bitsProp =>
-        MappingAndQueries(Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
-                          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.HammingLsh(f, v, k * m)))
-      }
+      MappingAndQueries(Mapping.SparseIndexed(dataset.dims), (f, v, _) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)) +: Seq.empty
+//        Seq(0.1, 0.5, 0.9).map { bitsProp =>
+//        MappingAndQueries(Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
+//                          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.HammingLsh(f, v, k * m)))
+//      }
     )
 
     def jaccard(dataset: Dataset): Experiment = Experiment(
@@ -118,11 +118,6 @@ package object benchmarks {
 
   }
 
-  final case class Result(dataset: Dataset,
-                          mapping: Mapping,
-                          query: NearestNeighborsQuery,
-                          k: Int,
-                          recalls: Seq[Double],
-                          durations: Seq[Long])
+  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long])
 
 }
