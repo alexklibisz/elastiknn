@@ -10,7 +10,9 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC18-2"
     implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC18-2"
+    implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.2.8"
     implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
+    implementation "ch.qos.logback:logback-classic:1.2.3"
 }
 
 application {

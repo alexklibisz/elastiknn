@@ -58,13 +58,13 @@ def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, da
         print(f"Downloading {metadata_url} to {metafile}")
         wget.download(metadata_url, metafile)
 
-    vecsfp = open(f"{datadir}/vecs_{dim}.json", "w")
+    vecsfp = open(f"{datadir}/vecs.json", "w")
 
     s3 = boto3.client('s3')
 
     with gzip.open(metafile) as gzfp:
         lines = islice(gzfp, n)
-        with tqdm(lines, desc="Processing images", total=n) as pbar:
+        with tqdm(lines, desc="Processing images", total=n if n < sys.maxsize else None) as pbar:
             for d in map(eval, lines):
                 if "imUrl" not in d or not d["imUrl"].endswith("jpg"):
                     continue
@@ -89,8 +89,7 @@ def main(argv: List[str]) -> int:
         "elastiknn-benchmarks",
         "data/amazon-reviews/images",
         f"{data_dir}/amazonhomephash",
-        4096,
-        50000
+        4096
     )
     return 0
 

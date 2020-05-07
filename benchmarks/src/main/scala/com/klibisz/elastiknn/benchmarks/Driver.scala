@@ -3,10 +3,14 @@ package com.klibisz.elastiknn.benchmarks
 import java.io.File
 
 import com.klibisz.elastiknn.api._
+import com.sksamuel.elastic4s.ElasticDsl._
 import zio._
+import zio.clock.Clock
 import zio.console._
+import zio.logging._
+import zio.logging.slf4j.Slf4jLogger
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 object Driver extends App {
 
@@ -15,7 +19,7 @@ object Driver extends App {
                      elasticsearchPort: Int = 9200,
                      resultsFile: File = new File("/tmp/results.json"),
                      ks: Seq[Int] = Seq(10, 100),
-                     holdoutProportion: Double = 0.1)
+                     holdoutProportion: Double = 0.05)
 
   private val optionParser = new scopt.OptionParser[Options]("Benchmarks driver") {
     opt[String]('d', "datasetsDirectory").action((s, c) => c.copy(datasetsDirectory = new File(s)))
@@ -26,55 +30,57 @@ object Driver extends App {
   }
 
   private val vectorField: String = "vec"
-  private val holdoutSeed: Long = 0
+  private val numCores: Int = java.lang.Runtime.getRuntime.availableProcessors()
 
-  private case class SearchResult(id: Int, neighborIds: Vector[Int], duration: Duration)
+  private case class SearchResult(neighborIds: Seq[String], duration: Duration)
 
   private def recalls(exact: Seq[SearchResult], test: Seq[SearchResult]): Seq[Double] = exact.zip(test).map {
     case (ex, ts) => ex.neighborIds.intersect(ts.neighborIds).length * 1d / ex.neighborIds.length
   }
 
-  private def buildIndex(mapping: Mapping,
-                         shards: Int,
-                         dataset: Dataset,
-                         holdoutProportion: Double): ZIO[ElastiknnZioClient with DatasetClient, Throwable, (String, Vector[Vec])] = {
-    val theMapping = mapping // ElasticDsl also has a member called mapping.
-    import com.sksamuel.elastic4s.ElasticDsl._
-    val indexName = s"benchmark-${dataset.name}"
+  private def deleteIndexIfExists(index: String): ZIO[ElastiknnZioClient, Throwable, Unit] =
     for {
       eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-      _ <- eknnClient.execute(createIndex(indexName).shards(shards))
-      _ <- eknnClient.putMapping(indexName, vectorField, theMapping)
+      req = eknnClient.execute(deleteIndex(index))
+      _ <- req.map(_ => ()).orElse(ZIO.succeed(()))
+    } yield ()
+
+  private def buildIndex(mapping: Mapping, shards: Int, dataset: Dataset, holdoutProportion: Double) = {
+    // val theMapping = mapping // ElasticDsl also has a member called mapping.
+    val indexName = s"benchmark-${dataset.name}"
+    for {
+      _ <- deleteIndexIfExists(indexName)
+      eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
+      _ <- eknnClient.execute(createIndex(indexName).shards(shards).replicas(0))
+      _ <- eknnClient.putMapping(indexName, vectorField, mapping)
       datasetClient <- ZIO.access[DatasetClient](_.get)
       stream = datasetClient.stream[Vec](dataset)
-      holdout <- stream.grouped(500L).foldM(Vector.empty[Vec]) {
-        case (acc, vecs) =>
+      holdout <- stream.grouped(500L).zipWithIndex.foldM(Vector.empty[Vec]) {
+        case (acc, (vecs, i)) =>
           val (indexVecs, holdoutVecs) = vecs.partition(_.hashCode.abs % 10 >= 10 * holdoutProportion)
-          eknnClient.index(indexName, vectorField, indexVecs).map(_ => acc ++ holdoutVecs)
+          for {
+            (dur, _) <- eknnClient.index(indexName, vectorField, indexVecs).timed
+            _ <- log.warn(s"Indexed batch $i containing ${indexVecs.length} vectors in ${dur.toMillis} ms")
+          } yield acc ++ holdoutVecs
       }
     } yield (indexName, holdout)
   }
 
-  private def searchIndex(index: String,
-                          query: NearestNeighborsQuery,
-                          holdoutVectors: Vector[Vec],
-                          k: Int): ZIO[ElastiknnZioClient with DatasetClient, Nothing, Seq[SearchResult]] =
-    // Index the dataset, hold out `testQueries` vectors to use as queries, run the queries, return one SearchResult for each query.
-    ZIO.succeed(Vector.empty)
+  private def search(index: String, query: NearestNeighborsQuery, holdout: Vector[Vec], k: Int, par: Int = 1): ZIO[ElastiknnZioClient, Throwable, Seq[SearchResult]] =
+    for {
+      eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
+      _ <- eknnClient.execute(refreshIndex(index))
+      requests = holdout.map(query.withVec).map(q => eknnClient.nearestNeighbors(index, q, k))
+      responses <- ZIO.collectAllParN(par)(requests)
+    } yield responses.map(r => SearchResult(r.result.hits.hits.map(_.id).toSeq, r.result.took.millis))
 
-  private def deleteIndex(index: String): Unit = {
-    ???
-  }
-
-  private def run(experiments: Seq[Experiment],
-                  ks: Seq[Int],
-                  holdoutProportion: Double): ZIO[ElastiknnZioClient with DatasetClient with ResultClient, Throwable, List[Unit]] =
+  private def run(experiments: Seq[Experiment], ks: Seq[Int], holdoutProportion: Double) =
     ZIO.foreach(experiments) { exp =>
       for {
-        (index, holdoutVectors) <- buildIndex(exp.exact.mapping, exp.shards, exp.dataset, holdoutProportion)
+        (index, holdoutVectors) <- buildIndex(exp.exact.mapping, numCores, exp.dataset, holdoutProportion)
         _ <- ZIO.foreach(ks) { k =>
           for {
-            exactResults <- searchIndex(index, exp.exact.mkQuery.head(vectorField, holdoutVectors.head, k), holdoutVectors, k)
+            exactResults <- search(index, exp.exact.mkQuery.head(vectorField, holdoutVectors.head, k), holdoutVectors, k, numCores)
             testRuns = for {
               maq <- exp.maqs
               mkQuery <- maq.mkQuery
@@ -82,15 +88,14 @@ object Driver extends App {
               emptyResult = Result(exp.dataset, maq.mapping, emptyQuery, k, Seq.empty, Seq.empty)
             } yield
               for {
-                resultClient: ResultClient.Service <- ZIO.access[ResultClient](_.get)
+                resultClient <- ZIO.access[ResultClient](_.get)
                 found <- resultClient.find(emptyResult.dataset, emptyResult.mapping, emptyResult.query, emptyResult.k)
                 _ <- if (found.isDefined) ZIO.succeed(())
                 else
                   for {
                     (index, _) <- buildIndex(maq.mapping, exp.shards, exp.dataset, holdoutProportion)
-                    testResults <- searchIndex(index, emptyQuery, holdoutVectors, k)
-                    populatedResult: Result = emptyResult.copy(durations = testResults.map(_.duration.toMillis),
-                                                               recalls = recalls(exactResults, testResults))
+                    testResults <- search(index, emptyQuery, holdoutVectors, k)
+                    populatedResult: Result = emptyResult.copy(durations = testResults.map(_.duration.toMillis), recalls = recalls(exactResults, testResults))
                     _ <- resultClient.save(populatedResult)
                   } yield ()
               } yield ()
@@ -102,15 +107,19 @@ object Driver extends App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
     optionParser.parse(args, Options()) match {
-      case None => sys.exit(1)
       case Some(opts) =>
-        val layer: ZLayer[Any, Throwable, Console with DatasetClient with ResultClient with ElastiknnZioClient] =
-          Console.live ++ DatasetClient.local(opts.datasetsDirectory) ++ ResultClient.local(opts.resultsFile) ++
+        val layer =
+          Console.live ++
+            Clock.live ++
+            Slf4jLogger.make((_, s) => s, Some(getClass.getCanonicalName)) ++
+            DatasetClient.local(opts.datasetsDirectory) ++
+            ResultClient.local(opts.resultsFile) ++
             ElastiknnZioClient.fromFutureClient(opts.elasticsearchHost, opts.elasticsearchPort, strictFailure = true)
         run(Experiment.defaults.filter(_.dataset == Dataset.AmazonHomePhash), opts.ks, opts.holdoutProportion)
           .provideLayer(layer)
           .mapError(System.err.println)
           .fold(_ => 1, _ => 0)
+      case None => sys.exit(1)
     }
   }
 }

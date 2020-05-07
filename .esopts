@@ -1,3 +1,1 @@
 -Dtests.heap.size=4G
--Dtests.es.thread_pool.write.size=4
--Dtests.es.thread_pool.search.size=4
