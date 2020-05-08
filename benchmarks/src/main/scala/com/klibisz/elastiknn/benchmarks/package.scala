@@ -118,6 +118,8 @@ package object benchmarks {
 
   }
 
-  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long])
+  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, ..., ...)"
+  }
 
 }
