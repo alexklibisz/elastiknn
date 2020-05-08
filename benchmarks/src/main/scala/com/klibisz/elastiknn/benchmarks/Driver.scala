@@ -50,7 +50,12 @@ object Driver extends App {
       _ <- req.map(_ => ()).orElse(ZIO.succeed(()))
     } yield ()
 
-  private def buildIndex(mapping: Mapping, shards: Int, dataset: Dataset, holdoutProportion: Double, maxDatasetSize: Int, batchSize: Int = 500) = {
+  private def buildIndex(mapping: Mapping,
+                         shards: Int,
+                         dataset: Dataset,
+                         holdoutProportion: Double,
+                         maxDatasetSize: Int,
+                         batchSize: Int = 500): ZIO[Logging with Any with Clock with DatasetClient with ElastiknnZioClient, Throwable, (String, Vector[Vec])] = {
     val indexName = s"benchmark-${dataset.name}-${MurmurHash3.orderedHash(Seq(mapping, shards, dataset, holdoutProportion, maxDatasetSize, batchSize)).abs}"
     for {
       _ <- deleteIndexIfExists(indexName)
@@ -88,10 +93,15 @@ object Driver extends App {
   private def run(experiments: Seq[Experiment], ks: Seq[Int], holdoutProportion: Double, maxDatasetSize: Int) =
     ZIO.foreach(experiments) { exp =>
       for {
-        (index, holdoutVectors) <- buildIndex(exp.exact.mapping, numCores, exp.dataset, holdoutProportion, maxDatasetSize)
+        _ <- log.info(s"Starting on experiment $exp")
+        // Create a memoized effect, i.e. it hasn't been executed yet and will only execute once.
+        buildIndexMemo <- buildIndex(exp.exact.mapping, numCores, exp.dataset, holdoutProportion, maxDatasetSize).memoize
         _ <- ZIO.foreach(ks) { k =>
           for {
-            exactResults <- search(index, exp.exact.mkQuery.head(vectorField, holdoutVectors.head, k), holdoutVectors, k, numCores)
+            holdoutExactResultsMemo <- (for {
+              (index, holdoutVectors) <- buildIndexMemo
+              exactResults: Seq[SearchResult] <- search(index, exp.exact.mkQuery.head(vectorField, Vec.Empty(), k), holdoutVectors, k, numCores)
+            } yield (holdoutVectors, exactResults)).memoize
             testRuns = for {
               maq <- exp.maqs
               mkQuery <- maq.mkQuery
@@ -101,9 +111,10 @@ object Driver extends App {
               for {
                 resultClient <- ZIO.access[ResultClient](_.get)
                 found <- resultClient.find(emptyResult.dataset, emptyResult.mapping, emptyResult.query, emptyResult.k)
-                _ <- if (found.isDefined) log.info(s"Skipping test for existing result: $found")
+                _ <- if (found.isDefined) log.info(s"Skip test for existing result: $found")
                 else
                   for {
+                    (holdoutVectors, exactResults) <- holdoutExactResultsMemo
                     (index, _) <- buildIndex(maq.mapping, exp.shards, exp.dataset, holdoutProportion, maxDatasetSize)
                     testResults <- search(index, emptyQuery, holdoutVectors, k)
                     populatedResult: Result = emptyResult.copy(durations = testResults.map(_.duration.toMillis), recalls = recalls(exactResults, testResults))
