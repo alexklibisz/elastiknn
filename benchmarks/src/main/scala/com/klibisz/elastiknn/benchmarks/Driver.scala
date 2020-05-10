@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
-import java.util.{Objects, UUID}
 
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -12,7 +11,6 @@ import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
 
 import scala.concurrent.duration._
-import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
 object Driver extends App {
@@ -27,7 +25,7 @@ object Driver extends App {
 
   private val optionParser = new scopt.OptionParser[Options]("Benchmarks driver") {
     opt[String]('d', "datasetsDirectory").action((s, c) => c.copy(datasetsDirectory = new File(s)))
-    opt[String]('h', "elasticsearchHost").action((s, c) => c.copy(elasticsearchHost = s))
+    opt[String]('u', "elasticsearchHost").action((s, c) => c.copy(elasticsearchHost = s))
     opt[Int]('p', "elasticsearchPort").action((i, c) => c.copy(elasticsearchPort = i))
     opt[String]('o', "resultsFile").action((s, c) => c.copy(resultsFile = new File(s)))
     opt[Double]('h', "holdoutPercentage").action((d, c) => c.copy(holdoutProportion = d))
@@ -93,13 +91,15 @@ object Driver extends App {
   private def run(experiments: Seq[Experiment], ks: Seq[Int], holdoutProportion: Double, maxDatasetSize: Int) =
     ZIO.foreach(experiments) { exp =>
       for {
-        _ <- log.info(s"Starting on experiment $exp")
+        _ <- log.info(s"Starting experiment for dataset ${exp.dataset.name} with ${exp.maqs.length} mappings and ${exp.maqs.map(_.mkQuery.length).sum} total queries")
         // Create a memoized effect, i.e. it hasn't been executed yet and will only execute once.
         buildIndexMemo <- buildIndex(exp.exact.mapping, numCores, exp.dataset, holdoutProportion, maxDatasetSize).memoize
         _ <- ZIO.foreach(ks) { k =>
           for {
             holdoutExactResultsMemo <- (for {
+              _ <- log.info(s"Indexing vectors for exact search")
               (index, holdoutVectors) <- buildIndexMemo
+              _ <- log.info(s"Running exact search")
               exactResults: Seq[SearchResult] <- search(index, exp.exact.mkQuery.head(vectorField, Vec.Empty(), k), holdoutVectors, k, numCores)
             } yield (holdoutVectors, exactResults)).memoize
             testRuns = for {
@@ -107,15 +107,18 @@ object Driver extends App {
               mkQuery <- maq.mkQuery
               emptyQuery = mkQuery(vectorField, Vec.Empty(), k)
               emptyResult = Result(exp.dataset, maq.mapping, emptyQuery, k, Seq.empty, Seq.empty)
+              buildIndexMemoEffect = buildIndex(maq.mapping, exp.shards, exp.dataset, holdoutProportion, maxDatasetSize).memoize
             } yield
               for {
                 resultClient <- ZIO.access[ResultClient](_.get)
+                buildIndexMemo <- buildIndexMemoEffect
                 found <- resultClient.find(emptyResult.dataset, emptyResult.mapping, emptyResult.query, emptyResult.k)
                 _ <- if (found.isDefined) log.info(s"Skip test for existing result: $found")
                 else
                   for {
+                    (index, _) <- buildIndexMemo
                     (holdoutVectors, exactResults) <- holdoutExactResultsMemo
-                    (index, _) <- buildIndex(maq.mapping, exp.shards, exp.dataset, holdoutProportion, maxDatasetSize)
+                    _ <- log.info(s"Indexing vectors for mapping ${maq.mapping}")
                     testResults <- search(index, emptyQuery, holdoutVectors, k)
                     populatedResult: Result = emptyResult.copy(durations = testResults.map(_.duration.toMillis), recalls = recalls(exactResults, testResults))
                     _ <- resultClient.save(populatedResult)

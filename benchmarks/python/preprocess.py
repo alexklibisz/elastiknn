@@ -11,6 +11,7 @@ import boto3
 import wget
 import sys
 
+from botocore.exceptions import ClientError
 from elastiknn.api import Vec
 from elastiknn.utils import ndarray_to_sparse_bool_vectors
 from imagehash import phash
@@ -58,23 +59,34 @@ def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, da
         print(f"Downloading {metadata_url} to {metafile}")
         wget.download(metadata_url, metafile)
 
-    vecsfp = open(f"{datadir}/vecs.json", "w")
+    vecsfile = f"{datadir}/vecs.json"
+
+    # Get the number of lines already in the file so they can be skipped.
+    # Note this might lead to some duplicates.
+    nvecs = 0
+    with open(vecsfile) as fp:
+        for _ in fp:
+            nvecs += 1
+
+    # Open again for appending.
+    vecsfp = open(f"{datadir}/vecs.json", "a")
 
     s3 = boto3.client('s3')
 
     with gzip.open(metafile) as gzfp:
-        lines = islice(gzfp, n)
+        print(f"Skipping {nvecs} existing vectors")
+        lines = islice(gzfp, nvecs, n)
         with tqdm(lines, desc="Processing images", total=n if n < sys.maxsize else None) as pbar:
             for d in map(eval, lines):
                 if "imUrl" not in d or not d["imUrl"].endswith("jpg"):
                     continue
                 asin = d['asin']
                 pbar.set_description(f"Processing {asin}")
-                obj = s3.get_object(Bucket=imgs_s3_bucket, Key=f"{imgs_s3_prefix}/{asin}.jpg")
-                bytes = BytesIO(obj['Body'].read())
                 try:
+                    obj = s3.get_object(Bucket=imgs_s3_bucket, Key=f"{imgs_s3_prefix}/{asin}.jpg")
+                    bytes = BytesIO(obj['Body'].read())
                     img = Image.open(bytes)
-                except PIL.UnidentifiedImageError as ex:
+                except (PIL.UnidentifiedImageError, ClientError) as ex:
                     print(f"Error for image {asin}: {ex}\n", file=sys.stderr)
                 ph = phash(img, hash_size)
                 for vec in ndarray_to_sparse_bool_vectors(ph.hash.reshape((1, ph.hash.size))):

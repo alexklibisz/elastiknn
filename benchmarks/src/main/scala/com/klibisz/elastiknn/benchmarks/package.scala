@@ -76,9 +76,11 @@ package object benchmarks {
       dataset,
       MappingAndQueries(Mapping.SparseBool(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
       MappingAndQueries(Mapping.SparseIndexed(dataset.dims), (f, v, _) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)) +:
-        Seq(0.1, 0.5, 0.9).map { bitsProp =>
-        MappingAndQueries(Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
-                          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.HammingLsh(f, v, k * m)))
+        Seq(0.1, 0.3, 0.5, 0.7, 0.9).map { bitsProp =>
+        MappingAndQueries(
+          Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
+          Seq(1, 2, 5, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.HammingLsh(f, v, k * m))
+        )
       }
     )
 

@@ -4,3 +4,6 @@ tqdm==4.46.0
 wget==3.2
 click==7.1.2
 boto3==1.13.1
+jupyterlab==2.1.2
+matplotlib==3.2.1
+pandas==1.0.3
