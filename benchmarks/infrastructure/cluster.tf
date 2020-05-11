@@ -1,8 +1,13 @@
-# eks-cluster.tf - provisions all resources (autoscaling groups, etc.) required by EKS cluster.
-# outputs.tf - defines the output configuration.
+# Terraform configuration for an EKS cluster.
+# Based on:
+# - https://learn.hashicorp.com/terraform/kubernetes/provision-eks-cluster
+# - https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/irsa
+# - https://eksworkshop.com/010_introduction/
+# - https://www.terraform.io/docs/providers/helm/index.html
 
-# -- VPC, subnets, availability zones --
-
+/*
+ * Networking (VPC, subnets, availability zones)
+ */
 variable "region" {
     default = "us-east-1"
     description = "AWS region"
@@ -23,6 +28,8 @@ resource "random_string" "suffix" {
 
 locals {
     cluster_name = "elastiknn-${random_string.suffix.result}"
+    k8s_service_account_namespace = "kube-system"
+    k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
 }
 
 module "vpc" {
@@ -56,9 +63,11 @@ module "vpc" {
     }
 }
 
-# -- Security Groups --
-# Original example uses one security group for each worker group.
-# I combined them into one.
+/*
+ * Security Groups
+ * Original examples used separate security for each worker group.
+ * I combined them.
+ */
 resource "aws_security_group" "worker_mgmt" {
     name_prefix = "worker_mgmt"
     vpc_id = module.vpc.vpc_id
@@ -70,24 +79,95 @@ resource "aws_security_group" "worker_mgmt" {
     }
 }
 
-# -- EKS Cluster --
+/*
+ * IRSA (IAM Roles for Service Accounts)
+ * Needed for things like autoscaling
+ */
+module "iam_assumable_role_admin" {
+    source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+    version                       = "~> v2.6.0"
+    create_role                   = true
+    role_name                     = "cluster-autoscaler"
+    provider_url                  = replace(module.eks.cluster_oidc_issuer_url, "https://", "")
+    role_policy_arns              = [aws_iam_policy.cluster_autoscaler.arn]
+    oidc_fully_qualified_subjects = ["system:serviceaccount:${local.k8s_service_account_namespace}:${local.k8s_service_account_name}"]
+}
 
+resource "aws_iam_policy" "cluster_autoscaler" {
+    name_prefix = "cluster-autoscaler"
+    description = "EKS cluster-autoscaler policy for cluster ${module.eks.cluster_id}"
+    policy = data.aws_iam_policy_document.cluster_autoscaler.json
+}
+
+data "aws_iam_policy_document" "cluster_autoscaler" {
+    statement {
+        sid    = "clusterAutoscalerAll"
+        effect = "Allow"
+
+        actions = [
+            "autoscaling:DescribeAutoScalingGroups",
+            "autoscaling:DescribeAutoScalingInstances",
+            "autoscaling:DescribeLaunchConfigurations",
+            "autoscaling:DescribeTags",
+            "ec2:DescribeLaunchTemplateVersions",
+        ]
+        resources = ["*"]
+    }
+
+    statement {
+        sid    = "clusterAutoscalerOwn"
+        effect = "Allow"
+
+        actions = [
+            "autoscaling:SetDesiredCapacity",
+            "autoscaling:TerminateInstanceInAutoScalingGroup",
+            "autoscaling:UpdateAutoScalingGroup"
+        ]
+
+    resources = ["*"]
+
+    condition {
+        test     = "StringEquals"
+        variable = "autoscaling:ResourceTag/kubernetes.io/cluster/${module.eks.cluster_id}"
+        values   = ["owned"]
+    }
+
+    condition {
+        test     = "StringEquals"
+        variable = "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/enabled"
+        values   = ["true"]
+    }
+  }
+}
+
+/*
+ * EKS Cluster setup.
+ */
 module "eks" {
     source = "terraform-aws-modules/eks/aws"
     cluster_name = local.cluster_name
     subnets = module.vpc.private_subnets
-    tags = {
-        Environment = "elastiknn"
-        # Left out some tags from the original example.
-    }
     vpc_id = module.vpc.vpc_id
+    enable_irsa = true
     worker_groups = [
         {
             name = "default"
             instance_type = "t2.small"
             asg_desired_capacity = 1
             asg_max_capacity = 5
-            additional_security_group_ids = [aws_security_group.worker_mgmt.id]
+            additional_security_group_ids = [aws_security_group.worker_mgmt.id],
+            tags = [
+                {
+                "key"                 = "k8s.io/cluster-autoscaler/enabled"
+                "propagate_at_launch" = "false"
+                "value"               = "true"
+                },
+                {
+                "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+                "propagate_at_launch" = "false"
+                "value"               = "true"
+                }
+            ]
         },
         # TODO: figure out how to specify that a pod should run on one of these.
         # Maybe there is a way to apply labels to the nodes here?
@@ -99,8 +179,15 @@ module "eks" {
         #     additional_security_group_ids = [aws_security_group.worker_mgmt.id]
         # }
     ]
+    tags = {
+        Environment = "elastiknn"
+        # Left out some tags from the original example.
+    }
 }
 
+/*
+ * Outputs
+ */
 data "aws_eks_cluster" "cluster" {
     name = module.eks.cluster_id
 }
@@ -116,7 +203,6 @@ provider "kubernetes" {
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
 }
 
-# -- Outputs --
 output "cluster_endpoint" {
   description = "Endpoint for EKS control plane."
   value       = module.eks.cluster_endpoint
@@ -146,3 +232,14 @@ output "cluster_name" {
   description = "Kubernetes Cluster Name"
   value       = local.cluster_name
 }
+
+# /*
+#  * Helm application installations.
+#  */
+# resource "helm_release" "cluster_autoscaler" {
+#     name = "cluster_autoscaler"
+#     chart = "stable/cluster-autoscaler"
+#     set {
+#         name = ""
+#     }
+# }

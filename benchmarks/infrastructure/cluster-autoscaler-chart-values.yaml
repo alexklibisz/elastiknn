@@ -1,0 +1,10 @@
+awsRegion: us-east-1
+
+rbac:
+  create: true
+  serviceAccountAnnotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::CHANGEME:role/cluster-autoscaler"
+
+autoDiscovery:
+  clusterName: CHANGEME
+  enabled: true
