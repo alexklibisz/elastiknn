@@ -1,3 +1,6 @@
+# helm install cluster-autoscaler --namespace kube-system stable/cluster-autoscaler --values=cluster-autoscaler-chart-values.yaml
+# helm uninstall --namespace kube-system cluster-autoscaler
+
 awsRegion: us-east-1
 
 rbac:
