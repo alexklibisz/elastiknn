@@ -30,7 +30,7 @@ resource "random_string" "suffix" {
 }
 
 locals {
-    cluster_name = "elastiknn-${random_string.suffix.result}"
+    cluster_name = lower("elastiknn-${random_string.suffix.result}")
     k8s_service_account_namespace = "kube-system"
     k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
 }
@@ -214,19 +214,19 @@ resource "aws_ecr_repository" "benchmark-driver" {
  * S3 Buckets for data and results.
  */
 resource "aws_s3_bucket" "dummy" {
-    bucket = lower("${local.cluster_name}-dummy")
+    bucket = "${local.cluster_name}-dummy"
     acl = "private"
 }
 
 /*
- * Helm application installations.
+ * Cluster autoscaler installation.
  */
 resource "helm_release" "cluster-autoscaler" {
-    depends_on = [null_resource.kubectl_config_provisioner]
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
     repository = "https://kubernetes-charts.storage.googleapis.com" 
     namespace = "kube-system"
+    depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
             region = var.region,
@@ -236,10 +236,21 @@ resource "helm_release" "cluster-autoscaler" {
     ]
 }
 
-# TODO: Argo workflows
+/*
+ * Argo workflows installation.
+ */
+resource "kubernetes_namespace" "argo" {
+    metadata {
+        name = "argo"
+    }
+}
 
-
-
+resource "null_resource" "argo-worklflows" {
+    depends_on = [null_resource.kubectl_config_provisioner, kubernetes_namespace.argo]
+    provisioner "local-exec" {
+        command = "kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/v2.7.7/manifests/install.yaml"
+    }
+}
 
 /*
  * Outputs from setup.
