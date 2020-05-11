@@ -21,6 +21,9 @@ provider "aws" {
 # Access list of AWS availability zones in the provider's region.
 data "aws_availability_zones" "available" {}
 
+# Access account information.
+data "aws_caller_identity" "current" {}
+
 resource "random_string" "suffix" {
     length = 8
     special = false
@@ -103,7 +106,6 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
     statement {
         sid    = "clusterAutoscalerAll"
         effect = "Allow"
-
         actions = [
             "autoscaling:DescribeAutoScalingGroups",
             "autoscaling:DescribeAutoScalingInstances",
@@ -113,25 +115,20 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
         ]
         resources = ["*"]
     }
-
     statement {
         sid    = "clusterAutoscalerOwn"
         effect = "Allow"
-
         actions = [
             "autoscaling:SetDesiredCapacity",
             "autoscaling:TerminateInstanceInAutoScalingGroup",
             "autoscaling:UpdateAutoScalingGroup"
         ]
-
     resources = ["*"]
-
     condition {
         test     = "StringEquals"
         variable = "autoscaling:ResourceTag/kubernetes.io/cluster/${module.eks.cluster_id}"
         values   = ["owned"]
     }
-
     condition {
         test     = "StringEquals"
         variable = "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/enabled"
@@ -158,14 +155,14 @@ module "eks" {
             additional_security_group_ids = [aws_security_group.worker_mgmt.id],
             tags = [
                 {
-                "key"                 = "k8s.io/cluster-autoscaler/enabled"
-                "propagate_at_launch" = "false"
-                "value"               = "true"
+                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
                 },
                 {
-                "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-                "propagate_at_launch" = "false"
-                "value"               = "true"
+                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
                 }
             ]
         },
@@ -233,13 +230,43 @@ output "cluster_name" {
   value       = local.cluster_name
 }
 
-# /*
-#  * Helm application installations.
-#  */
-# resource "helm_release" "cluster_autoscaler" {
-#     name = "cluster_autoscaler"
-#     chart = "stable/cluster-autoscaler"
-#     set {
-#         name = ""
-#     }
-# }
+/*
+ * Helm application installations.
+ */
+resource "helm_release" "cluster-autoscaler" {
+    name = "cluster-autoscaler"
+    chart = "cluster-autoscaler"
+    repository = "https://kubernetes-charts.storage.googleapis.com" 
+    namespace = "kube-system"
+
+    # awsRegion: us-east-1
+    # rbac:
+    #   create: true
+    #   serviceAccountAnnotations:
+    #     eks.amazonaws.com/role-arn: "arn:aws:iam::CHANGEME:role/cluster-autoscaler"
+    # autoDiscovery:
+    #   clusterName: CHANGEME
+    #   enabled: true
+
+    
+    set {
+        name = "awsRegion"
+        value = var.region
+    }
+    set {
+        name = "rbac.create"
+        value = true
+    }
+    set {
+        name = "rbac.serviceAccountAnnotations.eks\\.amazonaws\\.com/role-arn"
+        value = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/cluster-autoscaler"
+    }
+    set {
+        name = "autoDiscovery.clusterName"
+        value = local.cluster_name
+    }
+    set {
+        name = "autoDiscovery.enabled"
+        value = true
+    }
+}
