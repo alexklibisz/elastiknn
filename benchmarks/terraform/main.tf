@@ -1,12 +1,14 @@
-# Terraform configuration for an EKS cluster.
-# Based on:
-# - https://learn.hashicorp.com/terraform/kubernetes/provision-eks-cluster
-# - https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/irsa
-# - https://eksworkshop.com/010_introduction/
-# - https://www.terraform.io/docs/providers/helm/index.html
+/*
+ * Sets up a fairly simple EKS cluster with autoscaling and argo workflows.
+ * Cobbled together from the following resources.
+ * - https://learn.hashicorp.com/terraform/kubernetes/provision-eks-cluster
+ * - https://github.com/terraform-aws-modules/terraform-aws-eks/tree/master/examples/irsa
+ * - https://eksworkshop.com/010_introduction/
+ * - https://www.terraform.io/docs/providers/helm/index.html
+ */
 
 /*
- * Networking (VPC, subnets, availability zones)
+ * Networking (VPC, subnets, availability zones).
  */
 variable "region" {
     default = "us-east-1"
@@ -24,22 +26,17 @@ data "aws_availability_zones" "available" {}
 # Access account information.
 data "aws_caller_identity" "current" {}
 
-resource "random_string" "suffix" {
-    length = 8
-    special = false
-}
-
 locals {
-    cluster_name = lower("elastiknn-${random_string.suffix.result}")
+    project_name = "elastiknn-benchmarks"
+    cluster_name = "${local.project_name}-cluster"
     k8s_service_account_namespace = "kube-system"
     k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
-    benchmarks_namespace_name = "benchmarks"
 }
 
 module "vpc" {
     source = "terraform-aws-modules/vpc/aws"
     version = "2.6.0"
-    name = "elastiknn-vpc"
+    name = "${local.cluster_name}-vpc"
     cidr = "10.0.0.0/16"
     azs = data.aws_availability_zones.available.names
     private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
@@ -69,8 +66,7 @@ module "vpc" {
 
 /*
  * Security Groups
- * Original examples used separate security for each worker group.
- * I combined them.
+ * Original examples used separate security for each worker group; I combined them.
  */
 resource "aws_security_group" "worker_mgmt" {
     name_prefix = "worker_mgmt"
@@ -84,8 +80,7 @@ resource "aws_security_group" "worker_mgmt" {
 }
 
 /*
- * IRSA (IAM Roles for Service Accounts)
- * Needed for things like autoscaling
+ * IRSA (IAM Roles for Service Accounts). Needed for autoscaling.
  */
 module "iam_assumable_role_admin" {
     source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
@@ -167,30 +162,26 @@ module "eks" {
                 }
             ]
         },
-        # {
-        #     name = "high-performance"
-        #     instance_type = "c5.4xlarge"
-        #     asg_min_size = 0
-        #     asg_max_size = 50
-        #     addition_security_group_ids = [aws_security_group.worker_mgmt.id]
-        #     tags = [
-        #         {
-        #             "key"                 = "k8s.io/cluster-autoscaler/enabled"
-        #             "propagate_at_launch" = "false"
-        #             "value"               = "true"
-        #         },
-        #         {
-        #             "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-        #             "propagate_at_launch" = "false"
-        #             "value"               = "true"
-        #         }
-        #     ]
-        # }
+        {
+            name = "high-performance"
+            instance_type = "c5.4xlarge"
+            asg_min_size = 0
+            asg_max_size = 50
+            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
+            tags = [
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                },
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                }
+            ]
+        }
     ]
-    tags = {
-        Environment = "elastiknn"
-        # Left out some tags from the original example.
-    }
 }
 
 # This makes it possible to use helm later in the installation.
@@ -213,7 +204,7 @@ resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
     repository = "https://kubernetes-charts.storage.googleapis.com" 
-    namespace = "kube-system"
+    namespace = ${local.k8s_service_account_namespace}
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
@@ -226,9 +217,9 @@ resource "helm_release" "cluster-autoscaler" {
 
 /*
  * Argo workflows installation.
+ * Uses a helm chart but also needs to setup the cluster role and bind to the cluster role in the default namespace.
+ * Cluster role based on: Based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
-
-# Based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
 resource "kubernetes_cluster_role" "argo-workflows" {
     metadata {
         name = "argo-workflows"
@@ -249,25 +240,15 @@ resource "helm_release" "argo-workflows" {
     name = "argo-workflows"
     chart = "argo"
     repository = "https://argoproj.github.io/argo-helm"
-    namespace = "kube-system"
-    depends_on = [null_resource.kubectl_config_provisioner, kubernetes_namespace.benchmarks]
-}
-
-
-/*
- * Namespaces.
- */
-resource "kubernetes_namespace" "benchmarks" {
-    metadata {
-        name = local.benchmarks_namespace_name
-    }
+    namespace = local.k8s_service_account_namespace
+    depends_on = [null_resource.kubectl_config_provisioner]
 }
 
 resource "kubernetes_role_binding" "argo-workflows" {
-    depends_on = [kubernetes_namespace.benchmarks]
+    depends_on = []
     metadata {
         name = "argo-workflows"
-        namespace = local.benchmarks_namespace_name
+        namespace = "default"
     }
     role_ref {
         api_group = "rbac.authorization.k8s.io"
@@ -277,29 +258,23 @@ resource "kubernetes_role_binding" "argo-workflows" {
     subject {
         kind = "ServiceAccount"
         name = "default"
-        namespace = local.benchmarks_namespace_name
+        namespace = "default"
     }
 }
-
 
 /*
  * ECR Repositories for custom application images.
  */
-resource "aws_ecr_repository" "benchmark-driver" {
-    name = "benchmark-driver"
+resource "aws_ecr_repository" "driver" {
+    name = "driver"
     image_tag_mutability = "MUTABLE"
 }
 
 /*
  * S3 Buckets for data and results.
  */
-resource "aws_s3_bucket" "dummy" {
-    bucket = "${local.cluster_name}-dummy"
-    acl = "private"
-}
-
-resource "aws_s3_bucket" "benchmark-results" {
-    bucket = "${local.cluster_name}-benchmark-results"
+resource "aws_s3_bucket" "results" {
+    bucket = "${local.cluster_name}-results"
     acl = "private"
 }
 
@@ -352,6 +327,6 @@ output "cluster_name" {
 }
 
 output "bucket_name" {
-    description = "Name of dummy bucket"
-    value = aws_s3_bucket.dummy.bucket
+    description = "Bucket name"
+    value = aws_s3_bucket.benchmark-results.bucket
 }
