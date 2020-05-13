@@ -33,6 +33,7 @@ locals {
     cluster_name = lower("elastiknn-${random_string.suffix.result}")
     k8s_service_account_namespace = "kube-system"
     k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
+    benchmarks_namespace_name = "benchmarks"
 }
 
 module "vpc" {
@@ -166,25 +167,25 @@ module "eks" {
                 }
             ]
         },
-        {
-            name = "high-performance"
-            instance_type = "c5.4xlarge"
-            asg_min_size = 0
-            asg_max_size = 50
-            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
-            tags = [
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                },
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                }
-            ]
-        }
+        # {
+        #     name = "high-performance"
+        #     instance_type = "c5.4xlarge"
+        #     asg_min_size = 0
+        #     asg_max_size = 50
+        #     addition_security_group_ids = [aws_security_group.worker_mgmt.id]
+        #     tags = [
+        #         {
+        #             "key"                 = "k8s.io/cluster-autoscaler/enabled"
+        #             "propagate_at_launch" = "false"
+        #             "value"               = "true"
+        #         },
+        #         {
+        #             "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+        #             "propagate_at_launch" = "false"
+        #             "value"               = "true"
+        #         }
+        #     ]
+        # }
     ]
     tags = {
         Environment = "elastiknn"
@@ -198,24 +199,11 @@ resource "null_resource" "kubectl_config_provisioner" {
         kubectl_config = module.eks.kubeconfig
     }
     provisioner "local-exec" {
-        command = "aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}"
+        command = <<EOT
+        aws eks --region ${var.region} wait cluster-active --name ${local.cluster_name}
+        aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}
+        EOT
     }
-}
-
-/*
- * ECR Repositories for custom application images.
- */
-resource "aws_ecr_repository" "benchmark-driver" {
-    name = "benchmark-driver"
-    image_tag_mutability = "MUTABLE"
-}
-
-/*
- * S3 Buckets for data and results.
- */
-resource "aws_s3_bucket" "dummy" {
-    bucket = "${local.cluster_name}-dummy"
-    acl = "private"
 }
 
 /*
@@ -239,17 +227,80 @@ resource "helm_release" "cluster-autoscaler" {
 /*
  * Argo workflows installation.
  */
-resource "kubernetes_namespace" "argo" {
+
+# Based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
+resource "kubernetes_cluster_role" "argo-workflows" {
     metadata {
-        name = "argo"
+        name = "argo-workflows"
+    }
+    rule {
+        api_groups = [""]
+        resources = ["pods"]
+        verbs = ["get", "watch", "patch"]
+    }
+    rule {
+        api_groups = [""]
+        resources = ["pods/log"]
+        verbs = ["get", "watch"]
     }
 }
 
-resource "null_resource" "argo-worklflows" {
-    depends_on = [null_resource.kubectl_config_provisioner, kubernetes_namespace.argo]
-    provisioner "local-exec" {
-        command = "kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/v2.7.7/manifests/install.yaml"
+resource "helm_release" "argo-workflows" {
+    name = "argo-workflows"
+    chart = "argo"
+    repository = "https://argoproj.github.io/argo-helm"
+    namespace = "kube-system"
+    depends_on = [null_resource.kubectl_config_provisioner, kubernetes_namespace.benchmarks]
+}
+
+
+/*
+ * Namespaces.
+ */
+resource "kubernetes_namespace" "benchmarks" {
+    metadata {
+        name = local.benchmarks_namespace_name
     }
+}
+
+resource "kubernetes_role_binding" "argo-workflows" {
+    depends_on = [kubernetes_namespace.benchmarks]
+    metadata {
+        name = "argo-workflows"
+        namespace = local.benchmarks_namespace_name
+    }
+    role_ref {
+        api_group = "rbac.authorization.k8s.io"
+        kind = "ClusterRole"
+        name = "argo-workflows"
+    }
+    subject {
+        kind = "ServiceAccount"
+        name = "default"
+        namespace = local.benchmarks_namespace_name
+    }
+}
+
+
+/*
+ * ECR Repositories for custom application images.
+ */
+resource "aws_ecr_repository" "benchmark-driver" {
+    name = "benchmark-driver"
+    image_tag_mutability = "MUTABLE"
+}
+
+/*
+ * S3 Buckets for data and results.
+ */
+resource "aws_s3_bucket" "dummy" {
+    bucket = "${local.cluster_name}-dummy"
+    acl = "private"
+}
+
+resource "aws_s3_bucket" "benchmark-results" {
+    bucket = "${local.cluster_name}-benchmark-results"
+    acl = "private"
 }
 
 /*
