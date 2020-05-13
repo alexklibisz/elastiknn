@@ -24,11 +24,13 @@ object Driver extends App {
                      maxDatasetSize: Int = Int.MaxValue)
 
   private val optionParser = new scopt.OptionParser[Options]("Benchmarks driver") {
+    override def showUsageOnError: Option[Boolean] = Some(true)
+    help("help")
     opt[String]('d', "datasetsDirectory").action((s, c) => c.copy(datasetsDirectory = new File(s)))
     opt[String]('u', "elasticsearchHost").action((s, c) => c.copy(elasticsearchHost = s))
     opt[Int]('p', "elasticsearchPort").action((i, c) => c.copy(elasticsearchPort = i))
     opt[String]('o', "resultsFile").action((s, c) => c.copy(resultsFile = new File(s)))
-    opt[Double]('h', "holdoutPercentage").action((d, c) => c.copy(holdoutProportion = d))
+    opt[Double]('g', "holdoutPercentage").action((d, c) => c.copy(holdoutProportion = d))
     opt[Int]('m', "maxDatasetSize").action((i, c) => c.copy(maxDatasetSize = i))
   }
 
@@ -130,7 +132,7 @@ object Driver extends App {
       } yield ()
     }
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     optionParser.parse(args, Options()) match {
       case Some(opts) =>
         val layer =
@@ -146,5 +148,4 @@ object Driver extends App {
           .fold(_ => 1, _ => 0)
       case None => sys.exit(1)
     }
-  }
 }

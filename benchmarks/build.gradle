@@ -1,7 +1,18 @@
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+
 plugins {
     id 'application'
 }
+
+apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
     implementation project(':core')

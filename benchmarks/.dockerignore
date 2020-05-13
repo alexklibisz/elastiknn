@@ -1,0 +1,4 @@
+python
+deploy
+build/**/*.jar
+!build/libs/*-all.jar

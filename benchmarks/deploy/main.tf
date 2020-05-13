@@ -36,7 +36,7 @@ locals {
 module "vpc" {
     source = "terraform-aws-modules/vpc/aws"
     version = "2.6.0"
-    name = "${local.cluster_name}-vpc"
+    name = "${local.cluster_name}.vpc"
     cidr = "10.0.0.0/16"
     azs = data.aws_availability_zones.available.names
     private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
@@ -246,7 +246,6 @@ resource "helm_release" "argo-workflows" {
 }
 
 resource "kubernetes_role_binding" "argo-workflows" {
-    depends_on = []
     metadata {
         name = "argo-workflows"
         namespace = "default"
@@ -267,7 +266,12 @@ resource "kubernetes_role_binding" "argo-workflows" {
  * ECR Repositories for custom application images.
  */
 resource "aws_ecr_repository" "driver" {
-    name = "driver"
+    name = "${local.cluster_name}.driver"
+    image_tag_mutability = "MUTABLE"
+}
+
+resource "aws_ecr_repository" "elastiknn" {
+    name = "${local.cluster_name}.elastiknn"
     image_tag_mutability = "MUTABLE"
 }
 
@@ -275,7 +279,7 @@ resource "aws_ecr_repository" "driver" {
  * S3 Buckets for data and results.
  */
 resource "aws_s3_bucket" "results" {
-    bucket = "${local.cluster_name}-results"
+    bucket = "${local.cluster_name}.results"
     acl = "private"
 }
 
