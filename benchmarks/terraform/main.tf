@@ -17,7 +17,7 @@ variable "region" {
 
 provider "aws" {
     version = ">=2.28.1"
-    region = "us-east-1"
+    region = var.region
 }
 
 # Access list of AWS availability zones in the provider's region.
@@ -186,6 +186,7 @@ module "eks" {
 
 # This makes it possible to use helm later in the installation.
 resource "null_resource" "kubectl_config_provisioner" {
+    depends_on = [module.eks]
     triggers = {
         kubectl_config = module.eks.kubeconfig
     }
@@ -204,7 +205,7 @@ resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
     repository = "https://kubernetes-charts.storage.googleapis.com" 
-    namespace = ${local.k8s_service_account_namespace}
+    namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
@@ -328,5 +329,5 @@ output "cluster_name" {
 
 output "bucket_name" {
     description = "Bucket name"
-    value = aws_s3_bucket.benchmark-results.bucket
+    value = aws_s3_bucket.results.bucket
 }
