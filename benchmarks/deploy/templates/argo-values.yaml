@@ -1,0 +1,3 @@
+useDefaultArtifactRepo: true
+minio:
+  install: true

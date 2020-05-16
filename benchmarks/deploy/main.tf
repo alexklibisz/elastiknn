@@ -30,6 +30,7 @@ locals {
     project_name = "elastiknn-benchmarks"
     cluster_name = "${local.project_name}-cluster"
     k8s_service_account_namespace = "kube-system"
+    k8s_default_namespace = "default"
     k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
 }
 
@@ -219,7 +220,7 @@ resource "helm_release" "cluster-autoscaler" {
 /*
  * Argo workflows installation.
  * Uses a helm chart but also needs to setup the cluster role and bind to the cluster role in the default namespace.
- * Cluster role based on: Based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
+ * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
 resource "kubernetes_cluster_role" "argo-workflows" {
     metadata {
@@ -243,12 +244,23 @@ resource "helm_release" "argo-workflows" {
     repository = "https://argoproj.github.io/argo-helm"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
+    values = [
+        templatefile("templates/argo-values.yaml", {})
+    ]
+    // Hacky way to copy the secret needed for using artifacts.
+    provisioner "local-exec" {
+      command = <<EOT
+        kubectl -n ${local.k8s_service_account_namespace} wait --for=condition=ready --timeout=60s pod --all
+        kubectl -n ${local.k8s_service_account_namespace} get -o yaml --export secret argo-workflows-minio | \
+          kubectl apply -n ${local.k8s_default_namespace} -f -
+      EOT
+    }
 }
 
 resource "kubernetes_role_binding" "argo-workflows" {
     metadata {
         name = "argo-workflows"
-        namespace = "default"
+        namespace = local.k8s_default_namespace
     }
     role_ref {
         api_group = "rbac.authorization.k8s.io"
@@ -258,7 +270,7 @@ resource "kubernetes_role_binding" "argo-workflows" {
     subject {
         kind = "ServiceAccount"
         name = "default"
-        namespace = "default"
+        namespace = local.k8s_default_namespace
     }
 }
 
