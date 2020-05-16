@@ -8,31 +8,71 @@ spec:
   entrypoint: main
   templates:
     - name: main
+      parallelism: 50
+      steps:
+        - - name: enqueue
+            template: enqueue
+        - - name: execute
+            template: execute
+            arguments:
+              parameters:
+                - name: experiment
+                  value: "{{item}}"
+            withParam: "{{steps.enqueue.outputs.parameters.experiments}}"
+
+    - name: enqueue
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
-        command: ["tail"]
-        args: ["-f", "/dev/null"]
-        resources:
-          requests:
-            cpu: 1
-            memory: 4Gi
-          limits:
-            cpu: 1
-            memory: 4Gi
-      nodeSelector:
-        beta.kubernetes.io/instance-type: c5.4xlarge
-      sidecars:
-        - name: elastiknn
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
-          imagePullPolicy: "Always"
-          env:
-            - name: discovery.type
-              value: single-node
-          resources:
-            requests:
-              cpu: 14
-              memory: 22Gi
-            limits:
-              cpu: 14
-              memory: 22Gi
+        args:
+          - com.klibisz.elastiknn.benchmarks.Enqueue
+          - --datasetsFilter
+          - AnnbSift
+          - --toFile
+          - /tmp/exps.json
+      outputs:
+        parameters:
+          - name: experiments
+            valueFrom:
+              path: /tmp/exps.json
+
+    - name: execute
+      inputs:
+        parameters:
+          - name: experiment
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["sleep 5 && echo {{inputs.parameters.experiment}}"]
+
+#
+#    - name: main2
+#      parallelism: 10
+##      nodeSelector:
+##        beta.kubernetes.io/instance-type: c5.4xlarge
+#      container:
+#        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+#        imagePullPolicy: "Always"
+#        command: ["tail"]
+#        args: ["-f", "/dev/null"]
+#        resources:
+#          requests:
+#            cpu: 1
+#            memory: 200M
+#          limits:
+#            cpu: 1
+#            memory: 200M
+#      sidecars:
+#        - name: elastiknn
+#          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+#          imagePullPolicy: "Always"
+#          env:
+#            - name: discovery.type
+#              value: single-node
+#          resources:
+#            requests:
+#              cpu: 1
+#              memory: 200M
+#            limits:
+#              cpu: 1
+#              memory: 200M
