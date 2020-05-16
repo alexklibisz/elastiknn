@@ -39,11 +39,23 @@ spec:
     - name: execute
       inputs:
         parameters:
-          - name: experiment
+            - name: experiment
       container:
-        image: alpine:latest
-        command: [sh, -c]
-        args: ["sleep 5 && echo {{inputs.parameters.experiment}}"]
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        imagePullPolicy: "Always"
+        args:
+          - com.klibisz.elastiknn.benchmarks.Execute
+          - --experimentJsonBase64
+          - "{{inputs.parameters.experiment}}"
+
+#    - name: execute
+#      inputs:
+#        parameters:
+#          - name: experiment
+#      container:
+#        image: alpine:latest
+#        command: [sh, -c]
+#        args: ["sleep 5 && echo {{inputs.parameters.experiment}}"]
 
 #
 #    - name: main2

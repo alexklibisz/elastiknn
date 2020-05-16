@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 import java.nio.file.Files
+import java.util.Base64
 
 import zio._
 import zio.console._
@@ -32,15 +33,22 @@ object Enqueue extends App {
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params()) match {
     case None => sys.exit(1)
     case Some(params) =>
-      def write(contents: String): ZIO[Console, Throwable, Unit] = params.toFile match {
-        case Some(f) => ZIO(Files.writeString(f.toPath, contents))
-        case None    => putStrLn(contents)
+      def write(experiments: Seq[Experiment]): ZIO[Console, Throwable, Unit] = {
+        val encoder = Base64.getEncoder
+        val jsonString = experiments.map(_.asJson.noSpaces.getBytes).map(encoder.encodeToString).asJson.noSpaces
+        params.toFile match {
+          case Some(f) =>
+            for {
+              _ <- putStrLn(s"Writing ${experiments.length} expeirments to ${f.getAbsolutePath}")
+              _ <- ZIO(Files.writeString(f.toPath, jsonString))
+            } yield ()
+          case None => putStrLn(jsonString)
+        }
       }
       val experiments =
         if (params.datasetsFilter.isEmpty) Experiment.defaults
         else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
-      val jsonList = expand(experiments).map(_.asJson.noSpacesSortKeys).asJson.spaces2
-      write(jsonList)
+      write(expand(experiments))
         .mapError(System.err.println)
         .fold(_ => 1, _ => 0)
   }
