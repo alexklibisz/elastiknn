@@ -1,0 +1,37 @@
+# Use envsubst to "render" the file.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: elastiknn-benchmark-
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      container:
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        imagePullPolicy: "Always"
+        command: ["tail"]
+        args: ["-f", "/dev/null"]
+        resources:
+          requests:
+            cpu: 1
+            memory: 8Gi
+          limits:
+            cpu: 1
+            memory: 8Gi
+      nodeSelector:
+        beta.kubernetes.io/instance-type: c5.4xlarge
+      sidecars:
+        - name: elastiknn
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+          imagePullPolicy: "Always"
+          env:
+            - name: discovery.type
+              value: single-node
+          resources:
+            requests:
+              cpu: 1
+              memory: 16Gi
+            limits:
+              cpu: 1
+              memory: 16Gi

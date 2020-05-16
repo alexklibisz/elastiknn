@@ -165,7 +165,7 @@ module "eks" {
         {
             name = "high-performance"
             instance_type = "c5.4xlarge"
-            asg_min_size = 0
+            asg_min_size = 1
             asg_max_size = 50
             addition_security_group_ids = [aws_security_group.worker_mgmt.id]
             tags = [
