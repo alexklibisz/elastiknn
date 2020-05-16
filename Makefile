@@ -13,6 +13,7 @@ src_all = $(shell git diff --name-only --diff-filter=ACMR)
 site_srvr = elastiknn-site
 site_main = elastiknn.klibisz.com
 site_arch = archive.elastiknn.klibisz.com
+ecr_prefix = ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 
 clean:
 	./gradlew clean
@@ -161,4 +162,30 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 publish/site: .mk/jekyll-site-build
 	mkdir -p docs/_site/docs
 	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
-	
+
+.mk/ecr-login:
+	$$(aws ecr get-login --no-include-email)
+	touch $@
+
+.mk/benchmarks-assemble: $(src_all)
+	$(gradle) :benchmarks:shadowJar
+	touch $@
+
+.mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
+	cd es74x && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn .
+	cd benchmarks && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.driver .
+
+.mk/benchmarks-docker-push: .mk/ecr-login benchmarks/docker/build
+	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn
+	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.driver
+
+benchmarks/docker/build: .mk/benchmarks-docker-build
+
+benchmarks/docker/push: .mk/benchmarks-docker-push
+
+benchmarks/argo/clean:
+	argo delete --all
+
+benchmarks/argo/submit: .mk/benchmarks-docker-push
+	cd benchmarks/deploy \
+	&& envsubst < benchmark-workflow.yaml | argo submit -
