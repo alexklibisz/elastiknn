@@ -1,6 +1,8 @@
 package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
+import io.circe.Codec
+import io.circe.generic.semiauto._
 import zio.Has
 
 package object benchmarks {
@@ -33,68 +35,78 @@ package object benchmarks {
     case object AnnbSift extends Dataset(128)
   }
 
-  final case class MappingAndQueries(mapping: Mapping, mkQuery: Seq[(String, Vec, Int) => NearestNeighborsQuery])
+  final case class Query(nnq: NearestNeighborsQuery, k: Int)
+
+  final case class MappingAndQueries(mapping: Mapping, queries: Seq[Query])
 
   object MappingAndQueries {
-    def apply(mapping: Mapping, mkQuery: (String, Vec, Int) => NearestNeighborsQuery): MappingAndQueries =
-      MappingAndQueries(mapping, Seq(mkQuery))
+    def apply(mapping: Mapping, query: Query): MappingAndQueries = MappingAndQueries(mapping, Seq(query))
   }
 
   final case class Experiment(dataset: Dataset, exact: MappingAndQueries, maqs: Seq[MappingAndQueries], shards: Int = 1)
 
+  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, ..., ...)"
+  }
+
   object Experiment {
     import Dataset._
 
-    def l2(dataset: Dataset): Experiment = Experiment(
-      dataset,
-      MappingAndQueries(Mapping.DenseFloat(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
-      for {
-        b <- Seq(10) ++ (50 to 300 by 50)
-        r <- 1 to 3
-        w <- 1 to 5
-      } yield
-        MappingAndQueries(
-          Mapping.L2Lsh(dataset.dims, b, r, w),
-          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.L2Lsh(f, v, m * k))
-        )
-    )
+    private val vectorField: String = "vec"
+    private val ks: Seq[Int] = Seq(10, 100)
+
+    def l2(dataset: Dataset): Experiment =
+      Experiment(
+        dataset,
+        MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.L2), ks.max)),
+        for {
+          k <- ks
+          b <- Seq(10) ++ (50 to 300 by 50)
+          r <- 1 to 3
+          w <- 1 to 5
+        } yield MappingAndQueries(Mapping.L2Lsh(dataset.dims, b, r, w), Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.L2Lsh(vectorField, Vec.Empty(), m * k), k)))
+      )
 
     def angular(dataset: Dataset): Experiment = Experiment(
       dataset,
-      MappingAndQueries(Mapping.DenseFloat(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)),
+      MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Angular), ks.max)),
       for {
+        k <- ks
         b <- Seq(10) ++ (50 to 300 by 50)
         r <- 1 to 3
       } yield
         MappingAndQueries(
           Mapping.AngularLsh(dataset.dims, b, r),
-          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.AngularLsh(f, v, m * k))
+          Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.AngularLsh(vectorField, Vec.Empty(), m * k), k))
         )
     )
 
-    def hamming(dataset: Dataset): Experiment = Experiment(
-      dataset,
-      MappingAndQueries(Mapping.SparseBool(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
-      MappingAndQueries(Mapping.SparseIndexed(dataset.dims), (f, v, _) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)) +:
-        Seq(0.1, 0.3, 0.5, 0.7, 0.9).map { bitsProp =>
-        MappingAndQueries(
-          Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
-          Seq(1, 2, 5, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.HammingLsh(f, v, k * m))
-        )
-      }
-    )
+    def hamming(dataset: Dataset): Experiment =
+      Experiment(
+        dataset,
+        MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Hamming), ks.max)),
+        (for {
+          k <- ks
+          bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9)
+        } yield
+          MappingAndQueries(
+            Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
+            Seq(1, 2, 5, 10).map(m => Query(NearestNeighborsQuery.HammingLsh(vectorField, Vec.Empty(), k * m), k))
+          )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Hamming), k)))
+      )
 
     def jaccard(dataset: Dataset): Experiment = Experiment(
       dataset,
-      MappingAndQueries(Mapping.SparseBool(dataset.dims), (f, v, _) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
-      for {
+      MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Jaccard), ks.max)),
+      (for {
+        k <- ks
         b <- Seq(10) ++ (50 to 300 by 50)
         r <- 1 to 3
       } yield
         MappingAndQueries(
           Mapping.JaccardLsh(dataset.dims, b, r),
-          Seq(1, 2, 10).map(m => (f: String, v: Vec, k: Int) => NearestNeighborsQuery.JaccardLsh(f, v, m * k))
-        )
+          Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.JaccardLsh(vectorField, Vec.Empty(), m * k), k))
+        )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Jaccard), k)))
     )
 
     val defaults = Seq(
@@ -120,8 +132,14 @@ package object benchmarks {
 
   }
 
-  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, ..., ...)"
+  object codecs {
+    private implicit val mapping: Codec[Mapping] = ElasticsearchCodec.mapping
+    private implicit val nnq: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
+    implicit val query: Codec[Query] = deriveCodec
+    implicit val dataset: Codec[Dataset] = deriveCodec
+    implicit val mappingAndQueries: Codec[MappingAndQueries] = deriveCodec
+    implicit val experiment: Codec[Experiment] = deriveCodec
+    implicit val result: Codec[Result] = deriveCodec
   }
 
 }

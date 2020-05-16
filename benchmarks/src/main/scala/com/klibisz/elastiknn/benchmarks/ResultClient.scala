@@ -1,8 +1,10 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
+import java.net.URI
 import java.nio.file.{Files, Path}
 
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery}
 import io.circe.syntax._
 import io.circe.Codec
@@ -17,6 +19,11 @@ object ResultClient {
     def all: IO[Throwable, Vector[Result]]
     def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[Result]]
     def save(result: Result): IO[Throwable, Unit]
+  }
+
+  def s3(resultsURI: URI): Layer[Throwable, ResultClient] = {
+
+    ???
   }
 
   def local(resultsFile: File): Layer[Throwable, ResultClient] = ZLayer.succeed {

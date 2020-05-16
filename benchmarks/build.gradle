@@ -24,6 +24,10 @@ dependencies {
     implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.2.8"
     implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
     implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+    implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+    implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
 }
 
 application {
