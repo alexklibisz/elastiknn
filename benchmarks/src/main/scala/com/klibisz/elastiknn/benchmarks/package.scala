@@ -60,24 +60,29 @@ package object benchmarks {
         dataset,
         MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.L2), ks.max)),
         for {
-          k <- ks
           b <- Seq(10) ++ (50 to 300 by 50)
           r <- 1 to 3
           w <- 1 to 5
-        } yield MappingAndQueries(Mapping.L2Lsh(dataset.dims, b, r, w), Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.L2Lsh(vectorField, Vec.Empty(), m * k), k)))
+        } yield
+          MappingAndQueries(Mapping.L2Lsh(dataset.dims, b, r, w), for {
+            k <- ks
+            m <- Seq(1, 2, 10)
+          } yield Query(NearestNeighborsQuery.L2Lsh(vectorField, Vec.Empty(), m * k), k))
       )
 
     def angular(dataset: Dataset): Experiment = Experiment(
       dataset,
       MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Angular), ks.max)),
       for {
-        k <- ks
         b <- Seq(10) ++ (50 to 300 by 50)
         r <- 1 to 3
       } yield
         MappingAndQueries(
           Mapping.AngularLsh(dataset.dims, b, r),
-          Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.AngularLsh(vectorField, Vec.Empty(), m * k), k))
+          for {
+            k <- ks
+            m <- Seq(1, 2, 10)
+          } yield Query(NearestNeighborsQuery.AngularLsh(vectorField, Vec.Empty(), m * k), k)
         )
     )
 
@@ -85,27 +90,30 @@ package object benchmarks {
       Experiment(
         dataset,
         MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Hamming), ks.max)),
-        (for {
-          k <- ks
-          bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9)
-        } yield
-          MappingAndQueries(
-            Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
-            Seq(1, 2, 5, 10).map(m => Query(NearestNeighborsQuery.HammingLsh(vectorField, Vec.Empty(), k * m), k))
-          )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Hamming), k)))
+        (for (bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9))
+          yield
+            MappingAndQueries(
+              Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
+              for {
+                k <- ks
+                m <- Seq(1, 2, 10)
+              } yield Query(NearestNeighborsQuery.HammingLsh(vectorField, Vec.Empty(), k * m), k)
+            )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Hamming), k)))
       )
 
     def jaccard(dataset: Dataset): Experiment = Experiment(
       dataset,
       MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Jaccard), ks.max)),
       (for {
-        k <- ks
         b <- Seq(10) ++ (50 to 300 by 50)
         r <- 1 to 3
       } yield
         MappingAndQueries(
           Mapping.JaccardLsh(dataset.dims, b, r),
-          Seq(1, 2, 10).map(m => Query(NearestNeighborsQuery.JaccardLsh(vectorField, Vec.Empty(), m * k), k))
+          for {
+            k <- ks
+            m <- Seq(1, 2, 10)
+          } yield Query(NearestNeighborsQuery.JaccardLsh(vectorField, Vec.Empty(), m * k), k)
         )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Jaccard), k)))
     )
 

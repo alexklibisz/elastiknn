@@ -31,5 +31,5 @@ dependencies {
 }
 
 application {
-    mainClassName = 'com.klibisz.elastiknn.benchmarks.Driver'
+    mainClassName = 'com.klibisz.elastiknn.benchmarks.Enqueue'
 }

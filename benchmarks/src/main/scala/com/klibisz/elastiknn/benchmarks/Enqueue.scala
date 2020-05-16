@@ -7,11 +7,14 @@ import codecs._
 
 object Enqueue extends App {
 
-  case class Params()
+  case class Params(datasetsFilter: Set[String])
 
   private val parser = new scopt.OptionParser[Params]("Build a list of benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
     help("help")
+    opt[Seq[String]]("datasetsFilter")
+      .text("List of dataset names that should be included. If empty (the default), all datasets are included.")
+      .action((s, c) => c.copy(datasetsFilter = s.map(_.toLowerCase).toSet))
   }
 
   private def expand(experiments: Seq[Experiment] = Experiment.defaults): Seq[Experiment] =
@@ -20,11 +23,14 @@ object Enqueue extends App {
       maq <- exp.maqs
     } yield exp.copy(maqs = Seq(maq))
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params()) match {
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params(Set.empty)) match {
     case None => sys.exit(1)
-    case Some(_) =>
+    case Some(params) =>
+      val experiments =
+        if (params.datasetsFilter.isEmpty) Experiment.defaults
+        else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
       ZIO
-        .collectAll(expand(Seq(Experiment.hamming(Dataset.AmazonHomePhash))).map(exp => putStrLn(exp.asJson.noSpacesSortKeys)))
+        .collectAll(expand(experiments).map(exp => putStrLn(exp.asJson.noSpacesSortKeys)))
         .map(_ => 0)
   }
 }
