@@ -1,4 +1,5 @@
 # Use envsubst to "render" the file.
+# Seems like the most I can allocate on a c5.4xlarge is 15 CPUs and 26Gi memory.
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -15,10 +16,10 @@ spec:
         resources:
           requests:
             cpu: 1
-            memory: 8Gi
+            memory: 4Gi
           limits:
             cpu: 1
-            memory: 8Gi
+            memory: 4Gi
       nodeSelector:
         beta.kubernetes.io/instance-type: c5.4xlarge
       sidecars:
@@ -30,8 +31,8 @@ spec:
               value: single-node
           resources:
             requests:
-              cpu: 1
-              memory: 16Gi
+              cpu: 14
+              memory: 22Gi
             limits:
-              cpu: 1
-              memory: 16Gi
+              cpu: 14
+              memory: 22Gi
