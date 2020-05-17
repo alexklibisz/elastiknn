@@ -174,10 +174,12 @@ publish/site: .mk/jekyll-site-build
 .mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
 	cd es74x && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn .
 	cd benchmarks && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.driver .
+	touch $@
 
 .mk/benchmarks-docker-push: .mk/ecr-login benchmarks/docker/build
 	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn
 	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.driver
+	touch $@
 
 benchmarks/docker/build: .mk/benchmarks-docker-build
 

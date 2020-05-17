@@ -51,7 +51,7 @@ object Execute extends App {
         _ <- putStrLn(params.experimentJsonBase64)
         experiment <- decodeExperiment(params.experimentJsonBase64)
         _ <- putStrLn(experiment.toString)
-        _ <- ZIO.sleep(Duration.fromScala(120.seconds))
+        _ <- ZIO.sleep(Duration.fromScala(10.seconds))
       } yield ()
       logic
         .mapError(System.err.println)

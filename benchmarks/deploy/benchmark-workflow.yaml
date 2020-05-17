@@ -6,12 +6,15 @@ metadata:
   generateName: elastiknn-benchmark-
 spec:
   entrypoint: main
+  onExit: delete-configmap
   templates:
     - name: main
       parallelism: 1
       steps:
         - - name: generate-experiments
             template: generate-experiments
+          - name: create-configmap
+            template: create-configmap
         - - name: execute-experiment
             template: execute-experiment
             arguments:
@@ -36,6 +39,29 @@ spec:
             valueFrom:
               path: /tmp/exps.json
 
+    - name: create-configmap
+      resource:
+        action: create
+        manifest: |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: esconfig
+          data:
+            elasticsearch.yml: |
+              cluster.name: "docker-cluster"
+              network.host: 0.0.0.0
+
+    - name: delete-configmap
+      resource:
+        action: delete
+        flags: ["configmap", "esconfig"]
+#        manifest: |
+#          apiVersion: v1
+#          kind: ConfigMap
+#          metadata:
+#            name: esconfig
+
     - name: execute-experiment
       inputs:
         parameters:
@@ -43,18 +69,22 @@ spec:
       steps:
         - - name: create-pvc
             template: create-pvc
-          - name: create-configmap
-            template: create-configmap
         - - name: execute-driver
             template: execute-driver
+            continueOn:
+              failed: true
             arguments:
               parameters:
                 - name: experiment
                   value: "{{inputs.parameters.experiment}}"
                 - name: pvc-name
                   value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
-                - name: configmap-name
-                  value: "{{steps.create-configmap.outputs.parameters.configmap-name}}"
+        - - name: patch-pvc
+            template: patch-pvc
+            arguments:
+              parameters:
+                - name: pvc-name
+                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
         - - name: delete-pvc
             template: delete-pvc
             arguments:
@@ -71,34 +101,30 @@ spec:
           metadata:
             generateName: elastiknn-pvc-
           spec:
-            accessModes: ['ReadWriteOnce']
+            accessModes:
+              - ReadWriteOnce
             resources:
               requests:
-                storage: 20Gi
+                storage: 21Gi
       outputs:
         parameters:
           - name: pvc-name
             valueFrom:
               jsonPath: '{.metadata.name}'
 
-    - name: create-configmap
+    - name: patch-pvc
+      inputs:
+        parameters:
+          - name: pvc-name
       resource:
-        action: create
+        action: patch
+        mergeStrategy: merge
         manifest: |
           apiVersion: v1
-          kind: ConfigMap
+          kind: PersistentVolumeClaim
           metadata:
-            generateName: elastiknn-configmap-
-          data:
-            elasticsearch.yml: |
-              cluster.name: "docker-cluster"
-              network.host: 0.0.0.0
-              path.data: /mnt/esdata
-      outputs:
-        parameters:
-          - name: configmap-name
-            valueFrom:
-              jsonPath: '{.metadata.name}'
+            name: {{inputs.parameters.pvc-name}}
+            finalizers: null
 
     - name: delete-pvc
       inputs:
@@ -106,18 +132,19 @@ spec:
           - name: pvc-name
       resource:
         action: delete
-        manifest: |
-          apiVersion: v1
-          kind: PersistentVolumeClaim
-          metadata:
-            name: {{inputs.parameters.pvc-name}}
+        flags: ["pvc", "{{inputs.parameters.pvc-name}}"]
+
+#        manifest: |
+#          apiVersion: v1
+#          kind: PersistentVolumeClaim
+#          metadata:
+#            name: {{inputs.parameters.pvc-name}}
 
     - name: execute-driver
       inputs:
         parameters:
           - name: experiment
           - name: pvc-name
-          - name: configmap-name
       nodeSelector:
         beta.kubernetes.io/instance-type: c5.4xlarge
       volumes:
@@ -126,7 +153,7 @@ spec:
             claimName: "{{inputs.parameters.pvc-name}}"
         - name: esconfig
           configMap:
-            name: "{{inputs.parameters.configmap-name}}"
+            name: esconfig
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
@@ -135,6 +162,7 @@ spec:
           - --experimentJsonBase64
           - "{{inputs.parameters.experiment}}"
         env:
+          # Technically bad practice, but easier than setting up KIAM.
           - name: AWS_ACCESS_KEY_ID
             value: ${AWS_ACCESS_KEY_ID}
           - name: AWS_SECRET_ACCESS_KEY
@@ -155,7 +183,9 @@ spec:
               value: single-node
           volumeMounts:
             - name: esdata
+#              mountPath: /usr/share/elasticsearch/data
               mountPath: /mnt/esdata
+              readOnly: false
             - name: esconfig
               mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
               subPath: elasticsearch.yml

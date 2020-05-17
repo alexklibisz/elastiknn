@@ -239,7 +239,7 @@ resource "kubernetes_cluster_role" "argo-workflows" {
     rule {
         api_groups = [""]
         resources = ["persistentvolumeclaims", "configmaps"]
-        verbs = ["create", "delete", "get", "update"]
+        verbs = ["create", "delete", "get", "update", "patch"]
     }
 }
 
