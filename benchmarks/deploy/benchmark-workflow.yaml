@@ -8,19 +8,19 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 50
+      parallelism: 1
       steps:
-        - - name: enqueue
-            template: enqueue
-        - - name: execute
-            template: execute
+        - - name: generate-experiments
+            template: generate-experiments
+        - - name: execute-experiment
+            template: execute-experiment
             arguments:
               parameters:
                 - name: experiment
                   value: "{{item}}"
-            withParam: "{{steps.enqueue.outputs.parameters.experiments}}"
+            withParam: "{{steps.generate-experiments.outputs.parameters.experiments}}"
 
-    - name: enqueue
+    - name: generate-experiments
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
@@ -36,10 +36,97 @@ spec:
             valueFrom:
               path: /tmp/exps.json
 
-    - name: execute
+    - name: execute-experiment
       inputs:
         parameters:
-            - name: experiment
+          - name: experiment
+      steps:
+        - - name: create-pvc
+            template: create-pvc
+          - name: create-configmap
+            template: create-configmap
+        - - name: execute-driver
+            template: execute-driver
+            arguments:
+              parameters:
+                - name: experiment
+                  value: "{{inputs.parameters.experiment}}"
+                - name: pvc-name
+                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+                - name: configmap-name
+                  value: "{{steps.create-configmap.outputs.parameters.configmap-name}}"
+        - - name: delete-pvc
+            template: delete-pvc
+            arguments:
+              parameters:
+                - name: pvc-name
+                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+
+    - name: create-pvc
+      resource:
+        action: create
+        manifest: |
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            generateName: elastiknn-pvc-
+          spec:
+            accessModes: ['ReadWriteOnce']
+            resources:
+              requests:
+                storage: 20Gi
+      outputs:
+        parameters:
+          - name: pvc-name
+            valueFrom:
+              jsonPath: '{.metadata.name}'
+
+    - name: create-configmap
+      resource:
+        action: create
+        manifest: |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            generateName: elastiknn-configmap-
+          data:
+            elasticsearch.yml: |
+              cluster.name: "docker-cluster"
+              network.host: 0.0.0.0
+              path.data: /mnt/esdata
+      outputs:
+        parameters:
+          - name: configmap-name
+            valueFrom:
+              jsonPath: '{.metadata.name}'
+
+    - name: delete-pvc
+      inputs:
+        parameters:
+          - name: pvc-name
+      resource:
+        action: delete
+        manifest: |
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: {{inputs.parameters.pvc-name}}
+
+    - name: execute-driver
+      inputs:
+        parameters:
+          - name: experiment
+          - name: pvc-name
+          - name: configmap-name
+      nodeSelector:
+        beta.kubernetes.io/instance-type: c5.4xlarge
+      volumes:
+        - name: esdata
+          persistentVolumeClaim:
+            claimName: "{{inputs.parameters.pvc-name}}"
+        - name: esconfig
+          configMap:
+            name: "{{inputs.parameters.configmap-name}}"
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
@@ -47,44 +134,36 @@ spec:
           - com.klibisz.elastiknn.benchmarks.Execute
           - --experimentJsonBase64
           - "{{inputs.parameters.experiment}}"
-
-#    - name: execute
-#      inputs:
-#        parameters:
-#          - name: experiment
-#      container:
-#        image: alpine:latest
-#        command: [sh, -c]
-#        args: ["sleep 5 && echo {{inputs.parameters.experiment}}"]
-
-#
-#    - name: main2
-#      parallelism: 10
-##      nodeSelector:
-##        beta.kubernetes.io/instance-type: c5.4xlarge
-#      container:
-#        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
-#        imagePullPolicy: "Always"
-#        command: ["tail"]
-#        args: ["-f", "/dev/null"]
-#        resources:
-#          requests:
-#            cpu: 1
-#            memory: 200M
-#          limits:
-#            cpu: 1
-#            memory: 200M
-#      sidecars:
-#        - name: elastiknn
-#          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
-#          imagePullPolicy: "Always"
-#          env:
-#            - name: discovery.type
-#              value: single-node
-#          resources:
-#            requests:
-#              cpu: 1
-#              memory: 200M
-#            limits:
-#              cpu: 1
-#              memory: 200M
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+        resources:
+          requests:
+            cpu: 1
+            memory: 4G
+          limits:
+            cpu: 1
+            memory: 4G
+      sidecars:
+        - name: elastiknn
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+          imagePullPolicy: "Always"
+          env:
+            - name: discovery.type
+              value: single-node
+          volumeMounts:
+            - name: esdata
+              mountPath: /mnt/esdata
+            - name: esconfig
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 14
+              memory: 22G
+            limits:
+              cpu: 14
+              memory: 22G

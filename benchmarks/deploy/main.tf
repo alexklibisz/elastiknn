@@ -229,12 +229,17 @@ resource "kubernetes_cluster_role" "argo-workflows" {
     rule {
         api_groups = [""]
         resources = ["pods"]
-        verbs = ["get", "watch", "patch"]
+        verbs = ["get", "watch", "patch", "update"]
     }
     rule {
         api_groups = [""]
         resources = ["pods/log"]
         verbs = ["get", "watch"]
+    }
+    rule {
+        api_groups = [""]
+        resources = ["persistentvolumeclaims", "configmaps"]
+        verbs = ["create", "delete", "get", "update"]
     }
 }
 
