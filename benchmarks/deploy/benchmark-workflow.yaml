@@ -6,15 +6,14 @@ metadata:
   generateName: elastiknn-benchmark-
 spec:
   entrypoint: main
-  onExit: delete-configmap
   templates:
     - name: main
       parallelism: 1
       steps:
         - - name: generate-experiments
             template: generate-experiments
-          - name: create-configmap
-            template: create-configmap
+          - name: apply-configmap
+            template: apply-configmap
         - - name: execute-experiment
             template: execute-experiment
             arguments:
@@ -39,9 +38,9 @@ spec:
             valueFrom:
               path: /tmp/exps.json
 
-    - name: create-configmap
+    - name: apply-configmap
       resource:
-        action: create
+        action: apply
         manifest: |
           apiVersion: v1
           kind: ConfigMap
@@ -51,16 +50,6 @@ spec:
             elasticsearch.yml: |
               cluster.name: "docker-cluster"
               network.host: 0.0.0.0
-
-    - name: delete-configmap
-      resource:
-        action: delete
-        flags: ["configmap", "esconfig"]
-#        manifest: |
-#          apiVersion: v1
-#          kind: ConfigMap
-#          metadata:
-#            name: esconfig
 
     - name: execute-experiment
       inputs:
@@ -77,12 +66,6 @@ spec:
               parameters:
                 - name: experiment
                   value: "{{inputs.parameters.experiment}}"
-                - name: pvc-name
-                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
-        - - name: patch-pvc
-            template: patch-pvc
-            arguments:
-              parameters:
                 - name: pvc-name
                   value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
         - - name: delete-pvc
@@ -112,33 +95,20 @@ spec:
             valueFrom:
               jsonPath: '{.metadata.name}'
 
-    - name: patch-pvc
-      inputs:
-        parameters:
-          - name: pvc-name
-      resource:
-        action: patch
-        mergeStrategy: merge
-        manifest: |
-          apiVersion: v1
-          kind: PersistentVolumeClaim
-          metadata:
-            name: {{inputs.parameters.pvc-name}}
-            finalizers: null
-
     - name: delete-pvc
       inputs:
         parameters:
           - name: pvc-name
-      resource:
-        action: delete
-        flags: ["pvc", "{{inputs.parameters.pvc-name}}"]
-
-#        manifest: |
-#          apiVersion: v1
-#          kind: PersistentVolumeClaim
-#          metadata:
-#            name: {{inputs.parameters.pvc-name}}
+      container:
+        image: "argoproj/argoexec:v2.8.0"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            /bin/sh <<'EOSCRIPT'
+            set -e
+            kubectl delete pvc {{inputs.parameters.pvc-name}}
+            kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
+            EOSCRIPT
 
     - name: execute-driver
       inputs:
