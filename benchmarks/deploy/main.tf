@@ -218,6 +218,21 @@ resource "helm_release" "cluster-autoscaler" {
 }
 
 /*
+ * Storage class for high performance storage.
+ */
+resource "kubernetes_storage_class" "storage-10-iops" {
+  metadata {
+    name = "storage-10-iops"
+  }
+  storage_provisioner = "kubernetes.io/aws-ebs"
+  allow_volume_expansion = false
+  parameters = {
+    type = "io1"
+    iopsPerGB = "10"
+  }
+}
+
+/*
  * Argo workflows installation.
  * Uses a helm chart but also needs to setup the cluster role and bind to the cluster role in the default namespace.
  * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md

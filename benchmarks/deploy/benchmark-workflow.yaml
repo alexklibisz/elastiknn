@@ -89,12 +89,15 @@ spec:
             resources:
               requests:
                 storage: 21Gi
+            storageClassName: storage-10-iops
       outputs:
         parameters:
           - name: pvc-name
             valueFrom:
               jsonPath: '{.metadata.name}'
 
+    # Have to delete and then patch in order to remove the finalizer that prevents deletion.
+    # Otherwise this gets stuck in the `Terminating` state.
     - name: delete-pvc
       inputs:
         parameters:
@@ -124,6 +127,8 @@ spec:
         - name: esconfig
           configMap:
             name: esconfig
+      securityContext:
+        fsGroup: 1000
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
@@ -153,8 +158,7 @@ spec:
               value: single-node
           volumeMounts:
             - name: esdata
-#              mountPath: /usr/share/elasticsearch/data
-              mountPath: /mnt/esdata
+              mountPath: /usr/share/elasticsearch/data
               readOnly: false
             - name: esconfig
               mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
