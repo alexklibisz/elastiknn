@@ -15,7 +15,7 @@ A default instance for Scala `Future`s ships with the client.
 ## Documentation
 
 - **<a href="/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs for the latest release</a>**
-- <a href="http://archive.elastiknn.klibisz.com" target="_blank">Scaladocs for previous releases</a>
+- <a href="http://archive.elastiknn.klibisz.com" target="_blank">Archived docs from previous releases</a>
 
 ## Versions
 
@@ -38,8 +38,3 @@ libraryDependencies += "com.klibisz.elastiknn" %% "client-elastic4s" % <version 
 ```
 
 For other build tools, please see the instructions alongside each artifact on the Sonatype repository (click the badges in the Versions table above).
-
-
-
-
-
