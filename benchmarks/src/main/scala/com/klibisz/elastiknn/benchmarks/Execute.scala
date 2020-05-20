@@ -45,13 +45,38 @@ object Execute extends App {
 
    */
 
+//  private def run(experiment: Experiment) = {
+//    // Get the queries which don't have results yet.
+//    for {
+//      rc <- ZIO.access[ResultClient](_.get)
+//      findEffects = for {
+//        maq <- experiment.maqs
+//        qry <- maq.queries
+//      } yield rc.find(experiment.dataset, maq.mapping, qry.nnq, qry.k)
+//      findResults <- ZIO.collectAll(findEffects)
+//
+//      checks = experiment.maqs.map(maq => rc.find(experiment.dataset))
+//
+//    } yield ???
+//
+//    experiment.maqs
+//
+//    ZIO.foreach(experiment.maqs) { maq =>
+//      maq
+//
+//      ???
+//    }
+//
+//    ???
+//  }
+
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params()) match {
     case Some(params) =>
       val logic = for {
         _ <- putStrLn(params.experimentJsonBase64)
         experiment <- decodeExperiment(params.experimentJsonBase64)
         _ <- putStrLn(experiment.toString)
-        _ <- ZIO.sleep(Duration.fromScala(100.seconds))
+        _ <- ZIO.sleep(Duration.fromScala(20.seconds))
       } yield ()
       logic
         .mapError(System.err.println)

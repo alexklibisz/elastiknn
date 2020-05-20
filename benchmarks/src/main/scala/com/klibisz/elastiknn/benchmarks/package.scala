@@ -5,6 +5,8 @@ import io.circe.Codec
 import io.circe.generic.semiauto._
 import zio.Has
 
+import scala.language.implicitConversions
+
 package object benchmarks {
 
   type DatasetClient = Has[DatasetClient.Service]
@@ -37,13 +39,7 @@ package object benchmarks {
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
 
-  final case class MappingAndQueries(mapping: Mapping, queries: Seq[Query])
-
-  object MappingAndQueries {
-    def apply(mapping: Mapping, query: Query): MappingAndQueries = MappingAndQueries(mapping, Seq(query))
-  }
-
-  final case class Experiment(dataset: Dataset, exact: MappingAndQueries, maqs: Seq[MappingAndQueries], shards: Int = 1)
+  final case class Experiment(dataset: Dataset, exactMapping: Mapping, exactQuery: NearestNeighborsQuery, testMapping: Mapping, testQueries: Seq[Query])
 
   final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long]) {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, ..., ...)"
@@ -52,72 +48,91 @@ package object benchmarks {
   object Experiment {
     import Dataset._
 
-    private val vectorField: String = "vec"
-    private val ks: Seq[Int] = Seq(10, 100)
+    private val vecName: String = "vec"
+    private val empty: Vec = Vec.Empty()
+    val defaultKs: Seq[Int] = Seq(10, 100)
 
-    def l2(dataset: Dataset): Experiment =
-      Experiment(
-        dataset,
-        MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.L2), ks.max)),
-        for {
-          b <- Seq(10) ++ (50 to 300 by 50)
-          r <- 1 to 3
-          w <- 1 to 5
-        } yield
-          MappingAndQueries(Mapping.L2Lsh(dataset.dims, b, r, w), for {
+    def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
+      val lsh = for {
+        b <- Seq(10) ++ (50 to 300 by 50)
+        r <- 1 to 3
+        w <- 1 to 3
+      } yield
+        Experiment(
+          dataset,
+          Mapping.DenseFloat(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, empty, Similarity.L2),
+          Mapping.L2Lsh(dataset.dims, b, r, w),
+          for {
             k <- ks
             m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.L2Lsh(vectorField, Vec.Empty(), m * k), k))
-      )
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, empty, m * k), k)
+        )
+      lsh
+    }
 
-    def angular(dataset: Dataset): Experiment = Experiment(
-      dataset,
-      MappingAndQueries(Mapping.DenseFloat(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Angular), ks.max)),
-      for {
+    def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
+      val lsh = for {
         b <- Seq(10) ++ (50 to 300 by 50)
         r <- 1 to 3
       } yield
-        MappingAndQueries(
+        Experiment(
+          dataset,
+          Mapping.DenseFloat(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Angular),
           Mapping.AngularLsh(dataset.dims, b, r),
           for {
             k <- ks
             m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.AngularLsh(vectorField, Vec.Empty(), m * k), k)
+          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, empty, m * k), k)
         )
-    )
+      lsh
+    }
 
-    def hamming(dataset: Dataset): Experiment =
-      Experiment(
-        dataset,
-        MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Hamming), ks.max)),
-        (for (bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9))
-          yield
-            MappingAndQueries(
-              Mapping.HammingLsh(dataset.dims, (dataset.dims * bitsProp).toInt),
-              for {
-                k <- ks
-                m <- Seq(1, 2, 10)
-              } yield Query(NearestNeighborsQuery.HammingLsh(vectorField, Vec.Empty(), k * m), k)
-            )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Hamming), k)))
+    def hamming(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
+      val sparseIndexed = Seq(
+        Experiment(
+          dataset,
+          Mapping.SparseBool(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Hamming),
+          Mapping.SparseIndexed(dataset.dims),
+          for {
+            k <- ks
+          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, empty, Similarity.Hamming), k)
+        )
       )
-
-    def jaccard(dataset: Dataset): Experiment = Experiment(
-      dataset,
-      MappingAndQueries(Mapping.SparseBool(dataset.dims), Query(NearestNeighborsQuery.Exact(vectorField, Vec.Empty(), Similarity.Jaccard), ks.max)),
-      (for {
-        b <- Seq(10) ++ (50 to 300 by 50)
-        r <- 1 to 3
+      val lsh = for {
+        bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9)
       } yield
-        MappingAndQueries(
-          Mapping.JaccardLsh(dataset.dims, b, r),
+        Experiment(
+          dataset,
+          Mapping.SparseBool(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Hamming),
+          Mapping.HammingLsh(dataset.dims, (bitsProp * dataset.dims).toInt),
           for {
             k <- ks
             m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.JaccardLsh(vectorField, Vec.Empty(), m * k), k)
-        )) :+ MappingAndQueries(Mapping.SparseIndexed(dataset.dims), ks.map(k => Query(NearestNeighborsQuery.SparseIndexed(vectorField, Vec.Empty(), Similarity.Jaccard), k)))
-    )
+          } yield Query(NearestNeighborsQuery.HammingLsh(vecName, empty, k * m), k)
+        )
+      sparseIndexed ++ lsh
+    }
 
-    val defaults = Seq(
+    def jaccard(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
+      val sparseIndexed = Seq(
+        Experiment(
+          dataset,
+          Mapping.SparseBool(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Jaccard),
+          Mapping.SparseIndexed(dataset.dims),
+          for {
+            k <- ks
+          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, empty, Similarity.Jaccard), k)
+        )
+      )
+      sparseIndexed
+    }
+
+    val defaults: Seq[Experiment] = Seq(
       l2(AmazonHome),
       l2(AmazonMixed),
       angular(AmazonHomeUnit),
@@ -136,7 +151,7 @@ package object benchmarks {
       l2(AnnbMnist),
       angular(AnnbNyt),
       l2(AnnbSift)
-    )
+    ).flatten
 
   }
 
@@ -145,7 +160,6 @@ package object benchmarks {
     private implicit val nnq: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
     implicit val query: Codec[Query] = deriveCodec
     implicit val dataset: Codec[Dataset] = deriveCodec
-    implicit val mappingAndQueries: Codec[MappingAndQueries] = deriveCodec
     implicit val experiment: Codec[Experiment] = deriveCodec
     implicit val result: Codec[Result] = deriveCodec
   }

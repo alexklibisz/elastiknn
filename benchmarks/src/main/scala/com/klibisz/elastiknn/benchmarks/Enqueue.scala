@@ -24,12 +24,6 @@ object Enqueue extends App {
       .action((s, c) => c.copy(toFile = Some(new File(s))))
   }
 
-  private def expand(experiments: Seq[Experiment] = Experiment.defaults): Seq[Experiment] =
-    for {
-      exp <- experiments
-      maq <- exp.maqs
-    } yield exp.copy(maqs = Seq(maq))
-
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params()) match {
     case None => sys.exit(1)
     case Some(params) =>
@@ -48,7 +42,7 @@ object Enqueue extends App {
       val experiments =
         if (params.datasetsFilter.isEmpty) Experiment.defaults
         else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
-      write(expand(experiments).take(1))
+      write(experiments)
         .mapError(System.err.println)
         .fold(_ => 1, _ => 0)
   }

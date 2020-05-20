@@ -221,15 +221,18 @@ resource "helm_release" "cluster-autoscaler" {
  * Storage class for high performance storage.
  */
 resource "kubernetes_storage_class" "storage-10-iops" {
-  metadata {
-    name = "storage-10-iops"
-  }
-  storage_provisioner = "kubernetes.io/aws-ebs"
-  allow_volume_expansion = false
-  parameters = {
-    type = "io1"
-    iopsPerGB = "10"
-  }
+    depends_on = [null_resource.kubectl_config_provisioner]
+    metadata {
+        name = "storage-10-iops"
+    }
+    storage_provisioner = "kubernetes.io/aws-ebs"
+    allow_volume_expansion = false
+    parameters = {
+        type = "io1"
+        iopsPerGB = "10"
+    }
+    // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
+    volume_binding_mode = "WaitForFirstConsumer"
 }
 
 /*
@@ -238,6 +241,7 @@ resource "kubernetes_storage_class" "storage-10-iops" {
  * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
 resource "kubernetes_cluster_role" "argo-workflows" {
+  depends_on = [null_resource.kubectl_config_provisioner]
     metadata {
         name = "argo-workflows"
     }
@@ -278,6 +282,7 @@ resource "helm_release" "argo-workflows" {
 }
 
 resource "kubernetes_role_binding" "argo-workflows" {
+    depends_on = [null_resource.kubectl_config_provisioner]
     metadata {
         name = "argo-workflows"
         namespace = local.k8s_default_namespace
