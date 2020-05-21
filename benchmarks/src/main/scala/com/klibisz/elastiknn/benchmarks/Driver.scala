@@ -118,7 +118,7 @@ object Driver extends App {
 //  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
 //    optionParser.parse(args, Options()) match {
 //      case Some(opts) =>
-//        val layer =
+//        val layer: ZLayer[Any, Throwable, Console with Clock with Logging with DatasetClient with ResultClient with Has[ElastiknnZioClient.Service]] =
 //          Console.live ++
 //            Clock.live ++
 //            Slf4jLogger.make((_, s) => s, Some(getClass.getCanonicalName)) ++

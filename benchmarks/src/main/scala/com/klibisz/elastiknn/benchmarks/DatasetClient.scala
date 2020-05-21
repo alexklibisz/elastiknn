@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 
+import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Vec}
 import io.circe
 import zio._
@@ -14,6 +15,8 @@ object DatasetClient {
   trait Service {
     def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V]
   }
+
+  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, DatasetClient] = ???
 
   def default: Layer[Throwable, DatasetClient] = local(new File(s"${System.getProperty("user.home")}/.elastiknn-data"))
 

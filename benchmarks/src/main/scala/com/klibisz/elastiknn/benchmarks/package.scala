@@ -41,8 +41,10 @@ package object benchmarks {
 
   final case class Experiment(dataset: Dataset, exactMapping: Mapping, exactQuery: NearestNeighborsQuery, testMapping: Mapping, testQueries: Seq[Query])
 
-  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, recalls: Seq[Double], durations: Seq[Long]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, ..., ...)"
+  final case class SingleResult(neighbors: Seq[String], recall: Double, duration: Long)
+
+  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, singleResults: Seq[SingleResult]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, ...)"
   }
 
   object Experiment {
@@ -156,12 +158,13 @@ package object benchmarks {
   }
 
   object codecs {
-    private implicit val mapping: Codec[Mapping] = ElasticsearchCodec.mapping
-    private implicit val nnq: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
-    implicit val query: Codec[Query] = deriveCodec
-    implicit val dataset: Codec[Dataset] = deriveCodec
-    implicit val experiment: Codec[Experiment] = deriveCodec
-    implicit val result: Codec[Result] = deriveCodec
+    private implicit val mappingCodec: Codec[Mapping] = ElasticsearchCodec.mapping
+    private implicit val nnqCodec: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
+    implicit val queryCodec: Codec[Query] = deriveCodec
+    implicit val datasetCodec: Codec[Dataset] = deriveCodec
+    implicit val experimentCodec: Codec[Experiment] = deriveCodec
+    implicit val singleResultCodec: Codec[SingleResult] = deriveCodec
+    implicit val resultCodec: Codec[Result] = deriveCodec
   }
 
 }

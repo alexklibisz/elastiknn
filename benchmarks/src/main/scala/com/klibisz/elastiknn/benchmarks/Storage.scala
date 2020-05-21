@@ -4,13 +4,11 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import com.klibisz.elastiknn.api._
-import io.circe.Codec
-import io.circe.syntax._
-import io.circe.generic.semiauto.deriveCodec
-import io.circe.generic.extras.semiauto.deriveEnumerationCodec
 import io.circe.parser._
+import io.circe.syntax._
 import zio._
 import zio.stream._
+import codecs._
 
 import scala.language.implicitConversions
 
@@ -42,10 +40,6 @@ trait Storage[R] {
 /** Quite dumb Storage implementation that stores all results on disk without any internal state. */
 final class FileStorage(datasetsDirectory: File, databaseFile: File) extends Storage[File] {
 
-  private implicit val datasetCodec: Codec[Dataset] = deriveEnumerationCodec[Dataset]
-  private implicit val mappingCodec: Codec[Mapping] = ElasticsearchCodec.mapping
-  private implicit val queryCodec: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
-  private implicit val resultCodec: Codec[Result] = deriveCodec[Result]
   private implicit def toPath(f: File): Path = f.toPath
   private val fileSem: UIO[Semaphore] = Semaphore.make(1)
 
