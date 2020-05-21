@@ -1,8 +1,5 @@
 package com.klibisz.elastiknn.benchmarks
 
-import java.io.File
-import java.nio.file.Files
-
 import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery}
 import io.circe.parser.decode
@@ -23,13 +20,10 @@ object ResultClient {
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, ResultClient] = {
 
     def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): String =
-      s"$keyPrefix/${MurmurHash3.orderedHash(Seq(dataset, mapping, query, k))}.json"
+      s"$keyPrefix${MurmurHash3.orderedHash(Seq(dataset, mapping, query, k))}.json"
 
-    ZLayer.fromEffect {
-      for {
-        client <- ZIO.access[Has[AmazonS3]](_.get)
-        blocking <- ZIO.access[Blocking](_.get)
-      } yield
+    ZLayer.fromServices[AmazonS3, Blocking.Service, Service] {
+      case (client, blocking) =>
         new Service {
           override def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[Result]] = {
             val key = genKey(dataset, mapping, query, k)
@@ -52,6 +46,7 @@ object ResultClient {
           }
         }
     }
+
   }
 
 //  def local(resultsFile: File): Layer[Throwable, ResultClient] = ZLayer.succeed {

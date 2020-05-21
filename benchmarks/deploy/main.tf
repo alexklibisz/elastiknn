@@ -146,7 +146,7 @@ module "eks" {
     worker_groups = [
         {
             name = "default"
-            instance_type = "t2.small"
+            instance_type = "t2.medium"
             asg_desired_capacity = 1
             asg_max_size = 10 # Not to be confused with asg_max_capacity. Not sure of the difference.
             additional_security_group_ids = [aws_security_group.worker_mgmt.id]
@@ -310,6 +310,11 @@ resource "aws_ecr_repository" "driver" {
 resource "aws_ecr_repository" "elastiknn" {
     name = "${local.cluster_name}.elastiknn"
     image_tag_mutability = "MUTABLE"
+}
+
+resource "aws_ecr_repository" "datasets" {
+  name = "${local.cluster_name}.datasets"
+  image_tag_mutability = "MUTABLE"
 }
 
 /*

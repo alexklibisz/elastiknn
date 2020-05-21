@@ -14,6 +14,7 @@ site_srvr = elastiknn-site
 site_main = elastiknn.klibisz.com
 site_arch = archive.elastiknn.klibisz.com
 ecr_prefix = ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+ecr_benchmarks_prefix = $(ecr_prefix)/elastiknn-benchmarks-cluster
 
 clean:
 	./gradlew clean
@@ -172,13 +173,18 @@ publish/site: .mk/jekyll-site-build
 	touch $@
 
 .mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
-	cd es74x && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn .
-	cd benchmarks && docker build -t $(ecr_prefix)/elastiknn-benchmarks-cluster.driver .
+	cd es74x && docker build -t $(ecr_benchmarks_prefix).elastiknn .
+	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
+	cd benchmarks/python \
+	&& (ls venv/bin/python || python3 -m virtualenv venv) \
+	&& venv/bin/pip install -r requirements.txt \
+	&& docker build -t $(ecr_benchmarks_prefix).datasets .
 	touch $@
 
 .mk/benchmarks-docker-push: .mk/ecr-login benchmarks/docker/build
-	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.elastiknn
-	docker push $(ecr_prefix)/elastiknn-benchmarks-cluster.driver
+	docker push $(ecr_benchmarks_prefix).elastiknn
+	docker push $(ecr_benchmarks_prefix).driver
+	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
 benchmarks/docker/build: .mk/benchmarks-docker-build

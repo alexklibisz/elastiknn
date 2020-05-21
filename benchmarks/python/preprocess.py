@@ -95,14 +95,17 @@ def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, da
 
 
 def main(argv: List[str]) -> int:
-    data_dir = os.path.expanduser("~/.elastiknn-data")
-    amazon_phash(
-        "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Home_and_Kitchen.json.gz",
-        "elastiknn-benchmarks",
-        "data/amazon-reviews/images",
-        f"{data_dir}/amazonhomephash",
-        4096
-    )
+    assert len(argv) == 4, "Usage: <script.py> <dataset name> <s3 bucket> <s3 prefix>"
+    [dataset_name, s3_bucket, s3_prefix] = argv
+    if dataset_name == "AmazonHomePhash":
+        amazon_phash(
+            "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Home_and_Kitchen.json.gz",
+            "elastiknn-benchmarks",
+            "data/amazon-reviews/images",
+            s3_bucket,
+            s3_prefix,
+            4096
+        )
     return 0
 
 

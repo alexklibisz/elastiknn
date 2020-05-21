@@ -16,7 +16,11 @@ object DatasetClient {
     def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V]
   }
 
-  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, DatasetClient] = ???
+  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, DatasetClient] = ZLayer.fromFunction { client =>
+    new Service {
+      override def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int]): Stream[Throwable, V] = ???
+    }
+  }
 
   def default: Layer[Throwable, DatasetClient] = local(new File(s"${System.getProperty("user.home")}/.elastiknn-data"))
 

@@ -28,6 +28,10 @@ object Execute extends App {
       .text("Experiment case class serialized as a Json string")
       .action((s, c) => c.copy(experimentJsonBase64 = s))
       .required()
+    opt[String]("datasetsBucket").action((s, c) => c.copy(datasetsBucket = s)).required()
+    opt[String]("datasetsPrefix").action((s, c) => c.copy(datasetsPrefix = s))
+    opt[String]("resultsBucket").action((s, c) => c.copy(resultsBucket = s)).required()
+    opt[String]("resultsPrefix").action((s, c) => c.copy(resultsPrefix = s))
   }
 
   private val decoder = Base64.getDecoder
@@ -37,19 +41,6 @@ object Execute extends App {
       jsonString <- ZIO.fromTry(Try(new String(decoder.decode(jsonBase64))))
       experiment <- ZIO.fromEither(decode[Experiment](jsonString))
     } yield experiment
-
-  /*
-
-  Logic:
-  - Get experiment with a single mapping and many queries.
-  - Use s3 results client to check if results exist for _all_ of the queries. If so, we're done.
-  - Otherwise proceed.
-  - Create index with given mapping.
-  - Stream dataset from S3 and index it.
-  - Run exact search to get ground truth results.
-  - Run all of the queries which don't yet have results.
-
-   */
 
   private def indexAndSearch(dataset: Dataset,
                              mapping: Mapping,

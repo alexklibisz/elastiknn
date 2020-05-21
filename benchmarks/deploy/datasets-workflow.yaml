@@ -3,17 +3,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: elastiknn-benchmark-
+  generateName: datasets-
 spec:
   entrypoint: main
+  onExit: exit-handler
   templates:
     - name: main
       parallelism: 1
       steps:
-        - - name: generate-experiments
-            template: generate-experiments
-          - name: apply-configmap
-            template: apply-configmap
+        - - name: create-pvc
+            template: create-pvc
+        - - name: create-dataset
+            template: create-dataset
+        - - name: sync-dataset
+            template: sync-dataset
+        - - name:
         - - name: execute-experiment
             template: execute-experiment
             arguments:
