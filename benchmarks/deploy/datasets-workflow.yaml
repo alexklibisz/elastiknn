@@ -6,106 +6,78 @@ metadata:
   generateName: datasets-
 spec:
   entrypoint: main
-  onExit: exit-handler
+  arguments:
+    parameters:
+      - name: dataset-list
+        value: |
+          [
+            "foo",
+            "bar",
+            "baz"
+          ]
   templates:
     - name: main
-      parallelism: 1
-      steps:
-        - - name: create-pvc
-            template: create-pvc
-        - - name: create-dataset
-            template: create-dataset
-        - - name: sync-dataset
-            template: sync-dataset
-        - - name:
-        - - name: execute-experiment
-            template: execute-experiment
-            arguments:
-              parameters:
-                - name: experiment
-                  value: "{{item}}"
-            withParam: "{{steps.generate-experiments.outputs.parameters.experiments}}"
-
-    - name: generate-experiments
-      container:
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
-        imagePullPolicy: "Always"
-        args:
-          - com.klibisz.elastiknn.benchmarks.Enqueue
-          - --datasetsFilter
-          - AnnbSift
-          - --toFile
-          - /tmp/exps.json
-      outputs:
-        parameters:
-          - name: experiments
-            valueFrom:
-              path: /tmp/exps.json
-
-    - name: apply-configmap
-      resource:
-        action: apply
-        manifest: |
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: esconfig
-          data:
-            elasticsearch.yml: |
-              cluster.name: "docker-cluster"
-              network.host: 0.0.0.0
-
-    - name: execute-experiment
       inputs:
         parameters:
-          - name: experiment
+          - name: dataset-list
       steps:
-        - - name: create-pvc
-            template: create-pvc
-        - - name: execute-driver
-            template: execute-driver
-            continueOn:
-              failed: true
+        - - name: single-dataset
+            template: single-dataset
             arguments:
               parameters:
-                - name: experiment
-                  value: "{{inputs.parameters.experiment}}"
-                - name: pvc-name
-                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
-        - - name: delete-pvc
-            template: delete-pvc
-            arguments:
-              parameters:
-                - name: pvc-name
-                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+                - name: dataset
+                  value: "{{item}}"
+            withParam: "{{inputs.parameters.dataset-list}}"
+
+    - name: single-dataset
+      parallelism: 1
+      inputs:
+        parameters:
+          - name: dataset
+      steps:
+      - - name: create-pvc
+          template: create-pvc
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
+      - - name: create-dataset
+          template: create-dataset
+          continueOn:
+            failed: true
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
+      - - name: delete-pvc
+          template: delete-pvc
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
 
     - name: create-pvc
+      inputs:
+        parameters:
+          - name: dataset
       resource:
         action: create
         manifest: |
           apiVersion: v1
           kind: PersistentVolumeClaim
           metadata:
-            generateName: elastiknn-pvc-
+            name: "{{workflow.name}}-{{inputs.parameters.dataset}}"
           spec:
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 21Gi
-            storageClassName: storage-10-iops
-      outputs:
-        parameters:
-          - name: pvc-name
-            valueFrom:
-              jsonPath: '{.metadata.name}'
+                storage: 10Gi
 
-    # Have to delete and then patch in order to remove the finalizer that prevents deletion.
-    # Otherwise this gets stuck in the `Terminating` state.
     - name: delete-pvc
       inputs:
         parameters:
-          - name: pvc-name
+          - name: dataset
       container:
         image: "argoproj/argoexec:v2.8.0"
         command: ["/bin/sh", "-c"]
@@ -113,39 +85,28 @@ spec:
           - |
             /bin/sh <<'EOSCRIPT'
             set -e
-            kubectl delete pvc {{inputs.parameters.pvc-name}}
-            kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
+            kubectl delete pvc {{workflow.name}}-{{inputs.parameters.dataset}}
+            kubectl patch --type merge -p '{"metadata":{"finalizers":null}}' pvc {{workflow.name}}-{{inputs.parameters.dataset}}
             EOSCRIPT
 
-    - name: execute-driver
+    - name: create-dataset
       inputs:
         parameters:
-          - name: experiment
-          - name: pvc-name
-      nodeSelector:
-        beta.kubernetes.io/instance-type: c5.4xlarge
+          - name: dataset
       volumes:
-        - name: esdata
+        - name: data
           persistentVolumeClaim:
-            claimName: "{{inputs.parameters.pvc-name}}"
-        - name: esconfig
-          configMap:
-            name: esconfig
-      securityContext:
-        fsGroup: 1000 # Sets the correct permissions for mounted volume.
+            claimName: "{{workflow.name}}-{{inputs.parameters.dataset}}"
       container:
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.datasets
         imagePullPolicy: "Always"
         args:
-          - com.klibisz.elastiknn.benchmarks.Execute
-          - --experimentJsonBase64
-          - "{{inputs.parameters.experiment}}"
-          - --datasetsBucket
-          - elastiknn-benchmarks
-          - --datasetsPrefix
-          - "data/processed"
-          - --resultsBucket
-          - "elastiknn-benchmarks-cluster.results"
+          - "preprocess.py"
+          - "{{inputs.parameters.dataset}}"
+        volumeMounts:
+          - name: data
+            mountPath: /mnt/data
+            readOnly: false
         env:
           # Technically bad practice, but easier than setting up KIAM.
           - name: AWS_ACCESS_KEY_ID
@@ -155,29 +116,7 @@ spec:
         resources:
           requests:
             cpu: 1
-            memory: 4G
+            memory: 1Gi
           limits:
             cpu: 1
-            memory: 4G
-      sidecars:
-        - name: elastiknn
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
-          imagePullPolicy: "Always"
-          env:
-            - name: discovery.type
-              value: single-node
-          volumeMounts:
-            - name: esdata
-              mountPath: /usr/share/elasticsearch/data
-              readOnly: false
-            - name: esconfig
-              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
-              subPath: elasticsearch.yml
-              readOnly: true
-          resources:
-            requests:
-              cpu: 14
-              memory: 22G
-            limits:
-              cpu: 14
-              memory: 22G
+            memory: 1Gi

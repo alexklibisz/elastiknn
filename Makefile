@@ -191,9 +191,10 @@ benchmarks/docker/build: .mk/benchmarks-docker-build
 
 benchmarks/docker/push: .mk/benchmarks-docker-push
 
-benchmarks/argo/clean:
-	argo delete --all
-
-benchmarks/argo/submit: .mk/benchmarks-docker-push
+benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
 	&& envsubst < benchmark-workflow.yaml | argo submit -
+
+benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
+	cd benchmarks/deploy \
+	&& envsubst < datasets-workflow.yaml | argo submit -
