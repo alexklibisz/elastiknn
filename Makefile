@@ -164,10 +164,6 @@ publish/site: .mk/jekyll-site-build
 	mkdir -p docs/_site/docs
 	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
 
-.mk/ecr-login:
-	$$(aws ecr get-login --no-include-email)
-	touch $@
-
 .mk/benchmarks-assemble: $(src_all)
 	$(gradle) :benchmarks:shadowJar
 	touch $@
@@ -181,11 +177,14 @@ publish/site: .mk/jekyll-site-build
 	&& docker build -t $(ecr_benchmarks_prefix).datasets .
 	touch $@
 
-.mk/benchmarks-docker-push: .mk/ecr-login benchmarks/docker/build
+.mk/benchmarks-docker-push: benchmarks/docker/login benchmarks/docker/build
 	docker push $(ecr_benchmarks_prefix).elastiknn
 	docker push $(ecr_benchmarks_prefix).driver
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
+
+benchmarks/docker/login:
+	$$(aws ecr get-login --no-include-email)
 
 benchmarks/docker/build: .mk/benchmarks-docker-build
 

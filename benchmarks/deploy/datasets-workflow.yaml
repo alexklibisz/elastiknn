@@ -11,10 +11,29 @@ spec:
       - name: dataset-list
         value: |
           [
-            "foo",
-            "bar",
-            "baz"
+            "amazonhomephash"
           ]
+#        value: |
+#          [
+#            "AmazonHome",
+#            "AmazonHomeUnit",
+#            "AmazonHomePhash",
+#            "AmazonMixed",
+#            "AmazonMixedUnit",
+#            "AmazonMixedPhash",
+#            "EnglishWikiLsa",
+#            "AnnbDeep1b",
+#            "AnnbFashionMnist",
+#            "AnnbGist",
+#            "AnnbGlove25",
+#            "AnnbGlove50",
+#            "AnnbGlove100",
+#            "AnnbGlove200",
+#            "AnnbKosarak",
+#            "AnnbMnist",
+#            "AnnbNyt",
+#            "AnnbSift"
+#          ]
   templates:
     - name: main
       inputs:
@@ -72,7 +91,7 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 10Gi
+                storage: 80Gi
 
     - name: delete-pvc
       inputs:
@@ -103,6 +122,9 @@ spec:
         args:
           - "preprocess.py"
           - "{{inputs.parameters.dataset}}"
+          - /mnt/data
+          - elastiknn-benchmarks
+          - "data/processed/{{inputs.parameters.dataset}}"
         volumeMounts:
           - name: data
             mountPath: /mnt/data
