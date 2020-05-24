@@ -45,9 +45,10 @@ module "vpc" {
 
     # You can use a network address translation (NAT) gateway to enable instances in a private 
     # subnet to connect to the internet or other AWS services, but prevent the internet from 
-    # initiating a connection with those instances. However this costs a surprising amount.
-    enable_nat_gateway = false
-    # single_nat_gateway = true
+    # initiating a connection with those instances.
+    # TODO: is there a way to avoid using these? It seems like they incur a pretty large cost.
+    enable_nat_gateway = true
+    single_nat_gateway = true
     enable_dns_hostnames = true
 
     tags = {
@@ -163,25 +164,25 @@ module "eks" {
                 }
             ]
         },
-//        {
-//            name = "high-performance"
-//            instance_type = "c5.4xlarge"
-//            asg_min_size = 1
-//            asg_max_size = 50
-//            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
-//            tags = [
-//                {
-//                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
-//                    "propagate_at_launch" = "false"
-//                    "value"               = "true"
-//                },
-//                {
-//                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-//                    "propagate_at_launch" = "false"
-//                    "value"               = "true"
-//                }
-//            ]
-//        }
+        {
+            name = "high-performance"
+            instance_type = "c5.4xlarge"
+            asg_min_size = 1
+            asg_max_size = 50
+            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
+            tags = [
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                },
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                }
+            ]
+        }
     ]
 }
 

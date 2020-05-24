@@ -42,7 +42,7 @@ object Enqueue extends App {
       val experiments =
         if (params.datasetsFilter.isEmpty) Experiment.defaults
         else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
-      write(experiments)
+      write(experiments.take(1))
         .mapError(System.err.println)
         .fold(_ => 1, _ => 0)
   }

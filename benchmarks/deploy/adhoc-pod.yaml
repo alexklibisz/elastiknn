@@ -4,7 +4,7 @@ metadata:
   name: adhoc
 spec:
   nodeSelector:
-    beta.kubernetes.io/instance-type: c5.large
+    beta.kubernetes.io/instance-type: c5.xlarge
   containers:
     - name: adhoc
       image: ubuntu:20.04

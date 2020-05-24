@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':core')
+    implementation project(':es74x')
     implementation project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
@@ -9,4 +10,5 @@ dependencies {
     implementation 'org.apache.lucene:lucene-codecs:8.2.0'
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+    implementation 'com.lihaoyi:upickle_2.12:1.1.0'
 }

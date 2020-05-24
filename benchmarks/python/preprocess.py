@@ -66,15 +66,16 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
             else:
                 vec = rounded_dense_float(list(arr))
             write_vec(vecs_fp, str(i), vec)
-            print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
+            print(f"Processed {i}: {i} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
             i += 1
         return i
 
     n = write(hdf5_fp['train'], 0)
     _ = write(hdf5_fp['test'], n)
+    vecs_fp.close() # Very important. Otherwise gzip file is invalid!
 
     print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
-    s3.upload_file(Filename=vecs_file, Bucket=output_s3_bucket, Key=output_key)
+    s3.upload_file(vecs_file, output_s3_bucket, output_key)
 
 
 def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,
@@ -115,9 +116,10 @@ def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: st
         write_vec(vecs_fp, asin, vec)
         print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
         i += 1
+    vecs_fp.close() # Very important. Otherwise gzip file is invalid!
 
     print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
-    s3.upload_file(Filename=vecs_file, Bucket=output_s3_bucket, Key=output_key)
+    s3.upload_file(vecs_file, output_s3_bucket, output_key)
 
 
 def amazon_phash(metadata_s3_bucket: str, metadata_s3_key: str, imgs_s3_bucket: str, imgs_s3_prefix: str,
@@ -159,9 +161,10 @@ def amazon_phash(metadata_s3_bucket: str, metadata_s3_key: str, imgs_s3_bucket: 
             for vec in ndarray_to_sparse_bool_vectors(ph.hash.reshape((1, ph.hash.size))):
                 write_vec(vecs_fp, asin, vec)
             print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
+    vecs_fp.close() # Very important. Otherwise gzip file is invalid!
 
     print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
-    s3.upload_file(Filename=vecs_file, Bucket=output_s3_bucket, Key=output_key)
+    s3.upload_file(vecs_file, output_s3_bucket, output_key)
 
 
 def main(argv: List[str]) -> int:

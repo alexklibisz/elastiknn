@@ -20,7 +20,7 @@ object ResultClient {
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, ResultClient] = {
 
     def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): String =
-      s"$keyPrefix${MurmurHash3.orderedHash(Seq(dataset, mapping, query, k))}.json"
+      s"$keyPrefix/results-${MurmurHash3.orderedHash(Seq(dataset, mapping, query, k))}.json".replace("//", "/")
 
     ZLayer.fromServices[AmazonS3, Blocking.Service, Service] {
       case (client, blocking) =>

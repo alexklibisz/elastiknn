@@ -29,7 +29,7 @@ spec:
         args:
           - com.klibisz.elastiknn.benchmarks.Enqueue
           - --datasetsFilter
-          - AnnbSift
+          - AnnbFashionMnist
           - --toFile
           - /tmp/exps.json
       outputs:

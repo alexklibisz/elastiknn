@@ -1,24 +1,34 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
+import com.klibisz.elastiknn.client.ElastiknnClient
+import com.sksamuel.elastic4s.requests.common.HealthStatus
 import io.circe.parser._
 import zio._
 import zio.blocking.Blocking
 import zio.clock.Clock
+import zio.logging._
 import zio.console._
 import zio.duration.Duration
 import zio.logging.Logging
 import zio.logging.slf4j.Slf4jLogger
 
 import scala.util.Try
+import scala.util.hashing.MurmurHash3
 
 object Execute extends App {
 
-  private case class Params(experimentJsonBase64: String = "", datasetsBucket: String = "", datasetsPrefix: String = "", resultsBucket: String = "", resultsPrefix: String = "")
+  private case class Params(experimentJsonBase64: String = "",
+                            datasetsBucket: String = "",
+                            datasetsPrefix: String = "",
+                            resultsBucket: String = "",
+                            resultsPrefix: String = "",
+                            holdoutProportion: Double = 0f)
   private case class QueryResult(neighborIds: Seq[String], duration: Duration)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
@@ -32,6 +42,7 @@ object Execute extends App {
     opt[String]("datasetsPrefix").action((s, c) => c.copy(datasetsPrefix = s))
     opt[String]("resultsBucket").action((s, c) => c.copy(resultsBucket = s)).required()
     opt[String]("resultsPrefix").action((s, c) => c.copy(resultsPrefix = s))
+    opt[Double]("holdoutProportion").action((d, c) => c.copy(holdoutProportion = d))
   }
 
   private val decoder = Base64.getDecoder
@@ -43,12 +54,54 @@ object Execute extends App {
     } yield experiment
 
   private def indexAndSearch(dataset: Dataset,
-                             mapping: Mapping,
-                             query: NearestNeighborsQuery,
-                             k: Int): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, Result] = {
+                             eknnMapping: Mapping,
+                             eknnQuery: NearestNeighborsQuery,
+                             k: Int,
+                             holdoutProportion: Double): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, Result] = {
 
-    // Map the (dataset, mapping)) to an index name and check if this index already exists. If it does, just run the query.
-    ZIO.succeed(Result(dataset, mapping, query, k, Seq.empty))
+    import com.sksamuel.elastic4s.ElasticDsl._
+
+    def buildIndex(indexName: String) = {
+      for {
+        elastiknn <- ZIO.access[ElastiknnZioClient](_.get)
+        _ <- elastiknn.execute(createIndex(indexName).replicas(0).shards(java.lang.Runtime.getRuntime.availableProcessors()))
+        _ <- elastiknn.putMapping(indexName, eknnQuery.field, eknnMapping)
+        datasets <- ZIO.access[DatasetClient](_.get)
+        _ <- log.info(s"Streaming vectors for dataset $dataset")
+        stream = datasets.stream[Vec](dataset)
+        holdoutVecs <- stream.grouped(500).zipWithIndex.foldM(Vector.empty[Vec]) {
+          case (acc, (vecs, batchIndex)) =>
+            val (holdoutVecs, indexVecs) = vecs.splitAt((vecs.length * holdoutProportion).toInt)
+            val ids = indexVecs.map(i => s"v${batchIndex}-$i")
+            for {
+              (dur, _) <- elastiknn.index(indexName, eknnQuery.field, indexVecs, Some(ids)).timed
+              _ <- log.debug(s"Indexed batch $batchIndex to ${indexName} containing ${indexVecs.length} vectors in ${dur.toMillis} ms")
+            } yield acc ++ holdoutVecs
+        }
+      } yield indexName -> holdoutVecs
+    }
+
+    // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
+    val indexName = s"ix-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping, holdoutProportion))}"
+
+    for {
+      elastiknn <- ZIO.access[ElastiknnZioClient](_.get)
+
+      // Wait for cluster ready.
+      _ <- log.info(s"Waiting for cluster")
+      _ <- ZIO.sleep(Duration(30, TimeUnit.SECONDS))
+      _ <- elastiknn.execute(clusterHealth().waitForStatus(HealthStatus.Yellow).timeout("60s"))
+
+      // Check if the index already exists.
+      _ <- log.info(s"Checking for index $indexName")
+      exists <- elastiknn.execute(indexExists(indexName)).map(_.result.exists).catchSome {
+        case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
+      }
+
+      // If it doesn't, index the dataset.
+      _ <- if (exists) ZIO.succeed(()) else buildIndex(indexName)
+
+    } yield Result(dataset, eknnMapping, eknnQuery, k, Seq.empty)
   }
 
   private def setRecalls(exact: Result, test: Result): Result = {
@@ -58,7 +111,8 @@ object Execute extends App {
     test.copy(singleResults = withRecalls)
   }
 
-  private def run(experiment: Experiment): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient with ResultClient, Any, Unit] = {
+  private def run(experiment: Experiment,
+                  holdoutProportion: Double): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient with ResultClient, Any, Unit] = {
     import experiment._
     for {
       rc <- ZIO.access[ResultClient](_.get)
@@ -67,10 +121,10 @@ object Execute extends App {
       } yield {
         for {
           exactOpt <- rc.find(dataset, exactMapping, exactQuery, k)
-          exact <- if (exactOpt.isDefined) ZIO.fromOption(exactOpt) else indexAndSearch(dataset, exactMapping, testQuery, k)
+          exact <- if (exactOpt.isDefined) ZIO.fromOption(exactOpt) else indexAndSearch(dataset, exactMapping, testQuery, k, holdoutProportion)
           _ <- rc.save(exact)
           testOpt <- rc.find(dataset, testMapping, testQuery, k)
-          test <- if (testOpt.isDefined) ZIO.fromOption(testOpt) else indexAndSearch(dataset, testMapping, testQuery, k)
+          test <- if (testOpt.isDefined) ZIO.fromOption(testOpt) else indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion)
           _ <- rc.save(setRecalls(exact, test))
         } yield ()
       }
@@ -90,9 +144,9 @@ object Execute extends App {
             ElastiknnZioClient.fromFutureClient("localhost", 9200, true)
 
       val logic = for {
-        _ <- putStrLn(params.experimentJsonBase64)
+        _ <- log.info(params.toString)
         experiment <- decodeExperiment(params.experimentJsonBase64)
-        _ <- run(experiment)
+        _ <- run(experiment, params.holdoutProportion)
       } yield ()
       logic
         .provideLayer(layer)
