@@ -22,15 +22,11 @@ package object benchmarks {
     case object AmazonHomePhash extends Dataset(4096)
     case object AmazonMixed extends Dataset(4096)
     case object AmazonMixedUnit extends Dataset(4096)
-    case object AmazonMixedPhash extends Dataset(4096)
     case object EnglishWikiLsa extends Dataset(1024)
     case object AnnbDeep1b extends Dataset(96)
     case object AnnbFashionMnist extends Dataset(784)
     case object AnnbGist extends Dataset(960)
-    case object AnnbGlove25 extends Dataset(25)
-    case object AnnbGlove50 extends Dataset(50)
     case object AnnbGlove100 extends Dataset(100)
-    case object AnnbGlove200 extends Dataset(200)
     case object AnnbKosarak extends Dataset(27983)
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
@@ -140,15 +136,11 @@ package object benchmarks {
       angular(AmazonHomeUnit),
       angular(AmazonMixedUnit),
       hamming(AmazonHomePhash),
-      hamming(AmazonMixedPhash),
       angular(EnglishWikiLsa),
       angular(AnnbDeep1b),
       l2(AnnbFashionMnist),
       l2(AnnbGist),
-      angular(AnnbGlove25),
-      angular(AnnbGlove50),
       angular(AnnbGlove100),
-      angular(AnnbGlove200),
       jaccard(AnnbKosarak),
       l2(AnnbMnist),
       angular(AnnbNyt),

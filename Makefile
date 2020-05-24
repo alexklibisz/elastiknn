@@ -197,3 +197,7 @@ benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
 	&& envsubst < datasets-workflow.yaml | argo submit -
+
+benchmarks/adhoc:
+	cd benchmarks/deploy \
+	&& envsubst < adhoc-pod.yaml | kubectl apply -f -

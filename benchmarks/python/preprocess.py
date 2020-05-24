@@ -1,18 +1,21 @@
+import array
 import gzip
 import json
 import os
 import sys
+import urllib.request
 from io import BytesIO
 from itertools import islice
-from math import sqrt
+import numpy as np
+from math import *
 from time import time
 from typing import List
 
 import PIL
 import boto3
-import wget
 from PIL import Image
 from botocore.exceptions import ClientError
+from elastiknn.api import Vec
 from elastiknn.utils import ndarray_to_sparse_bool_vectors
 from imagehash import phash
 
@@ -35,34 +38,75 @@ def touch(f):
 def annb(url: str, datadir: str):
     pass
 
-
-
-def amazon_raw(features_url: str, output_s3_bucket: str, output_s3_prefix: str, normalize: bool):
-    pass
-
-
-def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str, n: int = sys.maxsize):
+def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,
+               output_s3_prefix: str, normalize: bool):
 
     s3 = boto3.client('s3')
 
     # Check if it exists first.
     output_key = f"{output_s3_prefix}/vecs.json"
     existing = s3.list_objects(Bucket=output_s3_bucket, Prefix=output_key)
-    if len(existing['Contents']) > 0:
+    if 'Contents' in existing:
         print(f"Key {output_key} already exists - returning")
         return
 
-    metafile = f"{local_data_dir}/metadata.json.gz"
-    if not os.path.exists(metafile):
-        print(f"Downloading {metadata_url} to {metafile}")
-        wget.download(metadata_url, metafile)
+    features_file = f"{local_data_dir}/vecs.b"
+    if not os.path.exists(features_file):
+        print(f"Downloading s3://{features_s3_bucket}/{features_s3_key} to {features_file}")
+        s3.download_file(Bucket=features_s3_bucket, Key=features_s3_key, Filename=features_file)
 
-    vecsfile = f"{local_data_dir}/vecs.json"
-    vecsfp = open(vecsfile, "a")
+    features_fp = open(features_file, 'rb')
+    vecs_file = f"{local_data_dir}/vecs.json"
+    vecs_fp = open(vecs_file, "w")
+
+    i = 0
+    t0 = time()
+    while True:
+        asin = features_fp.read(10).decode()
+        if len(asin) == 0:
+            break
+        arr = array.array('f')
+        arr.fromfile(features_fp, 4096)
+        vec = Vec.DenseFloat(arr.tolist())
+        if normalize:
+            norm = sqrt(sum(map(lambda n: n * n, vec.values)))
+            unit_values = [v / norm for v in vec.values]
+            vec = Vec.DenseFloat(values=unit_values)
+            norm_check = round(sqrt(sum(map(lambda n: n * n, vec.values))), 2)
+            assert norm_check == 1.0, (vec, norm_check)
+        vecs_fp.write(asin + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n')
+        print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
+        i += 1
+
+    print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
+    s3.upload_file(Filename=vecs_file, Bucket=output_s3_bucket, Key=output_key)
+
+
+def amazon_phash(metadata_s3_bucket: str, metadata_s3_key: str, imgs_s3_bucket: str, imgs_s3_prefix: str,
+                 local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str, n: int = sys.maxsize):
+
+    s3 = boto3.client('s3')
+
+    # Check if it exists first.
+    output_key = f"{output_s3_prefix}/vecs.json"
+    existing = s3.list_objects(Bucket=output_s3_bucket, Prefix=output_key)
+    if 'Contents' in existing:
+        print(f"Key {output_key} already exists - returning")
+        return
+
+    metadata_file = f"{local_data_dir}/metadata.json.gz"
+    if not os.path.exists(metadata_file):
+        print(f"Downloading s3://{metadata_s3_bucket}/{metadata_s3_key} to {metadata_file}")
+        s3.download_file(Bucket=metadata_s3_bucket, Key=metadata_s3_key, Filename=metadata_file)
+
+    vecs_file = f"{local_data_dir}/vecs.json"
+    vecs_fp = open(vecs_file, "a")
 
     hash_size = 4096
 
-    with gzip.open(metafile) as gzfp:
+    print(f"Writing vectors to {vecs_file}")
+
+    with gzip.open(metadata_file) as gzfp:
         lines = islice(gzfp, 0, n)
         t0 = time()
         for i, d in enumerate(map(eval, lines)):
@@ -77,11 +121,11 @@ def amazon_phash(metadata_url: str, imgs_s3_bucket: str, imgs_s3_prefix: str, lo
                 print(f"Error for image {asin}: {ex}\n", file=sys.stderr)
             ph = phash(img, hash_size)
             for vec in ndarray_to_sparse_bool_vectors(ph.hash.reshape((1, ph.hash.size))):
-                vecsfp.write(asin + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n')
+                vecs_fp.write(asin + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n')
             print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
 
-    print(f"Copying {vecsfile} to {imgs_s3_bucket}, {imgs_s3_prefix}")
-    s3.upload_file(Filename=vecsfile, Bucket=output_s3_bucket, Key=output_key)
+    print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
+    s3.upload_file(Filename=vecs_file, Bucket=output_s3_bucket, Key=output_key)
 
 
 def main(argv: List[str]) -> int:
@@ -89,16 +133,28 @@ def main(argv: List[str]) -> int:
     [dataset_name, local_data_dir, s3_bucket, s3_prefix] = argv[1:]
     if dataset_name == "amazonhome":
         amazon_raw(
-            "http://snap.stanford.edu/data/amazon/productGraph/image_features/categoryFiles/image_features_Home_and_Kitchen.b",
+            "elastiknn-benchmarks",
+            "data/raw/amazon-reviews/image_features_Home_and_Kitchen.b",
+            local_data_dir,
             s3_bucket,
             s3_prefix,
             False
         )
+    elif dataset_name == "amazonhomeunit":
+        amazon_raw(
+            "elastiknn-benchmarks",
+            "data/raw/amazon-reviews/image_features_Home_and_Kitchen.b",
+            local_data_dir,
+            s3_bucket,
+            s3_prefix,
+            True
+        )
     elif dataset_name == "amazonhomephash":
         amazon_phash(
-            "http://snap.stanford.edu/data/amazon/productGraph/categoryFiles/meta_Home_and_Kitchen.json.gz",
             "elastiknn-benchmarks",
-            "data/amazon-reviews/images",
+            "data/raw/amazon-reviews/meta_Home_and_Kitchen.json.gz",
+            "elastiknn-benchmarks",
+            "data/raw/amazon-reviews/images",
             local_data_dir,
             s3_bucket,
             s3_prefix

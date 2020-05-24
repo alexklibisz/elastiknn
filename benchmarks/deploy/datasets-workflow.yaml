@@ -11,16 +11,14 @@ spec:
       - name: dataset-list
         value: |
           [
+            "amazonhome",
+            "amazonhomeunit",
             "amazonhomephash"
           ]
 #        value: |
 #          [
-#            "AmazonHome",
-#            "AmazonHomeUnit",
-#            "AmazonHomePhash",
 #            "AmazonMixed",
 #            "AmazonMixedUnit",
-#            "AmazonMixedPhash",
 #            "EnglishWikiLsa",
 #            "AnnbDeep1b",
 #            "AnnbFashionMnist",
@@ -49,7 +47,7 @@ spec:
             withParam: "{{inputs.parameters.dataset-list}}"
 
     - name: single-dataset
-      parallelism: 1
+      parallelism: 50
       inputs:
         parameters:
           - name: dataset
@@ -137,8 +135,8 @@ spec:
             value: ${AWS_SECRET_ACCESS_KEY}
         resources:
           requests:
-            cpu: 1
-            memory: 1Gi
+            cpu: 4
+            memory: 8Gi
           limits:
-            cpu: 1
-            memory: 1Gi
+            cpu: 4
+            memory: 8Gi
