@@ -3,13 +3,15 @@ kind: Pod
 metadata:
   name: adhoc
 spec:
+  nodeSelector:
+    beta.kubernetes.io/instance-type: c5.large
   containers:
     - name: adhoc
       image: ubuntu:20.04
       resources:
         limits:
-          cpu: 14
-          memory: 24Gi
+          cpu: 1
+          memory: 2Gi
       command: ["tail"]
       args: ["-f", "/dev/null"]
       env:

@@ -2,3 +2,4 @@
 terraform.tfstate
 terraform.tfstate.backup
 kubeconfig_*
+*.lock.info

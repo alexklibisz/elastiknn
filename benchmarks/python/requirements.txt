@@ -1,9 +1,8 @@
 imagehash==4.1.0
-tqdm==4.45.0
 wget==3.2
 click==7.1.2
-boto3==1.13.1
-jupyterlab==2.1.2
+boto3==1.13.16
 matplotlib==3.2.1
 pandas==1.0.3
 elastiknn-client
+h5py==2.10.0
