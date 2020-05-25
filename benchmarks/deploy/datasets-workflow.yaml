@@ -11,21 +11,17 @@ spec:
       - name: dataset-list
         value: |
           [
-            "annbfashionmnist"
+            "amazonhome",
+            "amazonhomeunit",
+            "annbdeep1b",
+            "annbfashionmnist",
+            "annbgist",
+            "annbglove100",
+            "annbkosarak",
+            "annbmnist",
+            "annbnyt",
+            "annbsift"
           ]
-#        value: |
-#          [
-#            "amazonhome",
-#            "amazonhomeunit",
-#            "annbdeep1b",
-#            "annbfashionmnist",
-#            "annbgist",
-#            "annbglove100",
-#            "annbkosarak",
-#            "annbmnist",
-#            "annbnyt",
-#            "annbsift"
-#          ]
   templates:
     - name: main
       inputs:

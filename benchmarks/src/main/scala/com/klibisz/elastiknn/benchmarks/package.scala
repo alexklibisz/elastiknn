@@ -37,7 +37,7 @@ package object benchmarks {
 
   final case class Experiment(dataset: Dataset, exactMapping: Mapping, exactQuery: NearestNeighborsQuery, testMapping: Mapping, testQueries: Seq[Query])
 
-  final case class SingleResult(neighbors: Seq[String], recall: Double, duration: Long)
+  final case class SingleResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
 
   final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, singleResults: Seq[SingleResult]) {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, ...)"
@@ -52,7 +52,7 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- Seq(10) ++ (50 to 300 by 50)
+        b <- 50 to 300 by 50
         r <- 1 to 3
         w <- 1 to 3
       } yield
@@ -71,7 +71,7 @@ package object benchmarks {
 
     def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- Seq(10) ++ (50 to 300 by 50)
+        b <- 50 to 300 by 50
         r <- 1 to 3
       } yield
         Experiment(

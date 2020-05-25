@@ -6,7 +6,7 @@
         </layout>
     </appender>
     <logger name="com.sksamuel.elastic4s" level="WARN"/>
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

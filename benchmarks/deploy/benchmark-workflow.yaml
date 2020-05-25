@@ -8,7 +8,7 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 1
+      parallelism: 10
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -29,7 +29,7 @@ spec:
         args:
           - com.klibisz.elastiknn.benchmarks.Enqueue
           - --datasetsFilter
-          - AnnbFashionMnist
+          - AnnbMnist
           - --toFile
           - /tmp/exps.json
       outputs:
@@ -55,6 +55,9 @@ spec:
       inputs:
         parameters:
           - name: experiment
+      retryStrategy:
+        limit: 1
+        retryPolicy: "Always"
       steps:
         - - name: create-pvc
             template: create-pvc
@@ -74,6 +77,12 @@ spec:
               parameters:
                 - name: pvc-name
                   value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+        - - name: exit
+            template: exit
+            arguments:
+              parameters:
+                - name: code
+                  value: "{{steps.execute-driver.exitCode}}"
 
     - name: create-pvc
       resource:
@@ -82,13 +91,13 @@ spec:
           apiVersion: v1
           kind: PersistentVolumeClaim
           metadata:
-            generateName: elastiknn-pvc-
+            generateName: "{{workflow.name}}-"
           spec:
             accessModes:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 21Gi
+                storage: 42Gi
             storageClassName: storage-10-iops
       outputs:
         parameters:
@@ -112,6 +121,15 @@ spec:
             kubectl delete pvc {{inputs.parameters.pvc-name}}
             kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
             EOSCRIPT
+
+    - name: exit
+      inputs:
+        parameters:
+          - name: code
+      container:
+        image: alpine
+        command: [sh, -c]
+        args: ["exit {{inputs.parameters.code}}"]
 
     - name: execute-driver
       inputs:
@@ -142,6 +160,8 @@ spec:
           - "data/processed"
           - --resultsBucket
           - "elastiknn-benchmarks-cluster.results"
+          - --parallelism
+          - "14" # Should match the number of cores.
         env:
           # Technically bad practice, but easier than setting up KIAM.
           - name: AWS_ACCESS_KEY_ID
@@ -162,6 +182,10 @@ spec:
           env:
             - name: discovery.type
               value: single-node
+            - name: ES_JAVA_OPTS
+              value: >-
+                -Xms13G
+                -Xmx13G
           volumeMounts:
             - name: esdata
               mountPath: /usr/share/elasticsearch/data
