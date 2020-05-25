@@ -119,12 +119,20 @@ object Execute extends App {
       }
 
       // If it doesn't, index the dataset.
-      holdout <- if (exists) ZIO.succeed(holdoutCache((dataset, holdoutProportion))) else buildIndex()
-      _ = holdoutCache.put((dataset, holdoutProportion), holdout)
+      holdouts <- if (exists && holdoutCache.contains((dataset, holdoutProportion))) {
+        for {
+          _ <- log.info(s"Found the index $indexName")
+        } yield holdoutCache((dataset, holdoutProportion))
+      } else {
+        for {
+          holdouts <- buildIndex()
+          _ = holdoutCache.put((dataset, holdoutProportion), holdouts)
+        } yield holdouts
+      }
 
       // Run searches on the holdout vectors.
-      _ <- log.info(s"Searching over ${holdout.length} holdout vectors with query $eknnQuery")
-      singleResults <- search(holdout)
+      _ <- log.info(s"Searching ${holdouts.length} holdout vectors with query $eknnQuery")
+      singleResults <- search(holdouts)
 
     } yield Result(dataset, eknnMapping, eknnQuery, k, singleResults)
   }

@@ -8,8 +8,6 @@ import zio._
 import codecs._
 import zio.blocking._
 
-import scala.util.hashing.MurmurHash3
-
 object ResultClient {
 
   trait Service {
@@ -19,8 +17,14 @@ object ResultClient {
 
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, ResultClient] = {
 
+    def validChars(s: String): String = s.map { c =>
+      if (c.isLetter && c <= 'z') c
+      else if (c.isDigit) c
+      else '-'
+    }
+
     def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): String = {
-      val suffix = s"results-${MurmurHash3.orderedHash(Seq(dataset, mapping, query, k))}.json"
+      val suffix = validChars(s"res-${dataset.toString}-${mapping.toString}-${query.toString}-$k.json")
       if (keyPrefix.nonEmpty) s"$keyPrefix/$suffix".replace("//", "/")
       else suffix
     }

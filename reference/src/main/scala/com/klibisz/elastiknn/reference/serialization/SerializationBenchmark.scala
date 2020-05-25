@@ -1,10 +1,8 @@
-package com.klibisz.elastiknn.reference.lucene
-
-import java.io.{ByteArrayInputStream, DataInputStream}
+package com.klibisz.elastiknn.reference.serialization
 
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.storage.ByteArrayCodec
-
+import com.klibisz.elastiknn.serialization.BinaryCodecs
 import scala.util.Random
 
 object SerializationBenchmark {
@@ -19,7 +17,7 @@ object SerializationBenchmark {
   def main(args: Array[String]): Unit = {
 
     val n = 20000
-    val m = 20
+    val m = 200
 
     implicit val r = new Random(99)
     val vecs = Vec.SparseBool.randoms(1000, n)
@@ -30,7 +28,6 @@ object SerializationBenchmark {
 
       val vecsProto: Seq[Array[Byte]] = time(s"Serialize ${vecs.length} to proto", vecs.map(v => ByteArrayCodec.sparseBoolVector(v)))
       println(vecsProto.map(_.length).sum)
-
       time[Unit](s"Deserialize ${vecs.length} from proto", vecsProto.foreach(b => ByteArrayCodec.sparseBoolVector(b).get))
 //
 //      val vecsMsgpack: Seq[Array[Byte]] = time(s"Serialize ${vecs.length} to msgpack", vecs.map { v =>
@@ -40,26 +37,22 @@ object SerializationBenchmark {
 //
 //      time[Unit](s"Deserialize ${vecs.length} from msgpack", vecsMsgpack.foreach(b => readBinary[Array[Int]](b)))
 
-      import com.klibisz.elastiknn.serialization
-
       val vecsDataOutputStream = time(
         s"Serialize ${vecs.length} to DataOutputStream",
         vecs.map { v =>
-          serialization.ByteArrayCodec.writeInts(Array(v.totalIndices, v.trueIndices.length) ++ v.trueIndices)
+          BinaryCodecs.writeInts(v.totalIndices +: v.trueIndices)
         }
       )
       println(vecsDataOutputStream.map(_.length).sum)
 
-      time[Unit](
+      val checkDataOutputStream = time(
         s"Deserialize ${vecs.length} from DataOutputStream",
-        vecsDataOutputStream.foreach { b =>
-          val bin = new ByteArrayInputStream(b)
-          val din = new DataInputStream(bin)
-          val total = din.readInt()
-          val length = din.readInt()
-          Vec.SparseBool(???, total)
+        vecsDataOutputStream.map { b =>
+          val ints = BinaryCodecs.readInts(b)
+          Vec.SparseBool(ints.tail, ints.head)
         }
       )
+      require(vecs == checkDataOutputStream)
 
       println("---")
 

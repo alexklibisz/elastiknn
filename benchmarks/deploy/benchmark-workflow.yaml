@@ -8,7 +8,7 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 10
+      parallelism: 20
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -159,7 +159,9 @@ spec:
           - --datasetsPrefix
           - "data/processed"
           - --resultsBucket
-          - "elastiknn-benchmarks-cluster.results"
+          - "elastiknn-benchmarks"
+          - --resultsPrefix
+          - "results"
           - --parallelism
           - "14" # Should match the number of cores.
         env:
