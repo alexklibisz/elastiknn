@@ -35,13 +35,31 @@ package object benchmarks {
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
 
-  final case class Experiment(dataset: Dataset, exactMapping: Mapping, exactQuery: NearestNeighborsQuery, testMapping: Mapping, testQueries: Seq[Query])
+  final case class Experiment(dataset: Dataset,
+                              exactMapping: Mapping,
+                              exactQuery: NearestNeighborsQuery,
+                              testMapping: Mapping,
+                              testQueries: Seq[Query])
 
-  final case class SingleResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
+  final case class QueryResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
 
-  final case class Result(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, singleResults: Seq[SingleResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, ...)"
+  final case class BenchmarkResult(dataset: Dataset,
+                                   mapping: Mapping,
+                                   query: NearestNeighborsQuery,
+                                   k: Int,
+                                   duration: Long = 0,
+                                   parallelism: Int = 14,
+                                   queryResults: Seq[QueryResult]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, $duration, $parallelism, ...)"
   }
+
+  final case class ParetoResult(dataset: Dataset,
+                                algorithm: String,
+                                k: Int,
+                                mapping: Mapping,
+                                query: NearestNeighborsQuery,
+                                queriesPerSecondPerParallelism: Int,
+                                recall: Double)
 
   object Experiment {
     import Dataset._
@@ -155,8 +173,8 @@ package object benchmarks {
     implicit val queryCodec: Codec[Query] = deriveCodec
     implicit val datasetCodec: Codec[Dataset] = deriveCodec
     implicit val experimentCodec: Codec[Experiment] = deriveCodec
-    implicit val singleResultCodec: Codec[SingleResult] = deriveCodec
-    implicit val resultCodec: Codec[Result] = deriveCodec
+    implicit val singleResultCodec: Codec[QueryResult] = deriveCodec
+    implicit val resultCodec: Codec[BenchmarkResult] = deriveCodec
   }
 
 }

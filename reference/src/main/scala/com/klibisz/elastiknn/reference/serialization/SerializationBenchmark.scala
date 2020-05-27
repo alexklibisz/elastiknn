@@ -3,6 +3,8 @@ package com.klibisz.elastiknn.reference.serialization
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 import com.klibisz.elastiknn.serialization.BinaryCodecs
+import jdk.internal.misc.Unsafe
+
 import scala.util.Random
 
 object SerializationBenchmark {

@@ -9,6 +9,9 @@ import zio.console._
 import io.circe.syntax._
 import codecs._
 
+/**
+  * Produce a list of Experiments for downstream processing.
+  */
 object Enqueue extends App {
 
   case class Params(datasetsFilter: Set[String] = Set.empty, toFile: Option[File] = None)

@@ -24,6 +24,9 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import scala.util.Try
 import scala.util.hashing.MurmurHash3
 
+/**
+  * Executes a single experiment containing one exact mapping, one test mapping, and many test queries.
+  */
 object Execute extends App {
 
   private case class Params(experimentJsonBase64: String = "",
@@ -69,7 +72,7 @@ object Execute extends App {
                              eknnQuery: NearestNeighborsQuery,
                              k: Int,
                              holdoutProportion: Double,
-                             parallelism: Int): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, Result] = {
+                             parallelism: Int): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val indexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
@@ -105,8 +108,8 @@ object Execute extends App {
               _ <- log.debug(s"Completed query ${i + 1} of ${holdout.length} in ${dur.toMillis} ms")
             } yield res
         }
-        responses <- ZIO.collectAllParN(parallelism)(requests)
-      } yield responses.map(r => SingleResult(r.result.hits.hits.map(_.id), r.result.took))
+        (dur, responses) <- ZIO.collectAllParN(parallelism)(requests).timed
+      } yield (responses.map(r => QueryResult(r.result.hits.hits.map(_.id), r.result.took)), dur.toMillis)
     }
 
     for {
@@ -132,16 +135,16 @@ object Execute extends App {
 
       // Run searches on the holdout vectors.
       _ <- log.info(s"Searching ${holdouts.length} holdout vectors with query $eknnQuery")
-      singleResults <- search(holdouts)
+      (singleResults, totalDuration) <- search(holdouts)
 
-    } yield Result(dataset, eknnMapping, eknnQuery, k, singleResults)
+    } yield Result(dataset, eknnMapping, eknnQuery, k, totalDuration, parallelism, singleResults)
   }
 
-  private def setRecalls(exact: Result, test: Result): Result = {
-    val withRecalls = exact.singleResults.zip(test.singleResults).map {
+  private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
+    val withRecalls = exact.queryResult.zip(test.queryResult).map {
       case (ex, ts) => ts.copy(recall = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length)
     }
-    test.copy(singleResults = withRecalls)
+    test.copy(queryResult = withRecalls)
   }
 
   private def run(experiment: Experiment, holdoutProportion: Double, parallelism: Int) = {
