@@ -36,7 +36,6 @@ object Execute extends App {
                             resultsPrefix: String = "",
                             holdoutProportion: Double = 0.1,
                             parallelism: Int = 8)
-  private case class QueryResult(neighborIds: Seq[String], duration: Duration)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -67,12 +66,13 @@ object Execute extends App {
   // will have just one set of holdout vectors.
   private val holdoutCache = scala.collection.mutable.HashMap.empty[(Dataset, Double), Vector[Vec]]
 
-  private def indexAndSearch(dataset: Dataset,
-                             eknnMapping: Mapping,
-                             eknnQuery: NearestNeighborsQuery,
-                             k: Int,
-                             holdoutProportion: Double,
-                             parallelism: Int): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
+  private def indexAndSearch(
+      dataset: Dataset,
+      eknnMapping: Mapping,
+      eknnQuery: NearestNeighborsQuery,
+      k: Int,
+      holdoutProportion: Double,
+      parallelism: Int): ZIO[Console with Clock with Logging with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val indexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
@@ -137,14 +137,14 @@ object Execute extends App {
       _ <- log.info(s"Searching ${holdouts.length} holdout vectors with query $eknnQuery")
       (singleResults, totalDuration) <- search(holdouts)
 
-    } yield Result(dataset, eknnMapping, eknnQuery, k, totalDuration, parallelism, singleResults)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, totalDuration, parallelism, singleResults)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
-    val withRecalls = exact.queryResult.zip(test.queryResult).map {
+    val withRecalls = exact.queryResults.zip(test.queryResults).map {
       case (ex, ts) => ts.copy(recall = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length)
     }
-    test.copy(queryResult = withRecalls)
+    test.copy(queryResults = withRecalls)
   }
 
   private def run(experiment: Experiment, holdoutProportion: Double, parallelism: Int) = {
