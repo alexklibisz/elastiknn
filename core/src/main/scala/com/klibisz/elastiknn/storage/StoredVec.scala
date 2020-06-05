@@ -60,23 +60,36 @@ object StoredVec {
     // Would need some way to denote the switch from bytes to shorts to ints.
     // Perhaps writing the number of bytes, shorts, and ints at the front of the byte array.
 
+//    private sealed trait Mode
+//    private object Mode {
+//      case object Bytes extends Mode
+//      case object Shorts extends Mode
+//      case object Ints extends Mode
+//    }
+
     def fromByteArray(barr: Array[Byte]): SparseBool = {
       val bin = new ByteArrayInputStream(barr)
       val din = new DataInputStream(bin)
       val total = din.readInt()
       val trueLen = din.readInt()
+//      var mode = Mode.Bytes
       new SparseBool {
         private var pos: Int = -1
         private var head: Int = -1
         override def totalIndices: Int = total
         override def trueIndicesLength: Int = trueLen
-        override def apply(i: Int): Int = {
-          while (pos < i) {
-            pos += 1
+        override def apply(i: Int): Int =
+          if (pos == i) {
+            head
+          } else if (pos < i) {
+            bin.skip((pos - i - 1) * 2)
             head = din.readShort()
+            pos = i
+            head
+          } else {
+            throw new IndexOutOfBoundsException(
+              s"Attepted to access index $i after accessing index $pos. Can only access indices in ascending order.")
           }
-          head
-        }
 //        override def apply(i: Int): Int = {
 //          if (i < pos)
 //            throw new IndexOutOfBoundsException(
