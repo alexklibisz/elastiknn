@@ -42,8 +42,8 @@ object Execute extends App {
                           resultsBucket: String = "",
                           resultsPrefix: String = "",
                           holdoutProportion: Double = 0.1,
-                          parallelism: Int = java.lang.Runtime.getRuntime.availableProcessors(),
-                          s3UrlOpt: Option[String] = None,
+                          shards: Int = java.lang.Runtime.getRuntime.availableProcessors(),
+                          s3Minio: Boolean = false,
                           skipExisting: Boolean = true)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
@@ -58,8 +58,8 @@ object Execute extends App {
     opt[String]("resultsBucket").action((s, c) => c.copy(resultsBucket = s)).required()
     opt[String]("resultsPrefix").action((s, c) => c.copy(resultsPrefix = s))
     opt[Double]("holdoutProportion").action((d, c) => c.copy(holdoutProportion = d))
-    opt[Int]("parallelism").action((i, c) => c.copy(parallelism = i))
-    opt[String]("s3Url").action((s, c) => c.copy(s3UrlOpt = Some(s)))
+    opt[Int]("shards").action((i, c) => c.copy(shards = i))
+    opt[Boolean]("s3Minio").action((b, c) => c.copy(s3Minio = b))
   }
 
   private val decoder = Base64.getDecoder
@@ -70,18 +70,12 @@ object Execute extends App {
       experiment <- ZIO.fromEither(decode[Experiment](jsonString))
     } yield experiment
 
-  // Map from dataset and holdout proportion to the holdout vectors for that dataset.
-  // This lets us avoid having to re-read the dataset to get holdout vectors.
-  // Mutable maps arent' the best approach, but in practice shouldn't be a problem since each experiment
-  // will have just one set of holdout vectors.
-  private val holdoutCache = scala.collection.mutable.HashMap.empty[(Dataset, Double), Vector[Vec]]
-
   private def indexAndSearch(dataset: Dataset,
                              eknnMapping: Mapping,
                              eknnQuery: NearestNeighborsQuery,
                              k: Int,
                              holdoutProportion: Double,
-                             parallelism: Int) = {
+                             shards: Int) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val primaryIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
@@ -93,10 +87,10 @@ object Execute extends App {
     def buildIndex() = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        _ <- log.info(s"Creating index $primaryIndexName with mapping $eknnMapping and $parallelism shards")
-        _ <- eknnClient.execute(createIndex(primaryIndexName).replicas(0).shards(parallelism))
+        _ <- log.info(s"Creating index $primaryIndexName with mapping $eknnMapping and $shards shards")
+        _ <- eknnClient.execute(createIndex(primaryIndexName).replicas(0).shards(shards))
         _ <- eknnClient.putMapping(primaryIndexName, eknnQuery.field, eknnMapping)
-        _ <- eknnClient.execute(createIndex(holdoutIndexName).replicas(0).shards(parallelism))
+        _ <- eknnClient.execute(createIndex(holdoutIndexName).replicas(0).shards(shards))
         _ <- eknnClient.putMapping(holdoutIndexName, eknnQuery.field, eknnMapping)
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Streaming vectors for dataset $dataset")
@@ -142,7 +136,7 @@ object Execute extends App {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
       } yield {
-        val query = ElasticDsl.search(holdoutIndexName).scroll("10m").matchAllQuery().size(100)
+        val query = ElasticDsl.search(holdoutIndexName).scroll("10m").matchAllQuery().size(500)
         val searchIter = SearchIterator.iterate[Vec](eknnClient.elasticClient, query)
         Stream.fromIterator(searchIter)
       }
@@ -172,7 +166,7 @@ object Execute extends App {
       // _ <- log.info(s"Searching ${holdoutIds.length} holdout vectors with query $eknnQuery")
       (singleResults, totalDuration) <- search(holdouts)
 
-    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, totalDuration, parallelism, singleResults)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, totalDuration, singleResults)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
@@ -199,7 +193,7 @@ object Execute extends App {
             case _ =>
               for {
                 exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving exact result for mapping $exactMapping, query $exactQuery")
+                _ <- log.info(s"Saving exact result: $exact: ${exact.queriesPerSecondPerShard} queries/sec")
                 _ <- rc.save(setRecalls(exact, exact))
               } yield exact
           }
@@ -209,8 +203,8 @@ object Execute extends App {
             case Some(_) if skipExisting => log.info(s"Found test result for mapping $testMapping, query $testQuery")
             case _ =>
               for {
-                test <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving test result for mapping $testMapping, query $testQuery")
+                test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
+                _ <- log.info(s"Saving exact result: $test: ${test.queriesPerSecondPerShard} queries/sec")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
           }
@@ -220,10 +214,10 @@ object Execute extends App {
     } yield ()
   }
 
-  private def s3Client(s3UrlOpt: Option[String]): AmazonS3 = s3UrlOpt match {
-    case Some(url) =>
+  private def s3Client(s3Minio: Boolean): AmazonS3 =
+    if (s3Minio) {
       // Setup for Minio: https://docs.min.io/docs/how-to-use-aws-sdk-for-java-with-minio-server.html
-      val endpointConfig = new EndpointConfiguration(url, "us-east-1")
+      val endpointConfig = new EndpointConfiguration("http://localhost:9000", "us-east-1")
       val clientConfig = new ClientConfiguration()
       clientConfig.setSignerOverride("AWSS3V4SignerType")
       AmazonS3ClientBuilder.standard
@@ -231,16 +225,15 @@ object Execute extends App {
         .withEndpointConfiguration(endpointConfig)
         .withClientConfiguration(clientConfig)
         .withCredentials(new AWSStaticCredentialsProvider(new AWSCredentials {
-          override def getAWSAccessKeyId: String = "elastiknn"
-          override def getAWSSecretKey: String = "elastiknn"
+          override def getAWSAccessKeyId: String = "minioadmin"
+          override def getAWSSecretKey: String = "minioadmin"
         }))
         .build()
-    case None => AmazonS3ClientBuilder.defaultClient()
-  }
+    } else AmazonS3ClientBuilder.defaultClient()
 
   def apply(params: Params): ZIO[Any, Throwable, Unit] = {
     val layer =
-      (Blocking.live ++ ZLayer.succeed(s3Client(params.s3UrlOpt))) >>>
+      (Blocking.live ++ ZLayer.succeed(s3Client(params.s3Minio))) >>>
         Console.live ++
           Clock.live ++
           Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName)) ++
@@ -263,7 +256,7 @@ object Execute extends App {
       _ <- log.info("Cluster ready")
 
       // Run the experiment.
-      _ <- run(experiment, params.holdoutProportion, params.parallelism, params.skipExisting)
+      _ <- run(experiment, params.holdoutProportion, params.shards, params.skipExisting)
       _ <- log.info("Done - exiting successfully")
 
     } yield ()
@@ -290,7 +283,7 @@ object ExecuteLocalSparseBool extends App {
           testQueries = Seq(Query(NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Jaccard), 100))
         ).toBase64,
         resultsBucket = "local",
-        s3UrlOpt = Some("http://localhost:9000/"),
+        s3Minio = true,
         skipExisting = false
       )).exitCode
 }
@@ -308,7 +301,7 @@ object ExecuteLocalDenseFloat extends App {
           testQueries = Seq(Query(NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular), 100))
         ).toBase64,
         resultsBucket = "local",
-        s3UrlOpt = Some("http://localhost:9000/"),
+        s3Minio = true,
         skipExisting = false
       )).exitCode
 }

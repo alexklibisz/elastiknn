@@ -57,10 +57,11 @@ package object benchmarks {
                                    mapping: Mapping,
                                    query: NearestNeighborsQuery,
                                    k: Int,
-                                   duration: Long = 0,
-                                   parallelism: Int = 14,
+                                   shards: Int = 14,
+                                   durationMillis: Long = 0,
                                    queryResults: Seq[QueryResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, $duration, $parallelism, ...)"
+    lazy val queriesPerSecondPerShard: Double = queryResults.length.toDouble / (durationMillis / 1000d) / shards
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $durationMillis, ...)"
   }
 
   final case class ParetoResult(dataset: Dataset,
