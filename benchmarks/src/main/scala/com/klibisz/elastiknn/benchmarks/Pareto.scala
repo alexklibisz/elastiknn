@@ -42,8 +42,5 @@ object Pareto extends App {
     ???
   }
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
-
-    ???
-  }
+  override def run(args: List[String]) = ???
 }

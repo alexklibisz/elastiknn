@@ -11,6 +11,7 @@ import codecs._
 
 /**
   * Produce a list of Experiments for downstream processing.
+  * Primarily intended for use with argo workflows.
   */
 object Enqueue extends App {
 
@@ -27,8 +28,7 @@ object Enqueue extends App {
       .action((s, c) => c.copy(toFile = Some(new File(s))))
   }
 
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = parser.parse(args, Params()) match {
-    case None => sys.exit(1)
+  override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) =>
       def write(experiments: Seq[Experiment]): ZIO[Console, Throwable, Unit] = {
         val encoder = Base64.getEncoder
@@ -45,8 +45,7 @@ object Enqueue extends App {
       val experiments =
         if (params.datasetsFilter.isEmpty) Experiment.defaults
         else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
-      write(experiments)
-        .mapError(System.err.println)
-        .fold(_ => 1, _ => 0)
+      write(experiments).exitCode
+    case None => sys.exit(1)
   }
 }

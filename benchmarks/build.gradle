@@ -19,9 +19,9 @@ dependencies {
     implementation project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
-    implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC18-2"
-    implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC18-2"
-    implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.2.8"
+    implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC20"
+    implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC20"
+    implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.3.0"
     implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
     implementation "ch.qos.logback:logback-classic:1.2.3"
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"

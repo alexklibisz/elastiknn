@@ -31,7 +31,10 @@ object ResultClient {
     ZLayer.fromServices[AmazonS3, Blocking.Service, Service] {
       case (client, blocking) =>
         new Service {
-          override def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[BenchmarkResult]] = {
+          override def find(dataset: Dataset,
+                            mapping: Mapping,
+                            query: NearestNeighborsQuery,
+                            k: Int): IO[Throwable, Option[BenchmarkResult]] = {
             val key = genKey(dataset, mapping, query, k)
             for {
               ex <- blocking.effectBlocking(client.doesObjectExist(bucket, key))
@@ -47,6 +50,8 @@ object ResultClient {
           override def save(result: BenchmarkResult): IO[Throwable, Unit] = {
             val key = genKey(result.dataset, result.mapping, result.query, result.k)
             for {
+              bucketExists <- blocking.effectBlocking(client.doesBucketExistV2(bucket))
+              _ <- if (bucketExists) ZIO.succeed(()) else blocking.effectBlocking(client.createBucket(bucket))
               _ <- blocking.effectBlocking(client.putObject(bucket, key, result.asJson.spaces2SortKeys))
             } yield ()
           }

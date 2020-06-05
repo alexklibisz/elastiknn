@@ -1,8 +1,11 @@
 package com.klibisz.elastiknn
 
+import java.util.Base64
+
 import com.klibisz.elastiknn.api._
 import io.circe.Codec
 import io.circe.generic.semiauto._
+import io.circe.syntax._
 import zio.Has
 
 import scala.language.implicitConversions
@@ -14,7 +17,7 @@ package object benchmarks {
   type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed abstract class Dataset(val dims: Int) {
-    final def name: String = this.toString.toLowerCase
+    final def name: String = this.getClass.getSimpleName.toLowerCase
   }
   object Dataset {
     case object AmazonHome extends Dataset(4096)
@@ -31,6 +34,8 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
+    case class RandomDenseFloat(override val dims: Int = 1024, count: Int = 10000) extends Dataset(dims)
+    case class RandomSparseBool(override val dims: Int = 4096, count: Int = 10000) extends Dataset(dims)
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
@@ -39,7 +44,12 @@ package object benchmarks {
                               exactMapping: Mapping,
                               exactQuery: NearestNeighborsQuery,
                               testMapping: Mapping,
-                              testQueries: Seq[Query])
+                              testQueries: Seq[Query]) {
+    def toBase64: String = {
+      import codecs.experimentCodec
+      Base64.getEncoder.encodeToString(this.asJson.noSpaces.getBytes())
+    }
+  }
 
   final case class QueryResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
 
