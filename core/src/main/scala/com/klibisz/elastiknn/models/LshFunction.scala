@@ -43,34 +43,33 @@ object LshFunction {
     private val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
 
     override def apply(v: Vec.SparseBool): Array[Int] =
-//      if (v.trueIndices.isEmpty) emptyHashes
-//      else {
-//        val bandHashes = new Array[Int](bands)
-//        var ixBandHashes = 0
-//        var ixCoefficients = 0
-//        while (ixBandHashes < bandHashes.length) {
-//          var bandHash = 0
-//          var ixRows = 0
-//          while (ixRows < rows) {
-//            val a = alphas(ixCoefficients)
-//            val b = betas(ixCoefficients)
-//            var rowHash = Int.MaxValue
-//            var ixTrueIndices = 0
-//            while (ixTrueIndices < v.trueIndices.length) {
-//              val indexHash = ((1 + v.trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-//              if (indexHash < rowHash) rowHash = indexHash // Actually faster than math.min or a.min(b).
-//              ixTrueIndices += 1
-//            }
-//            bandHash = (bandHash + rowHash) % HASH_PRIME
-//            ixRows += 1
-//            ixCoefficients += 1
-//          }
-//          bandHashes.update(ixBandHashes, ((ixBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
-//          ixBandHashes += 1
-//        }
-//        bandHashes
-//      }
-      ???
+      if (v.trueIndices.isEmpty) emptyHashes
+      else {
+        val bandHashes = new Array[Int](bands)
+        var ixBandHashes = 0
+        var ixCoefficients = 0
+        while (ixBandHashes < bandHashes.length) {
+          var bandHash = 0
+          var ixRows = 0
+          while (ixRows < rows) {
+            val a = alphas(ixCoefficients)
+            val b = betas(ixCoefficients)
+            var rowHash = Int.MaxValue
+            var ixTrueIndices = 0
+            while (ixTrueIndices < v.trueIndices.length) {
+              val indexHash = ((1 + v.trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
+              if (indexHash < rowHash) rowHash = indexHash // Actually faster than math.min or a.min(b).
+              ixTrueIndices += 1
+            }
+            bandHash = (bandHash + rowHash) % HASH_PRIME
+            ixRows += 1
+            ixCoefficients += 1
+          }
+          bandHashes.update(ixBandHashes, ((ixBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
+          ixBandHashes += 1
+        }
+        bandHashes
+      }
   }
 
   /**
@@ -88,34 +87,33 @@ object LshFunction {
     private val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {
-//      val hashes = new Array[Int](bits)
-//      var (hi, ti, si) = (0, 0, 0)
-//      while (ti < vec.trueIndices.length && si < sampledIndices.length) {
-//        val s = sampledIndices(si)
-//        val t = vec.trueIndices(ti)
-//        // The true index wasn't sampled.
-//        if (s > t) ti += 1
-//        // The sampled index wasn't true.
-//        else if (s < t) {
-//          hashes.update(hi, s * 2)
-//          hi += 1
-//          si += 1
-//        }
-//        // The sampled index was true.
-//        else {
-//          hashes.update(hi, s * 2 + 1)
-//          hi += 1
-//          si += 1
-//          ti += 1
-//        }
-//      }
-//      while (si < sampledIndices.length) {
-//        hashes.update(hi, sampledIndices(si) * 2)
-//        hi += 1
-//        si += 1
-//      }
-//      hashes
-      ???
+      val hashes = new Array[Int](bits)
+      var (hi, ti, si) = (0, 0, 0)
+      while (ti < vec.trueIndices.length && si < sampledIndices.length) {
+        val s = sampledIndices(si)
+        val t = vec.trueIndices(ti)
+        // The true index wasn't sampled.
+        if (s > t) ti += 1
+        // The sampled index wasn't true.
+        else if (s < t) {
+          hashes.update(hi, s * 2)
+          hi += 1
+          si += 1
+        }
+        // The sampled index was true.
+        else {
+          hashes.update(hi, s * 2 + 1)
+          hi += 1
+          si += 1
+          ti += 1
+        }
+      }
+      while (si < sampledIndices.length) {
+        hashes.update(hi, sampledIndices(si) * 2)
+        hi += 1
+        si += 1
+      }
+      hashes
     }
   }
 
@@ -138,29 +136,28 @@ object LshFunction {
     private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Int] = {
-//      val bandHashes = new Array[Int](bands)
-//      var ixBandHashes = 0
-//      var ixHashVecs = 0
-//      while (ixBandHashes < bandHashes.length) {
-//        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
-//        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
-//        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
-//        var bandHash = ixBandHashes * (1 << rows)
-//        var ixRows = 0
-//        while (ixRows < rows) {
-//          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
-//          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
-//          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
-//          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
-//          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
-//          ixRows += 1
-//          ixHashVecs += 1
-//        }
-//        bandHashes.update(ixBandHashes, bandHash)
-//        ixBandHashes += 1
-//      }
-//      bandHashes
-      ???
+      val bandHashes = new Array[Int](bands)
+      var ixBandHashes = 0
+      var ixHashVecs = 0
+      while (ixBandHashes < bandHashes.length) {
+        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
+        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
+        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
+        var bandHash = ixBandHashes * (1 << rows)
+        var ixRows = 0
+        while (ixRows < rows) {
+          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
+          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
+          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
+          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
+          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
+          ixRows += 1
+          ixHashVecs += 1
+        }
+        bandHashes.update(ixBandHashes, bandHash)
+        ixBandHashes += 1
+      }
+      bandHashes
     }
   }
 
@@ -185,23 +182,22 @@ object LshFunction {
     private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Int] = {
-//      val bandHashes = new Array[Int](bands)
-//      var ixBandHashes = 0
-//      var ixHashVecs = 0
-//      while (ixBandHashes < bandHashes.length) {
-//        var bandHash = ixBandHashes
-//        var ixRows = 0
-//        while (ixRows < rows) {
-//          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / width).toInt
-//          bandHash = (31 * bandHash + hash) % HASH_PRIME // TODO: is this a sufficient Pairing function?
-//          ixRows += 1
-//          ixHashVecs += 1
-//        }
-//        bandHashes.update(ixBandHashes, bandHash)
-//        ixBandHashes += 1
-//      }
-//      bandHashes
-      ???
+      val bandHashes = new Array[Int](bands)
+      var ixBandHashes = 0
+      var ixHashVecs = 0
+      while (ixBandHashes < bandHashes.length) {
+        var bandHash = ixBandHashes
+        var ixRows = 0
+        while (ixRows < rows) {
+          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / width).toInt
+          bandHash = (31 * bandHash + hash) % HASH_PRIME // TODO: is this a sufficient Pairing function?
+          ixRows += 1
+          ixHashVecs += 1
+        }
+        bandHashes.update(ixBandHashes, bandHash)
+        ixBandHashes += 1
+      }
+      bandHashes
     }
   }
 

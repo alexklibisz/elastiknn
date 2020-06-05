@@ -31,7 +31,7 @@ object LshQuery {
         val storedVec = if (vecDocVals.advanceExact(docId)) {
           codec.decode(vecDocVals.binaryValue.bytes)
         } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-        lshFunc.exact(???, storedVec).toFloat
+        lshFunc.exact(query, storedVec).toFloat
       }
 
       new LeafScoreFunction {
