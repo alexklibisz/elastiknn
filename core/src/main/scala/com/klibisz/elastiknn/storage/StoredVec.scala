@@ -71,17 +71,24 @@ object StoredVec {
         override def totalIndices: Int = total
         override def trueIndicesLength: Int = trueLen
         override def apply(i: Int): Int = {
-          if (i < pos)
-            throw new IndexOutOfBoundsException(
-              s"Attepted to access index $i after accessing index $pos. You can only access indices in ascending order.")
-          else {
-            while (pos < i) {
-              pos += 1
-              head = din.readInt()
-            }
-            head
+          while (pos < i) {
+            pos += 1
+            head = din.readShort()
           }
+          head
         }
+//        override def apply(i: Int): Int = {
+//          if (i < pos)
+//            throw new IndexOutOfBoundsException(
+//              s"Attepted to access index $i after accessing index $pos. You can only access indices in ascending order.")
+//          else {
+//            while (pos < i) {
+//              pos += 1
+//              head = din.readInt()
+//            }
+//            head
+//          }
+//        }
       }
     }
     def encodeVec(vec: Vec.SparseBool): Array[Byte] = {
@@ -89,7 +96,7 @@ object StoredVec {
       val dout = new DataOutputStream(bout)
       dout.writeInt(vec.totalIndices)
       dout.writeInt(vec.trueIndices.length)
-      vec.trueIndices.foreach(dout.writeInt)
+      vec.trueIndices.foreach(dout.writeShort)
       bout.toByteArray
     }
   }
