@@ -28,6 +28,10 @@ dependencies {
     implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
     implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
     implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
+
+    // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
+    // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+    implementation 'javax.xml:jaxb-api:2.1'
 }
 
 application {

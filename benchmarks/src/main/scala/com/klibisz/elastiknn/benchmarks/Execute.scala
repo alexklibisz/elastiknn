@@ -200,7 +200,7 @@ object Execute extends App {
             case _ =>
               for {
                 test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving exact result: $test: ${test.queriesPerSecondPerShard} queries/sec")
+                _ <- log.info(s"Saving test result: $test: ${test.queriesPerSecondPerShard} queries/sec")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
           }
@@ -290,10 +290,10 @@ object ExecuteLocalDenseFloat extends App {
     Execute(
       Execute.Params(
         experimentJsonBase64 = Experiment(
-          Dataset.RandomDenseFloat(1000, 10000),
-          exactMapping = Mapping.DenseFloat(1000),
+          Dataset.RandomDenseFloat(2048, 10000),
+          exactMapping = Mapping.DenseFloat(2048),
           exactQuery = NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
-          testMapping = Mapping.DenseFloat(1000),
+          testMapping = Mapping.DenseFloat(2048),
           testQueries = Seq(Query(NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular), 100))
         ).toBase64,
         resultsBucket = "local",
