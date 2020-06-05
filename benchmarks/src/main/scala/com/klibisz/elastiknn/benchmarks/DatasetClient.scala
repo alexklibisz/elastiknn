@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.benchmarks
 
-import java.io.File
 import java.util.zip.GZIPInputStream
 
 import com.amazonaws.services.s3.AmazonS3

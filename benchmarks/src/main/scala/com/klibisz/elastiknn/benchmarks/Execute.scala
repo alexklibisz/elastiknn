@@ -4,30 +4,26 @@ import java.util.Base64
 import java.util.concurrent.TimeUnit
 
 import com.amazonaws.ClientConfiguration
-import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider, AWSStaticCredentialsProvider}
+import com.amazonaws.auth.{AWSCredentials, AWSStaticCredentialsProvider}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
-import com.sksamuel.elastic4s.ElasticDsl.clusterHealth
+import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
 import com.sksamuel.elastic4s.requests.common.HealthStatus
+import com.sksamuel.elastic4s.requests.searches.SearchIterator
+import com.sksamuel.elastic4s.{ElasticDsl, Hit, HitReader}
 import io.circe.parser._
 import zio._
-import zio.stream._
 import zio.blocking.Blocking
 import zio.clock.Clock
-import zio.logging._
 import zio.console._
 import zio.duration.Duration
-import zio.logging.Logging
+import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
-import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticDsl, Hit, HitReader, Response}
-import com.sksamuel.elastic4s.requests.searches.{SearchIterator, SearchResponse}
+import zio.stream._
 
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import scala.util.hashing.MurmurHash3
 

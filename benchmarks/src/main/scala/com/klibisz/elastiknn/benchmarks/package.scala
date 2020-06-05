@@ -3,9 +3,9 @@ package com.klibisz.elastiknn
 import java.util.Base64
 
 import com.klibisz.elastiknn.api._
-import io.circe.Codec
 import io.circe.generic.semiauto._
 import io.circe.syntax._
+import io.circe.{Codec, Encoder}
 import zio.Has
 
 import scala.language.implicitConversions
@@ -46,7 +46,7 @@ package object benchmarks {
                               testMapping: Mapping,
                               testQueries: Seq[Query]) {
     def toBase64: String = {
-      import codecs.experimentCodec
+      implicit val encoder: Encoder[Experiment] = (a: Experiment) => codecs.experimentCodec.apply(a)
       Base64.getEncoder.encodeToString(this.asJson.noSpaces.getBytes())
     }
   }
