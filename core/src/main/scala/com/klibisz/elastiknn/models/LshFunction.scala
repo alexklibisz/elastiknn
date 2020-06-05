@@ -8,7 +8,7 @@ import scala.util.Random
 
 sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
   val mapping: M
-  val exact: ExactSimilarityFunction[S]
+  val exact: ExactSimilarityFunction[V, S]
 }
 
 object LshFunction {
@@ -34,7 +34,7 @@ object LshFunction {
   final class Jaccard(override val mapping: Mapping.JaccardLsh)
       extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
 
-    override val exact: ExactSimilarityFunction[StoredVec.SparseBool] = ExactSimilarityFunction.Jaccard
+    override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Jaccard
 
     import mapping._
     private val rng: Random = new Random(0)
@@ -81,7 +81,7 @@ object LshFunction {
     */
   final class Hamming(override val mapping: Mapping.HammingLsh)
       extends LshFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
-    override val exact: ExactSimilarityFunction[StoredVec.SparseBool] = ExactSimilarityFunction.Hamming
+    override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Hamming
 
     import mapping._
     private val rng: Random = new Random(0)
@@ -131,7 +131,7 @@ object LshFunction {
     */
   final class Angular(override val mapping: Mapping.AngularLsh)
       extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-    override val exact: ExactSimilarityFunction[StoredVec.DenseFloat] = ExactSimilarityFunction.Angular
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.Angular
 
     import mapping._
     private implicit val rng: Random = new Random(0)
@@ -177,7 +177,7 @@ object LshFunction {
     *
     */
   final class L2(override val mapping: Mapping.L2Lsh) extends LshFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-    override val exact: ExactSimilarityFunction[StoredVec.DenseFloat] = ExactSimilarityFunction.L2
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.L2
 
     import mapping._
     private implicit val rng: Random = new Random(0)

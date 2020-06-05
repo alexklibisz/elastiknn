@@ -12,15 +12,15 @@ sealed trait StoredVec
 object StoredVec {
 
   trait Codec[V <: Vec, S <: StoredVec] {
-    def apply(barr: Array[Byte]): S
-    def apply(vec: V): Array[Byte]
+    def decode(barr: Array[Byte]): S
+    def encode(vec: V): Array[Byte]
   }
 
   object Codec {
     implicit def derived[V <: Vec: Encoder, S <: StoredVec: Decoder]: Codec[V, S] =
       new Codec[V, S] {
-        override def apply(barr: Array[Byte]): S = implicitly[Decoder[S]].apply(barr)
-        override def apply(vec: V): Array[Byte] = implicitly[Encoder[V]].apply(vec)
+        override def decode(barr: Array[Byte]): S = implicitly[Decoder[S]].apply(barr)
+        override def encode(vec: V): Array[Byte] = implicitly[Encoder[V]].apply(vec)
       }
   }
 

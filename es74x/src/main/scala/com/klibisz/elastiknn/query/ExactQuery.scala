@@ -14,9 +14,8 @@ import org.elasticsearch.common.lucene.search.function._
 
 object ExactQuery {
 
-  private class ExactScoreFunction[V <: StoredVec: StoredVec.Decoder](val field: String,
-                                                                      val queryVec: V,
-                                                                      val simFunc: ExactSimilarityFunction[V])
+  private class ExactScoreFunction[V <: Vec, S <: StoredVec](val field: String, val queryVec: V, val simFunc: ExactSimilarityFunction[V, S])(
+      implicit codec: StoredVec.Codec[V, S])
       extends ScoreFunction(CombineFunction.REPLACE) {
 
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
@@ -25,8 +24,7 @@ object ExactQuery {
         override def score(docId: Int, subQueryScore: Float): Double = {
           val storedVec = if (vecDocVals.advanceExact(docId)) {
             val binaryValue = vecDocVals.binaryValue()
-            val vecBytes = binaryValue.bytes.take(binaryValue.length)
-            implicitly[StoredVec.Decoder[V]].apply(vecBytes)
+            codec.decode(binaryValue.bytes)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
           simFunc(queryVec, storedVec).toFloat
         }
@@ -39,14 +37,15 @@ object ExactQuery {
     override def needsScores(): Boolean = false // TODO: maybe it does?
 
     override def doEquals(other: ScoreFunction): Boolean = other match {
-      case f: ExactScoreFunction[V] => field == f.field && queryVec == f.queryVec && simFunc == f.simFunc
-      case _                        => false
+      case f: ExactScoreFunction[V, S] => field == f.field && queryVec == f.queryVec && simFunc == f.simFunc
+      case _                           => false
     }
 
     override def doHashCode(): Int = Objects.hash(field, queryVec, simFunc)
   }
 
-  def apply[V <: StoredVec: StoredVec.Decoder](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V]): FunctionScoreQuery = {
+  def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
+      implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
     val subQuery = new DocValuesFieldExistsQuery(vectorDocValuesField(field))
     new FunctionScoreQuery(subQuery, new ExactScoreFunction(field, queryVec, simFunc))
   }

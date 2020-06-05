@@ -15,19 +15,19 @@ import com.klibisz.elastiknn.utils.ArrayUtils.sortedIntersectionCount
   */
 final case class ExactSimilarityScore(score: Double, distance: Double)
 
-sealed trait ExactSimilarityFunction[V <: StoredVec] extends ((V, V) => Double) {
+sealed trait ExactSimilarityFunction[V <: Vec, S <: StoredVec] extends ((V, S) => Double) {
   def similarity: Similarity
   override def equals(other: Any): Boolean = other match {
-    case f: ExactSimilarityFunction[V] => f.similarity == similarity
-    case _                             => false
+    case f: ExactSimilarityFunction[V, S] => f.similarity == similarity
+    case _                                => false
   }
 }
 
 object ExactSimilarityFunction {
 
-  object Jaccard extends ExactSimilarityFunction[StoredVec.SparseBool] {
+  object Jaccard extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Jaccard
-    override def apply(v1: StoredVec.SparseBool, v2: StoredVec.SparseBool): Double = {
+    override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
 //      val isec = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
 //      val sim = isec * 1.0 / (v1.trueIndices.length + v2.trueIndices.length - isec)
 //      sim
@@ -35,9 +35,9 @@ object ExactSimilarityFunction {
     }
   }
 
-  object Hamming extends ExactSimilarityFunction[StoredVec.SparseBool] {
+  object Hamming extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Hamming
-    override def apply(v1: StoredVec.SparseBool, v2: StoredVec.SparseBool): Double = {
+    override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
 //      val eqTrueCount = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
 //      val totalCount = v1.totalIndices
 //      val v1TrueCount = v1.trueIndices.length
@@ -48,9 +48,9 @@ object ExactSimilarityFunction {
       ???
     }
   }
-  object L1 extends ExactSimilarityFunction[StoredVec.DenseFloat] {
+  object L1 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.L1
-    override def apply(v1: StoredVec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
 //      var sumAbsDiff: Double = 0.0
 //      var i = 0
 //      while (i < v1.values.length) {
@@ -61,9 +61,9 @@ object ExactSimilarityFunction {
       ???
     }
   }
-  object L2 extends ExactSimilarityFunction[StoredVec.DenseFloat] {
+  object L2 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.L2
-    override def apply(v1: StoredVec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
 //      var sumSqrDiff: Double = 0.0
 //      var i = 0
 //      while (i < v1.values.length) {
@@ -76,9 +76,9 @@ object ExactSimilarityFunction {
       ???
     }
   }
-  object Angular extends ExactSimilarityFunction[StoredVec.DenseFloat] {
+  object Angular extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.Angular
-    override def apply(v1: StoredVec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
 //      var dotProd: Double = 0
 //      var v1SqrSum: Double = 0
 //      var v2SqrSum: Double = 0
