@@ -22,7 +22,6 @@ object ExactQuery {
       val vecDocVals = ctx.reader.getBinaryDocValues(vectorDocValuesField(field))
       new LeafScoreFunction {
         override def score(docId: Int, subQueryScore: Float): Double = {
-          vecDocVals.advance()
           val storedVec = if (vecDocVals.advanceExact(docId)) {
             val binaryValue = vecDocVals.binaryValue()
             codec.decode(binaryValue.bytes.take(binaryValue.length))
