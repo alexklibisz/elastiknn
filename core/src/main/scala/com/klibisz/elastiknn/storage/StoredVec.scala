@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.storage
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream}
+import java.io._
 
 import com.klibisz.elastiknn.api.Vec
 
 /**
-  * Optimized storage layout for Vecs.
-  * Encoder converts a Vec to a byte array.
-  * Decoder parses the byte array in a read-once fashion.
+  * Abstraction for different storage layouts for Vecs.
+  * Decoupled from the api.Vec case classes to support optimizations like streaming vectors in a read-once fashion.
   */
 sealed trait StoredVec
 
@@ -15,6 +14,7 @@ object StoredVec {
 
   trait Codec[V <: Vec, S <: StoredVec] {
     def decode(barr: Array[Byte]): S
+
     def encode(vec: V): Array[Byte]
   }
 
@@ -22,6 +22,7 @@ object StoredVec {
     implicit def derived[V <: Vec: Encoder, S <: StoredVec: Decoder]: Codec[V, S] =
       new Codec[V, S] {
         override def decode(barr: Array[Byte]): S = implicitly[Decoder[S]].apply(barr)
+
         override def encode(vec: V): Array[Byte] = implicitly[Encoder[V]].apply(vec)
       }
   }
@@ -46,61 +47,35 @@ object StoredVec {
 
   sealed trait SparseBool extends StoredVec {
     def totalIndices: Int
+
     def trueIndicesLength: Int
+
     def apply(i: Int): Int
   }
 
   sealed trait DenseFloat extends StoredVec {
     def length: Int
+
     def apply(i: Int): Float
   }
 
   object SparseBool {
-    // TODO: this can be further optimized by writing/reading bytes and shorts instead for values smaller than 128 and 32,768, respectively.
-    // Would need some way to denote the switch from bytes to shorts to ints.
-    // Perhaps writing the number of bytes, shorts, and ints at the front of the byte array.
-
-//    private sealed trait Mode
-//    private object Mode {
-//      case object Bytes extends Mode
-//      case object Shorts extends Mode
-//      case object Ints extends Mode
-//    }
 
     def fromByteArray(barr: Array[Byte]): SparseBool = {
       val bin = new ByteArrayInputStream(barr)
-      val din = new DataInputStream(bin)
-      val total = din.readInt()
-      val trueLen = din.readInt()
-//      var mode = Mode.Bytes
+      val oin = new ObjectInputStream(bin)
+      val arr = oin.readObject().asInstanceOf[Array[Int]]
       new SparseBool {
-        private var pos: Int = -1
-        private var head: Int = -1
-        private val buf: Array[Byte] = Array.ofDim(2)
-        override def totalIndices: Int = total
-        override def trueIndicesLength: Int = trueLen
-//        override def apply(i: Int): Int = i
-        override def apply(i: Int): Int =
-          if (pos == i) {
-            head
-          } else if (pos < i) {
-            bin.readNBytes(buf, 0, buf.length)
-//            bin.skip((pos - i - 1) * 2)
-//            head = din.readShort()
-            pos = i
-            head
-          } else {
-            throw new IndexOutOfBoundsException(
-              s"Attepted to access index $i after accessing index $pos. Can only access indices in ascending order.")
-          }
+        override def totalIndices: Int = arr.head
+        override def trueIndicesLength: Int = arr.length - 1
+        override def apply(i: Int): Int = arr(i + 1)
       }
     }
+
     def encodeVec(vec: Vec.SparseBool): Array[Byte] = {
       val bout = new ByteArrayOutputStream()
-      val dout = new DataOutputStream(bout)
-      dout.writeInt(vec.totalIndices)
-      dout.writeInt(vec.trueIndices.length)
-      vec.trueIndices.foreach(dout.writeShort)
+      val oout = new ObjectOutputStream(bout)
+      oout.writeObject(vec.totalIndices +: vec.trueIndices)
       bout.toByteArray
     }
   }
@@ -108,31 +83,18 @@ object StoredVec {
   object DenseFloat {
     def fromByteArray(barr: Array[Byte]): DenseFloat = {
       val bin = new ByteArrayInputStream(barr)
-      val din = new DataInputStream(bin)
-      val len = din.readInt()
+      val oin = new ObjectInputStream(bin)
+      val arr = oin.readObject().asInstanceOf[Array[Float]]
       new DenseFloat {
-        private var pos: Int = -1
-        private var head: Float = -1
-        override def length: Int = len
-        override def apply(i: Int): Float = {
-          if (i < pos)
-            throw new IndexOutOfBoundsException(
-              s"Attepted to access index $i after accessing index $pos. You can only access indices in ascending order.")
-          else {
-            while (pos < i) {
-              pos += 1
-              head = din.readFloat()
-            }
-            head
-          }
-        }
+        override def length: Int = arr.length
+        override def apply(i: Int): Float = arr(i)
       }
     }
+
     def encodeVec(vec: Vec.DenseFloat): Array[Byte] = {
       val bout = new ByteArrayOutputStream()
-      val dout = new DataOutputStream(bout)
-      dout.writeInt(vec.values.length)
-      vec.values.foreach(dout.writeFloat)
+      val oout = new ObjectOutputStream(bout)
+      oout.writeObject(vec.values)
       bout.toByteArray
     }
   }

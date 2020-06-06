@@ -14,11 +14,16 @@ plugins {
 
 dependencies {
     runtime "org.scala-lang:scala-library:${scalaVersion}"
-//    implementation "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
     compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-    compile 'de.ruedigermoeller:fst:2.57'
+
+//    def excludeJackson = {
+//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
+//    }
+//    compile 'de.ruedigermoeller:fst:2.48', excludeJackson
+//    runtime 'de.ruedigermoeller:fst:2.48', excludeJackson
 }
 
 task sourceJar(type: Jar) {
