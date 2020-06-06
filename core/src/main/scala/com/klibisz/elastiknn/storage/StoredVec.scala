@@ -90,18 +90,6 @@ object StoredVec {
             throw new IndexOutOfBoundsException(
               s"Attepted to access index $i after accessing index $pos. Can only access indices in ascending order.")
           }
-//        override def apply(i: Int): Int = {
-//          if (i < pos)
-//            throw new IndexOutOfBoundsException(
-//              s"Attepted to access index $i after accessing index $pos. You can only access indices in ascending order.")
-//          else {
-//            while (pos < i) {
-//              pos += 1
-//              head = din.readInt()
-//            }
-//            head
-//          }
-//        }
       }
     }
     def encodeVec(vec: Vec.SparseBool): Array[Byte] = {

@@ -26,7 +26,7 @@ sealed trait ExactSimilarityFunction[V <: Vec, S <: StoredVec] extends ((V, S) =
 object ExactSimilarityFunction {
 
   private def sparseToIntIterator(sbv: StoredVec.SparseBool): IntIterator = new IntIterator {
-    override def length(): Int = sbv.trueIndicesLength
+    override val length: Int = sbv.trueIndicesLength
     override def get(i: Int): Int = sbv.apply(i)
   }
 
