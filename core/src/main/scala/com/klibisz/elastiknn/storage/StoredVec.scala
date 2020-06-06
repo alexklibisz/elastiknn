@@ -78,18 +78,19 @@ object StoredVec {
         private var head: Int = -1
         override def totalIndices: Int = total
         override def trueIndicesLength: Int = trueLen
-        override def apply(i: Int): Int =
-          if (pos == i) {
-            head
-          } else if (pos < i) {
-            bin.skip((pos - i - 1) * 2)
-            head = din.readShort()
-            pos = i
-            head
-          } else {
-            throw new IndexOutOfBoundsException(
-              s"Attepted to access index $i after accessing index $pos. Can only access indices in ascending order.")
-          }
+        override def apply(i: Int): Int = i
+//        override def apply(i: Int): Int =
+//          if (pos == i) {
+//            head
+//          } else if (pos < i) {
+//            bin.skip((pos - i - 1) * 2)
+//            head = din.readShort()
+//            pos = i
+//            head
+//          } else {
+//            throw new IndexOutOfBoundsException(
+//              s"Attepted to access index $i after accessing index $pos. Can only access indices in ascending order.")
+//          }
       }
     }
     def encodeVec(vec: Vec.SparseBool): Array[Byte] = {
