@@ -4,7 +4,6 @@ import java.io._
 
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{UnsafeInput, UnsafeOutput}
-import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.IntArraySerializer
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.storage.ByteArrayCodec
 
@@ -49,28 +48,6 @@ object SerializationBenchmark {
 //      require(vecs == checkFst)
 
 //      val colfBuffer = new Array[Byte](ColferSparseBool.colferSizeMax)
-//
-//      val vecsColf = time(
-//        s"Write colf",
-//        vecs.map { v =>
-//          val obj = new ColferSparseBool()
-//            .withTotalIndices(v.totalIndices)
-//            .withTrueIndices(v.trueIndices.map(new ColferUInt32().withValue(_)))
-//          val len = obj.marshal(colfBuffer, 0)
-//          colfBuffer.take(len)
-//        }
-//      )
-//      println(vecsColf.map(_.length).sum)
-//
-//      val checkColf = time(
-//        "Read colf",
-//        vecsColf.map { b =>
-//          val colfSbv = new ColferSparseBool()
-//          colfSbv.unmarshal(b, 0)
-//          Vec.SparseBool(colfSbv.trueIndices.map(_.value), colfSbv.totalIndices)
-//        }
-//      )
-//      assert(vecs == checkColf)
 
       val vecsOOS = time(
         "Write ObjectOutputStream",

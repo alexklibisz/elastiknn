@@ -84,7 +84,7 @@ object Execute extends App {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
         _ <- log.info(s"Creating index $primaryIndexName with mapping $eknnMapping and $shards shards")
-        _ <- eknnClient.execute(createIndex(primaryIndexName).replicas(0).shards(shards).indexSetting("store.type", "mmapfs"))
+        _ <- eknnClient.execute(createIndex(primaryIndexName).replicas(0).shards(shards))
         _ <- eknnClient.putMapping(primaryIndexName, eknnQuery.field, eknnMapping)
         _ <- eknnClient.execute(createIndex(holdoutIndexName).replicas(0).shards(shards))
         _ <- eknnClient.putMapping(holdoutIndexName, eknnQuery.field, eknnMapping)

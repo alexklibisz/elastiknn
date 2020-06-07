@@ -6,8 +6,6 @@ import java.security.{AccessController, PrivilegedAction}
 import com.esotericsoftware.kryo.io.{UnsafeInput, UnsafeOutput}
 import com.klibisz.elastiknn.api.Vec
 
-import scala.util.Try
-
 /**
   * Abstraction for different storage layouts for Vecs.
   * Decoupled from the api.Vec case classes to support optimizations like streaming vectors in a read-once fashion.
@@ -18,7 +16,6 @@ object StoredVec {
 
   trait Codec[V <: Vec, S <: StoredVec] {
     def decode(barr: Array[Byte]): S
-
     def encode(vec: V): Array[Byte]
   }
 

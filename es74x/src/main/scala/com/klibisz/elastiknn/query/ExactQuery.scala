@@ -24,13 +24,13 @@ object ExactQuery {
         override def score(docId: Int, subQueryScore: Float): Double = {
           val storedVec = if (vecDocVals.advanceExact(docId)) {
             val binaryValue = vecDocVals.binaryValue()
-            codec.decode(binaryValue.bytes.take(binaryValue.length))
+            codec.decode(binaryValue.bytes)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
           simFunc(queryVec, storedVec)
         }
 
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
-          Explanation.`match`(100, "Computing exact similarity scores for a query vector against _all_ indexed vectors.")
+          Explanation.`match`(100, "Computing exact similarity scores for a query vector against indexed vectors.")
       }
     }
 
