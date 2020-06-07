@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Similarity, Vec}
 import com.klibisz.elastiknn.storage.StoredVec
-import com.klibisz.elastiknn.utils.ArrayUtils.{IntIterator, sortedIntersectionCount}
+import com.klibisz.elastiknn.utils.ArrayUtils._
 
 /**
   * You can always compute distance between two vectors, but similarity is not always well-defined.
@@ -25,16 +25,11 @@ sealed trait ExactSimilarityFunction[V <: Vec, S <: StoredVec] extends ((V, S) =
 
 object ExactSimilarityFunction {
 
-  private def sparseToIntIterator(sbv: StoredVec.SparseBool): IntIterator = new IntIterator {
-    override val length: Int = sbv.trueIndicesLength
-    override def get(i: Int): Int = sbv.apply(i)
-  }
-
   object Jaccard extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Jaccard
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
-      val isec = sortedIntersectionCount(v1.trueIndices, sparseToIntIterator(v2))
-      val sim = isec * 1.0 / (v1.trueIndices.length + v2.trueIndicesLength - isec)
+      val isec = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
+      val sim = isec * 1.0 / (v1.trueIndices.length + v2.trueIndices.length - isec)
       sim
     }
   }
@@ -42,10 +37,10 @@ object ExactSimilarityFunction {
   object Hamming extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Hamming
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
-      val eqTrueCount = sortedIntersectionCount(v1.trueIndices, sparseToIntIterator(v2))
+      val eqTrueCount = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
       val totalCount = v1.totalIndices
       val v1TrueCount = v1.trueIndices.length
-      val v2TrueCount = v2.trueIndicesLength
+      val v2TrueCount = v2.trueIndices.length
       val neqTrueCount = (v1TrueCount - eqTrueCount).max(0) + (v2TrueCount - eqTrueCount).max(0)
       val sim = (totalCount - neqTrueCount).toDouble / totalCount
       sim
@@ -57,7 +52,7 @@ object ExactSimilarityFunction {
       var sumAbsDiff: Double = 0.0
       var i = 0
       while (i < v1.values.length) {
-        sumAbsDiff += (v1.values(i) - v2(i)).abs
+        sumAbsDiff += (v1.values(i) - v2.values(i)).abs
         i += 1
       }
       1.0 / sumAbsDiff.max(1e-6)
@@ -69,7 +64,7 @@ object ExactSimilarityFunction {
       var sumSqrDiff: Double = 0.0
       var i = 0
       while (i < v1.values.length) {
-        val diff = v1.values(i) - v2(i)
+        val diff = v1.values(i) - v2.values(i)
         sumSqrDiff += math.pow(diff, 2)
         i += 1
       }
@@ -85,9 +80,9 @@ object ExactSimilarityFunction {
       var v2SqrSum: Double = 0
       var i = 0
       while (i < v1.values.length) {
-        dotProd += v1.values(i) * v2(i)
+        dotProd += v1.values(i) * v2.values(i)
         v1SqrSum += math.pow(v1.values(i), 2)
-        v2SqrSum += math.pow(v2(i), 2)
+        v2SqrSum += math.pow(v2.values(i), 2)
         i += 1
       }
       val sim = dotProd / (math.sqrt(v1SqrSum) * math.sqrt(v2SqrSum))

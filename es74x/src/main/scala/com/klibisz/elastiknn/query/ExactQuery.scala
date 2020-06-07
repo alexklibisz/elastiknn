@@ -21,20 +21,20 @@ object ExactQuery {
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
       val vecDocVals = ctx.reader.getBinaryDocValues(vectorDocValuesField(field))
       new LeafScoreFunction {
-        override def score(docId: Int, subQueryScore: Float): Double = {
-          val storedVec = if (vecDocVals.advanceExact(docId)) {
+        override def score(docId: Int, subQueryScore: Float): Double =
+          if (vecDocVals.advanceExact(docId)) {
             val binaryValue = vecDocVals.binaryValue()
-            codec.decode(binaryValue.bytes)
+            val storedVec = codec.decode(binaryValue.bytes)
+            simFunc(queryVec, storedVec)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-          simFunc(queryVec, storedVec)
-        }
 
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
           Explanation.`match`(100, "Computing exact similarity scores for a query vector against indexed vectors.")
       }
     }
 
-    override def needsScores(): Boolean = false // TODO: maybe it does?
+    // I believe this means we don't need a valid subQueryScore passed into the score function above.
+    override def needsScores(): Boolean = false
 
     override def doEquals(other: ScoreFunction): Boolean = other match {
       case f: ExactScoreFunction[V, S] => field == f.field && queryVec == f.queryVec && simFunc == f.simFunc
