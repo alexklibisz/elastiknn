@@ -1,8 +1,12 @@
 package com.klibisz.elastiknn.storage
 
 import java.io._
+import java.security.{AccessController, PrivilegedAction}
 
+import com.esotericsoftware.kryo.io.{UnsafeInput, UnsafeOutput}
 import com.klibisz.elastiknn.api.Vec
+
+import scala.util.Try
 
 /**
   * Abstraction for different storage layouts for Vecs.
@@ -61,42 +65,101 @@ object StoredVec {
 
   object SparseBool {
 
-    def fromByteArray(barr: Array[Byte]): SparseBool = {
-      val bin = new ByteArrayInputStream(barr)
-      val oin = new ObjectInputStream(bin)
-      val arr = oin.readObject().asInstanceOf[Array[Int]]
-      new SparseBool {
-        override def totalIndices: Int = arr.head
-        override def trueIndicesLength: Int = arr.length - 1
-        override def apply(i: Int): Int = arr(i + 1)
-      }
-    }
+    def fromByteArray(barr: Array[Byte]): SparseBool =
+      AccessController.doPrivileged(new PrivilegedAction[SparseBool] {
+        override def run(): SparseBool = {
+          val kin = new UnsafeInput(barr)
+          val total = kin.readInt()
+          val trueLength = kin.readInt()
+          val trueIndices = kin.readInts(trueLength)
+          kin.close()
+          new SparseBool {
+            override def totalIndices: Int = total
+            override def trueIndicesLength: Int = trueLength
+            override def apply(i: Int): Int = trueIndices(i)
+          }
+        }
+      })
 
-    def encodeVec(vec: Vec.SparseBool): Array[Byte] = {
-      val bout = new ByteArrayOutputStream()
-      val oout = new ObjectOutputStream(bout)
-      oout.writeObject(vec.totalIndices +: vec.trueIndices)
-      bout.toByteArray
-    }
+    def encodeVec(vec: Vec.SparseBool): Array[Byte] =
+      AccessController.doPrivileged(new PrivilegedAction[Array[Byte]] {
+        override def run(): Array[Byte] = {
+//          val unsafe = {
+//            val f = classOf[sun.misc.Unsafe].getDeclaredField("theUnsafe")
+//            f.setAccessible(true)
+//            f.get(null).asInstanceOf[sun.misc.Unsafe]
+//          }
+//          unsafe.putInt()
+
+          val kout = new UnsafeOutput((vec.trueIndices.length + 2) * 4)
+          kout.writeInt(vec.totalIndices)
+          kout.writeInt(vec.trueIndices.length)
+          kout.writeInts(vec.trueIndices)
+          kout.close()
+          kout.toBytes
+        }
+      })
+
+//    def fromByteArray(barr: Array[Byte]): SparseBool = {
+//      val bin = new ByteArrayInputStream(barr)
+//      val oin = new ObjectInputStream(bin)
+//      val arr = oin.readObject().asInstanceOf[Array[Int]]
+//      new SparseBool {
+//        override def totalIndices: Int = arr.head
+//        override def trueIndicesLength: Int = arr.length - 1
+//        override def apply(i: Int): Int = arr(i + 1)
+//      }
+//    }
+//
+//    def encodeVec(vec: Vec.SparseBool): Array[Byte] = {
+//      val bout = new ByteArrayOutputStream()
+//      val oout = new ObjectOutputStream(bout)
+//      oout.writeObject(vec.totalIndices +: vec.trueIndices)
+//      bout.toByteArray
+//    }
   }
 
   object DenseFloat {
-    def fromByteArray(barr: Array[Byte]): DenseFloat = {
-      val bin = new ByteArrayInputStream(barr)
-      val oin = new ObjectInputStream(bin)
-      val arr = oin.readObject().asInstanceOf[Array[Float]]
-      new DenseFloat {
-        override def length: Int = arr.length
-        override def apply(i: Int): Float = arr(i)
-      }
-    }
+    def fromByteArray(barr: Array[Byte]): DenseFloat =
+      AccessController.doPrivileged(new PrivilegedAction[DenseFloat] {
+        override def run(): DenseFloat = {
+          val kout = new UnsafeInput(barr)
+          val len = kout.readInt()
+          val values = kout.readFloats(len)
+          new DenseFloat {
+            override def length: Int = len
+            override def apply(i: Int): Float = values(i)
+          }
+        }
+      })
 
-    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = {
-      val bout = new ByteArrayOutputStream()
-      val oout = new ObjectOutputStream(bout)
-      oout.writeObject(vec.values)
-      bout.toByteArray
-    }
+    def encodeVec(vec: Vec.DenseFloat): Array[Byte] =
+      AccessController.doPrivileged(new PrivilegedAction[Array[Byte]] {
+        override def run(): Array[Byte] = {
+          val kout = new UnsafeOutput((vec.values.length + 1) * 4)
+          kout.writeInt(vec.values.length)
+          kout.writeFloats(vec.values)
+          kout.close()
+          kout.toBytes
+        }
+      })
+
+//    def fromByteArray(barr: Array[Byte]): DenseFloat = {
+//      val bin = new ByteArrayInputStream(barr)
+//      val oin = new ObjectInputStream(bin)
+//      val arr = oin.readObject().asInstanceOf[Array[Float]]
+//      new DenseFloat {
+//        override def length: Int = arr.length
+//        override def apply(i: Int): Float = arr(i)
+//      }
+//    }
+//
+//    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = {
+//      val bout = new ByteArrayOutputStream()
+//      val oout = new ObjectOutputStream(bout)
+//      oout.writeObject(vec.values)
+//      bout.toByteArray
+//    }
   }
 
 }

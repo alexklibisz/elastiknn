@@ -18,12 +18,7 @@ dependencies {
     compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-
-//    def excludeJackson = {
-//        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-//    }
-//    compile 'de.ruedigermoeller:fst:2.48', excludeJackson
-//    runtime 'de.ruedigermoeller:fst:2.48', excludeJackson
+    implementation 'com.esotericsoftware:kryo:4.0.2'
 }
 
 task sourceJar(type: Jar) {

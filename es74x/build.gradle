@@ -85,7 +85,7 @@ esplugin {
     name 'elastiknn'
     description 'Ingest processor and queries for exact and approximate nearest neighbors search'
     classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
-    extendedPlugins = ['lang-painless']
+    // extendedPlugins = ['lang-painless']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }

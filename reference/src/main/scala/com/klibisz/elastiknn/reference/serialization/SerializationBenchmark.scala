@@ -1,10 +1,12 @@
 package com.klibisz.elastiknn.reference.serialization
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataInputStream, DataOutputStream, ObjectInputStream, ObjectOutputStream}
+import java.io._
 
+import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.io.{UnsafeInput, UnsafeOutput}
+import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.IntArraySerializer
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.storage.{ByteArrayCodec, ColferSparseBool, ColferUInt32}
-import org.nustaq.serialization.FSTConfiguration
+import com.klibisz.elastiknn.storage.ByteArrayCodec
 
 import scala.util.Random
 
@@ -25,8 +27,11 @@ object SerializationBenchmark {
     implicit val r = new Random(99)
     val vecs = Vec.SparseBool.randoms(4096, n)
 
-    val fstConf = FSTConfiguration.createUnsafeBinaryConfiguration()
-    fstConf.registerClass(classOf[Vec.SparseBool])
+//    val fstConf = FSTConfiguration.createUnsafeBinaryConfiguration()
+//    fstConf.registerClass(classOf[Vec.SparseBool])
+
+    val kryo = new Kryo()
+    kryo.register(classOf[Array[Int]])
 
     for {
       _ <- 0 until m
@@ -36,12 +41,12 @@ object SerializationBenchmark {
       println(vecsProto.map(_.length).sum)
       time[Unit](s"Read proto", vecsProto.foreach(b => ByteArrayCodec.sparseBoolVector(b).get))
 
-      val vecsFst = time(s"Write FST", vecs.map(fstConf.asByteArray))
-      println(vecsFst.map(_.length).sum)
-      val checkFst = time(s"Read FST", vecsFst.map { b =>
-        fstConf.asObject(b).asInstanceOf[Vec.SparseBool]
-      })
-      require(vecs == checkFst)
+//      val vecsFst = time(s"Write FST", vecs.map(fstConf.asByteArray))
+//      println(vecsFst.map(_.length).sum)
+//      val checkFst = time(s"Read FST", vecsFst.map { b =>
+//        fstConf.asObject(b).asInstanceOf[Vec.SparseBool]
+//      })
+//      require(vecs == checkFst)
 
 //      val colfBuffer = new Array[Byte](ColferSparseBool.colferSizeMax)
 //
@@ -120,7 +125,31 @@ object SerializationBenchmark {
       )
       require(vecs == checkDataOutputStream)
 
-      println("---")
+      val vecsKryo = time(
+        "Write kryo",
+        vecs.map { v =>
+          val kout = new UnsafeOutput((v.trueIndices.length + 1) * 4)
+          kout.writeInt(v.trueIndices.length)
+          kout.writeInts(v.trueIndices)
+          kout.close()
+          kout.toBytes
+        }
+      )
+      println(vecsKryo.map(_.length).sum)
+
+      val checkKryo = time(
+        "Read kryo",
+        vecsKryo.map { b =>
+          val kin = new UnsafeInput(b)
+          val len = kin.readInt()
+          val arr = kin.readInts(len)
+          kin.close()
+          Vec.SparseBool(arr, 4096)
+        }
+      )
+      require(vecs == checkKryo)
+
+      (0 to 5).foreach(_ => println(""))
 
     }
 

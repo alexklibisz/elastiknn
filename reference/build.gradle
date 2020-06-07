@@ -12,4 +12,6 @@ dependencies {
     implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
     implementation 'com.lihaoyi:upickle_2.12:1.1.0'
     implementation 'de.ruedigermoeller:fst:2.48'
+    implementation 'com.esotericsoftware:kryo:4.0.2'
+    runtime 'com.esotericsoftware:kryo:4.0.2'
 }
