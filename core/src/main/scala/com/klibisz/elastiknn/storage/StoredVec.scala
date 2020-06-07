@@ -20,18 +20,16 @@ object StoredVec {
 
   object SparseBool {
     def fromByteArray(barr: Array[Byte]): SparseBool = new SparseBool {
-      override val trueIndices: Array[Int] = FST.conf.asObject(barr).asInstanceOf[Array[Int]]
+      override val trueIndices: Array[Int] = FastSerialization.readInts(barr)
     }
-    def encodeVec(vec: Vec.SparseBool): Array[Byte] = FST.conf.asByteArray(vec.trueIndices)
+    def encodeVec(vec: Vec.SparseBool): Array[Byte] = FastSerialization.writeInts(vec.trueIndices)
   }
 
   object DenseFloat {
     def fromByteArray(barr: Array[Byte]): DenseFloat = new DenseFloat {
-      override val values: Array[Float] = {
-        FST.conf.asObject(barr).asInstanceOf[Array[Float]]
-      }
+      override val values: Array[Float] = FastSerialization.readFloats(barr)
     }
-    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = FST.conf.asByteArray(vec.values)
+    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = FastSerialization.writeFloats(vec.values)
   }
 
   /**
