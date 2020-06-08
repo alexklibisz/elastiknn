@@ -114,7 +114,10 @@ object ElasticsearchCodec { esc =>
     implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
     ElasticsearchCodec(deriveConfiguredCodec)
   }
-  implicit val emptyVec: ESC[Vec.Empty] = ElasticsearchCodec(deriveCodec)
+  implicit val emptyVec: ESC[Vec.Empty] = {
+    implicit val cfg: Configuration = Configuration.default.withStrictDecoding
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
 
   implicit val vector: ESC[api.Vec] = new ESC[api.Vec] {
     override def apply(t: Vec): Json = t match {

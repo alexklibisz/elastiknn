@@ -6,7 +6,7 @@ import java.util.Objects
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
-import com.klibisz.elastiknn.storage.{ByteArrayCodec, StoredVec}
+import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
@@ -74,7 +74,7 @@ object LshQuery {
     val isecQuery: BooleanQuery = {
       val builder = new BooleanQuery.Builder
       lshFunc(queryVec).foreach { h =>
-        val term = new Term(field, new BytesRef(ByteArrayCodec.encode(h)))
+        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
         val termQuery = new TermQuery(term)
         val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
         builder.add(clause)
@@ -96,7 +96,7 @@ object LshQuery {
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
-      new Field(field, ByteArrayCodec.encode(h), hashesFieldType)
+      new Field(field, UnsafeSerialization.writeInt(h), hashesFieldType)
     }
   }
 

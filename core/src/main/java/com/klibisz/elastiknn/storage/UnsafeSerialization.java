@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.storage;
 
+import scala.Int;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -23,8 +24,25 @@ public class UnsafeSerialization {
         }
     });
 
+    public static byte[] writeInt(int i) {
+        int a = Math.abs(i);
+        if (a <= Byte.MAX_VALUE) {
+            byte[] buf = new byte[1];
+            u.unsafe.putInt(buf, u.byteArrayOffset, i);
+            return buf;
+        } else if (a <= Short.MAX_VALUE) {
+            byte[] buf = new byte[2];
+            u.unsafe.putInt(buf, u.byteArrayOffset, i);
+            return buf;
+        } else {
+            byte[] buf = new byte[4];
+            u.unsafe.putInt(buf, u.byteArrayOffset, i);
+            return buf;
+        }
+    }
+
     /**
-     * Writes ints to a byte array. First int is the length of the array
+     * Writes ints to a byte array. Encodes the length of the int array as the first 4 bytes of the byte array.
      * @param iarr ints to serialize.
      * @return Array of bytes with length (4 + iarr.length).
      */
@@ -36,6 +54,11 @@ public class UnsafeSerialization {
         return buf;
     }
 
+    /**
+     * Reads ints from a byte array. Expects that the first 4 bytes in the array are the length of the int array.
+     * @param barr
+     * @return
+     */
     public static int[] readInts(byte[] barr) {
         int intsLen = u.unsafe.getInt(barr, u.byteArrayOffset);
         int bytesLen = intsLen * numBytesInInt;
@@ -44,6 +67,11 @@ public class UnsafeSerialization {
         return iarr;
     }
 
+    /**
+     * Writes floats to a byte array. Encodes the length of the float array as the first 4 bytes of the byte array.
+     * @param farr
+     * @return
+     */
     public static byte[] writeFloats(float[] farr) {
         int bytesLen = farr.length * numBytesInFloat;
         byte[] buf = new byte[bytesLen + numBytesInInt];
@@ -52,6 +80,11 @@ public class UnsafeSerialization {
         return buf;
     }
 
+    /**
+     * Reads floats from a byte array. Expects that the first 4 bytes in the array are the length of the float array.
+     * @param barr
+     * @return
+     */
     public static float[] readFloats(byte[] barr) {
         int floatsLen = u.unsafe.getInt(barr, u.floatArrayOffset);
         int bytesLen = floatsLen * numBytesInFloat;

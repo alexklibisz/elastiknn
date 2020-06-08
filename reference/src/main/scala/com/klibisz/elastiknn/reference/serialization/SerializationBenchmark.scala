@@ -1,11 +1,8 @@
 package com.klibisz.elastiknn.reference.serialization
 
-import java.io._
-
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{UnsafeInput, UnsafeOutput}
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.storage.ByteArrayCodec
 
 import scala.util.Random
 
@@ -36,9 +33,9 @@ object SerializationBenchmark {
       _ <- 0 until m
     } {
 
-      val vecsProto: Seq[Array[Byte]] = time(s"Write proto", vecs.map(v => ByteArrayCodec.sparseBoolVector(v)))
-      println(vecsProto.map(_.length).sum)
-      time[Unit](s"Read proto", vecsProto.foreach(b => ByteArrayCodec.sparseBoolVector(b).get))
+//      val vecsProto: Seq[Array[Byte]] = time(s"Write proto", vecs.map(v => ByteArrayCodec.sparseBoolVector(v)))
+//      println(vecsProto.map(_.length).sum)
+//      time[Unit](s"Read proto", vecsProto.foreach(b => ByteArrayCodec.sparseBoolVector(b).get))
 
 //      val vecsFst = time(s"Write FST", vecs.map(fstConf.asByteArray))
 //      println(vecsFst.map(_.length).sum)

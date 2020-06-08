@@ -133,11 +133,11 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
   }
 
   test("throw an error given vector with bad dimensions") {
-    val indexName = s"test-${UUID.randomUUID()}"
+    val indexName = s"test-intentional-failure-${UUID.randomUUID()}"
     val dims = 100
     val inputs = Seq(
-      ("vec_sbv", Mapping.SparseBool(dims), Vec.SparseBool.random(dims + 1)),
-      ("vec_dfv", Mapping.DenseFloat(dims), Vec.DenseFloat.random(dims + 1))
+      ("intentional-failure-sbv", Mapping.SparseBool(dims), Vec.SparseBool.random(dims + 1)),
+      ("intentional-failure-dfv", Mapping.DenseFloat(dims), Vec.DenseFloat.random(dims + 1))
     )
     for {
       _ <- eknn.execute(createIndex(indexName))
