@@ -49,27 +49,27 @@ object SerializationBenchmark {
 
 //      val colfBuffer = new Array[Byte](ColferSparseBool.colferSizeMax)
 
-      val vecsOOS = time(
-        "Write ObjectOutputStream",
-        vecs.map { v =>
-          val bout = new ByteArrayOutputStream()
-          val oout = new ObjectOutputStream(bout)
-          oout.writeObject(v.totalIndices +: v.trueIndices)
-          bout.toByteArray
-        }
-      )
-      println(vecsOOS.map(_.length).sum)
-
-      val checkOOS = time(
-        "Read ObjectOutputStream",
-        vecsOOS.map { b =>
-          val bin = new ByteArrayInputStream(b)
-          val oin = new ObjectInputStream(bin)
-          val arr = oin.readObject.asInstanceOf[Array[Int]]
-          Vec.SparseBool(arr.tail, arr.head)
-        }
-      )
-      assert(vecs == checkOOS)
+//      val vecsOOS = time(
+//        "Write ObjectOutputStream",
+//        vecs.map { v =>
+//          val bout = new ByteArrayOutputStream()
+//          val oout = new ObjectOutputStream(bout)
+//          oout.writeObject(v.totalIndices +: v.trueIndices)
+//          bout.toByteArray
+//        }
+//      )
+//      println(vecsOOS.map(_.length).sum)
+//
+//      val checkOOS = time(
+//        "Read ObjectOutputStream",
+//        vecsOOS.map { b =>
+//          val bin = new ByteArrayInputStream(b)
+//          val oin = new ObjectInputStream(bin)
+//          val arr = oin.readObject.asInstanceOf[Array[Int]]
+//          Vec.SparseBool(arr.tail, arr.head)
+//        }
+//      )
+//      assert(vecs == checkOOS)
 
 //      val vecsMsgpack: Seq[Array[Byte]] = time(s"Serialize ${vecs.length} to msgpack", vecs.map { v =>
 //        writeBinary[Array[Int]](v.trueIndices)
@@ -77,30 +77,30 @@ object SerializationBenchmark {
 //      println(vecsMsgpack.map(_.length).sum)
 //      time[Unit](s"Deserialize ${vecs.length} from msgpack", vecsMsgpack.foreach(b => readBinary[Array[Int]](b)))
 
-      val vecsDataOutputStream = time(
-        s"Write DataOutputStream",
-        vecs.map { v =>
-          val bout = new ByteArrayOutputStream()
-          val dout = new DataOutputStream(bout)
-          dout.writeInt(v.trueIndices.length)
-          v.trueIndices.foreach(dout.writeShort)
-          bout.toByteArray
-        }
-      )
-      println(vecsDataOutputStream.map(_.length).sum)
-
-      val checkDataOutputStream = time(
-        s"Read DataOutputStream",
-        vecsDataOutputStream.map { b =>
-          val bin = new ByteArrayInputStream(b)
-          val din = new DataInputStream(bin)
-          val len = din.readInt()
-          val arr = new Array[Int](len)
-          arr.indices.foreach(i => arr.update(i, din.readShort()))
-          Vec.SparseBool(arr, 4096)
-        }
-      )
-      require(vecs == checkDataOutputStream)
+//      val vecsDataOutputStream = time(
+//        s"Write DataOutputStream",
+//        vecs.map { v =>
+//          val bout = new ByteArrayOutputStream()
+//          val dout = new DataOutputStream(bout)
+//          dout.writeInt(v.trueIndices.length)
+//          v.trueIndices.foreach(dout.writeShort)
+//          bout.toByteArray
+//        }
+//      )
+//      println(vecsDataOutputStream.map(_.length).sum)
+//
+//      val checkDataOutputStream = time(
+//        s"Read DataOutputStream",
+//        vecsDataOutputStream.map { b =>
+//          val bin = new ByteArrayInputStream(b)
+//          val din = new DataInputStream(bin)
+//          val len = din.readInt()
+//          val arr = new Array[Int](len)
+//          arr.indices.foreach(i => arr.update(i, din.readShort()))
+//          Vec.SparseBool(arr, 4096)
+//        }
+//      )
+//      require(vecs == checkDataOutputStream)
 
       val vecsKryo = time(
         "Write kryo",

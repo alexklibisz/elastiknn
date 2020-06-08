@@ -3,33 +3,46 @@ package com.klibisz.elastiknn.storage
 import com.klibisz.elastiknn.api.Vec
 
 /**
-  * Abstraction for different storage layouts for Vecs.
-  * Decoupled from the api.Vec case classes to support optimizations like streaming vectors in a read-once fashion.
+  * Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
+  * This is decoupled from the api Vec case classes so we can support various optimizations that might change the
+  * interface, e.g. streaming the vectors in a read-once fashion. Currently the fastest storage methods support roughly
+  * the same interface.
+  *
+  * The current default serialization method is using the FST library: https://github.com/RuedigerMoeller/fast-serialization
+  * It's the fastest I was able to find, followed closely by Kryo's Unsafe serialization, then standard java
+  * ObjectOutputStream/ObjectInputStream, then Protocol Buffers, and finally DataOutputStream/DataInputStream in a distant
+  * last. Protocol Buffers produce the smallest byte arrays because they use variable-length encoding, but this doesn't
+  * seem to help because Elasticsearch compresses the byte arrays anyways, and it actually hurts because reading them
+  * requires some additional logic.
+  *
+  * FST and Kryo both come with the tradeoff that they require extra security permissions to run. If this becomes a problem,
+  * it seems reasonable to switch to ObjectOutputStream/ObjectInputStream which is about 40% slower but doesn't require
+  * these permissions.
   */
 sealed trait StoredVec
 
 object StoredVec {
 
   sealed trait SparseBool extends StoredVec {
-    def trueIndices: Array[Int]
+    val trueIndices: Array[Int]
   }
 
   sealed trait DenseFloat extends StoredVec {
-    def values: Array[Float]
+    val values: Array[Float]
   }
 
   object SparseBool {
+    def encodeVec(vec: Vec.SparseBool): Array[Byte] = UnsafeSerialization.writeInts(vec.trueIndices)
     def fromByteArray(barr: Array[Byte]): SparseBool = new SparseBool {
-      override val trueIndices: Array[Int] = FastSerialization.readInts(barr)
+      override val trueIndices: Array[Int] = UnsafeSerialization.readInts(barr)
     }
-    def encodeVec(vec: Vec.SparseBool): Array[Byte] = FastSerialization.writeInts(vec.trueIndices)
   }
 
   object DenseFloat {
+    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = FastSerialization.writeFloats(vec.values)
     def fromByteArray(barr: Array[Byte]): DenseFloat = new DenseFloat {
       override val values: Array[Float] = FastSerialization.readFloats(barr)
     }
-    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = FastSerialization.writeFloats(vec.values)
   }
 
   /**
