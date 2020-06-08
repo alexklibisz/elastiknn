@@ -41,6 +41,10 @@ public class UnsafeSerialization {
         }
     }
 
+    public static int readInt(byte[] barr) {
+        return u.unsafe.getInt(barr, u.byteArrayOffset);
+    }
+
     /**
      * Writes ints to a byte array. Encodes the length of the int array as the first 4 bytes of the byte array.
      * @param iarr ints to serialize.

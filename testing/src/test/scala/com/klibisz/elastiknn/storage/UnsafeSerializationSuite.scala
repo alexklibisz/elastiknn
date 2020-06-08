@@ -37,4 +37,25 @@ class UnsafeSerializationSuite extends FunSuite with Matchers {
       }
     }
   }
+
+  test("ints variable length encoding") {
+    UnsafeSerialization.writeInt(127) should have length 1
+    UnsafeSerialization.writeInt(-127) should have length 1
+    UnsafeSerialization.writeInt(32767) should have length 2
+    UnsafeSerialization.writeInt(-32767) should have length 2
+  }
+
+  test("ints randomized") {
+    val seed = System.currentTimeMillis()
+    val rng = new Random(seed)
+    for (i <- 0 to 10000) {
+      withClue(s"Failed on iteration $i with seed $seed") {
+        val i = rng.nextInt(Int.MaxValue) * (if (rng.nextBoolean()) 1 else -1)
+        val barr = UnsafeSerialization.writeInt(i)
+        val iRead = UnsafeSerialization.readInt(barr)
+        iRead shouldBe i
+      }
+    }
+  }
+
 }

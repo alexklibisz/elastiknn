@@ -7,12 +7,7 @@ buildscript {
     }
     dependencies {
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
     }
-}
-
-plugins {
-    id 'com.google.protobuf' version '0.8.8'
 }
 
 version = "${version}_es${esVersion}"
