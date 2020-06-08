@@ -24,7 +24,7 @@ object ExactQuery {
         override def score(docId: Int, subQueryScore: Float): Double =
           if (vecDocVals.advanceExact(docId)) {
             val binaryValue = vecDocVals.binaryValue()
-            val storedVec = codec.decode(binaryValue.bytes.take(binaryValue.length))
+            val storedVec = codec.decode(binaryValue.bytes)
             simFunc(queryVec, storedVec)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 

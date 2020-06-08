@@ -31,20 +31,6 @@ object StoredVec {
     val values: Array[Float]
   }
 
-  object SparseBool {
-    def encodeVec(vec: Vec.SparseBool): Array[Byte] = UnsafeSerialization.writeInts(vec.trueIndices)
-    def fromByteArray(barr: Array[Byte]): SparseBool = new SparseBool {
-      override val trueIndices: Array[Int] = UnsafeSerialization.readInts(barr)
-    }
-  }
-
-  object DenseFloat {
-    def encodeVec(vec: Vec.DenseFloat): Array[Byte] = FastSerialization.writeFloats(vec.values)
-    def fromByteArray(barr: Array[Byte]): DenseFloat = new DenseFloat {
-      override val values: Array[Float] = FastSerialization.readFloats(barr)
-    }
-  }
-
   /**
     * Typeclasses for converting api vecs to stored vecs.
     */
@@ -66,8 +52,14 @@ object StoredVec {
   }
 
   object Decoder {
-    implicit val sparseBool: Decoder[SparseBool] = (barr: Array[Byte]) => SparseBool.fromByteArray(barr)
-    implicit val denseFloat: Decoder[DenseFloat] = (barr: Array[Byte]) => DenseFloat.fromByteArray(barr)
+    implicit val sparseBool: Decoder[SparseBool] = (barr: Array[Byte]) =>
+      new SparseBool {
+        override val trueIndices: Array[Int] = UnsafeSerialization.readInts(barr)
+    }
+    implicit val denseFloat: Decoder[DenseFloat] = (barr: Array[Byte]) =>
+      new DenseFloat {
+        override val values: Array[Float] = UnsafeSerialization.readFloats(barr)
+    }
   }
 
   trait Encoder[V <: Vec] {
@@ -75,8 +67,8 @@ object StoredVec {
   }
 
   object Encoder {
-    implicit val sparseBool: Encoder[Vec.SparseBool] = (vec: Vec.SparseBool) => SparseBool.encodeVec(vec)
-    implicit val denseFloat: Encoder[Vec.DenseFloat] = (vec: Vec.DenseFloat) => DenseFloat.encodeVec(vec)
+    implicit val sparseBool: Encoder[Vec.SparseBool] = (vec: Vec.SparseBool) => UnsafeSerialization.writeInts(vec.trueIndices)
+    implicit val denseFloat: Encoder[Vec.DenseFloat] = (vec: Vec.DenseFloat) => UnsafeSerialization.writeFloats(vec.values)
   }
 
 }

@@ -7,19 +7,65 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 /**
- * Uses the sun.misc.Unsafe classes to serialize int and float arrays.
- * Based mostly on the Kryo UnsafeInput and UnsafeOutput classes.
+ * Uses the sun.misc.Unsafe classes to serialize int and float arrays for optimal performance based on benchmarking.
+ * This is largely a simplification of the UnsafeInput and UnsafeOutput classes from the Kryo library.
  */
 public class UnsafeSerialization {
 
-    private static class Inner {
-        private final Unsafe unsafe;
-        private final long intArrayOffset;
-        private final long floatArrayOffset;
-        private final long byteArrayOffset;
-        public static final int numBytesInInt = 4;
+    public static final int numBytesInInt = 4;
+    public static final int numBytesInFloat = 4;
 
-        public Inner() throws NoSuchFieldException, IllegalAccessException {
+    private static final UnsafeUtil u = AccessController.doPrivileged((PrivilegedAction<UnsafeUtil>) () -> {
+        try {
+            return new UnsafeUtil();
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to initialize UnsafeSerialization", ex);
+        }
+    });
+
+    /**
+     * Writes ints to a byte array. First int is the length of the array
+     * @param iarr ints to serialize.
+     * @return Array of bytes with length (4 + iarr.length).
+     */
+    public static byte[] writeInts(int[] iarr) {
+        int bytesLen = iarr.length * numBytesInInt;
+        byte[] buf = new byte[bytesLen + numBytesInInt];
+        u.unsafe.putInt(buf, u.byteArrayOffset, iarr.length);
+        u.unsafe.copyMemory(iarr, u.intArrayOffset, buf, u.byteArrayOffset + numBytesInInt, bytesLen);
+        return buf;
+    }
+
+    public static int[] readInts(byte[] barr) {
+        int intsLen = u.unsafe.getInt(barr, u.byteArrayOffset);
+        int bytesLen = intsLen * numBytesInInt;
+        int[] iarr = new int[intsLen];
+        u.unsafe.copyMemory(barr, u.byteArrayOffset + numBytesInInt, iarr, u.intArrayOffset, bytesLen);
+        return iarr;
+    }
+
+    public static byte[] writeFloats(float[] farr) {
+        int bytesLen = farr.length * numBytesInFloat;
+        byte[] buf = new byte[bytesLen + numBytesInInt];
+        u.unsafe.putInt(buf, u.byteArrayOffset, farr.length);
+        u.unsafe.copyMemory(farr, u.floatArrayOffset, buf, u.byteArrayOffset + numBytesInInt, bytesLen);
+        return buf;
+    }
+
+    public static float[] readFloats(byte[] barr) {
+        int floatsLen = u.unsafe.getInt(barr, u.floatArrayOffset);
+        int bytesLen = floatsLen * numBytesInFloat;
+        float[] farr = new float[floatsLen];
+        u.unsafe.copyMemory(barr, u.byteArrayOffset + numBytesInInt, farr, u.floatArrayOffset, bytesLen);
+        return farr;
+    }
+
+    private static class UnsafeUtil {
+        public final Unsafe unsafe;
+        public final long intArrayOffset;
+        public final long floatArrayOffset;
+        public final long byteArrayOffset;
+        public UnsafeUtil() throws NoSuchFieldException, IllegalAccessException {
             Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
             unsafe = (Unsafe) f.get(null);
@@ -27,102 +73,6 @@ public class UnsafeSerialization {
             floatArrayOffset = unsafe.arrayBaseOffset(float[].class);
             byteArrayOffset = unsafe.arrayBaseOffset(byte[].class);
         }
-
-        public byte[] writeInts(int[] iarr) {
-            int len = iarr.length * numBytesInInt;
-            byte[] buf = new byte[len];
-            unsafe.copyMemory(iarr, intArrayOffset, buf, byteArrayOffset, len);
-            return buf;
-        }
-
-        public int[] readInts(byte[] barr) {
-            int len = barr.length / numBytesInInt;
-            int[] iarr = new int[len];
-            unsafe.copyMemory(barr, byteArrayOffset, iarr, intArrayOffset, barr.length);
-            return iarr;
-        }
-    }
-
-
-    private static final Inner inner = AccessController.doPrivileged((PrivilegedAction<Inner>) () -> {
-        try {
-            return new Inner();
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to initialize UnsafeSerialization", ex);
-        }
-    });
-
-    public static byte[] writeInts(int[] iarr) {
-        return inner.writeInts(iarr);
-    }
-
-    public static int[] readInts(byte[] barr) {
-        return inner.readInts(barr);
     }
 
 }
-
-///**
-// * Uses the sun.misc.Unsafe classes to serialize int and float arrays.
-// * Based mostly on the Kryo UnsafeInput and UnsafeOutput classes.
-// */
-//public class UnsafeSerializationUgh {
-//
-//    private static final Unsafe unsafe;
-//    private static final long intArrayOffset;
-//    private static final long floatArrayOffset;
-//    private static final long byteArrayOffset;
-//
-//    public static final int numBytesInInt = 4;
-//
-////    Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-////                    f.setAccessible(true);
-////    unsafe = (Unsafe) f.get(null);
-////    intArrayOffset = unsafe.arrayBaseOffset(int[].class);
-////    floatArrayOffset = unsafe.arrayBaseOffset(float[].class);
-////    byteArrayOffset = unsafe.arrayBaseOffset(byte[].class);
-//
-//    static {
-//        AccessController.doPrivileged(new PrivilegedAction<Void>() {
-//            public Void run() {
-//                try {
-//                    Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-//                    f.setAccessible(true);
-//                    unsafe = (Unsafe) f.get(null);
-//                    intArrayOffset = unsafe.arrayBaseOffset(int[].class);
-//                    floatArrayOffset = unsafe.arrayBaseOffset(float[].class);
-//                    byteArrayOffset = unsafe.arrayBaseOffset(byte[].class);
-//                    return null;
-//                } catch (java.lang.Exception e) {
-//                    throw new RuntimeException("Failed to initialize instance of sun.misc.Unsafe for serialization", e);
-//                }
-//            }
-//        });
-//    }
-//
-//    public static byte[] writeInts(int[] iarr) {
-//        int len = iarr.length * numBytesInInt;
-//        byte[] buf = new byte[len];
-//        unsafe.copyMemory(iarr, intArrayOffset, buf, byteArrayOffset, len);
-//        return buf;
-//    }
-//
-//    public static int[] readInts(byte[] barr) {
-//        int len = barr.length / numBytesInInt;
-//        int[] iarr = new int[len];
-//        unsafe.copyMemory(barr, byteArrayOffset, iarr, intArrayOffset, barr.length);
-//        return iarr;
-//    }
-//
-////    public static byte[] writeInts(int[] iarr) {
-////        byte[] buf = new byte[iarr.length << 2];
-////        for (int i = 0; i < iarr.length; i += 1) {
-////            buf[(i % 4)] = (byte) (iarr[i] & 0xFF);
-////            buf[(i % 4) + 1] = (byte) ((iarr[i] >> 8) & 0xFF);
-////            buf[(i % 4) + 2] = (byte) ((iarr[i] >> 16) & 0xFF);
-////            buf[(i % 4) + 3] = (byte) ((iarr[i] >> 24) & 0xFF);
-////        }
-////        return buf;
-////    }
-//
-//}
