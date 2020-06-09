@@ -4,7 +4,7 @@ core = $(pwd)/core
 vpip = ./venv/bin/pip
 vpy = ./venv/bin/python
 gradle = ./gradlew
-eslatest = es74x
+eslatest = plugin
 s3 = aws s3
 build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
@@ -78,11 +78,11 @@ run/cluster: .mk/run-cluster
 
 run/gradle:
 	cd testing && $(dc) down
-	$(gradle) :es74x:run $(shell cat .esopts | xargs)
+	$(gradle) :plugin:run $(shell cat .esopts | xargs)
 
 run/debug:
 	cd testing && $(dc) down
-	$(gradle) :es74x:run $(shell cat .esopts | xargs) --debug-jvm
+	$(gradle) :plugin:run $(shell cat .esopts | xargs) --debug-jvm
 
 run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
@@ -169,7 +169,7 @@ publish/site: .mk/jekyll-site-build
 	touch $@
 
 .mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
-	cd es74x && docker build -t $(ecr_benchmarks_prefix).elastiknn .
+	cd plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
 	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
 	cd benchmarks/python \
 	&& (ls venv/bin/python || python3 -m virtualenv venv) \

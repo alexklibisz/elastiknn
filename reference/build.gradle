@@ -1,6 +1,6 @@
 dependencies {
     implementation project(':core')
-    implementation project(':es74x')
+    implementation project(':plugin')
     implementation project(':client-elastic4s')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
