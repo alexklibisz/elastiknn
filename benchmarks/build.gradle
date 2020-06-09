@@ -8,9 +8,9 @@ buildscript {
     }
 }
 
-plugins {
-    id 'application'
-}
+//plugins {
+//    id 'application'
+//}
 
 apply plugin: 'com.github.johnrengelman.shadow'
 
@@ -34,6 +34,6 @@ dependencies {
     implementation 'javax.xml:jaxb-api:2.1'
 }
 
-application {
-    mainClassName = 'com.klibisz.elastiknn.benchmarks.Enqueue'
-}
+//application {
+//    mainClassName = 'com.klibisz.elastiknn.benchmarks.Enqueue'
+//}

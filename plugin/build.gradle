@@ -21,6 +21,8 @@ dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 licenseHeaders.enabled = false
 testingConventions.enabled = false
+validateNebulaPom.enabled = false
+licenseHeaders.enabled = false
 
 configurations {
     all {
