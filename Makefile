@@ -190,6 +190,9 @@ benchmarks/docker/build: .mk/benchmarks-docker-build
 
 benchmarks/docker/push: .mk/benchmarks-docker-push
 
+benchmarks/minio:
+	docker run -p 9000:9000 minio/minio server /data
+
 benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
 	&& envsubst < benchmark-workflow.yaml | argo submit -
