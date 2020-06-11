@@ -126,8 +126,9 @@ object ElasticsearchCodec { esc =>
       case dfv: Vec.DenseFloat => encode(dfv)
       case emp: Vec.Empty      => encode(emp)
     }
+    // TODO: Compare performance of .orElse to alternatives that just check for specific json keys.
     override def apply(c: HCursor): Either[DecodingFailure, Vec] =
-      denseFloatVector(c).orElse(sparseBoolVector(c)).orElse(indexedVector(c)).orElse(emptyVec(c))
+      sparseBoolVector(c).orElse(denseFloatVector(c)).orElse(indexedVector(c)).orElse(emptyVec(c))
   }
 
   implicit val mappingSparseBool: ESC[Mapping.SparseBool] = ElasticsearchCodec(deriveCodec)

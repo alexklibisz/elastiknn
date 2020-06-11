@@ -33,3 +33,7 @@ dependencies {
     // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
     implementation 'javax.xml:jaxb-api:2.1'
 }
+
+application {
+    mainClassName = 'com.klibisz.elastiknn.benchmarks.Enqueue'
+}
