@@ -27,13 +27,12 @@ object LshQuery {
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
       val vecDocVals = ctx.reader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
 
-      def exactScore(docId: Int): Float = {
-        val storedVec = if (vecDocVals.advanceExact(docId)) {
-          val binaryValue = vecDocVals.binaryValue
-          codec.decode(binaryValue.bytes)
-        } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-        lshFunc.exact(query, storedVec).toFloat
-      }
+      def exactScore(docId: Int): Double = if (vecDocVals.advanceExact(docId)) {
+        val binVal = vecDocVals.binaryValue
+        val bytes = binVal.bytes.drop(binVal.offset)
+        val storedVec = codec.decode(bytes)
+        lshFunc.exact(query, storedVec)
+      } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 
       new LeafScoreFunction {
         override def score(docId: Int, intersection: Float): Double = {
@@ -81,8 +80,8 @@ object LshQuery {
       }
       builder.build()
     }
-    val f = new LshScoreFunction(field, queryVec, candidates, lshFunc)
-    new FunctionScoreQuery(isecQuery, f, CombineFunction.REPLACE, 0f, Float.MaxValue)
+    val func = new LshScoreFunction(field, queryVec, candidates, lshFunc)
+    new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
   private val hashesFieldType: FieldType = {

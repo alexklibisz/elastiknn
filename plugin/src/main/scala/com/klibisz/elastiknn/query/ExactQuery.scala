@@ -7,7 +7,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.BinaryDocValuesField
-import org.apache.lucene.index.{IndexableField, LeafReaderContext}
+import org.apache.lucene.index.{BinaryDocValues, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Explanation}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function._
@@ -23,17 +23,19 @@ object ExactQuery {
       new LeafScoreFunction {
         override def score(docId: Int, subQueryScore: Float): Double =
           if (vecDocVals.advanceExact(docId)) {
-            val binaryValue = vecDocVals.binaryValue()
-            val storedVec = codec.decode(binaryValue.bytes)
+            // Important to drop the offset; otherwise it read the same vector over and over.
+            val binVal = vecDocVals.binaryValue()
+            val bytes = binVal.bytes.drop(binVal.offset)
+            val storedVec = codec.decode(bytes)
             simFunc(queryVec, storedVec)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 
-        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
-          Explanation.`match`(100, "Computing exact similarity scores for a query vector against indexed vectors.")
+        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = {
+          Explanation.`match`(100, s"${this.getClass.getSimpleName} - subQueryScore = ${subQueryScore.getValue}")
+        }
       }
     }
 
-    // I believe this means we don't need a valid subQueryScore passed into the score function above.
     override def needsScores(): Boolean = false
 
     override def doEquals(other: ScoreFunction): Boolean = other match {
@@ -47,14 +49,16 @@ object ExactQuery {
   def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
     val subQuery = new DocValuesFieldExistsQuery(vectorDocValuesField(field))
-    new FunctionScoreQuery(subQuery, new ExactScoreFunction(field, queryVec, simFunc))
+    val func = new ExactScoreFunction(field, queryVec, simFunc)
+    new FunctionScoreQuery(subQuery, func, CombineFunction.REPLACE, null, Float.MaxValue)
   }
 
   // Docvalue fields can have a custom name, but "regular" values (e.g. Terms) must keep the name of the field.
   def vectorDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
   def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
-    Seq(new BinaryDocValuesField(vectorDocValuesField(field), new BytesRef(implicitly[StoredVec.Encoder[V]].apply(vec))))
+    val bytes = implicitly[StoredVec.Encoder[V]].apply(vec)
+    Seq(new BinaryDocValuesField(vectorDocValuesField(field), new BytesRef(bytes)))
   }
 
 }
