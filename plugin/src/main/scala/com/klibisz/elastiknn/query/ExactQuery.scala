@@ -23,15 +23,13 @@ object ExactQuery {
       new LeafScoreFunction {
         override def score(docId: Int, subQueryScore: Float): Double =
           if (vecDocVals.advanceExact(docId)) {
-            // Important to drop the offset; otherwise it read the same vector over and over.
             val binVal = vecDocVals.binaryValue()
-            val bytes = binVal.bytes.drop(binVal.offset)
-            val storedVec = codec.decode(bytes)
+            val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
             simFunc(queryVec, storedVec)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = {
-          Explanation.`match`(100, s"${this.getClass.getSimpleName} - subQueryScore = ${subQueryScore.getValue}")
+          Explanation.`match`(100, s"Elastiknn exact query")
         }
       }
     }
@@ -50,7 +48,7 @@ object ExactQuery {
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
     val subQuery = new DocValuesFieldExistsQuery(vectorDocValuesField(field))
     val func = new ExactScoreFunction(field, queryVec, simFunc)
-    new FunctionScoreQuery(subQuery, func, CombineFunction.REPLACE, null, Float.MaxValue)
+    new FunctionScoreQuery(subQuery, func)
   }
 
   // Docvalue fields can have a custom name, but "regular" values (e.g. Terms) must keep the name of the field.

@@ -29,8 +29,7 @@ object LshQuery {
 
       def exactScore(docId: Int): Double = if (vecDocVals.advanceExact(docId)) {
         val binVal = vecDocVals.binaryValue
-        val bytes = binVal.bytes.drop(binVal.offset)
-        val storedVec = codec.decode(bytes)
+        val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
         lshFunc.exact(query, storedVec)
       } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 

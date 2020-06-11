@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.storage;
 
-import scala.Int;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
@@ -46,54 +45,42 @@ public class UnsafeSerialization {
     }
 
     /**
-     * Writes ints to a byte array. Encodes the length of the int array as the first 4 bytes of the byte array.
+     * Writes ints to a byte array.
      * @param iarr ints to serialize.
-     * @return Array of bytes with length (4 + iarr.length).
+     * @return Array of bytes with length (4 * iarr.length).
      */
     public static byte[] writeInts(int[] iarr) {
         int bytesLen = iarr.length * numBytesInInt;
-        byte[] buf = new byte[bytesLen + numBytesInInt];
-        u.unsafe.putInt(buf, u.byteArrayOffset, iarr.length);
-        u.unsafe.copyMemory(iarr, u.intArrayOffset, buf, u.byteArrayOffset + numBytesInInt, bytesLen);
+        byte[] buf = new byte[bytesLen];
+        u.unsafe.copyMemory(iarr, u.intArrayOffset, buf, u.byteArrayOffset, bytesLen);
         return buf;
     }
 
     /**
-     * Reads ints from a byte array. Expects that the first 4 bytes in the array are the length of the int array.
-     * @param barr
-     * @return
+     * Reads ints from a byte array.
      */
-    public static int[] readInts(byte[] barr) {
-        int intsLen = u.unsafe.getInt(barr, u.byteArrayOffset);
-        int bytesLen = intsLen * numBytesInInt;
-        int[] iarr = new int[intsLen];
-        u.unsafe.copyMemory(barr, u.byteArrayOffset + numBytesInInt, iarr, u.intArrayOffset, bytesLen);
+    public static int[] readInts(byte[] barr, int offset, int length) {
+        int[] iarr = new int[length / numBytesInInt];
+        u.unsafe.copyMemory(barr, offset + u.byteArrayOffset, iarr, u.intArrayOffset, length);
         return iarr;
     }
 
     /**
-     * Writes floats to a byte array. Encodes the length of the float array as the first 4 bytes of the byte array.
-     * @param farr
-     * @return
+     * Writes floats to a byte array.
      */
     public static byte[] writeFloats(float[] farr) {
         int bytesLen = farr.length * numBytesInFloat;
-        byte[] buf = new byte[bytesLen + numBytesInInt];
-        u.unsafe.putInt(buf, u.byteArrayOffset, farr.length);
-        u.unsafe.copyMemory(farr, u.floatArrayOffset, buf, u.byteArrayOffset + numBytesInInt, bytesLen);
+        byte[] buf = new byte[bytesLen];
+        u.unsafe.copyMemory(farr, u.floatArrayOffset, buf, u.byteArrayOffset, bytesLen);
         return buf;
     }
 
     /**
-     * Reads floats from a byte array. Expects that the first 4 bytes in the array are the length of the float array.
-     * @param barr
-     * @return
+     * Reads floats from a byte array.
      */
-    public static float[] readFloats(byte[] barr) {
-        int floatsLen = u.unsafe.getInt(barr, u.floatArrayOffset);
-        int bytesLen = floatsLen * numBytesInFloat;
-        float[] farr = new float[floatsLen];
-        u.unsafe.copyMemory(barr, u.byteArrayOffset + numBytesInInt, farr, u.floatArrayOffset, bytesLen);
+    public static float[] readFloats(byte[] barr, int offset, int length) {
+        float[] farr = new float[length / numBytesInFloat];
+        u.unsafe.copyMemory(barr, offset + u.byteArrayOffset, farr, u.floatArrayOffset, length);
         return farr;
     }
 

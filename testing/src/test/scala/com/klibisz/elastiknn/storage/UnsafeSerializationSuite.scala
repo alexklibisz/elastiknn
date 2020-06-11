@@ -12,12 +12,25 @@ class UnsafeSerializationSuite extends FunSuite with Matchers {
     val rng = new Random(seed)
     for (i <- 0 to 1000) {
       withClue(s"Failed on iteration $i with seed $seed and max length $maxLen") {
+        // Generate array of random ints.
         val len = rng.nextInt(maxLen)
         val iarr = (0 until len).map(_ => rng.nextInt(Int.MaxValue) * (if (rng.nextBoolean()) 1 else -1)).toArray
-        val barr = UnsafeSerialization.writeInts(iarr)
-        val iarrRead = UnsafeSerialization.readInts(barr)
-        barr should have length ((iarr.length + 1) * UnsafeSerialization.numBytesInInt)
-        iarrRead shouldBe iarr
+
+        // Serialize and check serialized length.
+        val trimmed = UnsafeSerialization.writeInts(iarr)
+        trimmed should have length (iarr.length * UnsafeSerialization.numBytesInInt)
+
+        // Deserialize and check.
+        val iarrReadTrimmed = UnsafeSerialization.readInts(trimmed, 0, trimmed.length)
+        iarrReadTrimmed shouldBe iarr
+
+        // Place in larger array with random offset.
+        val offset = rng.nextInt(maxLen)
+        val embedded = new Array[Byte](offset) ++ trimmed ++ new Array[Byte](rng.nextInt(maxLen))
+
+        // Deserialize and check.
+        val iarrReadEmbedded = UnsafeSerialization.readInts(embedded, offset, trimmed.length)
+        iarrReadEmbedded shouldBe iarr
       }
     }
   }
@@ -28,12 +41,25 @@ class UnsafeSerializationSuite extends FunSuite with Matchers {
     val rng = new Random(seed)
     for (i <- 0 to 1000) {
       withClue(s"Failed on iteration $i with seed $seed and max length $maxLen") {
+        // Generate array of random floats.
         val len = rng.nextInt(maxLen)
         val farr = (0 until len).map(_ => rng.nextFloat() * (if (rng.nextBoolean()) Float.MaxValue else Float.MinValue)).toArray
-        val barr = UnsafeSerialization.writeFloats(farr)
-        val farrRead = UnsafeSerialization.readFloats(barr)
-        barr should have length (farr.length * UnsafeSerialization.numBytesInFloat) + UnsafeSerialization.numBytesInInt
-        farrRead shouldBe farr
+
+        // Serialize and check length.
+        val trimmed = UnsafeSerialization.writeFloats(farr)
+        trimmed should have length (farr.length * UnsafeSerialization.numBytesInFloat)
+
+        // Deserialize and check.
+        val farrTrimmed = UnsafeSerialization.readFloats(trimmed, 0, trimmed.length)
+        farrTrimmed shouldBe farr
+
+        // Place in larger array with random offset.
+        val offset = rng.nextInt(maxLen)
+        val embedded = new Array[Byte](offset) ++ trimmed ++ new Array[Byte](rng.nextInt(maxLen))
+
+        // Deserialize and check.
+        val farrReadEmbedded = UnsafeSerialization.readFloats(embedded, offset, trimmed.length)
+        farrReadEmbedded shouldBe farr
       }
     }
   }
