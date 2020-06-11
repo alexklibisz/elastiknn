@@ -15,7 +15,7 @@ public class ArrayUtils {
      * @param ys
      * @return The number of identical elements in the two arrays. For example {1,2,3}, {2,3,4} would return 2.
      */
-    public static int sortedIntersectionCount(int [] xs, int [] ys) {
+    public static int sortedIntersectionCount(final int [] xs, final int [] ys) {
         int n = 0;
         int xi = 0;
         int yi = 0;

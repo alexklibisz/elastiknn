@@ -23,24 +23,24 @@ public class UnsafeSerialization {
         }
     });
 
-    public static byte[] writeInt(int i) {
-        int a = Math.abs(i);
+    public static byte[] writeInt(final int i) {
+        final int a = Math.abs(i);
         if (a <= Byte.MAX_VALUE) {
-            byte[] buf = new byte[1];
+            final byte[] buf = new byte[1];
             u.unsafe.putInt(buf, u.byteArrayOffset, i);
             return buf;
         } else if (a <= Short.MAX_VALUE) {
-            byte[] buf = new byte[2];
+            final byte[] buf = new byte[2];
             u.unsafe.putInt(buf, u.byteArrayOffset, i);
             return buf;
         } else {
-            byte[] buf = new byte[4];
+            final byte[] buf = new byte[4];
             u.unsafe.putInt(buf, u.byteArrayOffset, i);
             return buf;
         }
     }
 
-    public static int readInt(byte[] barr) {
+    public static int readInt(final byte[] barr) {
         return u.unsafe.getInt(barr, u.byteArrayOffset);
     }
 
@@ -49,8 +49,8 @@ public class UnsafeSerialization {
      * @param iarr ints to serialize.
      * @return Array of bytes with length (4 * iarr.length).
      */
-    public static byte[] writeInts(int[] iarr) {
-        int bytesLen = iarr.length * numBytesInInt;
+    public static byte[] writeInts(final int[] iarr) {
+        final int bytesLen = iarr.length * numBytesInInt;
         byte[] buf = new byte[bytesLen];
         u.unsafe.copyMemory(iarr, u.intArrayOffset, buf, u.byteArrayOffset, bytesLen);
         return buf;
@@ -59,8 +59,8 @@ public class UnsafeSerialization {
     /**
      * Reads ints from a byte array.
      */
-    public static int[] readInts(byte[] barr, int offset, int length) {
-        int[] iarr = new int[length / numBytesInInt];
+    public static int[] readInts(final byte[] barr, final int offset, final int length) {
+        final int[] iarr = new int[length / numBytesInInt];
         u.unsafe.copyMemory(barr, offset + u.byteArrayOffset, iarr, u.intArrayOffset, length);
         return iarr;
     }
@@ -68,9 +68,9 @@ public class UnsafeSerialization {
     /**
      * Writes floats to a byte array.
      */
-    public static byte[] writeFloats(float[] farr) {
-        int bytesLen = farr.length * numBytesInFloat;
-        byte[] buf = new byte[bytesLen];
+    public static byte[] writeFloats(final float[] farr) {
+        final int bytesLen = farr.length * numBytesInFloat;
+        final byte[] buf = new byte[bytesLen];
         u.unsafe.copyMemory(farr, u.floatArrayOffset, buf, u.byteArrayOffset, bytesLen);
         return buf;
     }
@@ -78,8 +78,8 @@ public class UnsafeSerialization {
     /**
      * Reads floats from a byte array.
      */
-    public static float[] readFloats(byte[] barr, int offset, int length) {
-        float[] farr = new float[length / numBytesInFloat];
+    public static float[] readFloats(final byte[] barr, final int offset, final int length) {
+        final float[] farr = new float[length / numBytesInFloat];
         u.unsafe.copyMemory(barr, offset + u.byteArrayOffset, farr, u.floatArrayOffset, length);
         return farr;
     }
@@ -90,7 +90,7 @@ public class UnsafeSerialization {
         public final long floatArrayOffset;
         public final long byteArrayOffset;
         public UnsafeUtil() throws NoSuchFieldException, IllegalAccessException {
-            Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+            final Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
             unsafe = (Unsafe) f.get(null);
             intArrayOffset = unsafe.arrayBaseOffset(int[].class);
