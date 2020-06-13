@@ -75,7 +75,7 @@ object Execute extends App {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val primaryIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
-    val holdoutIndexName = s"${primaryIndexName}-holdouts"
+    val holdoutIndexName = s"$primaryIndexName-holdouts"
 
     // Create a primary and holdout index with same mappings.
     // Split stream of vectors into primary and holdout vectors and index them separately.

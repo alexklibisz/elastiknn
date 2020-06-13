@@ -61,6 +61,7 @@ package object benchmarks {
                                    durationMillis: Long = 0,
                                    queryResults: Seq[QueryResult]) {
     lazy val queriesPerSecondPerShard: Double = queryResults.length.toDouble / (durationMillis / 1000d) / shards
+    lazy val averageRecall: Double = queryResults.map(_.recall).sum / queryResults.length
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $durationMillis, ...)"
   }
 
