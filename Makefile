@@ -172,7 +172,7 @@ publish/site: .mk/jekyll-site-build
 	cd plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
 	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
 	cd benchmarks/python \
-	&& (ls venv/bin/python || python3 -m virtualenv venv) \
+	&& (ls venv || python3 -m virtualenv venv) \
 	&& venv/bin/pip install -r requirements.txt \
 	&& docker build -t $(ecr_benchmarks_prefix).datasets .
 	touch $@

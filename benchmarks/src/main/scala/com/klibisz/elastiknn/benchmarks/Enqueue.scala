@@ -12,6 +12,7 @@ import codecs._
 /**
   * Produce a list of Experiments for downstream processing.
   * Primarily intended for use with argo workflows.
+  * Outputs each experiment as a base64-encoded JSON string.
   */
 object Enqueue extends App {
 

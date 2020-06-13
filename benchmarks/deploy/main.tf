@@ -147,9 +147,12 @@ module "eks" {
     worker_groups = [
         {
             name = "default"
-            instance_type = "c5.xlarge"
+            instance_type = "c5.large"
             asg_desired_capacity = 1
-            asg_max_size = 25 # Not to be confused with asg_max_capacity. Not sure of the difference.
+            asg_max_size = 25   # Max number of nodes at any given time. Different from asg_max_capacity.
+            spot_price = "0.08" # This is the max price.
+            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
+            suspended_processes = ["AZRebalance"]
             additional_security_group_ids = [aws_security_group.worker_mgmt.id]
             tags = [
                 {
@@ -169,6 +172,9 @@ module "eks" {
             instance_type = "c5.4xlarge"
             asg_min_size = 1
             asg_max_size = 50
+            spot_price = "0.5" # This is the max price.
+            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
+            suspended_processes = ["AZRebalance"]
             addition_security_group_ids = [aws_security_group.worker_mgmt.id]
             tags = [
                 {
@@ -215,6 +221,20 @@ resource "helm_release" "cluster-autoscaler" {
             accountId = data.aws_caller_identity.current.account_id,
             clusterName = local.cluster_name
         })
+    ]
+}
+
+/*
+ * Node termination handler installation.
+ */
+resource "helm_release" "node-termination-handler" {
+    name = "node-termination-handler"
+    chart = "aws-node-termination-handler"
+    repository = "https://aws.github.io/eks-charts"
+    namespace = local.k8s_service_account_namespace
+    depends_on = [null_resource.kubectl_config_provisioner]
+    values = [
+        templatefile("templates/node-termination-handler-values.yaml", {})
     ]
 }
 
@@ -319,14 +339,6 @@ resource "aws_ecr_repository" "datasets" {
 }
 
 /*
- * S3 Buckets for data and results.
- */
-resource "aws_s3_bucket" "results" {
-    bucket = "${local.cluster_name}.results"
-    acl = "private"
-}
-
-/*
  * Outputs from setup.
  */
 data "aws_eks_cluster" "cluster" {
@@ -359,11 +371,6 @@ output "kubectl_config" {
     value       = module.eks.kubeconfig
 }
 
-# output "config_map_aws_auth" {
-#   description = "A kubernetes configuration to authenticate to this EKS cluster."
-#   value       = module.eks.config_map_aws_auth
-# }
-
 output "region" {
     description = "AWS region"
     value       = var.region
@@ -372,9 +379,4 @@ output "region" {
 output "cluster_name" {
     description = "Kubernetes Cluster Name"
     value       = local.cluster_name
-}
-
-output "bucket_name" {
-    description = "Bucket name"
-    value = aws_s3_bucket.results.bucket
 }

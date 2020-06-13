@@ -31,12 +31,12 @@ spec:
           - --datasetsFilter
           - AnnbMnist
           - --toFile
-          - /tmp/exps.json
+          - /tmp/exps.txt
       outputs:
         parameters:
           - name: experiments
             valueFrom:
-              path: /tmp/exps.json
+              path: /tmp/exps.txt
 
     - name: apply-configmap
       resource:
