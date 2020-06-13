@@ -646,12 +646,6 @@ When a user submits an `elastiknn_nearest_neighbors` query, Elastiknn has to ret
 
 The practical implication is that if you intend to delete and re-create an index with different Elastiknn mappings, you should wait more than 60 seconds between deleting and running new queries. In reality it usually takes much longer than one minute to delete, re-create, and populate an index.
 
-### Caching Vectors
-
-To compute exact similarities, Elastiknn has to retrieve the serialized version of each indexed vector, deserialize it, and instantiate a new object. Elasticsearch documents are typically static, especially while running high volumes of queries. So Elastiknn keeps an in-memory cache of deserialized vectors with a one minute expiration on each Elasticsearch node.
-
-The practical implication is that you should wait more than one minute between updating vector contents and running queries that might access the modified vectors.
-
 ### Parallelism
 
 From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. This means the simplest way to increase query parallelism is to add shards to your index. Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
