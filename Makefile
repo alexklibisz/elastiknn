@@ -85,7 +85,7 @@ run/debug:
 	$(gradle) :plugin:run $(shell cat .esopts | xargs) --debug-jvm
 
 run/kibana:
-	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.7.1
+	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.6.2
 	docker ps | grep kibana
 
 run/demo: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
