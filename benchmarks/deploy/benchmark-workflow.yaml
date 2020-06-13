@@ -162,8 +162,8 @@ spec:
           - "elastiknn-benchmarks"
           - --resultsPrefix
           - "results"
-          - --parallelism
-          - "14" # Should match the number of cores.
+          - --shards
+          - "14"
         env:
           # Technically bad practice, but easier than setting up KIAM.
           - name: AWS_ACCESS_KEY_ID

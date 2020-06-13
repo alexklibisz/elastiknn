@@ -37,7 +37,7 @@ object Enqueue extends App {
         params.toFile match {
           case Some(f) =>
             for {
-              _ <- putStrLn(s"Writing ${experiments.length} expeirments to ${f.getAbsolutePath}")
+              _ <- putStrLn(s"Writing ${experiments.length} experiments to ${f.getAbsolutePath}")
               _ <- ZIO(Files.writeString(f.toPath, jsonString))
             } yield ()
           case None => putStrLn(jsonString)
@@ -45,7 +45,7 @@ object Enqueue extends App {
       }
       val experiments =
         if (params.datasetsFilter.isEmpty) Experiment.defaults
-        else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase))
+        else Experiment.defaults.filter(e => params.datasetsFilter.contains(e.dataset.name.toLowerCase)).take(3)
       write(experiments).exitCode
     case None => sys.exit(1)
   }

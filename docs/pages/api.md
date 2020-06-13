@@ -18,7 +18,8 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 
 ## Mappings
 
-Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. These determine how vectors are indexed to support different kinds of searches.
+Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. 
+These determine how vectors are indexed to support different kinds of searches.
 
 The general structure for specifying a mapping looks like this:
 
@@ -50,7 +51,9 @@ PUT /my-index/_mapping
 
 ### elastiknn_sparse_bool_vector Datatype
 
-This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any single document contains a very small fraction of all words. Internally, Elastiknn saves space by only storing a list of the true indices.
+This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. 
+For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any single document contains a very small fraction of all words. 
+Internally, Elastiknn saves space by only storing the true indices.
 
 ```json
 PUT /my-index/_mapping
@@ -75,7 +78,9 @@ PUT /my-index/_mapping
 
 ### elastiknn_dense_float_vector Datatype
 
-This type is optimized for vectors where each index is a floating point number, all of the indices are populated, and the dimensionality usually doesn't exceed ~1000. For example, you might store a word embedding or an image vector. Internally, Elastiknn uses Java Floats to store the values.
+This type is optimized for vectors where each index is a floating point number, all of the indices are populated, and the dimensionality usually doesn't exceed ~1000. 
+For example, you might store a word embedding or an image vector. 
+Internally, Elastiknn uses Java Floats to store the values.
 
 ```json
 PUT /my-index/_mapping
@@ -100,7 +105,8 @@ PUT /my-index/_mapping
 
 ### Exact Mapping
 
-The exact model will allow you to run exact searches. These don't levarage any indexing constructs and have `O(n^2)` runtime, where `n` is the total number of documents.
+The exact model will allow you to run exact searches. 
+These don't leverage any indexing constructs and have `O(n^2)` runtime, where `n` is the total number of documents.
 
 You don't need to supply any `"model": "..."` value or any model parameters to use this model.
 
@@ -125,7 +131,9 @@ PUT /my-index/_mapping
 
 ### Sparse Indexed Mapping
 
-The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. It indexes each of of true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
+The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. 
+It indexes each of the true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) 
+If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
 
 ```json
 PUT /my-index/_mapping
@@ -630,22 +638,40 @@ The tables below show valid model/query combinations. Rows are models and column
 
 ## Miscellaneous Implementation Details
 
-Here are some other things worth knowing. Perhaps there will be a more cohesive way to present these in the future.
+Here are some other things worth knowing. 
+Perhaps there will be a more cohesive way to present these in the future.
 
 ### Storing Model Parameters
 
-The LSH models all use randomized parameters to hash vectors. The simplest example is the bit-sampling model for Hamming similarity, which is parameterized by a list of randomly sampled indices. A more complicated example is the stable distributions model for L2 similarity, which is parameterized by a set of random unit vectors and a set of random bias values. These parameters aren't actually stored anywhere in Elasticsearch. Rather, they are lazily re-computed from a fixed random seed each time they are needed. The advantage of this is that you don't have to worry about storing and synchronizing potentially large parameter documents somewhere in the cluster. The disadvantage is that it's expensive to re-compute the randomized parameters. So instead we keep an internal cache of models, keyed on the model hyperparameters (e.g. `bands`, `rows`, etc.). The hyperparameters are stored inside the mappings where they are originally defined.
+The LSH models all use randomized parameters to hash vectors. 
+The simplest example is the bit-sampling model for Hamming similarity, which is parameterized by a list of randomly sampled indices. 
+A more complicated example is the stable distributions model for L2 similarity, which is parameterized by a set of random unit vectors and a set of random bias values. 
+These parameters aren't actually stored anywhere in Elasticsearch. 
+Rather, they are lazily re-computed from a fixed random seed each time they are needed. 
+The advantage of this is that you don't have to worry about storing and synchronizing potentially large parameter documents somewhere in the cluster. 
+The disadvantage is that it's expensive to re-compute the randomized parameters. 
+So instead we keep an internal cache of models, keyed on the model hyperparameters (e.g. `bands`, `rows`, etc.). 
+The hyperparameters are stored inside the mappings where they are originally defined.
 
 ### Transforming and Indexing Vectors
 
-Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. All vectors index a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) containing a serialized version of the vector, as well as term fields based on the vector's mapping. For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in a doc values field and the vector's hash values as a set of Lucene Terms which point back to the document and field containing the vector. All of this transformation is part of the implementation for the `elastiknn_sparse_bool_vector` and `elastiknn_dense_float_vector` datatypes.
+Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. 
+All vectors index a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) containing a serialized version of the vector, as well as term fields based on the vector's mapping. 
+For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in a doc values field and the vector's hash values as a set of Lucene Terms which point back to the document and field containing the vector. 
+All of this transformation is part of the implementation for the `elastiknn_sparse_bool_vector` and `elastiknn_dense_float_vector` datatypes.
 
 ### Caching Mappings
 
-When a user submits an `elastiknn_nearest_neighbors` query, Elastiknn has to retrieve the mapping for the indexed vector field in order to validate and hash the query vector. Mappings are typically static, so Elastiknn keeps an in-memory cache of mappings with a one minute expiration to avoid repeatedly requesting an unchanged mapping for every query. This cache is local to each Elasticsearch node.
+When a user submits an `elastiknn_nearest_neighbors` query, Elastiknn has to retrieve the mapping for the indexed vector field in order to validate and hash the query vector. 
+Mappings are typically static, so Elastiknn keeps an in-memory cache of mappings with a one-minute expiration to avoid repeatedly requesting an unchanged mapping for every query. 
+This cache is local to each Elasticsearch node.
 
-The practical implication is that if you intend to delete and re-create an index with different Elastiknn mappings, you should wait more than 60 seconds between deleting and running new queries. In reality it usually takes much longer than one minute to delete, re-create, and populate an index.
+The practical implication is that if you intend to delete and re-create an index with different Elastiknn mappings, you should wait more than 60 seconds between deleting and running new queries. 
+In reality it usually takes much longer than one minute to delete, re-create, and populate an index.
 
 ### Parallelism
 
-From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. This means the simplest way to increase query parallelism is to add shards to your index. Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
+From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. 
+Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. 
+This means the simplest way to increase query parallelism is to add shards to your index. 
+Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.

@@ -131,11 +131,10 @@ object Execute extends App {
 
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-      } yield {
-        val query = ElasticDsl.search(holdoutIndexName).scroll("10m").matchAllQuery().size(500)
-        val searchIter = SearchIterator.iterate[Vec](eknnClient.elasticClient, query)
-        Stream.fromIterator(searchIter)
-      }
+        _ <- log.info(s"Streaming holdout vectors from $holdoutIndexName")
+        query = ElasticDsl.search(holdoutIndexName).scroll("1m").matchAllQuery().size(500)
+        searchIter = SearchIterator.iterate[Vec](eknnClient.elasticClient, query)
+      } yield Stream.fromIterator(searchIter)
     }
 
     for {
@@ -156,6 +155,8 @@ object Execute extends App {
       else buildIndex()
 
       // Load a stream of vectors from the holdout index.
+      // TODO: should delete the search context after the stream is complete.
+      // https://www.elastic.co/guide/en/elasticsearch/reference/current/clear-scroll-api.html
       holdouts <- streamHoldouts()
 
       // Run searches on the holdout vectors.
@@ -210,26 +211,9 @@ object Execute extends App {
     } yield ()
   }
 
-  private def s3Client(s3Minio: Boolean): AmazonS3 =
-    if (s3Minio) {
-      // Setup for Minio: https://docs.min.io/docs/how-to-use-aws-sdk-for-java-with-minio-server.html
-      val endpointConfig = new EndpointConfiguration("http://localhost:9000", "us-east-1")
-      val clientConfig = new ClientConfiguration()
-      clientConfig.setSignerOverride("AWSS3V4SignerType")
-      AmazonS3ClientBuilder.standard
-        .withPathStyleAccessEnabled(true)
-        .withEndpointConfiguration(endpointConfig)
-        .withClientConfiguration(clientConfig)
-        .withCredentials(new AWSStaticCredentialsProvider(new AWSCredentials {
-          override def getAWSAccessKeyId: String = "minioadmin"
-          override def getAWSSecretKey: String = "minioadmin"
-        }))
-        .build()
-    } else AmazonS3ClientBuilder.defaultClient()
-
   def apply(params: Params): ZIO[Any, Throwable, Unit] = {
     val layer =
-      (Blocking.live ++ ZLayer.succeed(s3Client(params.s3Minio))) >>>
+      (Blocking.live ++ ZLayer.succeed(if (params.s3Minio) S3Utils.minioClient() else S3Utils.defaultClient())) >>>
         Console.live ++
           Clock.live ++
           Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName)) ++

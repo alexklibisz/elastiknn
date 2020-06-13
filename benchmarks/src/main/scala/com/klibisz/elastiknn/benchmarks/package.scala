@@ -17,7 +17,7 @@ package object benchmarks {
   type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed abstract class Dataset(val dims: Int) {
-    final def name: String = this.getClass.getSimpleName.toLowerCase
+    final def name: String = this.getClass.getSimpleName.toLowerCase.replace("$", "")
   }
   object Dataset {
     case object AmazonHome extends Dataset(4096)
