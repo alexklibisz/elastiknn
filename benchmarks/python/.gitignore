@@ -129,8 +129,5 @@ dmypy.json
 .pyre/
 
 .idea
-elastiknn/elastiknn_pb2.py
-elastiknn/elastiknn.proto
-scalapb/scalapb_pb2.py
 *.pyi
-pdoc
+*.html

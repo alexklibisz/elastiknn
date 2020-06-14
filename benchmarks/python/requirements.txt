@@ -7,3 +7,4 @@ pandas==1.0.4
 elastiknn-client
 h5py==2.10.0
 bokeh==2.0.2
+pandasql==0.7.3
