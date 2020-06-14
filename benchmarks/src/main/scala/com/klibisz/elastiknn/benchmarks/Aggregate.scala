@@ -7,6 +7,7 @@ import com.klibisz.elastiknn.api._
 import kantan.csv._
 import kantan.csv.ops._
 import kantan.csv.generic._
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
@@ -40,10 +41,24 @@ object Aggregate extends App {
                           k: Int,
                           mappingJson: String,
                           queryJson: String,
-                          averageRecall: Double,
-                          queriesPerSecondPerShard: Double)
+                          recallP10: Double,
+                          recallP50: Double,
+                          recallP90: Double,
+                          durationP10: Double,
+                          durationP50: Double,
+                          durationP90: Double)
 
-  private val header = Seq("dataset", "algorithm", "k", "mappingJson", "queryJson", "averageRecall", "queriesPerSecondPerShard")
+  private val header = Seq("dataset",
+                           "algorithm",
+                           "k",
+                           "mappingJson",
+                           "queryJson",
+                           "recallP10",
+                           "recallP50",
+                           "recallP90",
+                           "durationP10",
+                           "durationP50",
+                           "durationP90")
 
   private def mappingToAlgorithmName(m: Mapping): String = m match {
     case _: SparseBool                                            => "exact"
@@ -67,14 +82,21 @@ object Aggregate extends App {
 
       // Transform them to rows.
       rows = results.mapMPar(10) { res =>
+        val recalls = res.queryResults.map(_.recall).toArray
+        val durations = res.queryResults.map(_.duration.toDouble).toArray
+        val ptile = new Percentile()
         val row = CsvRow(
           res.dataset.name,
           mappingToAlgorithmName(res.mapping),
           res.k,
           ElasticsearchCodec.encode(res.mapping).noSpaces,
           ElasticsearchCodec.encode(res.query).noSpaces,
-          res.averageRecall,
-          res.queriesPerSecond
+          ptile.evaluate(recalls, 0.1),
+          ptile.evaluate(recalls, 0.5),
+          ptile.evaluate(recalls, 0.9),
+          ptile.evaluate(durations, 0.1),
+          ptile.evaluate(durations, 0.5),
+          ptile.evaluate(durations, 0.9),
         )
         log.info(row.toString).map(_ => row)
       }

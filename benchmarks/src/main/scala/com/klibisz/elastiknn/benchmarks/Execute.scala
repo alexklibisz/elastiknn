@@ -107,22 +107,7 @@ object Execute extends App {
       } yield ()
     }
 
-    def search(testVecs: Stream[Throwable, Vec]) = {
-      for {
-        eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        requests = testVecs.zipWithIndex.mapMPar(parallelism) {
-          case (vec, i) =>
-            for {
-              (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
-              _ <- log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms")
-            } yield res
-        }
-
-        (dur, responses) <- requests.run(Sink.collectAll).timed
-      } yield (responses.map(r => QueryResult(r.result.hits.hits.map(_.id), r.result.took)), dur.toMillis)
-    }
-
-    def streamFromIndex(index: String) = {
+    def streamFromIndex(index: String, chunkSize: Int = 200) = {
       implicit val vecReader: HitReader[Vec] = (hit: Hit) =>
         for {
           json <- io.circe.parser.parse(hit.sourceAsString).toTry
@@ -133,9 +118,24 @@ object Execute extends App {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
         _ <- log.info(s"Streaming vectors from $index")
-        query = ElasticDsl.search(index).scroll("5m").size(100).matchAllQuery()
+        query = ElasticDsl.search(index).scroll("5m").size(chunkSize).matchAllQuery()
         searchIter = SearchIterator.iterate[Vec](eknnClient.elasticClient, query)
-      } yield Stream.fromIterator(searchIter)
+      } yield Stream.fromIterator(searchIter).chunkN(chunkSize)
+    }
+
+    def search(testVecs: Stream[Throwable, Vec]) = {
+      for {
+        eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
+        requests = testVecs.zipWithIndex.mapMPar(parallelism) {
+          case (vec, i) =>
+            for {
+              (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
+              _ <- log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms")
+            } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
+        }
+
+        (dur, responses) <- requests.run(ZSink.collectAll).timed
+      } yield (responses, dur.toMillis)
     }
 
     for {
@@ -159,7 +159,6 @@ object Execute extends App {
       testVecs <- streamFromIndex(testIndexName)
 
       // Run searches on the holdout vectors.
-      // _ <- log.info(s"Searching ${holdoutIds.length} holdout vectors with query $eknnQuery")
       (singleResults, totalDuration) <- search(testVecs)
 
     } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, parallelism, totalDuration, singleResults)
@@ -189,7 +188,7 @@ object Execute extends App {
             case _ =>
               for {
                 exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving exact result: $exact, ${exact.queriesPerSecond} queries/sec/shard")
+                _ <- log.info(s"Saving exact result: $exact")
                 _ <- rc.save(setRecalls(exact, exact))
               } yield exact
           }
@@ -200,7 +199,7 @@ object Execute extends App {
             case _ =>
               for {
                 test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving test result: $test, ${test.queriesPerSecond} queries/sec/shard")
+                _ <- log.info(s"Saving test result: $test")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
           }
@@ -222,9 +221,7 @@ object Execute extends App {
         ElastiknnZioClient.fromFutureClient("localhost", 9200, true) ++
         Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName))
 
-    val logic: ZIO[Logging with Clock with DatasetClient with ElastiknnZioClient with ResultClient with Has[AmazonS3] with Blocking,
-                   Throwable,
-                   Unit] = for {
+    val logic = for {
 
       // Load the experiment.
       _ <- log.info(params.toString)

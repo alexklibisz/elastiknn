@@ -84,13 +84,14 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
 
 
 def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,
-               output_s3_prefix: str, normalize: bool):
+               output_s3_prefix: str, normalize: bool, total_size: int, test_size: int):
 
     s3 = boto3.client('s3')
 
     # Check if it exists first.
-    output_key = f"{output_s3_prefix}/vecs.json.gz"
-    if exists(s3, output_s3_bucket, output_key):
+    train_key = f"{output_s3_prefix}/train.json.gz"
+    test_key = f"{output_s3_prefix}/test.json.gz"
+    if exists(s3, output_s3_bucket, train_key) and exists(s3, output_s3_bucket, test_key):
         return
 
     features_file = f"{local_data_dir}/vecs.b.gz"

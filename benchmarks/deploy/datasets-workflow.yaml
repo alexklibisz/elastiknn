@@ -107,8 +107,6 @@ spec:
       inputs:
         parameters:
           - name: dataset
-      nodeSelector:
-        beta.kubernetes.io/instance-type: c5.large
       volumes:
         - name: data
           persistentVolumeClaim:

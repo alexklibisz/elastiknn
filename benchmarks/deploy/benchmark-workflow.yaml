@@ -10,17 +10,17 @@ spec:
     - name: main
       parallelism: 1 # EKS seems to choke somewhere around 50 nodes.
       steps:
-        - - name: enqueue-experiments
-            template: enqueue-experiments
-          - name: apply-configmap
-            template: apply-configmap
-        - - name: execute-experiment
-            template: execute-experiment
-            arguments:
-              parameters:
-                - name: hash
-                  value: "{{item}}"
-            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
+#        - - name: enqueue-experiments
+#            template: enqueue-experiments
+#          - name: apply-configmap
+#            template: apply-configmap
+#        - - name: execute-experiment
+#            template: execute-experiment
+#            arguments:
+#              parameters:
+#                - name: hash
+#                  value: "{{item}}"
+#            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
         - - name: aggregate-results
             template: aggregate-results
 
@@ -167,8 +167,6 @@ spec:
         parameters:
           - name: hash
           - name: pvc-name
-      nodeSelector:
-        beta.kubernetes.io/instance-type: c5.2xlarge
       volumes:
         - name: esdata
           persistentVolumeClaim:
@@ -198,7 +196,7 @@ spec:
           - --resultsPrefix
           - "results/raw"
           - --parallelism
-          - "6"
+          - "14"
         env:
           - name: AWS_ACCESS_KEY_ID
             value: ${AWS_ACCESS_KEY_ID}
@@ -211,10 +209,10 @@ spec:
         resources:
           requests:
             cpu: 1
-            memory: 1.5G
+            memory: 2G
           limits:
             cpu: 1
-            memory: 1.5G
+            memory: 2G
       sidecars:
         - name: elastiknn
           image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
@@ -224,8 +222,8 @@ spec:
               value: single-node
             - name: ES_JAVA_OPTS
               value: >-
-                -Xms7G
-                -Xmx7G
+                -Xms15G
+                -Xmx15G
           volumeMounts:
             - name: esdata
               mountPath: /usr/share/elasticsearch/data
@@ -236,8 +234,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              cpu: 6
-              memory: 12G
+              cpu: 14
+              memory: 24G
             limits:
-              cpu: 6
-              memory: 12G
+              cpu: 14
+              memory: 24G
