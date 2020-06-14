@@ -76,8 +76,8 @@ object ExactSimilarityFunction {
     override def similarity: Similarity = Similarity.Angular
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
       var dotProd: Double = 0
-      var v1SqrSum: Double = 0
-      var v2SqrSum: Double = 0
+      var v1SqrSum: Double = 1e-16 // Prevent NaNs.
+      var v2SqrSum: Double = 1e-16
       var i = 0
       while (i < v1.values.length) {
         dotProd += v1.values(i) * v2.values(i)

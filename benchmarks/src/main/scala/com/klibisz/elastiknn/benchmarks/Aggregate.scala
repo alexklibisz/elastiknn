@@ -66,7 +66,7 @@ object Aggregate extends App {
       results = resultClient.all()
 
       // Transform them to rows.
-      rows = results.mapM { res =>
+      rows = results.mapMPar(10) { res =>
         val row = CsvRow(
           res.dataset.name,
           mappingToAlgorithmName(res.mapping),

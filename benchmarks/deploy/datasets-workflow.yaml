@@ -11,17 +11,24 @@ spec:
       - name: dataset-list
         value: |
           [
-            "amazonhome",
-            "amazonhomeunit",
-            "annbdeep1b",
             "annbfashionmnist",
-            "annbgist",
-            "annbglove100",
-            "annbkosarak",
             "annbmnist",
-            "annbnyt",
-            "annbsift"
+            "annbnyt"
           ]
+#      - name: dataset-list
+#        value: |
+#          [
+#            "amazonhome",
+#            "amazonhomeunit",
+#            "annbdeep1b",
+#            "annbfashionmnist",
+#            "annbgist",
+#            "annbglove100",
+#            "annbkosarak",
+#            "annbmnist",
+#            "annbnyt",
+#            "annbsift"
+#          ]
   templates:
     - name: main
       inputs:
@@ -101,7 +108,7 @@ spec:
         parameters:
           - name: dataset
       nodeSelector:
-        beta.kubernetes.io/instance-type: c5.xlarge
+        beta.kubernetes.io/instance-type: c5.large
       volumes:
         - name: data
           persistentVolumeClaim:

@@ -41,8 +41,9 @@ def write_vec(fp, id: str, vec: Vec.Base):
 def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str):
 
     s3 = boto3.client('s3')
-    output_key = f"{output_s3_prefix}/vecs.json.gz"
-    if exists(s3, output_s3_bucket, output_key):
+    train_key = f"{output_s3_prefix}/train.json.gz"
+    test_key = f"{output_s3_prefix}/test.json.gz"
+    if exists(s3, output_s3_bucket, train_key) and exists(s3, output_s3_bucket, test_key):
         return
 
     hdf5_file = f"{local_data_dir}/vecs.hdf5"
@@ -52,30 +53,34 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
         s3.download_file(Bucket=hdf5_s3_bucket, Key=hdf5_s3_key, Filename=hdf5_file)
 
     hdf5_fp = h5py.File(hdf5_file, 'r')
-    vecs_file = f"{local_data_dir}/vecs.json.gz"
-    vecs_fp = gzip.open(vecs_file, "wt")
+    train_file = f"{local_data_dir}/train.json.gz"
+    test_file = f"{local_data_dir}/test.json.gz"
 
     is_sparse = hdf5_fp['train'].dtype == bool
     t0 = time()
 
-    def write(iter_arr, n = 0):
+    def write(iter_arr, fp, n=0):
         i = n
         for arr in iter_arr:
             if is_sparse:
                 vec = Vec.SparseBool([x for x, b in enumerate(arr) if b], len(arr))
             else:
                 vec = rounded_dense_float(list(arr))
-            write_vec(vecs_fp, str(i), vec)
+            write_vec(fp, str(i), vec)
             print(f"Processed {i}: {i} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
             i += 1
         return i
 
-    n = write(hdf5_fp['train'], 0)
-    _ = write(hdf5_fp['test'], n)
-    vecs_fp.close() # Very important. Otherwise gzip file is invalid!
+    with gzip.open(train_file, "wt") as gzfp:
+        n = write(hdf5_fp['train'], gzfp, 0)
 
-    print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
-    s3.upload_file(vecs_file, output_s3_bucket, output_key)
+    with gzip.open(test_file, "wt") as gzfp:
+        write(hdf5_fp['test'], gzfp, n)
+
+    print(f"Copying {train_file} to s3://{output_s3_bucket}/{train_key}")
+    s3.upload_file(train_file, output_s3_bucket, train_key)
+    print(f"Copying {test_file} to s3://{output_s3_bucket}/{test_key}")
+    s3.upload_file(test_file, output_s3_bucket, test_key)
 
 
 def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,

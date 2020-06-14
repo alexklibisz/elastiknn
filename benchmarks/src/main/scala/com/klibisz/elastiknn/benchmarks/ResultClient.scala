@@ -64,20 +64,15 @@ object ResultClient {
 
           override def all(): Stream[Throwable, BenchmarkResult] = {
 
-            val pageSize = 1000
-
             @tailrec
             def readAllKeys(req: ListObjectsV2Request, agg: Vector[String] = Vector.empty): Vector[String] = {
-              val batchRes = client.listObjectsV2(req)
-              val batchKeys = batchRes.getObjectSummaries.asScala.toVector.map(_.getKey)
-              if (batchKeys.length < pageSize || batchRes.isTruncated) agg ++ batchKeys
-              else readAllKeys(req.withContinuationToken(batchRes.getContinuationToken), agg ++ batchKeys)
+              val res = client.listObjectsV2(req)
+              val keys = res.getObjectSummaries.asScala.toVector.map(_.getKey)
+              if (res.isTruncated) readAllKeys(req.withContinuationToken(res.getNextContinuationToken), agg ++ keys)
+              else agg ++ keys
             }
 
-            val req = new ListObjectsV2Request()
-              .withBucketName(bucket)
-              .withPrefix(keyPrefix)
-              .withMaxKeys(pageSize)
+            val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(keyPrefix)
 
             Stream
               .fromIterableM(blocking.effectBlocking(readAllKeys(req)))

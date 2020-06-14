@@ -169,7 +169,7 @@ object LshFunction {
     *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
     *                       Note that this often referred to as `L`, or the number of hash tables.
     *                rows: number of rows per band. Generally, more rows yield higher precision.
-    *                      Note that this is oten called `k`, or the number of functions per hash table.
+    *                      Note that this is often called `k`, or the number of functions per hash table.
     *                width: width of the interval that determines two floating-point hashed values are equivalent.
     *
     */

@@ -25,7 +25,6 @@ package object benchmarks {
     case object AmazonHomePhash extends Dataset(4096)
     case object AmazonMixed extends Dataset(4096)
     case object AmazonMixedUnit extends Dataset(4096)
-    case object EnglishWikiLsa extends Dataset(1024)
     case object AnnbDeep1b extends Dataset(96)
     case object AnnbFashionMnist extends Dataset(784)
     case object AnnbGist extends Dataset(960)
@@ -57,7 +56,7 @@ package object benchmarks {
                                    mapping: Mapping,
                                    query: NearestNeighborsQuery,
                                    k: Int,
-                                   shards: Int = 14,
+                                   shards: Int,
                                    durationMillis: Long = 0,
                                    queryResults: Seq[QueryResult]) {
     lazy val queriesPerSecondPerShard: Double = queryResults.length.toDouble / (durationMillis / 1000d) / shards
@@ -85,7 +84,7 @@ package object benchmarks {
           Mapping.L2Lsh(dataset.dims, b, r, w),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
+            m <- Seq(1, 2, 10, 50)
           } yield Query(NearestNeighborsQuery.L2Lsh(vecName, empty, m * k), k)
         )
       lsh
@@ -93,7 +92,7 @@ package object benchmarks {
 
     def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 50 to 300 by 50
+        b <- 100 to 400 by 50
         r <- 1 to 3
       } yield
         Experiment(
@@ -103,7 +102,7 @@ package object benchmarks {
           Mapping.AngularLsh(dataset.dims, b, r),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
+            m <- Seq(1, 2, 10, 50)
           } yield Query(NearestNeighborsQuery.AngularLsh(vecName, empty, m * k), k)
         )
       lsh
@@ -131,7 +130,7 @@ package object benchmarks {
           Mapping.HammingLsh(dataset.dims, (bitsProp * dataset.dims).toInt),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
+            m <- Seq(1, 2, 10, 50)
           } yield Query(NearestNeighborsQuery.HammingLsh(vecName, empty, k * m), k)
         )
       sparseIndexed ++ lsh
@@ -152,13 +151,11 @@ package object benchmarks {
       sparseIndexed
     }
 
+    // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
     val defaults: Seq[Experiment] = Seq(
       l2(AmazonHome),
-      l2(AmazonMixed),
       angular(AmazonHomeUnit),
       angular(AmazonMixedUnit),
-      hamming(AmazonHomePhash),
-      angular(EnglishWikiLsa),
       angular(AnnbDeep1b),
       l2(AnnbFashionMnist),
       l2(AnnbGist),

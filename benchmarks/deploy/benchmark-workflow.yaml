@@ -8,37 +8,46 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 30 # EKS seems to choke on >30 nodes.
+      parallelism: 1 # EKS seems to choke somewhere around 50 nodes.
       steps:
-        - - name: generate-experiments
-            template: generate-experiments
+        - - name: enqueue-experiments
+            template: enqueue-experiments
           - name: apply-configmap
             template: apply-configmap
         - - name: execute-experiment
             template: execute-experiment
             arguments:
               parameters:
-                - name: experiment
+                - name: hash
                   value: "{{item}}"
-            withParam: "{{steps.generate-experiments.outputs.parameters.experiments}}"
+            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
         - - name: aggregate-results
             template: aggregate-results
 
-    - name: generate-experiments
+    - name: enqueue-experiments
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
         args:
           - com.klibisz.elastiknn.benchmarks.Enqueue
           - --datasetsFilter
-          - AnnbMnist
-          - --toFile
-          - /tmp/exps.txt
+          - "AnnbNyt"
+          - --experimentsBucket
+          - elastiknn-benchmarks
+          - --experimentsPrefix
+          - experiments
+          - --file
+          - /tmp/hashes.txt
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
       outputs:
         parameters:
-          - name: experiments
+          - name: hashes
             valueFrom:
-              path: /tmp/exps.txt
+              path: /tmp/hashes.txt
 
     - name: apply-configmap
       resource:
@@ -56,7 +65,7 @@ spec:
     - name: execute-experiment
       inputs:
         parameters:
-          - name: experiment
+          - name: hash
       retryStrategy:
         limit: 1
         retryPolicy: "Always"
@@ -69,8 +78,8 @@ spec:
               failed: true
             arguments:
               parameters:
-                - name: experiment
-                  value: "{{inputs.parameters.experiment}}"
+                - name: hash
+                  value: "{{inputs.parameters.hash}}"
                 - name: pvc-name
                   value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
         - - name: delete-pvc
@@ -156,7 +165,7 @@ spec:
     - name: execute-driver
       inputs:
         parameters:
-          - name: experiment
+          - name: hash
           - name: pvc-name
       nodeSelector:
         beta.kubernetes.io/instance-type: c5.4xlarge
@@ -174,8 +183,12 @@ spec:
         imagePullPolicy: "Always"
         args:
           - com.klibisz.elastiknn.benchmarks.Execute
-          - --experimentJsonBase64
-          - "{{inputs.parameters.experiment}}"
+          - --experimentHash
+          - "{{inputs.parameters.hash}}"
+          - --experimentsBucket
+          - elastiknn-benchmarks
+          - --experimentsPrefix
+          - "experiments"
           - --datasetsBucket
           - elastiknn-benchmarks
           - --datasetsPrefix
