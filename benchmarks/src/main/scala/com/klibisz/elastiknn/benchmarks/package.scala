@@ -71,7 +71,7 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 100 to 1000 by 50
+        b <- 100 to 350 by 50
         r <- 1 to 3
         w <- 1 to 3
       } yield
@@ -82,7 +82,7 @@ package object benchmarks {
           Mapping.L2Lsh(dataset.dims, b, r, w),
           for {
             k <- ks
-            m <- Seq(1, 2, 10, 50)
+            m <- Seq(1, 2, 10)
           } yield Query(NearestNeighborsQuery.L2Lsh(vecName, empty, m * k), k)
         )
       lsh
@@ -90,7 +90,7 @@ package object benchmarks {
 
     def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 100 to 400 by 50
+        b <- 100 to 350 by 50
         r <- 1 to 3
       } yield
         Experiment(
@@ -100,7 +100,7 @@ package object benchmarks {
           Mapping.AngularLsh(dataset.dims, b, r),
           for {
             k <- ks
-            m <- Seq(1, 2, 10, 50)
+            m <- Seq(1, 2, 10)
           } yield Query(NearestNeighborsQuery.AngularLsh(vecName, empty, m * k), k)
         )
       lsh

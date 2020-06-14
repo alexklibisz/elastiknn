@@ -39,7 +39,8 @@ def write_vec(fp, id: str, vec: Vec.Base):
     fp.write(s)
 
 
-def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str):
+def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str,
+         scale_by_max: bool = False):
 
     s3 = boto3.client('s3')
     train_key = f"{output_s3_prefix}/train.json.gz"
@@ -53,11 +54,17 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
         print(f"Downloading s3://{hdf5_s3_bucket}/{hdf5_s3_key} to {hdf5_file}")
         s3.download_file(Bucket=hdf5_s3_bucket, Key=hdf5_s3_key, Filename=hdf5_file)
 
-    hdf5_fp = h5py.File(hdf5_file, 'r')
     train_file = f"{local_data_dir}/train.json.gz"
     test_file = f"{local_data_dir}/test.json.gz"
 
+    hdf5_fp = h5py.File(hdf5_file, 'r')
     is_sparse = hdf5_fp['train'].dtype == bool
+
+    max_scaler = 1
+    if scale_by_max:
+        for arr in hdf5_fp['train']:
+            max_scaler = max(max(arr), max_scaler)
+
     t0 = time()
 
     def write(iter_arr, fp, n=0):
@@ -65,6 +72,8 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
         for arr in iter_arr:
             if is_sparse:
                 vec = Vec.SparseBool([x for x, b in enumerate(arr) if b], len(arr))
+            elif scale_by_max:
+                vec = rounded_dense_float(list(arr / max_scaler))
             else:
                 vec = rounded_dense_float(list(arr))
             write_vec(fp, str(i), vec)
@@ -137,8 +146,8 @@ def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: st
 
     print(f"Copying {train_file} to s3://{output_s3_bucket}/{train_key}")
     s3.upload_file(train_file, output_s3_bucket, train_key)
-    print(f"Copying {test_file} to s3://{output_s3_bucket}/{train_key}")
-    s3.upload_file(test_file, output_s3_bucket, train_key)
+    print(f"Copying {test_file} to s3://{output_s3_bucket}/{test_key}")
+    s3.upload_file(test_file, output_s3_bucket, test_key)
 
 
 def amazon_phash(metadata_s3_bucket: str, metadata_s3_key: str, imgs_s3_bucket: str, imgs_s3_prefix: str,
@@ -236,7 +245,8 @@ def main(argv: List[str]) -> int:
             "data/raw/annb/fashion-mnist-784-euclidean.hdf5",
             local_data_dir,
             s3_bucket,
-            s3_prefix
+            s3_prefix,
+            scale_by_max=True
         )
     elif dataset_name == "annbgist":
         annb(
@@ -268,7 +278,8 @@ def main(argv: List[str]) -> int:
             "data/raw/annb/mnist-784-euclidean.hdf5",
             local_data_dir,
             s3_bucket,
-            s3_prefix
+            s3_prefix,
+            scale_by_max=True
         )
     elif dataset_name == "annbnyt":
         annb(
@@ -284,7 +295,8 @@ def main(argv: List[str]) -> int:
             "data/raw/annb/sift-128-euclidean.hdf5",
             local_data_dir,
             s3_bucket,
-            s3_prefix
+            s3_prefix,
+            scale_by_max=True
         )
     else:
         raise RuntimeError(f"Unknown dataset: {dataset_name}")
