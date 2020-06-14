@@ -6,6 +6,7 @@ import sys
 from io import BytesIO
 from itertools import islice
 from math import *
+from random import Random
 from time import time
 from typing import List
 
@@ -67,7 +68,7 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
             else:
                 vec = rounded_dense_float(list(arr))
             write_vec(fp, str(i), vec)
-            print(f"Processed {i}: {i} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
+            print(f"Processed {i}: {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
             i += 1
         return i
 
@@ -100,32 +101,44 @@ def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: st
         s3.download_file(Bucket=features_s3_bucket, Key=features_s3_key, Filename=features_file)
 
     features_fp = gzip.open(features_file, 'rb')
-    vecs_file = f"{local_data_dir}/vecs.json.gz"
-    vecs_fp = gzip.open(vecs_file, "wt")
 
-    i = 0
-    t0 = time()
-    while True:
-        asin = features_fp.read(10).decode()
-        if len(asin) == 0:
-            break
-        arr = array.array('f')
-        arr.fromfile(features_fp, 4096)
-        if normalize:
-            norm = sqrt(sum(map(lambda n: n * n, arr.tolist())))
-            unit_values = [v / norm for v in arr.tolist()]
-            vec = rounded_dense_float(unit_values)
-            norm_check = round(sqrt(sum(map(lambda n: n * n, vec.values))), 2)
-            assert norm_check == 1.0, (vec, norm_check)
-        else:
-            vec = rounded_dense_float(arr.tolist())
-        write_vec(vecs_fp, asin, vec)
-        print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
-        i += 1
-    vecs_fp.close() # Very important. Otherwise gzip file is invalid!
+    train_file = f"{local_data_dir}/train.json.gz"
+    test_file = f"{local_data_dir}/test.json.gz"
 
-    print(f"Copying {vecs_file} to s3://{output_s3_bucket}/{output_key}")
-    s3.upload_file(vecs_file, output_s3_bucket, output_key)
+    # Setup to sample test vectors from the file.
+    rng = Random(0)
+    test_indexes = set(rng.sample(range(total_size), test_size))
+
+    with gzip.open(train_file, "wt") as train_fp, gzip.open(test_file, "wt") as test_fp:
+        i = 0
+        t0 = time()
+        while True:
+            asin = features_fp.read(10).decode()
+            if len(asin) == 0:
+                break
+            arr = array.array('f')
+            arr.fromfile(features_fp, 4096)
+            if normalize:
+                norm = sqrt(sum(map(lambda n: n * n, arr.tolist())))
+                unit_values = [v / norm for v in arr.tolist()]
+                vec = rounded_dense_float(unit_values)
+                norm_check = round(sqrt(sum(map(lambda n: n * n, vec.values))), 2)
+                assert norm_check == 1.0, (vec, norm_check)
+            else:
+                vec = rounded_dense_float(arr.tolist())
+
+            if i in test_indexes:
+                write_vec(test_fp, asin, vec)
+            else:
+                write_vec(train_fp, asin, vec)
+
+            print(f"Processed {i}: {asin} - {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
+            i += 1
+
+    print(f"Copying {train_file} to s3://{output_s3_bucket}/{train_key}")
+    s3.upload_file(train_file, output_s3_bucket, train_key)
+    print(f"Copying {test_file} to s3://{output_s3_bucket}/{train_key}")
+    s3.upload_file(test_file, output_s3_bucket, train_key)
 
 
 def amazon_phash(metadata_s3_bucket: str, metadata_s3_key: str, imgs_s3_bucket: str, imgs_s3_prefix: str,
@@ -184,7 +197,9 @@ def main(argv: List[str]) -> int:
             local_data_dir,
             s3_bucket,
             s3_prefix,
-            False
+            False,
+            436988,
+            10000
         )
     elif dataset_name == "amazonhomeunit":
         amazon_raw(
@@ -193,7 +208,9 @@ def main(argv: List[str]) -> int:
             local_data_dir,
             s3_bucket,
             s3_prefix,
-            True
+            True,
+            436988,
+            10000
         )
     elif dataset_name == "amazonhomephash":
         amazon_phash(

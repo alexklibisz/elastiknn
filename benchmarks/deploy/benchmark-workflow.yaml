@@ -8,19 +8,19 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 1 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 30 # EKS seems to choke somewhere around 50 nodes.
       steps:
-#        - - name: enqueue-experiments
-#            template: enqueue-experiments
-#          - name: apply-configmap
-#            template: apply-configmap
-#        - - name: execute-experiment
-#            template: execute-experiment
-#            arguments:
-#              parameters:
-#                - name: hash
-#                  value: "{{item}}"
-#            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
+        - - name: enqueue-experiments
+            template: enqueue-experiments
+          - name: apply-configmap
+            template: apply-configmap
+        - - name: execute-experiment
+            template: execute-experiment
+            arguments:
+              parameters:
+                - name: hash
+                  value: "{{item}}"
+            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
         - - name: aggregate-results
             template: aggregate-results
 
@@ -31,7 +31,7 @@ spec:
         args:
           - com.klibisz.elastiknn.benchmarks.Enqueue
           - --datasetsFilter
-          - "AnnbNyt"
+          - "AnnbGlove100"
           - --experimentsBucket
           - elastiknn-benchmarks
           - --experimentsPrefix
@@ -128,7 +128,7 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 19Gi
+                storage: 50Gi
             storageClassName: storage-10-iops
       outputs:
         parameters:
