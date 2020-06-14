@@ -1,8 +1,9 @@
 imagehash==4.1.0
 wget==3.2
 click==7.1.2
-boto3==1.13.16
+boto3==1.14.2
 matplotlib==3.2.1
-pandas==1.0.3
+pandas==1.0.4
 elastiknn-client
 h5py==2.10.0
+bokeh==2.0.2

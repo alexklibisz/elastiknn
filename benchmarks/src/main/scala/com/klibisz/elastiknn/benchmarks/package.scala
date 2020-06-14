@@ -65,14 +65,6 @@ package object benchmarks {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $durationMillis, ...)"
   }
 
-  final case class ParetoResult(dataset: Dataset,
-                                algorithm: String,
-                                k: Int,
-                                mapping: Mapping,
-                                query: NearestNeighborsQuery,
-                                queriesPerSecondPerParallelism: Int,
-                                recall: Double)
-
   object Experiment {
     import Dataset._
 
@@ -82,7 +74,7 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 50 to 300 by 50
+        b <- 100 to 1000 by 50
         r <- 1 to 3
         w <- 1 to 3
       } yield

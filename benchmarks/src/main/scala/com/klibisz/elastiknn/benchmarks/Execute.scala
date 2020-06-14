@@ -190,7 +190,7 @@ object Execute extends App {
             case _ =>
               for {
                 exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving exact result: $exact: ${exact.queriesPerSecondPerShard} queries/sec")
+                _ <- log.info(s"Saving exact result: $exact, ${exact.queriesPerSecondPerShard} queries/sec/shard")
                 _ <- rc.save(setRecalls(exact, exact))
               } yield exact
           }
@@ -201,7 +201,7 @@ object Execute extends App {
             case _ =>
               for {
                 test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving test result: $test: ${test.queriesPerSecondPerShard} queries/sec")
+                _ <- log.info(s"Saving test result: $test, ${test.queriesPerSecondPerShard} queries/sec/shard")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
           }

@@ -39,10 +39,11 @@ object Aggregate extends App {
                           algorithm: String,
                           k: Int,
                           mappingJson: String,
+                          queryJson: String,
                           averageRecall: Double,
                           queriesPerSecondPerShard: Double)
 
-  private val header = Seq("dataset", "algorithm", "k", "mappingJson", "averageRecall", "queriesPerSecondPerShard")
+  private val header = Seq("dataset", "algorithm", "k", "mappingJson", "queryJson", "averageRecall", "queriesPerSecondPerShard")
 
   private def mappingToAlgorithmName(m: Mapping): String = m match {
     case _: SparseBool                                            => "exact"
@@ -71,6 +72,7 @@ object Aggregate extends App {
           mappingToAlgorithmName(res.mapping),
           res.k,
           ElasticsearchCodec.encode(res.mapping).noSpaces,
+          ElasticsearchCodec.encode(res.query).noSpaces,
           res.averageRecall,
           res.queriesPerSecondPerShard
         )

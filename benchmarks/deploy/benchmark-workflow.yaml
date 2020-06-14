@@ -8,7 +8,7 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 50
+      parallelism: 30 # EKS seems to choke on >30 nodes.
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -100,7 +100,7 @@ spec:
           - --resultsBucket
           - elastiknn-benchmarks
           - --resultsPrefix
-          - results
+          - results/raw
           - --aggregateBucket
           - elastiknn-benchmarks
           - --aggregateKey
