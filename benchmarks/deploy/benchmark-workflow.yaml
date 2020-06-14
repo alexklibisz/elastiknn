@@ -59,7 +59,7 @@ spec:
             name: esconfig
           data:
             elasticsearch.yml: |
-              cluster.name: "docker-cluster"
+              cluster.name: "no-cluster"
               network.host: 0.0.0.0
 
     - name: execute-experiment
@@ -128,7 +128,7 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: 42Gi
+                storage: 19Gi
             storageClassName: storage-10-iops
       outputs:
         parameters:
@@ -168,7 +168,7 @@ spec:
           - name: hash
           - name: pvc-name
       nodeSelector:
-        beta.kubernetes.io/instance-type: c5.4xlarge
+        beta.kubernetes.io/instance-type: c5.2xlarge
       volumes:
         - name: esdata
           persistentVolumeClaim:
@@ -197,21 +197,24 @@ spec:
           - "elastiknn-benchmarks"
           - --resultsPrefix
           - "results/raw"
-          - --shards
-          - "14"
+          - --parallelism
+          - "6"
         env:
-          # Technically bad practice, but easier than setting up KIAM.
           - name: AWS_ACCESS_KEY_ID
             value: ${AWS_ACCESS_KEY_ID}
           - name: AWS_SECRET_ACCESS_KEY
             value: ${AWS_SECRET_ACCESS_KEY}
+          - name: JAVA_OPTS
+            value: >-
+              -XX:MinRAMPercentage=10
+              -XX:MaxRAMPercentage=90
         resources:
           requests:
             cpu: 1
-            memory: 4G
+            memory: 1.5G
           limits:
             cpu: 1
-            memory: 4G
+            memory: 1.5G
       sidecars:
         - name: elastiknn
           image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
@@ -221,8 +224,8 @@ spec:
               value: single-node
             - name: ES_JAVA_OPTS
               value: >-
-                -Xms13G
-                -Xmx13G
+                -Xms7G
+                -Xmx7G
           volumeMounts:
             - name: esdata
               mountPath: /usr/share/elasticsearch/data
@@ -233,8 +236,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              cpu: 14
-              memory: 22G
+              cpu: 6
+              memory: 12G
             limits:
-              cpu: 14
-              memory: 22G
+              cpu: 6
+              memory: 12G

@@ -74,7 +74,7 @@ object Aggregate extends App {
           ElasticsearchCodec.encode(res.mapping).noSpaces,
           ElasticsearchCodec.encode(res.query).noSpaces,
           res.averageRecall,
-          res.queriesPerSecondPerShard
+          res.queriesPerSecond
         )
         log.info(row.toString).map(_ => row)
       }

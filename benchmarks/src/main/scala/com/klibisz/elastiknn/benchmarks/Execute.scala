@@ -36,7 +36,7 @@ object Execute extends App {
                           resultsBucket: String = "",
                           resultsPrefix: String = "",
                           holdoutProportion: Double = 0.1,
-                          shards: Int = java.lang.Runtime.getRuntime.availableProcessors(),
+                          parallelism: Int = java.lang.Runtime.getRuntime.availableProcessors(),
                           s3Minio: Boolean = false,
                           skipExisting: Boolean = true)
 
@@ -54,7 +54,7 @@ object Execute extends App {
     opt[String]("resultsBucket").action((s, c) => c.copy(resultsBucket = s)).required()
     opt[String]("resultsPrefix").action((s, c) => c.copy(resultsPrefix = s))
     opt[Double]("holdoutProportion").action((d, c) => c.copy(holdoutProportion = d))
-    opt[Int]("shards").action((i, c) => c.copy(shards = i))
+    opt[Int]("parallelism").action((i, c) => c.copy(parallelism = i))
     opt[Boolean]("s3Minio").action((b, c) => c.copy(s3Minio = b))
   }
 
@@ -71,7 +71,7 @@ object Execute extends App {
                              eknnQuery: NearestNeighborsQuery,
                              k: Int,
                              holdoutProportion: Double,
-                             shards: Int) = {
+                             parallelism: Int) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
@@ -83,10 +83,10 @@ object Execute extends App {
     def buildIndex() = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        _ <- log.info(s"Creating index $trainIndexName with mapping $eknnMapping and $shards shards")
-        _ <- eknnClient.execute(createIndex(trainIndexName).replicas(0).shards(shards).indexSetting("refresh_interval", "-1"))
+        _ <- log.info(s"Creating index $trainIndexName with mapping $eknnMapping and parallelism $parallelism")
+        _ <- eknnClient.execute(createIndex(trainIndexName).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
         _ <- eknnClient.putMapping(trainIndexName, eknnQuery.field, eknnMapping)
-        _ <- eknnClient.execute(createIndex(testIndexName).replicas(0).shards(shards).indexSetting("refresh_interval", "-1"))
+        _ <- eknnClient.execute(createIndex(testIndexName).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Indexing vectors for dataset $dataset")
         _ <- datasets.streamTrain[Vec](dataset).grouped(500).zipWithIndex.foreach {
@@ -110,7 +110,7 @@ object Execute extends App {
     def search(testVecs: Stream[Throwable, Vec]) = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        requests = testVecs.zipWithIndex.mapM {
+        requests = testVecs.zipWithIndex.mapMPar(parallelism) {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
@@ -118,7 +118,6 @@ object Execute extends App {
             } yield res
         }
 
-        // Execute queries serially so that the effect of parallel shards is not affected by parallel requests.
         (dur, responses) <- requests.run(Sink.collectAll).timed
       } yield (responses.map(r => QueryResult(r.result.hits.hits.map(_.id), r.result.took)), dur.toMillis)
     }
@@ -163,7 +162,7 @@ object Execute extends App {
       // _ <- log.info(s"Searching ${holdoutIds.length} holdout vectors with query $eknnQuery")
       (singleResults, totalDuration) <- search(testVecs)
 
-    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, totalDuration, singleResults)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, parallelism, totalDuration, singleResults)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
@@ -190,7 +189,7 @@ object Execute extends App {
             case _ =>
               for {
                 exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving exact result: $exact, ${exact.queriesPerSecondPerShard} queries/sec/shard")
+                _ <- log.info(s"Saving exact result: $exact, ${exact.queriesPerSecond} queries/sec/shard")
                 _ <- rc.save(setRecalls(exact, exact))
               } yield exact
           }
@@ -201,7 +200,7 @@ object Execute extends App {
             case _ =>
               for {
                 test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
-                _ <- log.info(s"Saving test result: $test, ${test.queriesPerSecondPerShard} queries/sec/shard")
+                _ <- log.info(s"Saving test result: $test, ${test.queriesPerSecond} queries/sec/shard")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
           }
@@ -240,7 +239,7 @@ object Execute extends App {
       _ <- log.info("Cluster ready")
 
       // Run the experiment.
-      _ <- run(experiment, params.holdoutProportion, params.shards, params.skipExisting)
+      _ <- run(experiment, params.holdoutProportion, params.parallelism, params.skipExisting)
       _ <- log.info("Done - exiting successfully")
 
     } yield ()

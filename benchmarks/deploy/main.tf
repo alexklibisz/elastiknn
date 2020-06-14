@@ -146,33 +146,11 @@ module "eks" {
     enable_irsa = true
     worker_groups = [
         {
-            name = "default"
-            instance_type = "c5.large"
-            asg_desired_capacity = 1
-            asg_max_size = 25   # Max number of nodes at any given time. Different from asg_max_capacity.
-            spot_price = "0.08" # This is the max price.
-            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
-            suspended_processes = ["AZRebalance"]
-            additional_security_group_ids = [aws_security_group.worker_mgmt.id]
-            tags = [
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                },
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                }
-            ]
-        },
-        {
-            name = "high-performance"
-            instance_type = "c5.4xlarge"
+            name = "c5.2xlarge"
+            instance_type = "c5.2xlarge"
             asg_min_size = 1
-            asg_max_size = 50
-            spot_price = "0.5" # This is the max price.
+            asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
+            spot_price = "0.34" # Max price set to on-demand price.
             kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
             suspended_processes = ["AZRebalance"]
             addition_security_group_ids = [aws_security_group.worker_mgmt.id]
