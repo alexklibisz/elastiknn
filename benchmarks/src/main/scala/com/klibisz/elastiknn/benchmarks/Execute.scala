@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.benchmarks.Execute.getClass
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
 import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
@@ -35,7 +36,6 @@ object Execute extends App {
                           datasetsPrefix: String = "",
                           resultsBucket: String = "",
                           resultsPrefix: String = "",
-                          holdoutProportion: Double = 0.1,
                           parallelism: Int = java.lang.Runtime.getRuntime.availableProcessors(),
                           s3Minio: Boolean = false,
                           skipExisting: Boolean = true)
@@ -53,7 +53,6 @@ object Execute extends App {
     opt[String]("datasetsPrefix").action((s, c) => c.copy(datasetsPrefix = s))
     opt[String]("resultsBucket").action((s, c) => c.copy(resultsBucket = s)).required()
     opt[String]("resultsPrefix").action((s, c) => c.copy(resultsPrefix = s))
-    opt[Double]("holdoutProportion").action((d, c) => c.copy(holdoutProportion = d))
     opt[Int]("parallelism").action((i, c) => c.copy(parallelism = i))
     opt[Boolean]("s3Minio").action((b, c) => c.copy(s3Minio = b))
   }
@@ -66,15 +65,15 @@ object Execute extends App {
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
-  private def indexAndSearch(dataset: Dataset,
-                             eknnMapping: Mapping,
-                             eknnQuery: NearestNeighborsQuery,
-                             k: Int,
-                             holdoutProportion: Double,
-                             parallelism: Int) = {
+  private def indexAndSearch(
+      dataset: Dataset,
+      eknnMapping: Mapping,
+      eknnQuery: NearestNeighborsQuery,
+      k: Int,
+      parallelism: Int): ZIO[Logging with Clock with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(eknnMapping, holdoutProportion))}"
+    val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}"
     val testIndexName = s"$trainIndexName-test"
 
     // Create a primary and holdout index with same mappings.
@@ -127,11 +126,14 @@ object Execute extends App {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
         requests = testVecs.zipWithIndex.mapMPar(parallelism) {
+          // requests = testVecs.zipWithIndex.mapMPar(1) {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
               _ <- log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms")
-            } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
+            } yield {
+              QueryResult(res.result.hits.hits.map(_.id), res.result.took)
+            }
         }
 
         (dur, responses) <- requests.run(ZSink.collectAll).timed
@@ -171,7 +173,7 @@ object Execute extends App {
     test.copy(queryResults = withRecalls)
   }
 
-  private def run(experiment: Experiment, holdoutProportion: Double, parallelism: Int, skipExisting: Boolean) = {
+  private def run(experiment: Experiment, parallelism: Int, skipExisting: Boolean) = {
     import experiment._
     for {
       rc <- ZIO.access[ResultClient](_.get)
@@ -187,7 +189,7 @@ object Execute extends App {
               } yield res
             case _ =>
               for {
-                exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, holdoutProportion, parallelism)
+                exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, parallelism)
                 _ <- log.info(s"Saving exact result: $exact")
                 _ <- rc.save(setRecalls(exact, exact))
               } yield exact
@@ -198,7 +200,7 @@ object Execute extends App {
             case Some(_) if skipExisting => log.info(s"Found test result for mapping $testMapping, query $testQuery")
             case _ =>
               for {
-                test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, holdoutProportion, parallelism)
+                test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, parallelism)
                 _ <- log.info(s"Saving test result: $test")
                 _ <- rc.save(setRecalls(exact, test))
               } yield ()
@@ -236,7 +238,7 @@ object Execute extends App {
       _ <- log.info("Cluster ready")
 
       // Run the experiment.
-      _ <- run(experiment, params.holdoutProportion, params.parallelism, params.skipExisting)
+      _ <- run(experiment, params.parallelism, params.skipExisting)
       _ <- log.info("Done - exiting successfully")
 
     } yield ()
@@ -251,38 +253,37 @@ object Execute extends App {
 
 }
 
-//object ExecuteLocalSparseBool extends App {
-//
-//  override def run(args: List[String]): URIO[Console, ExitCode] =
-//    Execute(
-//      Execute.Params(
-//        experimentHash = Experiment(
-//          Dataset.RandomSparseBool(4096, 10000),
-//          exactMapping = Mapping.SparseBool(4096),
-//          exactQuery = NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Jaccard),
-//          testMapping = Mapping.SparseBool(4096),
-//          testQueries = Seq(Query(NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Jaccard), 100))
-//        ).toBase64,
-//        resultsBucket = "local",
-//        s3Minio = true,
-//        skipExisting = false
-//      )).exitCode
-//}
-//
-//object ExecuteLocalDenseFloat extends App {
-//
-//  override def run(args: List[String]): URIO[Console, ExitCode] =
-//    Execute(
-//      Execute.Params(
-//        experimentHash = Experiment(
-//          Dataset.RandomDenseFloat(2048, 10000),
-//          exactMapping = Mapping.DenseFloat(2048),
-//          exactQuery = NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
-//          testMapping = Mapping.DenseFloat(2048),
-//          testQueries = Seq(Query(NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular), 100))
-//        ).toBase64,
-//        resultsBucket = "local",
-//        s3Minio = true,
-//        skipExisting = false
-//      )).exitCode
-//}
+object ExecuteLocalDenseFloat extends App {
+
+  override def run(args: List[String]): URIO[Console, ExitCode] = {
+    val s3Client = S3Utils.minioClient()
+    val exp = Experiment(
+      Dataset.AnnbNyt,
+      // Mapping.DenseFloat(Dataset.AnnbNyt.dims),
+      // NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
+      Mapping.AngularLsh(Dataset.AnnbNyt.dims, 400, 3),
+      NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500),
+      Mapping.AngularLsh(Dataset.AnnbNyt.dims, 400, 3),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10)
+      )
+    )
+    s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
+    Execute(
+      Execute.Params(
+        experimentHash = exp.md5sum,
+        experimentsBucket = "elastiknn-benchmarks",
+        experimentsPrefix = "experiments",
+        datasetsBucket = "elastiknn-benchmarks",
+        datasetsPrefix = "data/processed",
+        resultsBucket = "elastiknn-benchmarks",
+        resultsPrefix = "results",
+        parallelism = 14,
+        s3Minio = true,
+        skipExisting = false
+      )).exitCode
+  }
+}

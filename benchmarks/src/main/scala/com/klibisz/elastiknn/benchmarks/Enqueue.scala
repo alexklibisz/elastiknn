@@ -2,14 +2,13 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 import java.nio.file.Files
-import java.util.Base64
 
-import zio._
-import zio.console._
+import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.syntax._
-import codecs._
 import org.apache.commons.codec.digest.DigestUtils
+import zio._
 import zio.blocking.Blocking
+import zio.console._
 
 import scala.util.Random
 

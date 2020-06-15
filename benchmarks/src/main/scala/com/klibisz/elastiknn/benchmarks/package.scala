@@ -6,6 +6,7 @@ import com.klibisz.elastiknn.api._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Codec, Encoder}
+import org.apache.commons.codec.digest.DigestUtils
 import zio.Has
 
 import scala.language.implicitConversions
@@ -44,10 +45,7 @@ package object benchmarks {
                               exactQuery: NearestNeighborsQuery,
                               testMapping: Mapping,
                               testQueries: Seq[Query]) {
-    def toBase64: String = {
-      implicit val encoder: Encoder[Experiment] = (a: Experiment) => codecs.experimentCodec.apply(a)
-      Base64.getEncoder.encodeToString(this.asJson.noSpaces.getBytes())
-    }
+    def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
   }
 
   final case class QueryResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
