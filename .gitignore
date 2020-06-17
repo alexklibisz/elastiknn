@@ -5,6 +5,8 @@ build
 target
 release.md
 *.csv
+.minio/*
+!.minio/.keep
 
 # Ignore Gradle GUI config
 gradle-app.setting

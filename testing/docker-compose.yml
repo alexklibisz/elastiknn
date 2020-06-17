@@ -4,7 +4,7 @@ services:
   # Single master node.
   elasticsearch_master:
     build:
-      context: ${ES_CONTEXT:-../es74x}
+      context: ${ES_CONTEXT:-../plugin}
       dockerfile: Dockerfile
     container_name: elasticsearch_master
     environment:
@@ -28,7 +28,7 @@ services:
   # Single client node exposing port 9200.
   elasticsearch_client:
     build:
-      context: ${ES_CONTEXT:-../es74x}
+      context: ${ES_CONTEXT:-../plugin}
       dockerfile: Dockerfile
     ports:
       - "9200:9200"
@@ -56,7 +56,7 @@ services:
   # 1 or more data nodes (--scale elasticsearch_data=n)
   elasticsearch_data:
     build:
-      context: ${ES_CONTEXT:-../es74x}
+      context: ${ES_CONTEXT:-../plugin}
       dockerfile: Dockerfile
     environment:
       - cluster.name=docker-cluster

@@ -1,0 +1,47 @@
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+    }
+}
+
+version = "${version}_es${esVersion}"
+
+apply plugin: 'elasticsearch.esplugin'
+
+licenseFile = rootProject.file("LICENSE.txt")
+noticeFile = rootProject.file("NOTICE.txt")
+
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+licenseHeaders.enabled = false
+testingConventions.enabled = false
+licenseHeaders.enabled = false
+
+configurations {
+    all {
+        resolutionStrategy.preferProjectModules()
+    }
+}
+
+dependencies {
+    runtime project(':core')
+    implementation project(':core')
+    runtime "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "org.scala-lang:scala-library:${scalaVersion}"
+    implementation "com.google.guava:guava:28.1-jre"
+    runtime "com.google.guava:guava:28.1-jre"
+}
+
+esplugin {
+    name 'elastiknn'
+    description 'Ingest processor and queries for exact and approximate nearest neighbors search'
+    classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
+    licenseFile rootProject.file('LICENSE.txt')
+    noticeFile rootProject.file('NOTICE.txt')
+}

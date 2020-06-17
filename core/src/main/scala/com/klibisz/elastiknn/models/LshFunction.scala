@@ -1,12 +1,14 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.storage
+import com.klibisz.elastiknn.storage.StoredVec
 
 import scala.util.Random
 
-sealed trait LshFunction[M <: Mapping, V <: Vec] extends (V => Array[Int]) {
+sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
   val mapping: M
-  val exact: ExactSimilarityFunction[V]
+  val exact: ExactSimilarityFunction[V, S]
 }
 
 object LshFunction {
@@ -29,9 +31,10 @@ object LshFunction {
     *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
     *                rows: number of rows in each band. Generally, more rows yield higher precision.
     */
-  final class Jaccard(override val mapping: Mapping.JaccardLsh) extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool] {
+  final class Jaccard(override val mapping: Mapping.JaccardLsh)
+      extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
 
-    override val exact: ExactSimilarityFunction[Vec.SparseBool] = ExactSimilarityFunction.Jaccard
+    override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Jaccard
 
     import mapping._
     private val rng: Random = new Random(0)
@@ -75,8 +78,9 @@ object LshFunction {
     * @param mapping HammingLsh Mapping. The members are used as follows:
     *                 bits: determines the number of randomly sampled indices.
     */
-  final class Hamming(override val mapping: Mapping.HammingLsh) extends LshFunction[Mapping.HammingLsh, Vec.SparseBool] {
-    override val exact: ExactSimilarityFunction[Vec.SparseBool] = ExactSimilarityFunction.Hamming
+  final class Hamming(override val mapping: Mapping.HammingLsh)
+      extends LshFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
+    override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Hamming
 
     import mapping._
     private val rng: Random = new Random(0)
@@ -123,8 +127,9 @@ object LshFunction {
     *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
     *                rows: number of rows per band. Generally, more rows yield higher precision.
     */
-  final class Angular(override val mapping: Mapping.AngularLsh) extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat] {
-    override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.Angular
+  final class Angular(override val mapping: Mapping.AngularLsh)
+      extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.Angular
 
     import mapping._
     private implicit val rng: Random = new Random(0)
@@ -164,12 +169,12 @@ object LshFunction {
     *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
     *                       Note that this often referred to as `L`, or the number of hash tables.
     *                rows: number of rows per band. Generally, more rows yield higher precision.
-    *                      Note that this is oten called `k`, or the number of functions per hash table.
+    *                      Note that this is often called `k`, or the number of functions per hash table.
     *                width: width of the interval that determines two floating-point hashed values are equivalent.
     *
     */
-  final class L2(override val mapping: Mapping.L2Lsh) extends LshFunction[Mapping.L2Lsh, Vec.DenseFloat] {
-    override val exact: ExactSimilarityFunction[Vec.DenseFloat] = ExactSimilarityFunction.L2
+  final class L2(override val mapping: Mapping.L2Lsh) extends LshFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+    override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.L2
 
     import mapping._
     private implicit val rng: Random = new Random(0)

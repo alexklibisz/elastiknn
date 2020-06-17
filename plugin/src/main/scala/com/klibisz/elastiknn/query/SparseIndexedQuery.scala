@@ -4,7 +4,7 @@ import java.util.Objects
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
-import com.klibisz.elastiknn.storage.ByteArrayCodec
+import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
@@ -24,7 +24,7 @@ object SparseIndexedQuery {
           if (numTrueDocValues.advanceExact(docId)) {
             val numTrue = numTrueDocValues.longValue().toInt
             // Subtract one from intersection to account for value exists query in boolean query.
-            simFunc(queryVec, intersection.toInt - 1, numTrue).toFloat
+            simFunc(queryVec, intersection.toInt - 1, numTrue)
           } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
         }
 
@@ -49,7 +49,7 @@ object SparseIndexedQuery {
       val builder = new BooleanQuery.Builder
       builder.add(new BooleanClause(new DocValuesFieldExistsQuery(numTrueDocValueField(field)), BooleanClause.Occur.MUST))
       queryVec.trueIndices.foreach { ti =>
-        val term = new Term(field, new BytesRef(ByteArrayCodec.encode(ti)))
+        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(ti)))
         val termQuery = new TermQuery(term)
         val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
         builder.add(clause)
@@ -72,7 +72,7 @@ object SparseIndexedQuery {
 
   def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
-      new Field(field, ByteArrayCodec.encode(ti), trueIndicesFieldType)
+      new Field(field, UnsafeSerialization.writeInt(ti), trueIndicesFieldType)
     } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
   }
 

@@ -1,3 +1,10 @@
+- Removed the internal vector caching and instead using `sun.misc.Unsafe` to speed up vector serialization and deserialization.
+  The result is actually faster queries _without_ caching than it previously had _with_ caching.
+  Also able to remove the protobuf dependency which was previously used to serialize vectors.
+- Upgraded Elasticsearch version from 7.4.0 to 7.6.2. 
+  Attempted to use 7.7.1 but the Apache Lucene version used in 7.7.x introduces a performance regression ([Details](https://issues.apache.org/jira/browse/LUCENE-9378)).
+  Switching from Java 13 to 14 also yields a slight speedup for intersections on sparse vectors.
+---
 - Internal change from custom Lucene queries to FunctionScoreQueries. This reduces quite a bit of boilerplate code and 
 surface area for bugs and performance regressions.
 - Add optional progress bar to Python ElastiknnModel.

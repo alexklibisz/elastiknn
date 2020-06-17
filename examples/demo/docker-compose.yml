@@ -20,7 +20,7 @@ services:
   # Single elasticsearch container.
   elasticsearch:
     build:
-      context: ${ES_CONTEXT:-../../es74x}
+      context: ${ES_CONTEXT:-../../plugin}
       dockerfile: Dockerfile
     container_name: elasticsearch
     ports:

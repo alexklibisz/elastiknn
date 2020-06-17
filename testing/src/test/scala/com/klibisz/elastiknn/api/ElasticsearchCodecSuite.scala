@@ -29,7 +29,8 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
     def shouldNotDecodeTo[T: ElasticsearchCodec]: Assertion = {
       val parsed = ElasticsearchCodec.parse(s)
-      assertThrows[DecodingFailure](parsed.flatMap(ElasticsearchCodec.decodeJson[T]).toTry.get)
+      val tryDecode = parsed.flatMap(ElasticsearchCodec.decodeJson[T]).toTry
+      assertThrows[DecodingFailure](tryDecode.get)
     }
 
   }

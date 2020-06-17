@@ -4,7 +4,7 @@ core = $(pwd)/core
 vpip = ./venv/bin/pip
 vpy = ./venv/bin/python
 gradle = ./gradlew
-eslatest = es74x
+eslatest = plugin
 s3 = aws s3
 build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
@@ -76,17 +76,17 @@ run/cluster: .mk/run-cluster
 
 run/gradle:
 	cd testing && $(dc) down
-	$(gradle) run $(shell cat .esopts | xargs)
+	$(gradle) :plugin:run $(shell cat .esopts | xargs)
 
 run/debug:
 	cd testing && $(dc) down
-	$(gradle) run $(shell cat .esopts | xargs) --debug-jvm
+	$(gradle) :plugin:run $(shell cat .esopts | xargs) --debug-jvm
 
 run/kibana:
-	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.4.0
+	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.6.2
 	docker ps | grep kibana
 
-run/demo/app: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
+run/demo: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
 	cd examples/demo && \
 	PLAY_HTTP_SECRET_KEY=$(shell sha256sum ~/.ssh/id_rsa | cut -d' ' -f1) $(dc) up --build --detach
 
@@ -161,4 +161,3 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 publish/site: .mk/jekyll-site-build
 	mkdir -p docs/_site/docs
 	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
-	

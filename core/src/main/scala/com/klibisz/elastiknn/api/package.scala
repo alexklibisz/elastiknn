@@ -26,7 +26,7 @@ package object api {
         case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
         case _                 => false
       }
-      override def toString: String = s"SparseBool(${trueIndices.take(3).mkString(",")},...,$totalIndices)"
+      override def toString: String = s"SparseBool(${trueIndices.take(3).mkString(",")},...,${trueIndices.length}/$totalIndices)"
     }
 
     object SparseBool {
@@ -57,7 +57,6 @@ package object api {
         }
         dp
       }
-
     }
 
     object DenseFloat {
@@ -69,6 +68,9 @@ package object api {
     }
 
     final case class Indexed(index: String, id: String, field: String) extends Vec
+
+    private[elastiknn] final case class Empty() extends Vec
+
   }
 
   sealed trait Mapping {

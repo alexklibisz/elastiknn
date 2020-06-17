@@ -8,9 +8,10 @@ import com.klibisz.elastiknn.query.{ExactQuery, LshQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
-import org.apache.lucene.index.IndexableField
+import org.apache.lucene.index.{IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query}
+import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermInSetQuery, TermQuery}
+import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
@@ -146,8 +147,13 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
     override def typeName(): String = CONTENT_TYPE
     override def clone(): FieldType = new FieldType
-    override def termQuery(value: Any, context: QueryShardContext): Query =
-      throw new UnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support queries")
+    override def termQuery(value: Any, context: QueryShardContext): Query = value match {
+      case b: BytesRef => new TermQuery(new Term(name(), b))
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
+    }
+
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
   }
 
