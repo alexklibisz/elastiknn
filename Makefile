@@ -13,8 +13,6 @@ src_all = $(shell git diff --name-only --diff-filter=ACMR)
 site_srvr = elastiknn-site
 site_main = elastiknn.klibisz.com
 site_arch = archive.elastiknn.klibisz.com
-ecr_prefix = ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
-ecr_benchmarks_prefix = $(ecr_prefix)/elastiknn-benchmarks-cluster
 
 clean:
 	./gradlew clean
@@ -163,44 +161,3 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 publish/site: .mk/jekyll-site-build
 	mkdir -p docs/_site/docs
 	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
-
-.mk/benchmarks-assemble: $(src_all)
-	$(gradle) :benchmarks:shadowJar
-	touch $@
-
-.mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
-	cd plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
-	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
-	cd benchmarks/python \
-	&& (ls venv || python3 -m virtualenv venv) \
-	&& venv/bin/pip install -r requirements.txt \
-	&& docker build -t $(ecr_benchmarks_prefix).datasets .
-	touch $@
-
-.mk/benchmarks-docker-push: benchmarks/docker/login benchmarks/docker/build
-	docker push $(ecr_benchmarks_prefix).elastiknn
-	docker push $(ecr_benchmarks_prefix).driver
-	docker push $(ecr_benchmarks_prefix).datasets
-	touch $@
-
-benchmarks/docker/login:
-	$$(aws ecr get-login --no-include-email)
-
-benchmarks/docker/build: .mk/benchmarks-docker-build
-
-benchmarks/docker/push: .mk/benchmarks-docker-push
-
-benchmarks/minio:
-	docker run -p 9000:9000 -v $(pwd)/.minio:/data minio/minio server /data
-
-benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
-	cd benchmarks/deploy \
-	&& envsubst < benchmark-workflow.yaml | argo submit -
-
-benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
-	cd benchmarks/deploy \
-	&& envsubst < datasets-workflow.yaml | argo submit -
-
-benchmarks/adhoc:
-	cd benchmarks/deploy \
-	&& envsubst < adhoc-pod.yaml | kubectl apply -f -
