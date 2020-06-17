@@ -102,6 +102,7 @@ object Execute extends App {
             } yield ()
         }
         _ <- eknnClient.execute(refreshIndex(trainIndexName, testIndexName))
+        _ <- eknnClient.execute(forceMerge(trainIndexName, testIndexName))
       } yield ()
     }
 
@@ -159,6 +160,7 @@ object Execute extends App {
 
       // Run searches on the holdout vectors.
       (singleResults, totalDuration) <- search(testVecs)
+      _ <- log.info(s"Completed ${singleResults.length} searches in ${totalDuration / 1000f} seconds")
 
     } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, parallelism, totalDuration, singleResults)
   }
@@ -254,17 +256,14 @@ object ExecuteLocal extends App {
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val dataset = Dataset.RandomDenseFloat(1024, 50000)
+    val dataset = Dataset.RandomSparseBool(1000, 10000)
     val exp = Experiment(
       dataset,
-      Mapping.L2Lsh(dataset.dims, 200, 2, 1),
-      NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100),
-      Mapping.L2Lsh(dataset.dims, 200, 2, 1),
+      Mapping.SparseIndexed(dataset.dims),
+      NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard),
+      Mapping.SparseIndexed(dataset.dims),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
-        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
-        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
-        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100)
+        Query(NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard), 100)
       )
     )
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)

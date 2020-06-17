@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.query
 import java.util.Objects
 
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField}
@@ -54,6 +55,7 @@ object SparseIndexedQuery {
         val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
         builder.add(clause)
       }
+      builder.setMinimumNumberShouldMatch(1)
       builder.build()
     }
     val f = new SparseIndexedScoreFunction(field, queryVec, simFunc)
@@ -62,17 +64,9 @@ object SparseIndexedQuery {
 
   def numTrueDocValueField(field: String): String = s"$field.num_true"
 
-  private val trueIndicesFieldType: FieldType = {
-    val ft = new FieldType
-    ft.setIndexOptions(IndexOptions.DOCS)
-    ft.setTokenized(false)
-    ft.freeze()
-    ft
-  }
-
   def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
-      new Field(field, UnsafeSerialization.writeInt(ti), trueIndicesFieldType)
+      new Field(field, UnsafeSerialization.writeInt(ti), VectorMapper.simpleTokenFieldType)
     } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
   }
 
