@@ -138,6 +138,44 @@ class Mapping:
                 }
             }
 
+    @dataclass(frozen=True)
+    class AngularLsh(Base):
+        dims: int
+        bands: int
+        rows: int
+
+        def to_dict(self):
+            return {
+                "type": "elastiknn_dense_float_vector",
+                "elastiknn": {
+                    "model": "lsh",
+                    "similarity": "angular",
+                    "dims": self.dims,
+                    "bands": self.bands,
+                    "rows": self.rows
+                }
+            }
+
+    @dataclass(frozen=True)
+    class L2LSH(Base):
+        dims: int
+        bands: int
+        rows: int
+        width: int
+
+        def to_dict(self):
+            return {
+                "type": "elastiknn_dense_float_vector",
+                "elastiknn": {
+                    "model": "lsh",
+                    "similarity": "l2",
+                    "dims": self.dims,
+                    "bands": self.bands,
+                    "rows": self.rows,
+                    "width": self.width
+                }
+            }
+
 
 class NearestNeighborsQuery:
 
@@ -223,4 +261,41 @@ class NearestNeighborsQuery:
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.HammingLsh(self.field, vec, self.similarity, self.candidates)
 
+    @dataclass(frozen=True)
+    class AngularLsh(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.Angular
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.AngularLsh(self.field, vec, self.similarity, self.candidates)
+
+    @dataclass(frozen=True)
+    class L2LSH(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.L2
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.L2LSH(self.field, vec, self.similarity, self.candidates)
 
