@@ -8,7 +8,7 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
-import org.apache.lucene.document.{Field, FieldType}
+import org.apache.lucene.document.Field
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
