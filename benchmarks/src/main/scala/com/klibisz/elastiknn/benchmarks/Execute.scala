@@ -4,7 +4,6 @@ import java.util.concurrent.TimeUnit
 
 import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.benchmarks.Execute.getClass
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
 import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
@@ -79,7 +78,7 @@ object Execute extends App {
     // Create a primary and holdout index with same mappings.
     // Split stream of vectors into primary and holdout vectors and index them separately.
     // Return the holdout ids so they can be consumed to run queries.
-    def buildIndex() = {
+    def buildIndex(chunkSize: Int = 500) = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
         _ <- log.info(s"Creating index $trainIndexName with mapping $eknnMapping and parallelism $parallelism")
@@ -88,14 +87,14 @@ object Execute extends App {
         _ <- eknnClient.execute(createIndex(testIndexName).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Indexing vectors for dataset $dataset")
-        _ <- datasets.streamTrain[Vec](dataset).grouped(500).zipWithIndex.foreach {
+        _ <- datasets.streamTrain[Vec](dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
             for {
               (dur, _) <- eknnClient.index(trainIndexName, eknnQuery.field, vecs).timed
               _ <- log.debug(s"Indexed batch $batchIndex to $trainIndexName in ${dur.toMillis} ms")
             } yield ()
         }
-        _ <- datasets.streamTest[Vec](dataset).grouped(500).zipWithIndex.foreach {
+        _ <- datasets.streamTest[Vec](dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
             for {
               (dur, _) <- eknnClient.index(testIndexName, eknnQuery.field, vecs).timed
@@ -126,7 +125,6 @@ object Execute extends App {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
         requests = testVecs.zipWithIndex.mapMPar(parallelism) {
-          // requests = testVecs.zipWithIndex.mapMPar(1) {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
@@ -135,7 +133,6 @@ object Execute extends App {
               QueryResult(res.result.hits.hits.map(_.id), res.result.took)
             }
         }
-
         (dur, responses) <- requests.run(ZSink.collectAll).timed
       } yield (responses, dur.toMillis)
     }
@@ -253,22 +250,21 @@ object Execute extends App {
 
 }
 
-object ExecuteLocalDenseFloat extends App {
+object ExecuteLocal extends App {
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
+    val dataset = Dataset.RandomDenseFloat(1024, 50000)
     val exp = Experiment(
-      Dataset.AnnbNyt,
-      // Mapping.DenseFloat(Dataset.AnnbNyt.dims),
-      // NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbNyt.dims, 400, 3),
-      NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500),
-      Mapping.AngularLsh(Dataset.AnnbNyt.dims, 400, 3),
+      dataset,
+      Mapping.L2Lsh(dataset.dims, 200, 2, 1),
+      NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100),
+      Mapping.L2Lsh(dataset.dims, 200, 2, 1),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10),
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 10)
+        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
+        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
+        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100),
+        Query(NearestNeighborsQuery.L2Lsh("vec", Vec.Empty(), 100), 100)
       )
     )
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
@@ -281,9 +277,10 @@ object ExecuteLocalDenseFloat extends App {
         datasetsPrefix = "data/processed",
         resultsBucket = "elastiknn-benchmarks",
         resultsPrefix = "results",
-        parallelism = 14,
+        parallelism = 10,
         s3Minio = true,
         skipExisting = false
       )).exitCode
   }
+
 }

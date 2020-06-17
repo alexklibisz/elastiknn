@@ -9,9 +9,12 @@ import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
+import org.apache.lucene.queryparser.xml.builders.MatchAllDocsQueryBuilder
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
+import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder
+import org.elasticsearch.index.query.{BoolQueryBuilder, ConstantScoreQueryBuilder, MoreLikeThisQueryBuilder, QueryBuilder, TermQueryBuilder}
 
 object LshQuery {
 
@@ -27,14 +30,15 @@ object LshQuery {
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
       val vecDocVals = ctx.reader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
 
-      def exactScore(docId: Int): Double = if (vecDocVals.advanceExact(docId)) {
-        val binVal = vecDocVals.binaryValue
-        val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
-        lshFunc.exact(query, storedVec)
-      } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+      def exactScore(docId: Int): Double =
+        if (vecDocVals.advanceExact(docId)) {
+          val binVal = vecDocVals.binaryValue
+          val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
+          lshFunc.exact(query, storedVec)
+        } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
 
       new LeafScoreFunction {
-        override def score(docId: Int, intersection: Float): Double = {
+        override def score(docId: Int, intersection: Float): Double =
           if (candidates == 0) intersection
           else if (candsHeap.size() < candidates) {
             candsHeap.add(intersection)
@@ -44,7 +48,6 @@ object LshQuery {
             candsHeap.add(intersection)
             exactScore(docId)
           } else 0f
-        }
 
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
           Explanation.`match`(100, "Computing LSH similarity")
@@ -67,16 +70,17 @@ object LshQuery {
       mapping: M,
       queryVec: V,
       candidates: Int,
-      lshFunctionCache: LshFunctionCache[M, V, S])(implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
+      lshFunctionCache: LshFunctionCache[M, V, S])(implicit codec: StoredVec.Codec[V, S]): Query = {
     val lshFunc: LshFunction[M, V, S] = lshFunctionCache(mapping)
     val isecQuery: BooleanQuery = {
       val builder = new BooleanQuery.Builder
       lshFunc(queryVec).foreach { h =>
         val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
         val termQuery = new TermQuery(term)
-        val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
-        builder.add(clause)
+        val constQuery = new ConstantScoreQuery(termQuery) // TODO: is this necessary?
+        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
       }
+      builder.setMinimumNumberShouldMatch(1)
       builder.build()
     }
     val func = new LshScoreFunction(field, queryVec, candidates, lshFunc)
