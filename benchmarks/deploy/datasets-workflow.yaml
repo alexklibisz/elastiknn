@@ -1,0 +1,132 @@
+# Use envsubst to "render" the file.
+# Seems like the most I can allocate on a c5.4xlarge is 15 CPUs and 26Gi memory.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: datasets-
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: dataset-list
+        value: |
+          [
+            "amazonhome",
+            "amazonhomeunit",
+            "annbdeep1b",
+            "annbfashionmnist",
+            "annbgist",
+            "annbglove100",
+            "annbkosarak",
+            "annbmnist",
+            "annbnyt",
+            "annbsift"
+          ]
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: dataset-list
+      steps:
+        - - name: single-dataset
+            template: single-dataset
+            arguments:
+              parameters:
+                - name: dataset
+                  value: "{{item}}"
+            withParam: "{{inputs.parameters.dataset-list}}"
+
+    - name: single-dataset
+      parallelism: 10
+      inputs:
+        parameters:
+          - name: dataset
+      steps:
+      - - name: create-pvc
+          template: create-pvc
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
+      - - name: create-dataset
+          template: create-dataset
+          continueOn:
+            failed: true
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
+      - - name: delete-pvc
+          template: delete-pvc
+          arguments:
+            parameters:
+              - name: dataset
+                value: "{{inputs.parameters.dataset}}"
+
+    - name: create-pvc
+      inputs:
+        parameters:
+          - name: dataset
+      resource:
+        action: create
+        manifest: |
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: "{{workflow.name}}-{{inputs.parameters.dataset}}"
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 80Gi
+
+    - name: delete-pvc
+      inputs:
+        parameters:
+          - name: dataset
+      container:
+        image: "argoproj/argoexec:v2.8.0"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            /bin/sh <<'EOSCRIPT'
+            set -e
+            kubectl delete pvc {{workflow.name}}-{{inputs.parameters.dataset}}
+            kubectl patch --type merge -p '{"metadata":{"finalizers":null}}' pvc {{workflow.name}}-{{inputs.parameters.dataset}}
+            EOSCRIPT
+
+    - name: create-dataset
+      inputs:
+        parameters:
+          - name: dataset
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: "{{workflow.name}}-{{inputs.parameters.dataset}}"
+      container:
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.datasets
+        imagePullPolicy: "Always"
+        args:
+          - "preprocess.py"
+          - "{{inputs.parameters.dataset}}"
+          - /mnt/data
+          - elastiknn-benchmarks
+          - "data/processed/{{inputs.parameters.dataset}}"
+        volumeMounts:
+          - name: data
+            mountPath: /mnt/data
+            readOnly: false
+        env:
+          # Technically bad practice, but easier than setting up KIAM.
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+        resources:
+          requests:
+            cpu: 1
+            memory: 2Gi
+          limits:
+            cpu: 1
+            memory: 2Gi

@@ -1,0 +1,22 @@
+# Useful for debugging inside the k8s cluster.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: adhoc
+spec:
+  nodeSelector:
+    beta.kubernetes.io/instance-type: c5.xlarge
+  containers:
+    - name: adhoc
+      image: ubuntu:20.04
+      resources:
+        limits:
+          cpu: 1
+          memory: 2Gi
+      command: ["tail"]
+      args: ["-f", "/dev/null"]
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: ${AWS_ACCESS_KEY_ID}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ${AWS_SECRET_ACCESS_KEY}

@@ -1,0 +1,241 @@
+# Use envsubst to "render" the file.
+# Seems like the most I can allocate on a c5.4xlarge is 15 CPUs and 26Gi memory.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: elastiknn-benchmark-
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      parallelism: 30 # EKS seems to choke somewhere around 50 nodes.
+      steps:
+        - - name: enqueue-experiments
+            template: enqueue-experiments
+          - name: apply-configmap
+            template: apply-configmap
+        - - name: execute-experiment
+            template: execute-experiment
+            arguments:
+              parameters:
+                - name: hash
+                  value: "{{item}}"
+            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
+        - - name: aggregate-results
+            template: aggregate-results
+
+    - name: enqueue-experiments
+      container:
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        imagePullPolicy: "Always"
+        args:
+          - com.klibisz.elastiknn.benchmarks.Enqueue
+          - --datasetsFilter
+          - "AnnbGlove100"
+          - --experimentsBucket
+          - elastiknn-benchmarks
+          - --experimentsPrefix
+          - experiments
+          - --file
+          - /tmp/hashes.txt
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+      outputs:
+        parameters:
+          - name: hashes
+            valueFrom:
+              path: /tmp/hashes.txt
+
+    - name: apply-configmap
+      resource:
+        action: apply
+        manifest: |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: esconfig
+          data:
+            elasticsearch.yml: |
+              cluster.name: "no-cluster"
+              network.host: 0.0.0.0
+
+    - name: execute-experiment
+      inputs:
+        parameters:
+          - name: hash
+      retryStrategy:
+        limit: 1
+        retryPolicy: "Always"
+      steps:
+        - - name: create-pvc
+            template: create-pvc
+        - - name: execute-driver
+            template: execute-driver
+            continueOn:
+              failed: true
+            arguments:
+              parameters:
+                - name: hash
+                  value: "{{inputs.parameters.hash}}"
+                - name: pvc-name
+                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+        - - name: delete-pvc
+            template: delete-pvc
+            arguments:
+              parameters:
+                - name: pvc-name
+                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
+        - - name: exit
+            template: exit
+            arguments:
+              parameters:
+                - name: code
+                  value: "{{steps.execute-driver.exitCode}}"
+
+    - name: aggregate-results
+      container:
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        imagePullPolicy: "Always"
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+        args:
+          - com.klibisz.elastiknn.benchmarks.Aggregate
+          - --resultsBucket
+          - elastiknn-benchmarks
+          - --resultsPrefix
+          - results/raw
+          - --aggregateBucket
+          - elastiknn-benchmarks
+          - --aggregateKey
+          - results/aggregate/aggregate.csv
+
+    - name: create-pvc
+      resource:
+        action: create
+        manifest: |
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            generateName: "{{workflow.name}}-"
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 50Gi
+            storageClassName: storage-10-iops
+      outputs:
+        parameters:
+          - name: pvc-name
+            valueFrom:
+              jsonPath: '{.metadata.name}'
+
+    # Have to delete and then patch in order to remove the finalizer that prevents deletion.
+    # Otherwise this gets stuck in the `Terminating` state.
+    - name: delete-pvc
+      inputs:
+        parameters:
+          - name: pvc-name
+      container:
+        image: "argoproj/argoexec:v2.8.0"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            /bin/sh <<'EOSCRIPT'
+            set -e
+            kubectl delete pvc {{inputs.parameters.pvc-name}}
+            kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
+            EOSCRIPT
+
+    - name: exit
+      inputs:
+        parameters:
+          - name: code
+      container:
+        image: alpine
+        command: [sh, -c]
+        args: ["exit {{inputs.parameters.code}}"]
+
+    - name: execute-driver
+      inputs:
+        parameters:
+          - name: hash
+          - name: pvc-name
+      volumes:
+        - name: esdata
+          persistentVolumeClaim:
+            claimName: "{{inputs.parameters.pvc-name}}"
+        - name: esconfig
+          configMap:
+            name: esconfig
+      securityContext:
+        fsGroup: 1000 # Sets the correct permissions for mounted volume.
+      container:
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        imagePullPolicy: "Always"
+        args:
+          - com.klibisz.elastiknn.benchmarks.Execute
+          - --experimentHash
+          - "{{inputs.parameters.hash}}"
+          - --experimentsBucket
+          - elastiknn-benchmarks
+          - --experimentsPrefix
+          - "experiments"
+          - --datasetsBucket
+          - elastiknn-benchmarks
+          - --datasetsPrefix
+          - "data/processed"
+          - --resultsBucket
+          - "elastiknn-benchmarks"
+          - --resultsPrefix
+          - "results/raw"
+          - --parallelism
+          - "14"
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+          - name: JAVA_OPTS
+            value: >-
+              -XX:MinRAMPercentage=10
+              -XX:MaxRAMPercentage=90
+        resources:
+          requests:
+            cpu: 1
+            memory: 2G
+          limits:
+            cpu: 1
+            memory: 2G
+      sidecars:
+        - name: elastiknn
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+          imagePullPolicy: "Always"
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: ES_JAVA_OPTS
+              value: >-
+                -Xms15G
+                -Xmx15G
+          volumeMounts:
+            - name: esdata
+              mountPath: /usr/share/elasticsearch/data
+              readOnly: false
+            - name: esconfig
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 14
+              memory: 24G
+            limits:
+              cpu: 14
+              memory: 24G

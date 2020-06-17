@@ -1,0 +1,5 @@
+images:
+  tag: v2.8.0
+useDefaultArtifactRepo: true
+minio:
+  install: true
