@@ -5,16 +5,14 @@ import java.util.Objects
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
-import org.apache.lucene.queryparser.xml.builders.MatchAllDocsQueryBuilder
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder
-import org.elasticsearch.index.query.{BoolQueryBuilder, ConstantScoreQueryBuilder, MoreLikeThisQueryBuilder, QueryBuilder, TermQueryBuilder}
 
 object LshQuery {
 
@@ -77,8 +75,7 @@ object LshQuery {
       lshFunc(queryVec).foreach { h =>
         val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
         val termQuery = new TermQuery(term)
-        val constQuery = new ConstantScoreQuery(termQuery) // TODO: is this necessary?
-        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
+        builder.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD))
       }
       builder.setMinimumNumberShouldMatch(1)
       builder.build()
@@ -87,18 +84,10 @@ object LshQuery {
     new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
-  private val hashesFieldType: FieldType = {
-    val ft = new FieldType
-    ft.setIndexOptions(IndexOptions.DOCS)
-    ft.setTokenized(false)
-    ft.freeze()
-    ft
-  }
-
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
-      new Field(field, UnsafeSerialization.writeInt(h), hashesFieldType)
+      new Field(field, UnsafeSerialization.writeInt(h), VectorMapper.simpleTokenFieldType)
     }
   }
 

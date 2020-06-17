@@ -8,9 +8,10 @@ import com.klibisz.elastiknn.query.{ExactQuery, LshQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
-import org.apache.lucene.index.{IndexableField, Term}
+import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermInSetQuery, TermQuery}
+import org.apache.lucene.document
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
@@ -56,6 +57,36 @@ object VectorMapper {
   private def incompatible(m: Mapping, v: Vec): Exception = new IllegalArgumentException(
     s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
   )
+
+  class FieldType(typeName: String) extends MappedFieldType {
+
+    // We generally only care about the presence or absence of terms, not their counts or anything fancier.
+    this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
+    this.setOmitNorms(true)
+    this.setBoost(1f)
+    this.setTokenized(false)
+
+    override def typeName(): String = typeName
+    override def clone(): FieldType = new FieldType(typeName)
+    override def termQuery(value: Any, context: QueryShardContext): Query = value match {
+      case b: BytesRef => new TermQuery(new Term(name(), b))
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
+    }
+
+    override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
+  }
+
+  val simpleTokenFieldType: document.FieldType = {
+    val ft = new document.FieldType
+    ft.setIndexOptions(IndexOptions.DOCS)
+    ft.setTokenized(false)
+    ft.setOmitNorms(true)
+    ft.freeze()
+    ft
+  }
+
 }
 
 abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
@@ -63,7 +94,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   val CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  private val fieldType = new this.FieldType
+  private val fieldType = new VectorMapper.FieldType(CONTENT_TYPE)
 
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
@@ -138,23 +169,6 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
         }
       }
     }
-  }
-
-  class FieldType extends MappedFieldType {
-
-    // We generally only care about the presence or absence of terms, not their counts or anything fancier.
-    this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
-
-    override def typeName(): String = CONTENT_TYPE
-    override def clone(): FieldType = new FieldType
-    override def termQuery(value: Any, context: QueryShardContext): Query = value match {
-      case b: BytesRef => new TermQuery(new Term(name(), b))
-      case _ =>
-        throw new UnsupportedOperationException(
-          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
-    }
-
-    override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
   }
 
 }
