@@ -1,3 +1,4 @@
+# Useful for debugging inside the k8s cluster.
 apiVersion: v1
 kind: Pod
 metadata:

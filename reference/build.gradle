@@ -6,11 +6,7 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation 'org.apache.commons:commons-math3:3.6.1'
     implementation 'org.apache.spark:spark-mllib_2.12:2.4.4'
-<<<<<<< HEAD
-    implementation "org.elasticsearch:elasticsearch:7.7.1"
-=======
     implementation "org.elasticsearch:elasticsearch:7.6.2"
->>>>>>> master
     implementation 'org.apache.lucene:lucene-codecs:8.2.0'
     implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
