@@ -256,14 +256,14 @@ object ExecuteLocal extends App {
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val dataset = Dataset.RandomDenseFloat(1000, 20000)
+    val dataset = Dataset.RandomSparseBool(1000, 10000)
     val exp = Experiment(
       dataset,
-      Mapping.AngularLsh(dataset.dims, 300, 1),
-      NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 100),
-      Mapping.AngularLsh(dataset.dims, 300, 1),
+      Mapping.SparseIndexed(dataset.dims),
+      NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard),
+      Mapping.SparseIndexed(dataset.dims),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 100), 100)
+        Query(NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard), 100)
       )
     )
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
