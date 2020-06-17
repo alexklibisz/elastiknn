@@ -7,7 +7,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.BinaryDocValuesField
-import org.apache.lucene.index.{BinaryDocValues, IndexableField, LeafReaderContext}
+import org.apache.lucene.index.{IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Explanation}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function._

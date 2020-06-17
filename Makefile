@@ -163,6 +163,7 @@ publish/docs: .mk/gradle-docs .mk/client-python-docs
 publish/site: .mk/jekyll-site-build
 	mkdir -p docs/_site/docs
 	rsync -av --delete --exclude docs docs/_site/ $(site_srvr):$(site_main)
+<<<<<<< HEAD
 
 .mk/benchmarks-assemble: $(src_all)
 	$(gradle) :benchmarks:shadowJar

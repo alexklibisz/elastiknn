@@ -151,7 +151,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
       case b: BytesRef => new TermQuery(new Term(name(), b))
       case _ =>
         throw new UnsupportedOperationException(
-          s"Field [${name()}] of type [${typeName()}] doesn't support queries with value of type [${value.getClass}]")
+          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
     }
 
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
