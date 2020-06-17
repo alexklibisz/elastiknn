@@ -125,7 +125,7 @@ object Execute extends App {
     def search(testVecs: Stream[Throwable, Vec]) = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        requests = testVecs.zipWithIndex.mapMPar(1) {
+        requests = testVecs.zipWithIndex.mapMPar(parallelism) {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
