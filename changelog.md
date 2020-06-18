@@ -1,3 +1,7 @@
+- Omitting norms in LSH and sparse indexed queries. 
+  This shaves ~15% of runtime off of a sparse indexed benchmark. 
+  Results for LSH weren't as meaningful unfortunately.   
+---
 - Removed the internal vector caching and instead using `sun.misc.Unsafe` to speed up vector serialization and deserialization.
   The result is actually faster queries _without_ caching than it previously had _with_ caching.
   Also able to remove the protobuf dependency which was previously used to serialize vectors.
