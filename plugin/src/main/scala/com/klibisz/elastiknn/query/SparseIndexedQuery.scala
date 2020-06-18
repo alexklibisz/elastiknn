@@ -6,7 +6,7 @@ import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.UnsafeSerialization
-import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField}
+import org.apache.lucene.document.{Field, NumericDocValuesField}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
@@ -52,7 +52,8 @@ object SparseIndexedQuery {
       queryVec.trueIndices.foreach { ti =>
         val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(ti)))
         val termQuery = new TermQuery(term)
-        val clause = new BooleanClause(termQuery, BooleanClause.Occur.SHOULD)
+        val constQuery = new ConstantScoreQuery(termQuery)
+        val clause = new BooleanClause(constQuery, BooleanClause.Occur.SHOULD)
         builder.add(clause)
       }
       builder.setMinimumNumberShouldMatch(1)

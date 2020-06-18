@@ -1,3 +1,7 @@
+- Using ConstantScoreQuery to wrap the TermQuery's used for matching hashes in Elastiknn's SparseIndexQuery and LshQuery.
+  Improves the SparseIndexedQuery benchmark from ~66 seconds to ~48 seconds.
+  Improves the LshQuery benchmark from ~37 seconds to ~31 seconds. 
+---
 - Omitting norms in LSH and sparse indexed queries. 
   This shaves ~15% of runtime off of a sparse indexed benchmark. 
   Results for LSH weren't as meaningful unfortunately.   
