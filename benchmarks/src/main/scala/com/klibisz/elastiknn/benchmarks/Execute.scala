@@ -254,10 +254,9 @@ object Execute extends App {
 
 object ExecuteLocal extends App {
 
-  override def run(args: List[String]): URIO[Console, ExitCode] = {
-    val s3Client = S3Utils.minioClient()
+  private val sparseIndexedExp = {
     val dataset = Dataset.RandomSparseBool(1000, 10000)
-    val exp = Experiment(
+    Experiment(
       dataset,
       Mapping.SparseIndexed(dataset.dims),
       NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard),
@@ -266,6 +265,11 @@ object ExecuteLocal extends App {
         Query(NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard), 100)
       )
     )
+  }
+
+  override def run(args: List[String]): URIO[Console, ExitCode] = {
+    val s3Client = S3Utils.minioClient()
+    val exp = sparseIndexedExp
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
     Execute(
       Execute.Params(
