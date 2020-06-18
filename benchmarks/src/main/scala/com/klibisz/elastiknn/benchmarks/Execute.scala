@@ -267,9 +267,22 @@ object ExecuteLocal extends App {
     )
   }
 
+  private val angularLshExp = {
+    val dataset = Dataset.RandomDenseFloat(1000, 10000)
+    Experiment(
+      dataset,
+      Mapping.AngularLsh(dataset.dims, 300, 1),
+      NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 200),
+      Mapping.AngularLsh(dataset.dims, 300, 1),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 200), 100)
+      )
+    )
+  }
+
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val exp = sparseIndexedExp
+    val exp = angularLshExp
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
     Execute(
       Execute.Params(
