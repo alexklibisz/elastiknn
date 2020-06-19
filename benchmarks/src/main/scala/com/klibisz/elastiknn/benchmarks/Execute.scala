@@ -282,7 +282,7 @@ object ExecuteLocal extends App {
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val exp = angularLshExp
+    val exp = sparseIndexedExp
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
     Execute(
       Execute.Params(
@@ -293,7 +293,7 @@ object ExecuteLocal extends App {
         datasetsPrefix = "data/processed",
         resultsBucket = "elastiknn-benchmarks",
         resultsPrefix = "results",
-        parallelism = 10,
+        parallelism = 8,
         s3Minio = true,
         skipExisting = false
       )).exitCode
