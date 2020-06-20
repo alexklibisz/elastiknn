@@ -114,6 +114,8 @@ jobs:
     - name: Install hub CLI
       run: sudo snap install hub --classic
     - name: Delete Existing Snapshot Releases (Master)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       if: github.event_name == 'push'
       run: ./.github/scripts/delete-snapshot-releases.sh
     - name: Publish Plugin Zip to Github
