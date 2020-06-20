@@ -183,6 +183,9 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
+benchmarks/micro/trigger:
+	curl https://api.github.com/users/alexklibisz
+
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
 
