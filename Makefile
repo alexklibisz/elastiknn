@@ -183,6 +183,13 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
+benchmarks/github/trigger:
+	curl -H "Accept: application/vnd.github.everest-preview+json" \
+		-H "Authorization: token ${GITHUB_TOKEN}" \
+		--request POST \
+		--data '{"event_type": "benchmark", "client_payload": { "text": "a title"}}' \
+		https://api.github.com/repos/alexklibisz/elastiknn/dispatches
+
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
 
