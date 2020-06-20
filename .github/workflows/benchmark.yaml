@@ -1,7 +1,7 @@
 name: Benchmark
 on:
-  repository_dispatch:
-    types: benchmark
+#  repository_dispatch:
+#    types: benchmark
   schedule:
     - cron:  '*/5 * * * *'
 jobs:
@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Do Something
         run: echo Doing Something...
-      - name: Do Something Based On Triggered Event Data
-        run: 'echo "Triggered event text: ${{ github.event.client_payload.text }}"'
+#      - name: Do Something Based On Triggered Event Data
+#        run: 'echo "Triggered event text: ${{ github.event.client_payload.text }}"'
