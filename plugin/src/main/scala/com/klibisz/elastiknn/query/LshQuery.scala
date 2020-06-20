@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.query
 
+import java.io.{ByteArrayInputStream, InputStreamReader}
 import java.lang
 import java.util.Objects
 
@@ -8,11 +9,15 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
+import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
+import org.apache.lucene.queries.mlt.{MoreLikeThis, MoreLikeThisQuery}
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
+
+import scala.collection.JavaConverters._
 
 object LshQuery {
 
@@ -63,26 +68,38 @@ object LshQuery {
     override def doHashCode(): Int = Objects.hash(field, query, lshFunc, lshFunc, candidates.asInstanceOf[AnyRef])
   }
 
-  def apply[M <: Mapping, V <: Vec, S <: StoredVec](
-      field: String,
-      mapping: M,
-      queryVec: V,
-      candidates: Int,
-      lshFunctionCache: LshFunctionCache[M, V, S])(implicit codec: StoredVec.Codec[V, S]): Query = {
+  def apply[M <: Mapping, V <: Vec, S <: StoredVec](field: String,
+                                                    mapping: M,
+                                                    queryVec: V,
+                                                    candidates: Int,
+                                                    lshFunctionCache: LshFunctionCache[M, V, S],
+                                                    indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
     val lshFunc: LshFunction[M, V, S] = lshFunctionCache(mapping)
-    val isecQuery: BooleanQuery = {
-      val builder = new BooleanQuery.Builder
-      lshFunc(queryVec).foreach { h =>
-        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
-        val termQuery = new TermQuery(term)
-        val constQuery = new ConstantScoreQuery(termQuery)
-        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
-      }
-      builder.setMinimumNumberShouldMatch(1)
-      builder.build()
-    }
+    val hashes = lshFunc(queryVec)
+    val mlt = new MoreLikeThis(indexReader)
+    mlt.setFieldNames(Array(field))
+    mlt.setMinTermFreq(1)
+    mlt.setMaxQueryTerms(hashes.length)
+    mlt.setAnalyzer(new KeywordAnalyzer())
+    val readers = hashes.map(h => new InputStreamReader(new ByteArrayInputStream(UnsafeSerialization.writeInt(h))))
+    val mltBoolQuery = mlt.like(field, readers: _*)
     val func = new LshScoreFunction(field, queryVec, candidates, lshFunc)
-    new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
+    new FunctionScoreQuery(mltBoolQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
+
+//    val lshFunc: LshFunction[M, V, S] = lshFunctionCache(mapping)
+//    val isecQuery: BooleanQuery = {
+//      val builder = new BooleanQuery.Builder
+//      lshFunc(queryVec).foreach { h =>
+//        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
+//        val termQuery = new TermQuery(term)
+//        val constQuery = new ConstantScoreQuery(termQuery)
+//        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
+//      }
+//      builder.setMinimumNumberShouldMatch(1)
+//      builder.build()
+//    }
+//    val func = new LshScoreFunction(field, queryVec, candidates, lshFunc)
+//    new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, vec: V, mapping: M)(

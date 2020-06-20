@@ -279,7 +279,7 @@ object ExecuteLocal extends App {
       NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
       Mapping.AngularLsh(dataset.dims, 600, 1),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 100)
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 600), 100)
       )
     )
   }

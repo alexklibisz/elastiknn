@@ -91,7 +91,7 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
   private def queryId(i: Int): String = s"q$i"
 
   for {
-    Test(mkMappings, mkQuery, recall, scorePrecision) <- tests
+    Test(mkMappings, mkQuery, recall, scorePrecision) <- tests.takeRight(1)
     dims <- testDataDims
     mapping <- mkMappings(dims)
   } {
