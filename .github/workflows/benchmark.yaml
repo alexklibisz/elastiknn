@@ -1,7 +1,7 @@
 name: Benchmark
 on:
-#  repository_dispatch:
-#    types: benchmark
+  repository_dispatch:
+    types: benchmark
   schedule:
     - cron:  '*/5 * * * *'
 jobs:
