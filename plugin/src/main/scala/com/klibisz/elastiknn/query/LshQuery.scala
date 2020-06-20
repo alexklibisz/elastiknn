@@ -75,7 +75,8 @@ object LshQuery {
       lshFunc(queryVec).foreach { h =>
         val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
         val termQuery = new TermQuery(term)
-        builder.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD))
+        val constQuery = new ConstantScoreQuery(termQuery)
+        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
       }
       builder.setMinimumNumberShouldMatch(1)
       builder.build()
