@@ -1,3 +1,7 @@
+# Docker-compose setup for running tests and micro-benchmarks.
+# Github's virtual environments have 2 CPUs, 7GB memory, 14GB SSD.
+# Important to run in cluster mode because some parts of the plugin
+# deal with communication between nodes.
 version: "3"
 
 services:
@@ -16,35 +20,11 @@ services:
       - node.ml=false
       - node.ingest=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-      memlock:
-        soft: -1
-        hard: -1
-
-  # Single client node exposing port 9200.
-  elasticsearch_client:
-    build:
-      context: ${ES_CONTEXT:-../plugin}
-      dockerfile: Dockerfile
-    ports:
-      - "9200:9200"
-    environment:
-      - node.name=elasticsearch_client
-      - cluster.name=docker-cluster
-      - cluster.initial_master_nodes=elasticsearch_master
-      - discovery.zen.ping.unicast.hosts=elasticsearch_master
-      - node.master=false
-      - node.data=false
-      - node.ml=false
-      - node.ingest=false
-      - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ES_JAVA_OPTS=-Xms200m -Xmx200m
+    ports:
+      - "9200:9200"
     ulimits:
       nofile:
         soft: 65536
@@ -64,7 +44,7 @@ services:
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms1G -Xmx1G
+      - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ulimits:
       nofile:
         soft: 65536
