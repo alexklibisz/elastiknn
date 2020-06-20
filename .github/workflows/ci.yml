@@ -103,6 +103,9 @@ jobs:
       run: |
         echo $(cat version)-dev${{ github.run_number }} > version-python
         echo $(cat version)-MASTER${{ github.run_number }}-SNAPSHOT > version-sonatype
+    - name: Delete Existing Snapshot Releases (Master)
+      if: github.event_name == 'push'
+      run: ./.github/scripts/delete-snapshot-releases.sh
     - name: Publish Python Libraries to PyPi
       run: |
         cp version-python version
