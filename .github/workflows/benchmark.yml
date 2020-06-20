@@ -1,0 +1,15 @@
+name: Benchmark
+on:
+  repository_dispatch:
+    types: benchmark
+  schedule:
+    - cron:  '*/5 * * * *'
+jobs:
+  build:
+    name: Run Some Scheduled Thing
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Do Something
+        run: echo Doing Something...
+      - name: Do Something Based On Triggered Event Data
+        run: 'echo "Triggered event text: ${{ github.event.client_payload.text }}"'
