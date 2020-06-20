@@ -89,15 +89,17 @@ object Execute extends App {
         _ <- log.info(s"Indexing vectors for dataset $dataset")
         _ <- datasets.streamTrain[Vec](dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
+            val ids = Some(vecs.indices.map(i => s"$batchIndex-$i"))
             for {
-              (dur, _) <- eknnClient.index(trainIndexName, eknnQuery.field, vecs).timed
+              (dur, _) <- eknnClient.index(trainIndexName, eknnQuery.field, vecs, ids = ids).timed
               _ <- log.debug(s"Indexed batch $batchIndex to $trainIndexName in ${dur.toMillis} ms")
             } yield ()
         }
         _ <- datasets.streamTest[Vec](dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
+            val ids = Some(vecs.indices.map(i => s"$batchIndex-$i"))
             for {
-              (dur, _) <- eknnClient.index(testIndexName, eknnQuery.field, vecs).timed
+              (dur, _) <- eknnClient.index(testIndexName, eknnQuery.field, vecs, ids = ids).timed
               _ <- log.debug(s"Indexed batch $batchIndex to $testIndexName in ${dur.toMillis} ms")
             } yield ()
         }
@@ -199,9 +201,11 @@ object Execute extends App {
             case Some(_) if skipExisting => log.info(s"Found test result for mapping $testMapping, query $testQuery")
             case _ =>
               for {
-                test: BenchmarkResult <- indexAndSearch(dataset, testMapping, testQuery, k, parallelism)
+                test <- indexAndSearch(dataset, testMapping, testQuery, k, parallelism).map(setRecalls(exact, _))
+                aggregate = AggregateResult(test)
                 _ <- log.info(s"Saving test result: $test")
-                _ <- rc.save(setRecalls(exact, test))
+                _ <- log.info(s"Aggregate: $aggregate")
+                _ <- rc.save(test)
               } yield ()
           }
         } yield ()
@@ -271,18 +275,18 @@ object ExecuteLocal extends App {
     val dataset = Dataset.RandomDenseFloat(1000, 10000)
     Experiment(
       dataset,
-      Mapping.AngularLsh(dataset.dims, 300, 1),
-      NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 200),
-      Mapping.AngularLsh(dataset.dims, 300, 1),
+      Mapping.DenseFloat(dataset.dims),
+      NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
+      Mapping.AngularLsh(dataset.dims, 600, 1),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 200), 100)
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 100)
       )
     )
   }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val exp = sparseIndexedExp
+    val exp = angularLshExp
     s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
     Execute(
       Execute.Params(
