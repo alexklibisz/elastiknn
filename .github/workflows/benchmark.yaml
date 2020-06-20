@@ -1,7 +1,7 @@
-name: Micro Benchmark
+name: Benchmark
 on:
   repository_dispatch:
-    types: micro-benchmark
+    types: benchmark
   schedule:
     - cron:  '*/5 * * * *'
 jobs:
