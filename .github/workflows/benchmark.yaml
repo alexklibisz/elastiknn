@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - master
-      - benchmark-workflow
 jobs:
   benchmark:
     name: Benchmark
