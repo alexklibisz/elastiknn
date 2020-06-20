@@ -9,6 +9,7 @@ s3 = aws s3
 build_bucket = s3://com-klibisz-elastiknn-builds/
 dc = docker-compose
 version = $(shell cat version)
+git_branch = $(shell git rev-parse --abbrev-ref HEAD)
 src_all = $(shell git diff --name-only --diff-filter=ACMR)
 site_srvr = elastiknn-site
 site_main = elastiknn.klibisz.com
@@ -185,10 +186,10 @@ publish/site: .mk/jekyll-site-build
 
 benchmarks/github/trigger:
 	curl -H "Accept: application/vnd.github.everest-preview+json" \
-		-H "Authorization: token ${GITHUB_TOKEN}" \
-		--request POST \
-		--data '{"event_type": "benchmark", "client_payload": { "text": "a title"}}' \
-		https://api.github.com/repos/alexklibisz/elastiknn/dispatches
+		 -H "Authorization: token ${GITHUB_TOKEN}" \
+		 --request POST \
+		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
+		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
