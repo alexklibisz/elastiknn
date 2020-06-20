@@ -183,7 +183,7 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
-benchmarks/micro/trigger:
+benchmarks/github/trigger:
 	curl -H "Accept: application/vnd.github.everest-preview+json" \
 		-H "Authorization: token ${GITHUB_TOKEN}" \
 		--request POST \
