@@ -2,11 +2,13 @@ package com.klibisz.elastiknn
 
 import java.util.Base64
 
+import com.klibisz.elastiknn.api.Mapping.{AngularLsh, DenseFloat, HammingLsh, JaccardLsh, L2Lsh, SparseBool, SparseIndexed}
 import com.klibisz.elastiknn.api._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
 import io.circe.{Codec, Encoder}
 import org.apache.commons.codec.digest.DigestUtils
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio.Has
 
 import scala.language.implicitConversions
@@ -58,6 +60,58 @@ package object benchmarks {
                                    durationMillis: Long = 0,
                                    queryResults: Seq[QueryResult]) {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $parallelism, $durationMillis, ...)"
+  }
+
+  final case class AggregateResult(dataset: String,
+                                   algorithm: String,
+                                   k: Int,
+                                   mappingJson: String,
+                                   queryJson: String,
+                                   recallP10: Double,
+                                   recallP50: Double,
+                                   recallP90: Double,
+                                   durationP10: Double,
+                                   durationP50: Double,
+                                   durationP90: Double)
+  object AggregateResult {
+
+    val header = Seq("dataset",
+                     "algorithm",
+                     "k",
+                     "mappingJson",
+                     "queryJson",
+                     "recallP10",
+                     "recallP50",
+                     "recallP90",
+                     "durationP10",
+                     "durationP50",
+                     "durationP90")
+
+    private def mappingToAlgorithmName(m: Mapping): String = m match {
+      case _: SparseBool                                            => "exact"
+      case _: DenseFloat                                            => "exact"
+      case _: SparseIndexed                                         => "sparse indexed"
+      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "lsh"
+    }
+
+    def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
+      val ptile = new Percentile()
+      val recalls = benchmarkResult.queryResults.map(_.recall).toArray
+      val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
+      AggregateResult(
+        benchmarkResult.dataset.name,
+        mappingToAlgorithmName(benchmarkResult.mapping),
+        benchmarkResult.k,
+        ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
+        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces,
+        ptile.evaluate(recalls, 0.1),
+        ptile.evaluate(recalls, 0.5),
+        ptile.evaluate(recalls, 0.9),
+        ptile.evaluate(durations, 0.1),
+        ptile.evaluate(durations, 0.5),
+        ptile.evaluate(durations, 0.9),
+      )
+    }
   }
 
   object Experiment {
