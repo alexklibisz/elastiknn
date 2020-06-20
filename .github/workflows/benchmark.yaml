@@ -9,13 +9,14 @@ on:
   push:
     branches:
       - master
+      - benchmark-workflow
 jobs:
   benchmark:
     name: Benchmark
     runs-on: ubuntu-20.04
     steps:
       - name: Print Github Object
-        run: 'echo "${{toJson(github)}}"'
+        run: echo "${{toJson(github)}}"
       - name: Checkout Branch
         uses: actions/checkout@v2
         with:
