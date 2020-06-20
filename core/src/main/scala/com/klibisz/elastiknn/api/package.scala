@@ -99,19 +99,25 @@ package object api {
     final case class SparseIndexed(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
-    final case class JaccardLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+
+    sealed trait LshQuery extends NearestNeighborsQuery {
+      def candidates: Int
+      def useMoreLikeThis: Boolean
+    }
+
+    final case class JaccardLsh(field: String, vec: Vec, candidates: Int, useMoreLikeThis: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Jaccard
     }
-    final case class HammingLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class HammingLsh(field: String, vec: Vec, candidates: Int, useMoreLikeThis: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Hamming
     }
-    final case class AngularLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class AngularLsh(field: String, vec: Vec, candidates: Int, useMoreLikeThis: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Angular
     }
-    final case class L2Lsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class L2Lsh(field: String, vec: Vec, candidates: Int, useMoreLikeThis: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.L2
     }

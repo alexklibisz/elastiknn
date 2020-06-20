@@ -272,14 +272,14 @@ object ExecuteLocal extends App {
   }
 
   private val angularLshExp = {
-    val dataset = Dataset.RandomDenseFloat(1000, 10000)
+    val dataset = Dataset.RandomDenseFloat(1000, 100000)
     Experiment(
       dataset,
       Mapping.DenseFloat(dataset.dims),
       NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
       Mapping.AngularLsh(dataset.dims, 600, 1),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 600), 100)
+        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 600, true), 100)
       )
     )
   }

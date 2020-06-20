@@ -11,8 +11,8 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
   implicit class CodecMatcher(s: String) {
     def shouldDecodeTo[T: ElasticsearchCodec](obj: T): Assertion = {
 
-      lazy val parsed: Either[circe.Error, Json] = ElasticsearchCodec.parse(s)
-      lazy val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
+      val parsed: Either[circe.Error, Json] = ElasticsearchCodec.parse(s)
+      val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
 
       withClue("can't parse the given json string") {
         parsed shouldBe 'right
@@ -179,11 +179,15 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
+      | "useMoreLikeThis": false,
       | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", Vec.SparseBool(Array(1, 2, 3), 99), 100)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec",
+                                                                         Vec.SparseBool(Array(1, 2, 3), 99),
+                                                                         100,
+                                                                         useMoreLikeThis = false)
   }
 }
