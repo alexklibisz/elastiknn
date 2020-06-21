@@ -9,27 +9,45 @@ import zio.console.Console
   */
 object ContinuousBenchmark extends App {
 
-  private val randomDenseFloats = Dataset.RandomDenseFloat(500, 10000)
-  // private val randomSparseBools = Dataset.RandomSparseBool(500, 10000)
+  private val randomDenseFloats = Dataset.RandomDenseFloat(1000, 50000, 1000)
+  private val randomSparseBools = Dataset.RandomSparseBool(3000, 50000, 1000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
+  private val k = 100
 
   private val experiments = Seq(
-    // L2 exact / LSH
+    // L2 exact, LSH
     Experiment(
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 300, 1, 3),
-      Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000), 100))
+      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 1300, useMLTQuery = true), k)
+      )
     ),
-    // Angular exact / LSH
+    // Angular exact, LSH
     Experiment(
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(randomDenseFloats.dims, 300, 1),
-      Seq(Query(NearestNeighborsQuery.AngularLsh(field, 1000), 100))
+      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
+        Query(NearestNeighborsQuery.AngularLsh(field, 1300, useMLTQuery = true), k),
+      )
+    ),
+    // Jaccard exact, sparse indexed, LSH
+    Experiment(
+      randomSparseBools,
+      Mapping.SparseBool(randomSparseBools.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
+      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
+      Seq(
+        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k),
+        Query(NearestNeighborsQuery.JaccardLsh(field, 1300, useMLTQuery = true), k)
+      )
     )
   )
 

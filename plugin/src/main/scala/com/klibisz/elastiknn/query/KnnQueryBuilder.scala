@@ -91,17 +91,17 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
-      case (JaccardLsh(f, v: Vec.SparseBool, candidates), m: Mapping.JaccardLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Jaccard)
+      case (JaccardLsh(f, candidates, v: Vec.SparseBool, useMLTQuery), m: Mapping.JaccardLsh) =>
+        LshQuery(f, m, v, candidates, LshFunctionCache.Jaccard, c.getIndexReader, useMLTQuery)
 
-      case (HammingLsh(f, v: Vec.SparseBool, candidates), m: Mapping.HammingLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Hamming)
+      case (HammingLsh(f, candidates, v: Vec.SparseBool, useMLTQuery), m: Mapping.HammingLsh) =>
+        LshQuery(f, m, v, candidates, LshFunctionCache.Hamming, c.getIndexReader, useMLTQuery)
 
-      case (AngularLsh(f, v: Vec.DenseFloat, candidates), m: Mapping.AngularLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Angular)
+      case (AngularLsh(f, candidates, v: Vec.DenseFloat, useMLTQuery), m: Mapping.AngularLsh) =>
+        LshQuery(f, m, v, candidates, LshFunctionCache.Angular, c.getIndexReader, useMLTQuery)
 
-      case (L2Lsh(f, v: Vec.DenseFloat, candidates), m: Mapping.L2Lsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.L2)
+      case (L2Lsh(f, candidates, v: Vec.DenseFloat, useMLTQuery), m: Mapping.L2Lsh) =>
+        LshQuery(f, m, v, candidates, LshFunctionCache.L2, c.getIndexReader, useMLTQuery)
 
       case _ => throw incompatible(mapping, query)
     }

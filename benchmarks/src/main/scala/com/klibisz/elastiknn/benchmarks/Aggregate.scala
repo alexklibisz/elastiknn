@@ -2,12 +2,9 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 
-import com.klibisz.elastiknn.api.Mapping._
-import com.klibisz.elastiknn.api._
 import kantan.csv._
 import kantan.csv.ops._
 import kantan.csv.generic._
-import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
@@ -56,13 +53,13 @@ object Aggregate extends App {
           log.info(agg.toString).map(_ => agg)
         }
 
-      aggregates <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
+      rows <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
 
       // Write the rows to a temporary file
       csvFile = File.createTempFile("tmp", ".csv")
       writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
-      _ = aggregates.foreach(writer.write)
-      _ <- log.info(s"Wrote ${aggregates.length} rows to csv file.")
+      _ = rows.foreach(writer.write)
+      _ <- log.info(s"Wrote ${rows.length} rows to csv file.")
       _ = writer.close()
 
       // Upload the file.

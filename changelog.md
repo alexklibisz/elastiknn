@@ -1,3 +1,8 @@
+- Added an option for LSH queries to use the more-like-this heuristics to pick a subset of LSH hashes to retrieve candidate vectors.
+  Uses Lucene's [MoreLikeThis class](https://lucene.apache.org/core/8_5_0/queries/org/apache/lucene/queries/mlt/MoreLikeThis.html)
+  to pick a subset of hashes based on index statistics. It's generally much faster than using _all_ of the hashes,
+  yields comparable recall, but is still disabled by default. 
+---
 - Using ConstantScoreQuery to wrap the TermQuery's used for matching hashes in Elastiknn's SparseIndexQuery and LshQuery.
   Improves the SparseIndexedQuery benchmark from ~66 seconds to ~48 seconds.
   Improves the LshQuery benchmark from ~37 seconds to ~31 seconds. 

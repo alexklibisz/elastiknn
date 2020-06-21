@@ -20,7 +20,7 @@ package object benchmarks {
   type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed abstract class Dataset(val dims: Int) {
-    final def name: String = this.getClass.getSimpleName.toLowerCase.replace("$", "")
+    def name: String = this.getClass.getSimpleName.replace("$", "")
   }
   object Dataset {
     case object AmazonHome extends Dataset(4096)
@@ -36,8 +36,13 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
-    case class RandomDenseFloat(override val dims: Int = 1024, count: Int = 10000) extends Dataset(dims)
-    case class RandomSparseBool(override val dims: Int = 4096, count: Int = 10000) extends Dataset(dims)
+    case class RandomDenseFloat(override val dims: Int = 1024, train: Int = 50000, test: Int = 1000) extends Dataset(dims) {
+      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
+    }
+    case class RandomSparseBool(override val dims: Int = 4096, train: Int = 50000, test: Int = 1000, bias: Double = 0.25)
+        extends Dataset(dims) {
+      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
+    }
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
@@ -91,14 +96,16 @@ package object benchmarks {
       "query"
     )
 
-    private def mappingToAlgorithmName(m: Mapping): String = m match {
-      case _: SparseBool                                            => s"Exact"
-      case _: DenseFloat                                            => "exact"
-      case _: SparseIndexed                                         => "sparse indexed"
-      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "lsh"
+    private def algorithmName(m: Mapping, q: NearestNeighborsQuery): String = m match {
+      case _: SparseBool    => s"Exact"
+      case _: DenseFloat    => "Exact"
+      case _: SparseIndexed => "Sparse indexed"
+      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh =>
+        q match {
+          case lsh: NearestNeighborsQuery.LshQuery if lsh.useMLTQuery => "LSH w/ MLT"
+          case _                                                      => "LSH"
+        }
     }
-
-    private def queryToSimilarityName(q: NearestNeighborsQuery): String = q.similarity.toString
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
       val ptile = new Percentile()
@@ -106,8 +113,8 @@ package object benchmarks {
       val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
       new AggregateResult(
         benchmarkResult.dataset.name,
-        queryToSimilarityName(benchmarkResult.query),
-        mappingToAlgorithmName(benchmarkResult.mapping),
+        benchmarkResult.query.similarity.toString,
+        algorithmName(benchmarkResult.mapping, benchmarkResult.query),
         benchmarkResult.k,
         ptile.evaluate(recalls, 0.1).toFloat,
         ptile.evaluate(durations, 0.1).toFloat,

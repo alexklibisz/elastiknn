@@ -6,9 +6,12 @@ name: Benchmark
 on:
   repository_dispatch:
     types: benchmark
+  schedule:
+    - cron: '0 0 * * *'
   push:
     branches:
       - master
+      - perf-*
 jobs:
   benchmark:
     name: Benchmark
@@ -54,13 +57,14 @@ jobs:
       - name: Run Benchmark
         run: make benchmarks/continuous/run
       - name: Print Results
-        run: find . -name aggregate.csv -type f | xargs cat
+        run: |
+          python3 -m pip install csv2md
+          find . -name aggregate.csv -type f | xargs python3 -m csv2md
       - name: Report Results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          python3 -m pip install csv2md
           COMMIT=$(git rev-parse --verify HEAD) \
           RESULTS_TABLE=$(find . -name aggregate.csv -type f | xargs python3 -m csv2md) \
           envsubst < .github/scripts/benchmarks-template.md > comment.md
