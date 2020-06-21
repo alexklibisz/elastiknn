@@ -133,7 +133,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |""".stripMargin.shouldNotDecodeTo[Mapping]
   }
 
-  test("nearest neighbor queries (revised)") {
+  test("nearest neighbor queries") {
 
     import NearestNeighborsQuery._
 
@@ -179,7 +179,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
-      | "useMoreLikeThis": true,
+      | "useMLTQuery": true,
       | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99

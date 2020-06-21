@@ -2,12 +2,8 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 
-import com.klibisz.elastiknn.api.Mapping._
-import com.klibisz.elastiknn.api._
 import kantan.csv._
 import kantan.csv.ops._
-import kantan.csv.generic._
-import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
