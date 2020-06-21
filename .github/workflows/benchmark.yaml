@@ -49,6 +49,7 @@ jobs:
       - name: Report Results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           pip install --user csv2md
           COMMIT=$(git rev-parse --verify HEAD) \
