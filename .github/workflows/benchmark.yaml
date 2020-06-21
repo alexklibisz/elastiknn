@@ -50,6 +50,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          pip install --user csv2md
           COMMIT=$(git rev-parse --verify HEAD) \
           RESULTS_TABLE=$(find . -name aggregate.csv | head -n1 | xargs csv2md) \
           envsubst < .github/scripts/benchmarks-template.md > comment.md

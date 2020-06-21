@@ -11,6 +11,6 @@ do
     echo "Commenting on PR #${N}"
     curl -H "Authorization: token ${GITHUB_TOKEN}" \
          -X POST -d "$DATA" \
-         "https://api.github.com/repos/alexklibisz/gh-actions-sandbox/issues/${N}/comments"
+         "https://api.github.com/repos/alexklibisz/elastiknn/issues/${N}/comments"
     echo $n
 done
