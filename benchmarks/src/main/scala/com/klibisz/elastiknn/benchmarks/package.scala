@@ -66,12 +66,12 @@ package object benchmarks {
                                    similarity: String,
                                    algorithm: String,
                                    k: Int,
-                                   recallP10: Int,
-                                   durationP10: Int,
-                                   recallP50: Int,
-                                   durationP50: Int,
-                                   recallP90: Int,
-                                   durationP90: Int,
+                                   recallP10: Float,
+                                   durationP10: Float,
+                                   recallP50: Float,
+                                   durationP50: Float,
+                                   recallP90: Float,
+                                   durationP90: Float,
                                    mappingJson: String,
                                    queryJson: String)
   object AggregateResult {
@@ -87,8 +87,8 @@ package object benchmarks {
       "durationP50",
       "recallP90",
       "durationP90",
-      "mappingJson",
-      "queryJson"
+      "mapping",
+      "query"
     )
 
     private def mappingToAlgorithmName(m: Mapping): String = m match {
@@ -109,12 +109,12 @@ package object benchmarks {
         queryToSimilarityName(benchmarkResult.query),
         mappingToAlgorithmName(benchmarkResult.mapping),
         benchmarkResult.k,
-        ptile.evaluate(recalls, 0.1).toInt,
-        ptile.evaluate(recalls, 0.5).toInt,
-        ptile.evaluate(recalls, 0.9).toInt,
-        ptile.evaluate(durations, 0.1).toInt,
-        ptile.evaluate(durations, 0.5).toInt,
-        ptile.evaluate(durations, 0.9).toInt,
+        ptile.evaluate(recalls, 0.1).toFloat,
+        ptile.evaluate(durations, 0.1).toFloat,
+        ptile.evaluate(recalls, 0.5).toFloat,
+        ptile.evaluate(durations, 0.5).toFloat,
+        ptile.evaluate(recalls, 0.9).toFloat,
+        ptile.evaluate(durations, 0.9).toFloat,
         ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
         ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
       )
