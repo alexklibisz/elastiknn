@@ -191,10 +191,9 @@ benchmarks/continuous/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/continuous/run: .mk/run-cluster
+benchmarks/continuous/run:
 	mkdir -p .minio/elastiknn-benchmarks/results/aggregate
 	touch .minio/elastiknn-benchmarks/results/aggregate/aggregate.csv
-
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
