@@ -20,7 +20,7 @@ package object benchmarks {
   type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed abstract class Dataset(val dims: Int) {
-    final def name: String = this.getClass.getSimpleName.toLowerCase.replace("$", "")
+    def name: String = this.getClass.getSimpleName.toLowerCase.replace("$", "")
   }
   object Dataset {
     case object AmazonHome extends Dataset(4096)
@@ -36,8 +36,12 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
-    case class RandomDenseFloat(override val dims: Int = 1024, count: Int = 10000) extends Dataset(dims)
-    case class RandomSparseBool(override val dims: Int = 4096, count: Int = 10000) extends Dataset(dims)
+    case class RandomDenseFloat(override val dims: Int = 1024, count: Int = 10000) extends Dataset(dims) {
+      override def name: String = "random"
+    }
+    case class RandomSparseBool(override val dims: Int = 4096, count: Int = 10000) extends Dataset(dims) {
+      override def name: String = "random"
+    }
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)

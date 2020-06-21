@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.query
 
+import java.io.{ByteArrayInputStream, InputStreamReader}
 import java.lang
 import java.util.Objects
 
@@ -8,8 +9,10 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
+import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
+import org.apache.lucene.queries.mlt.MoreLikeThis
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
@@ -63,16 +66,26 @@ object LshQuery {
     override def doHashCode(): Int = Objects.hash(field, query, lshFunc, lshFunc, candidates.asInstanceOf[AnyRef])
   }
 
-  def apply[M <: Mapping, V <: Vec, S <: StoredVec](
-      field: String,
-      mapping: M,
-      queryVec: V,
-      candidates: Int,
-      lshFunctionCache: LshFunctionCache[M, V, S])(implicit codec: StoredVec.Codec[V, S]): Query = {
+  def apply[M <: Mapping, V <: Vec, S <: StoredVec](field: String,
+                                                    mapping: M,
+                                                    queryVec: V,
+                                                    candidates: Int,
+                                                    lshFunctionCache: LshFunctionCache[M, V, S],
+                                                    indexReader: IndexReader,
+                                                    useMLTQuery: Boolean)(implicit codec: StoredVec.Codec[V, S]): Query = {
     val lshFunc: LshFunction[M, V, S] = lshFunctionCache(mapping)
-    val isecQuery: BooleanQuery = {
+    val hashes: Array[Int] = lshFunc(queryVec)
+    val isecQuery: Query = if (useMLTQuery) {
+      val mlt = new MoreLikeThis(indexReader)
+      mlt.setFieldNames(Array(field))
+      mlt.setMinTermFreq(1)
+      mlt.setMaxQueryTerms(hashes.length)
+      mlt.setAnalyzer(new KeywordAnalyzer())
+      val readers = hashes.map(h => new InputStreamReader(new ByteArrayInputStream(UnsafeSerialization.writeInt(h))))
+      mlt.like(field, readers: _*)
+    } else {
       val builder = new BooleanQuery.Builder
-      lshFunc(queryVec).foreach { h =>
+      hashes.foreach { h =>
         val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
         val termQuery = new TermQuery(term)
         val constQuery = new ConstantScoreQuery(termQuery)

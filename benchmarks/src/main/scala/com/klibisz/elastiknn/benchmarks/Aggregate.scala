@@ -56,13 +56,13 @@ object Aggregate extends App {
           log.info(agg.toString).map(_ => agg)
         }
 
-      aggregates <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
+      rows <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
 
       // Write the rows to a temporary file
       csvFile = File.createTempFile("tmp", ".csv")
       writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
-      _ = aggregates.foreach(writer.write)
-      _ <- log.info(s"Wrote ${aggregates.length} rows to csv file.")
+      _ = rows.foreach(writer.write)
+      _ <- log.info(s"Wrote ${rows.length} rows to csv file.")
       _ = writer.close()
 
       // Upload the file.

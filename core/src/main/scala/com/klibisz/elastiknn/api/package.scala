@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import jdk.jfr.Experimental
+
 import scala.util.Random
 
 package object api {
@@ -107,36 +109,31 @@ package object api {
       def apply(field: String, similarity: Similarity): SparseIndexed = SparseIndexed(field, Vec.Empty(), similarity)
     }
 
-    final case class JaccardLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    sealed trait LshQuery extends NearestNeighborsQuery {
+      def candidates: Int
+
+      @Experimental
+      def useMLTQuery: Boolean
+    }
+
+    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Jaccard
     }
-    object JaccardLsh {
-      def apply(field: String, candidates: Int): JaccardLsh = JaccardLsh(field, Vec.Empty(), candidates)
-    }
 
-    final case class HammingLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Hamming
     }
-    object HammingLsh {
-      def apply(field: String, candidates: Int): HammingLsh = HammingLsh(field, Vec.Empty(), candidates)
-    }
 
-    final case class AngularLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Angular
     }
-    object AngularLsh {
-      def apply(field: String, candidates: Int): AngularLsh = AngularLsh(field, Vec.Empty(), candidates)
-    }
 
-    final case class L2Lsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
+    final case class L2Lsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.L2
-    }
-    object L2Lsh {
-      def apply(field: String, candidates: Int): L2Lsh = L2Lsh(field, Vec.Empty(), candidates)
     }
 
   }

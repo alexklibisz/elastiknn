@@ -59,30 +59,30 @@ class NearestNeighborsQuerySuite extends AsyncFunSuite with Matchers with Inspec
     // Jaccard Lsh
     Test(
       d => Seq(Mapping.JaccardLsh(d, 20, 1)),
-      (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, testDataNumQueries * 2),
+      (f, v) => NearestNeighborsQuery.JaccardLsh(f, testDataNumQueries * 2, v),
       0.8
     ),
     Test(
       d => Seq(Mapping.JaccardLsh(d, 40, 2)),
-      (f, v) => NearestNeighborsQuery.JaccardLsh(f, v, testDataNumQueries * 2),
+      (f, v) => NearestNeighborsQuery.JaccardLsh(f, testDataNumQueries * 2, v),
       0.67
     ),
     // Hamming Lsh
     Test(
       d => Seq(Mapping.HammingLsh(d, d / 2)),
-      (f, v) => NearestNeighborsQuery.HammingLsh(f, v, testDataNumQueries * 2),
+      (f, v) => NearestNeighborsQuery.HammingLsh(f, testDataNumQueries * 2, v),
       0.9
     ),
     // Angular Lsh
     Test(
       d => Seq(Mapping.AngularLsh(d, d / 2, 1)),
-      (f, v) => NearestNeighborsQuery.AngularLsh(f, v, testDataNumQueries * 3 / 2),
+      (f, v) => NearestNeighborsQuery.AngularLsh(f, testDataNumQueries * 3 / 2, v),
       0.67
     ),
     // L2 Lsh
     Test(
       d => Seq(Mapping.L2Lsh(d, d * 2 / 3, 1, 3)),
-      (f, v) => NearestNeighborsQuery.L2Lsh(f, v, testDataNumQueries * 3 / 2),
+      (f, v) => NearestNeighborsQuery.L2Lsh(f, testDataNumQueries * 3 / 2, v),
       0.67
     )
   )
