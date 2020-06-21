@@ -37,11 +37,11 @@ package object benchmarks {
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
     case class RandomDenseFloat(override val dims: Int = 1024, train: Int = 50000, test: Int = 1000) extends Dataset(dims) {
-      override def name: String = "random"
+      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
     }
     case class RandomSparseBool(override val dims: Int = 4096, train: Int = 50000, test: Int = 1000, bias: Double = 0.25)
         extends Dataset(dims) {
-      override def name: String = "random"
+      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
     }
   }
 

@@ -9,8 +9,8 @@ import zio.console.Console
   */
 object ContinuousBenchmark extends App {
 
-  private val randomDenseFloats = Dataset.RandomDenseFloat(500, 10000)
-  private val randomSparseBools = Dataset.RandomSparseBool(1000, 10000)
+  private val randomDenseFloats = Dataset.RandomDenseFloat(1000, 50000, 1000)
+  private val randomSparseBools = Dataset.RandomSparseBool(3000, 50000, 1000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
