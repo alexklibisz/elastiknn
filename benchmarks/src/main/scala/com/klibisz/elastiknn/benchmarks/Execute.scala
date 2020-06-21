@@ -72,7 +72,7 @@ object Execute extends App {
       parallelism: Int): ZIO[Logging with Clock with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".replace("/", "").replace(" ", "_")
+    val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
     val testIndexName = s"$trainIndexName-test"
 
     // Create a primary and holdout index with same mappings.
