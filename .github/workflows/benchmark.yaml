@@ -8,7 +8,7 @@ on:
     types: benchmark
   push:
     branches:
-      - master
+      - benchmark-workflow-commands
 jobs:
   benchmark:
     name: Benchmark
@@ -26,9 +26,33 @@ jobs:
       - name: Print Branch
         run: |
           git rev-parse --abbrev-ref HEAD
+
       - name: Setup Java
         uses: actions/setup-java@v1
         with:
           java-version: 14
+
+      # Needs to run after language setup.
+      - name: Setup Environment
+        env:
+          GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+          GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+          PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+          SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+        run: ./.github/scripts/setup-env.sh
+
       - name: Run Benchmark
-        run: make benchmarks/github/run
+        run: make benchmarks/continuous/run
+      
+      - name: Report Results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT=$(git rev-parse --verify HEAD) \
+          RESULTS_TABLE=$(find . -name aggregate.csv | head -n1 | xargs csv2md) \
+          envsubst < .github/scripts/benchmarks-template.md > comment.md
+          ./.github/scripts/pr-comment.sh comment.md
+          
+      
