@@ -131,7 +131,7 @@ object Execute extends App {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
-              _ <- log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms")
+              _ <- if (i % 10 == 0) log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms") else ZIO.succeed(())
             } yield {
               QueryResult(res.result.hits.hits.map(_.id), res.result.took)
             }
@@ -251,55 +251,6 @@ object Execute extends App {
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) => apply(params).exitCode
     case None         => sys.exit(1)
-  }
-
-}
-
-object ExecuteLocal extends App {
-
-  private val sparseIndexedExp = {
-    val dataset = Dataset.RandomSparseBool(1000, 10000)
-    Experiment(
-      dataset,
-      Mapping.SparseIndexed(dataset.dims),
-      NearestNeighborsQuery.SparseIndexed("vec", Similarity.Jaccard),
-      Mapping.SparseIndexed(dataset.dims),
-      Seq(
-        Query(NearestNeighborsQuery.SparseIndexed("vec", Similarity.Jaccard), 100)
-      )
-    )
-  }
-
-  private val angularLshExp = {
-    val dataset = Dataset.RandomDenseFloat(1000, 10000)
-    Experiment(
-      dataset,
-      Mapping.DenseFloat(dataset.dims),
-      NearestNeighborsQuery.Exact("vec", Similarity.Angular),
-      Mapping.AngularLsh(dataset.dims, 600, 1),
-      Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", 500), 100)
-      )
-    )
-  }
-
-  override def run(args: List[String]): URIO[Console, ExitCode] = {
-    val s3Client = S3Utils.minioClient()
-    val exp = angularLshExp
-    s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
-    Execute(
-      Execute.Params(
-        experimentHash = exp.md5sum,
-        experimentsBucket = "elastiknn-benchmarks",
-        experimentsPrefix = "experiments",
-        datasetsBucket = "elastiknn-benchmarks",
-        datasetsPrefix = "data/processed",
-        resultsBucket = "elastiknn-benchmarks",
-        resultsPrefix = "results",
-        parallelism = 8,
-        s3Minio = true,
-        recompute = true
-      )).exitCode
   }
 
 }

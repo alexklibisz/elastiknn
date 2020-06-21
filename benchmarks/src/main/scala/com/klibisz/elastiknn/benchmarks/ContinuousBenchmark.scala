@@ -7,7 +7,7 @@ import zio.console.Console
 /**
   * App that runs micro-benchmarks in a Github Workflow.
   */
-object Micro extends App {
+object ContinuousBenchmark extends App {
 
   private val randomDenseFloats = Dataset.RandomDenseFloat(500, 10000)
   // private val randomSparseBools = Dataset.RandomSparseBool(500, 10000)

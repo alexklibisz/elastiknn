@@ -66,28 +66,30 @@ package object benchmarks {
                                    similarity: String,
                                    algorithm: String,
                                    k: Int,
-                                   recallP10: Double,
-                                   recallP50: Double,
-                                   recallP90: Double,
-                                   durationP10: Double,
-                                   durationP50: Double,
-                                   durationP90: Double,
+                                   recallP10: Int,
+                                   durationP10: Int,
+                                   recallP50: Int,
+                                   durationP50: Int,
+                                   recallP90: Int,
+                                   durationP90: Int,
                                    mappingJson: String,
                                    queryJson: String)
   object AggregateResult {
 
-    val header = Seq("dataset",
-                     "similarity",
-                     "algorithm",
-                     "k",
-                     "recallP10",
-                     "recallP50",
-                     "recallP90",
-                     "durationP10",
-                     "durationP50",
-                     "durationP90",
-                     "mappingJson",
-                     "queryJson")
+    val header = Seq(
+      "dataset",
+      "similarity",
+      "algorithm",
+      "k",
+      "recallP10",
+      "durationP10",
+      "recallP50",
+      "durationP50",
+      "recallP90",
+      "durationP90",
+      "mappingJson",
+      "queryJson"
+    )
 
     private def mappingToAlgorithmName(m: Mapping): String = m match {
       case _: SparseBool                                            => s"Exact"
@@ -107,12 +109,12 @@ package object benchmarks {
         queryToSimilarityName(benchmarkResult.query),
         mappingToAlgorithmName(benchmarkResult.mapping),
         benchmarkResult.k,
-        ptile.evaluate(recalls, 0.1),
-        ptile.evaluate(recalls, 0.5),
-        ptile.evaluate(recalls, 0.9),
-        ptile.evaluate(durations, 0.1),
-        ptile.evaluate(durations, 0.5),
-        ptile.evaluate(durations, 0.9),
+        ptile.evaluate(recalls, 0.1).toInt,
+        ptile.evaluate(recalls, 0.5).toInt,
+        ptile.evaluate(recalls, 0.9).toInt,
+        ptile.evaluate(durations, 0.1).toInt,
+        ptile.evaluate(durations, 0.5).toInt,
+        ptile.evaluate(durations, 0.9).toInt,
         ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
         ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
       )

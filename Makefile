@@ -192,7 +192,7 @@ benchmarks/continuous/trigger:
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
 benchmarks/continuous/run: .mk/run-cluster
-	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.Micro :benchmarks:run
+	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
