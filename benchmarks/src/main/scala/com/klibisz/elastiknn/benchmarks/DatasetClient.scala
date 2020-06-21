@@ -16,35 +16,33 @@ import scala.util.hashing.MurmurHash3
 object DatasetClient {
 
   trait Service {
-    def streamTrain[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V]
-    def streamTest[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, V]
+    def streamTrain(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
+    def streamTest(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
   }
 
-  /** Implementation of [[DatasetClient.Service]] that reads from an s3 bucket. */
+  /**
+    * Implementation of [[DatasetClient.Service]] that reads from an s3 bucket.
+    * Special case for random datasets.
+    * @return
+    */
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, DatasetClient] = ZLayer.fromService[AmazonS3, Service] {
     client =>
       new Service {
-        private def stream[V <: Vec: ElasticsearchCodec](dataset: Dataset, name: String, limit: Option[Int]): Stream[Throwable, V] =
+        private def stream(dataset: Dataset, name: String, limit: Option[Int]): Stream[Throwable, Vec] =
           dataset match {
             case r: RandomSparseBool =>
               implicit val rng: Random = new Random(MurmurHash3.orderedHash(Seq(r.dims, name)))
               Stream
-                .range(0, if (name == "train") r.count else r.count / 10)
-                .map(_ => Vec.SparseBool.random(r.dims))
-                .map(ElasticsearchCodec.encode(_).hcursor)
-                .map(ElasticsearchCodec.decode[V](_))
-                .mapM(ZIO.fromEither(_))
+                .range(0, if (name == "train") r.train else r.test)
+                .map(_ => Vec.SparseBool.random(r.dims, r.bias))
             case r: RandomDenseFloat =>
               implicit val rng: Random = new Random(MurmurHash3.orderedHash(Seq(r.dims, name)))
               Stream
-                .range(0, if (name == "train") r.count else r.count / 10)
+                .range(0, if (name == "train") r.train else r.test)
                 .map(_ => Vec.DenseFloat.random(r.dims))
-                .map(ElasticsearchCodec.encode(_).hcursor)
-                .map(ElasticsearchCodec.decode[V](_))
-                .mapM(ZIO.fromEither(_))
             case _ =>
-              def parseDecode(s: String): Either[circe.Error, V] =
-                ElasticsearchCodec.parse(s).flatMap(j => ElasticsearchCodec.decode[V](j.hcursor))
+              def parseDecode(s: String): Either[circe.Error, Vec] =
+                ElasticsearchCodec.parse(s).flatMap(j => ElasticsearchCodec.decode[Vec](j.hcursor))
               val obj = client.getObject(bucket, s"$keyPrefix/${dataset.name}/${name}.json.gz")
               val iterManaged = Managed.makeEffect(Source.fromInputStream(new GZIPInputStream(obj.getObjectContent)))(_.close())
               val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines.take(n)).getOrElse(src.getLines())))
@@ -52,10 +50,10 @@ object DatasetClient {
               rawJson.mapM(s => ZIO.fromEither(parseDecode(s)))
           }
 
-        override def streamTrain[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int]): Stream[Throwable, V] =
+        override def streamTrain(dataset: Dataset, limit: Option[Int]): Stream[Throwable, Vec] =
           stream(dataset, "train", limit)
 
-        override def streamTest[V <: Vec: ElasticsearchCodec](dataset: Dataset, limit: Option[Int]): Stream[Throwable, V] =
+        override def streamTest(dataset: Dataset, limit: Option[Int]): Stream[Throwable, Vec] =
           stream(dataset, "test", limit)
       }
   }
