@@ -56,7 +56,7 @@ object Aggregate extends App {
           log.info(agg.toString).map(_ => agg)
         }
 
-      aggregates <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.algorithm, a.k)))
+      aggregates <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
 
       // Write the rows to a temporary file
       csvFile = File.createTempFile("tmp", ".csv")
