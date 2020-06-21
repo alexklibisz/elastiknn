@@ -25,7 +25,11 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] =
     execute(ElastiknnRequests.putMapping(index, field, mapping))
 
-  def index(index: String, field: String, vecs: Seq[Vec], ids: Option[Seq[String]] = None, refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
+  def index(index: String,
+            field: String,
+            vecs: Seq[Vec],
+            ids: Option[Seq[String]] = None,
+            refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
     val reqs = vecs.map(v => ElastiknnRequests.indexVec(index, field, v))
     val withIds = ids match {
       case Some(idSeq) if idSeq.length == reqs.length =>
@@ -46,17 +50,18 @@ object ElastiknnClient {
 
   final case class StrictFailureException(message: String, cause: Throwable = None.orNull) extends RuntimeException(message, cause)
 
-  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(implicit ec: ExecutionContext): ElastiknnFutureClient = {
+  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
+      implicit ec: ExecutionContext): ElastiknnFutureClient = {
     val rc: RestClient = RestClient.builder(new HttpHost(host, port)).build()
     val jc: JavaClient = new JavaClient(rc)
     new ElastiknnFutureClient {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
       implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
       val elasticClient: ElasticClient = ElasticClient(jc)
-      override def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[Response[U]] = {
-        val future: Future[Response[U]] = elasticClient.execute(t)
+      override def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[Response[U]] = {
+        val future: Future[Response[U]] = elasticClient.execute(req)
         if (strictFailure) future.flatMap { res =>
-          checkResponse(res) match {
+          checkResponse(req, res) match {
             case Left(ex) => Future.failed(ex)
             case Right(_) => Future.successful(res)
           }
@@ -68,18 +73,29 @@ object ElastiknnClient {
     }
   }
 
-  private def checkResponse[U](res: Response[U]): Either[Throwable, U] = {
+  private def checkResponse[T, U](req: T, res: Response[U]): Either[Throwable, U] = {
     @tailrec
     def findBulkError(bulkResponseItems: Seq[BulkResponseItem], acc: Option[ElasticError] = None): Option[ElasticError] =
       if (bulkResponseItems.isEmpty) acc
       else
         bulkResponseItems.head.error match {
           case Some(err) =>
-            Some(ElasticError(err.`type`, err.reason, Some(err.index_uuid), Some(err.index), Some(err.shard.toString), Seq.empty, None, None, None, Seq.empty))
+            Some(
+              ElasticError(err.`type`,
+                           err.reason,
+                           Some(err.index_uuid),
+                           Some(err.index),
+                           Some(err.shard.toString),
+                           Seq.empty,
+                           None,
+                           None,
+                           None,
+                           Seq.empty))
           case None => findBulkError(bulkResponseItems.tail, acc)
         }
-    if (res.isError) Left(res.error.asException)
-    else if (res.status != 200) Left(StrictFailureException(s"Returned non-200 response: [$res]"))
+    if (res.isError) {
+      Left(res.error.asException)
+    } else if (res.status != 200) Left(StrictFailureException(s"Returned non-200 response: [$res]"))
     else
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>

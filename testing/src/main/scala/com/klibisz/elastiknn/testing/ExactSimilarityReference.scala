@@ -9,19 +9,19 @@ import breeze.linalg.functions._
   */
 object ExactSimilarityReference {
 
-  def L2(v1: Vec.DenseFloat, v2: Vec.DenseFloat): Double = {
+  val L2: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
     1 / (1 + euclideanDistance(new DenseVector(v1.values), new DenseVector(v2.values)))
   }
 
-  def L1(v1: Vec.DenseFloat, v2: Vec.DenseFloat): Double = {
+  val L1: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
     1 / (1 + manhattanDistance(new DenseVector(v1.values), new DenseVector(v2.values)))
   }
 
-  def Angular(v1: Vec.DenseFloat, v2: Vec.DenseFloat): Double = {
+  val Angular: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
     1 + (1 - cosineDistance(new DenseVector(v1.values.map(_.toDouble)), new DenseVector(v2.values.map(_.toDouble))))
   }
 
-  def Hamming(v1: Vec.SparseBool, v2: Vec.SparseBool): Double = {
+  val Hamming: (Vec.SparseBool, Vec.SparseBool) => Double = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
     val d1 = new Array[Boolean](v1.totalIndices)
     val d2 = new Array[Boolean](v2.totalIndices)
     v1.trueIndices.foreach(i => d1.update(i, true))
@@ -29,7 +29,7 @@ object ExactSimilarityReference {
     d1.zip(d2).count { case (a, b) => a == b } * 1d / d1.length
   }
 
-  def Jaccard(v1: Vec.SparseBool, v2: Vec.SparseBool): Double = {
+  val Jaccard = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
     val isec = v1.trueIndices.intersect(v2.trueIndices).length
     val denom = v1.trueIndices.length + v2.trueIndices.length - isec
     if (isec == 0 && denom == 0) 1d
