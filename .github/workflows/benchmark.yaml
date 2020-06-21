@@ -52,6 +52,8 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           pip install --user csv2md
+          which csv2md
+          find . -name aggregate.csv
           COMMIT=$(git rev-parse --verify HEAD) \
           RESULTS_TABLE=$(find . -name aggregate.csv | head -n1 | xargs csv2md) \
           envsubst < .github/scripts/benchmarks-template.md > comment.md
