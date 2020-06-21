@@ -4,6 +4,7 @@ import java.io.File
 
 import kantan.csv._
 import kantan.csv.ops._
+import kantan.csv.generic._
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
