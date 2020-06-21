@@ -184,14 +184,14 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
-benchmarks/github/trigger:
+benchmarks/continuous/trigger:
 	curl -H "Accept: application/vnd.github.everest-preview+json" \
 		 -H "Authorization: token ${GITHUB_TOKEN}" \
 		 --request POST \
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/github/run: .mk/run-cluster
+benchmarks/continuous/run: .mk/run-cluster
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.Micro :benchmarks:run
 
 benchmarks/docker/login:
