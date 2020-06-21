@@ -131,7 +131,7 @@ object Execute extends App {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
-              _ <- if (i % 10 == 0) log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms") else ZIO.succeed(())
+              _ <- if (i % 10 == 0) log.debug(s"Completed query $i in ${dur.toMillis} ms") else ZIO.succeed(())
             } yield {
               QueryResult(res.result.hits.hits.map(_.id), res.result.took)
             }
