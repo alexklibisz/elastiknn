@@ -59,5 +59,7 @@ services:
     command: server /data
     ports:
       - "9000:9000"
+    volumes:
+      - "../.minio:/data"
 
 

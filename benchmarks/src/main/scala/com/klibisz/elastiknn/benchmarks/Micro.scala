@@ -9,49 +9,57 @@ import zio.console.Console
   */
 object Micro extends App {
 
-  private val sparseIndexedExp = {
-    val dataset = Dataset.RandomSparseBool(1000, 10000)
-    Experiment(
-      dataset,
-      Mapping.SparseIndexed(dataset.dims),
-      NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard),
-      Mapping.SparseIndexed(dataset.dims),
-      Seq(
-        Query(NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard), 100)
-      )
-    )
-  }
+  private val randomDenseFloats = Dataset.RandomDenseFloat(500, 10000)
+  // private val randomSparseBools = Dataset.RandomSparseBool(500, 10000)
+  private val field = "vec"
+  private val bucket = s"elastiknn-benchmarks"
 
-  private val angularLshExp = {
-    val dataset = Dataset.RandomDenseFloat(1000, 10000)
+  private val experiments = Seq(
+    // L2 exact / LSH
     Experiment(
-      dataset,
-      Mapping.DenseFloat(dataset.dims),
-      NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
-      Mapping.AngularLsh(dataset.dims, 600, 1),
-      Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 100)
-      )
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 300, 1, 3),
+      Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000), 100))
+    ),
+    // Angular exact / LSH
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.AngularLsh(randomDenseFloats.dims, 300, 1),
+      Seq(Query(NearestNeighborsQuery.AngularLsh(field, 1000), 100))
     )
-  }
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
-    val exp = angularLshExp
-    s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
-    Execute(
-      Execute.Params(
-        experimentHash = exp.md5sum,
-        experimentsBucket = "elastiknn-benchmarks",
-        experimentsPrefix = "experiments",
-        datasetsBucket = "elastiknn-benchmarks",
-        datasetsPrefix = "data/processed",
-        resultsBucket = "elastiknn-benchmarks",
-        resultsPrefix = "results",
-        parallelism = 8,
-        s3Minio = true,
-        skipExisting = false
-      )).exitCode
+    val experimentEffects = experiments.map { exp =>
+      for {
+        _ <- ZIO(s3Client.putObject(bucket, s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces))
+        params = Execute.Params(
+          experimentHash = exp.md5sum,
+          experimentsBucket = bucket,
+          experimentsPrefix = "experiments",
+          datasetsBucket = bucket,
+          datasetsPrefix = "data/processed",
+          resultsBucket = bucket,
+          resultsPrefix = "results",
+          parallelism = 2,
+          s3Minio = true,
+          recompute = true
+        )
+        _ <- Execute(params)
+      } yield ()
+    }
+    val pipeline = for {
+      bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
+      _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
+      _ <- ZIO.collectAll(experimentEffects)
+      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate.csv", s3Minio = true))
+    } yield ()
+    pipeline.exitCode
   }
 
 }

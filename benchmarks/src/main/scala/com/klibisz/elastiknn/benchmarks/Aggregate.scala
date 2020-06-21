@@ -13,6 +13,7 @@ import zio.blocking.Blocking
 import zio.console.Console
 import zio.logging.log
 import zio.logging.slf4j.Slf4jLogger
+import zio.stream.ZSink
 
 /**
   * Ingest results and compute pareto curves for each set of results grouped by (dataset, algorithm, k).
@@ -21,7 +22,6 @@ object Aggregate extends App {
 
   final case class Params(resultsBucket: String = "",
                           resultsPrefix: String = "",
-                          resultsS3URL: String = "",
                           aggregateBucket: String = "",
                           aggregateKey: String = "",
                           s3Minio: Boolean = false)
@@ -50,20 +50,19 @@ object Aggregate extends App {
       results = resultClient.all()
 
       // Transform them to rows.
-      rows = results.mapMPar(10) { res =>
-        val agg = AggregateResult(res)
-        log.info(agg.toString).map(_ => agg)
-      }
+      aggStream = results
+        .mapMPar(10) { res =>
+          val agg = AggregateResult(res)
+          log.info(agg.toString).map(_ => agg)
+        }
+
+      aggregates <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.algorithm, a.k)))
 
       // Write the rows to a temporary file
       csvFile = File.createTempFile("tmp", ".csv")
       writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
-      count <- rows.fold(0) {
-        case (n, row) =>
-          writer.write(row)
-          n + 1
-      }
-      _ <- log.info(s"Wrote $count rows to csv file.")
+      _ = aggregates.foreach(writer.write)
+      _ <- log.info(s"Wrote ${aggregates.length} rows to csv file.")
       _ = writer.close()
 
       // Upload the file.

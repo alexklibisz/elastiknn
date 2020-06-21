@@ -96,24 +96,47 @@ package object api {
     final case class Exact(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
+    object Exact {
+      def apply(field: String, similarity: Similarity): Exact = Exact(field, Vec.Empty(), similarity)
+    }
+
     final case class SparseIndexed(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
+    object SparseIndexed {
+      def apply(field: String, similarity: Similarity): SparseIndexed = SparseIndexed(field, Vec.Empty(), similarity)
+    }
+
     final case class JaccardLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Jaccard
     }
+    object JaccardLsh {
+      def apply(field: String, candidates: Int): JaccardLsh = JaccardLsh(field, Vec.Empty(), candidates)
+    }
+
     final case class HammingLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Hamming
     }
+    object HammingLsh {
+      def apply(field: String, candidates: Int): HammingLsh = HammingLsh(field, Vec.Empty(), candidates)
+    }
+
     final case class AngularLsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Angular
     }
+    object AngularLsh {
+      def apply(field: String, candidates: Int): AngularLsh = AngularLsh(field, Vec.Empty(), candidates)
+    }
+
     final case class L2Lsh(field: String, vec: Vec, candidates: Int) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.L2
+    }
+    object L2Lsh {
+      def apply(field: String, candidates: Int): L2Lsh = L2Lsh(field, Vec.Empty(), candidates)
     }
 
   }
