@@ -184,15 +184,17 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
-benchmarks/github/trigger:
+benchmarks/continuous/trigger:
 	curl -H "Accept: application/vnd.github.everest-preview+json" \
 		 -H "Authorization: token ${GITHUB_TOKEN}" \
 		 --request POST \
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/github/run: .mk/run-cluster .mk/benchmarks-assemble
-	echo TODO
+benchmarks/continuous/run:
+	mkdir -p .minio/elastiknn-benchmarks/results/aggregate
+	curl -s https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data | head -n10 \
+		> .minio/elastiknn-benchmarks/results/aggregate/aggregate.csv
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
