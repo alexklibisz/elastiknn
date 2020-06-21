@@ -8,7 +8,7 @@ on:
     types: benchmark
   push:
     branches:
-      - benchmark-workflow-commands
+      - benchmark-workflow-cmds
 jobs:
   benchmark:
     name: Benchmark
@@ -54,5 +54,3 @@ jobs:
           RESULTS_TABLE=$(find . -name aggregate.csv | head -n1 | xargs csv2md) \
           envsubst < .github/scripts/benchmarks-template.md > comment.md
           ./.github/scripts/pr-comment.sh comment.md
-          
-      
