@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - master
-      - micro-benchmarks
 jobs:
   benchmark:
     name: Benchmark
@@ -52,10 +51,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
       - name: Run Benchmark
         run: make benchmarks/continuous/run
-      
+      - name: Print Results
+        run: find . -name aggregate.csv -type f | xargs cat
       - name: Report Results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,6 +63,6 @@ jobs:
           python3 -m pip install csv2md
           find . -name aggregate.csv
           COMMIT=$(git rev-parse --verify HEAD) \
-          RESULTS_TABLE=$(find . -name aggregate.csv | head -n1 | xargs python3 -m csv2md) \
+          RESULTS_TABLE=$(find . -name aggregate.csv -type f | xargs python3 -m csv2md) \
           envsubst < .github/scripts/benchmarks-template.md > comment.md
           ./.github/scripts/pr-comment.sh comment.md
