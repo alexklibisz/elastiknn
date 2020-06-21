@@ -63,53 +63,60 @@ package object benchmarks {
   }
 
   final case class AggregateResult(dataset: String,
+                                   similarity: String,
                                    algorithm: String,
                                    k: Int,
+                                   recallP10: Float,
+                                   durationP10: Float,
+                                   recallP50: Float,
+                                   durationP50: Float,
+                                   recallP90: Float,
+                                   durationP90: Float,
                                    mappingJson: String,
-                                   queryJson: String,
-                                   recallP10: Double,
-                                   recallP50: Double,
-                                   recallP90: Double,
-                                   durationP10: Double,
-                                   durationP50: Double,
-                                   durationP90: Double)
+                                   queryJson: String)
   object AggregateResult {
 
-    val header = Seq("dataset",
-                     "algorithm",
-                     "k",
-                     "mappingJson",
-                     "queryJson",
-                     "recallP10",
-                     "recallP50",
-                     "recallP90",
-                     "durationP10",
-                     "durationP50",
-                     "durationP90")
+    val header = Seq(
+      "dataset",
+      "similarity",
+      "algorithm",
+      "k",
+      "recallP10",
+      "durationP10",
+      "recallP50",
+      "durationP50",
+      "recallP90",
+      "durationP90",
+      "mapping",
+      "query"
+    )
 
     private def mappingToAlgorithmName(m: Mapping): String = m match {
-      case _: SparseBool                                            => "exact"
+      case _: SparseBool                                            => s"Exact"
       case _: DenseFloat                                            => "exact"
       case _: SparseIndexed                                         => "sparse indexed"
       case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "lsh"
     }
 
+    private def queryToSimilarityName(q: NearestNeighborsQuery): String = q.similarity.toString
+
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
       val ptile = new Percentile()
       val recalls = benchmarkResult.queryResults.map(_.recall).toArray
       val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
-      AggregateResult(
+      new AggregateResult(
         benchmarkResult.dataset.name,
+        queryToSimilarityName(benchmarkResult.query),
         mappingToAlgorithmName(benchmarkResult.mapping),
         benchmarkResult.k,
+        ptile.evaluate(recalls, 0.1).toFloat,
+        ptile.evaluate(durations, 0.1).toFloat,
+        ptile.evaluate(recalls, 0.5).toFloat,
+        ptile.evaluate(durations, 0.5).toFloat,
+        ptile.evaluate(recalls, 0.9).toFloat,
+        ptile.evaluate(durations, 0.9).toFloat,
         ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
-        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces,
-        ptile.evaluate(recalls, 0.1),
-        ptile.evaluate(recalls, 0.5),
-        ptile.evaluate(recalls, 0.9),
-        ptile.evaluate(durations, 0.1),
-        ptile.evaluate(durations, 0.5),
-        ptile.evaluate(durations, 0.9),
+        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
       )
     }
   }
@@ -118,7 +125,6 @@ package object benchmarks {
     import Dataset._
 
     private val vecName: String = "vec"
-    private val empty: Vec = Vec.Empty()
     val defaultKs: Seq[Int] = Seq(10, 100)
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
@@ -130,12 +136,12 @@ package object benchmarks {
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, empty, Similarity.L2),
+          NearestNeighborsQuery.Exact(vecName, Similarity.L2),
           Mapping.L2Lsh(dataset.dims, b, r, w),
           for {
             k <- ks
             m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, empty, m * k), k)
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k), k)
         )
       lsh
     }
@@ -148,12 +154,12 @@ package object benchmarks {
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Angular),
+          NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
           Mapping.AngularLsh(dataset.dims, b, r),
           for {
             k <- ks
             m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, empty, m * k), k)
+          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, m * k), k)
         )
       lsh
     }
@@ -163,11 +169,11 @@ package object benchmarks {
         Experiment(
           dataset,
           Mapping.SparseBool(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Hamming),
+          NearestNeighborsQuery.Exact(vecName, Similarity.Hamming),
           Mapping.SparseIndexed(dataset.dims),
           for {
             k <- ks
-          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, empty, Similarity.Hamming), k)
+          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, Similarity.Hamming), k)
         )
       )
       val lsh = for {
@@ -176,12 +182,12 @@ package object benchmarks {
         Experiment(
           dataset,
           Mapping.SparseBool(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Hamming),
+          NearestNeighborsQuery.Exact(vecName, Similarity.Hamming),
           Mapping.HammingLsh(dataset.dims, (bitsProp * dataset.dims).toInt),
           for {
             k <- ks
             m <- Seq(1, 2, 10, 50)
-          } yield Query(NearestNeighborsQuery.HammingLsh(vecName, empty, k * m), k)
+          } yield Query(NearestNeighborsQuery.HammingLsh(vecName, k * m), k)
         )
       sparseIndexed ++ lsh
     }
@@ -191,11 +197,11 @@ package object benchmarks {
         Experiment(
           dataset,
           Mapping.SparseBool(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, empty, Similarity.Jaccard),
+          NearestNeighborsQuery.Exact(vecName, Similarity.Jaccard),
           Mapping.SparseIndexed(dataset.dims),
           for {
             k <- ks
-          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, empty, Similarity.Jaccard), k)
+          } yield Query(NearestNeighborsQuery.SparseIndexed(vecName, Similarity.Jaccard), k)
         )
       )
       sparseIndexed

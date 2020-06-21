@@ -37,7 +37,7 @@ object Execute extends App {
                           resultsPrefix: String = "",
                           parallelism: Int = java.lang.Runtime.getRuntime.availableProcessors(),
                           s3Minio: Boolean = false,
-                          skipExisting: Boolean = true)
+                          recompute: Boolean = false)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -131,7 +131,7 @@ object Execute extends App {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
-              _ <- log.debug(s"Completed query ${i + 1} in ${dur.toMillis} ms")
+              _ <- if (i % 10 == 0) log.debug(s"Completed query $i in ${dur.toMillis} ms") else ZIO.succeed(())
             } yield {
               QueryResult(res.result.hits.hits.map(_.id), res.result.took)
             }
@@ -174,7 +174,7 @@ object Execute extends App {
     test.copy(queryResults = withRecalls)
   }
 
-  private def run(experiment: Experiment, parallelism: Int, skipExisting: Boolean) = {
+  private def run(experiment: Experiment, parallelism: Int, recompute: Boolean) = {
     import experiment._
     for {
       rc <- ZIO.access[ResultClient](_.get)
@@ -184,7 +184,7 @@ object Execute extends App {
         for {
           exactOpt <- rc.find(dataset, exactMapping, exactQuery, k)
           exact <- exactOpt match {
-            case Some(res) if skipExisting =>
+            case Some(res) =>
               for {
                 _ <- log.info(s"Found exact result for mapping $exactMapping, query $exactQuery")
               } yield res
@@ -198,7 +198,7 @@ object Execute extends App {
 
           testOpt <- rc.find(dataset, testMapping, testQuery, k)
           _ <- testOpt match {
-            case Some(_) if skipExisting => log.info(s"Found test result for mapping $testMapping, query $testQuery")
+            case Some(_) if !recompute => log.info(s"Found test result for mapping $testMapping, query $testQuery")
             case _ =>
               for {
                 test <- indexAndSearch(dataset, testMapping, testQuery, k, parallelism).map(setRecalls(exact, _))
@@ -241,8 +241,7 @@ object Execute extends App {
       _ <- log.info("Cluster ready")
 
       // Run the experiment.
-      _ <- run(experiment, params.parallelism, params.skipExisting)
-      _ <- log.info("Done - exiting successfully")
+      _ <- run(experiment, params.parallelism, params.recompute)
 
     } yield ()
 
@@ -252,55 +251,6 @@ object Execute extends App {
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) => apply(params).exitCode
     case None         => sys.exit(1)
-  }
-
-}
-
-object ExecuteLocal extends App {
-
-  private val sparseIndexedExp = {
-    val dataset = Dataset.RandomSparseBool(1000, 10000)
-    Experiment(
-      dataset,
-      Mapping.SparseIndexed(dataset.dims),
-      NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard),
-      Mapping.SparseIndexed(dataset.dims),
-      Seq(
-        Query(NearestNeighborsQuery.SparseIndexed("vec", Vec.Empty(), Similarity.Jaccard), 100)
-      )
-    )
-  }
-
-  private val angularLshExp = {
-    val dataset = Dataset.RandomDenseFloat(1000, 10000)
-    Experiment(
-      dataset,
-      Mapping.DenseFloat(dataset.dims),
-      NearestNeighborsQuery.Exact("vec", Vec.Empty(), Similarity.Angular),
-      Mapping.AngularLsh(dataset.dims, 600, 1),
-      Seq(
-        Query(NearestNeighborsQuery.AngularLsh("vec", Vec.Empty(), 500), 100)
-      )
-    )
-  }
-
-  override def run(args: List[String]): URIO[Console, ExitCode] = {
-    val s3Client = S3Utils.minioClient()
-    val exp = angularLshExp
-    s3Client.putObject("elastiknn-benchmarks", s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces)
-    Execute(
-      Execute.Params(
-        experimentHash = exp.md5sum,
-        experimentsBucket = "elastiknn-benchmarks",
-        experimentsPrefix = "experiments",
-        datasetsBucket = "elastiknn-benchmarks",
-        datasetsPrefix = "data/processed",
-        resultsBucket = "elastiknn-benchmarks",
-        resultsPrefix = "results",
-        parallelism = 8,
-        s3Minio = true,
-        skipExisting = false
-      )).exitCode
   }
 
 }

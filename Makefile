@@ -191,10 +191,8 @@ benchmarks/continuous/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/continuous/run:
-	mkdir -p .minio/elastiknn-benchmarks/results/aggregate
-	curl -s https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data | head -n10 \
-		> .minio/elastiknn-benchmarks/results/aggregate/aggregate.csv
+benchmarks/continuous/run: .mk/run-cluster
+	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
