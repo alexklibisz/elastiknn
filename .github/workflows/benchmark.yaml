@@ -31,8 +31,4 @@ jobs:
         with:
           java-version: 14
       - name: Run Benchmark
-        run: echo "TODO"
-      - name: Print Results
-        run: echo "TODO"
-      - name: Send results to any PRs for this branch.
-        run: echo "TODO"
+        run: make benchmarks/github/run
