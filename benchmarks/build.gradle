@@ -46,5 +46,5 @@ dependencies {
 }
 
 application {
-    mainClassName = 'com.klibisz.elastiknn.benchmarks.Enqueue'
+    mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
 }

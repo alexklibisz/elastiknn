@@ -57,7 +57,7 @@ object Micro extends App {
       bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
       _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
       _ <- ZIO.collectAll(experimentEffects)
-      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate.csv", s3Minio = true))
+      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate/aggregate.csv", s3Minio = true))
     } yield ()
     pipeline.exitCode
   }
