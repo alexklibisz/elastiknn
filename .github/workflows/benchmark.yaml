@@ -8,7 +8,7 @@ on:
     types: benchmark
   push:
     branches:
-      - benchmark-workflow-cmds
+      - master
 jobs:
   benchmark:
     name: Benchmark
