@@ -191,6 +191,9 @@ benchmarks/github/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
+benchmarks/github/run: .mk/run-cluster
+	echo TODO
+
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
 
