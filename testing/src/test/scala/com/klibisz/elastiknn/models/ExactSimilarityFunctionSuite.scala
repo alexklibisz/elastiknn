@@ -11,7 +11,7 @@ class ExactSimilarityFunctionSuite extends FunSpec with Matchers with LazyLoggin
 
   private val reps = 1000
   private val tol = 1e-7
-  private val seed = 1592767742274L // System.currentTimeMillis()
+  private val seed = System.currentTimeMillis()
   private implicit val rng = new Random(seed)
   logger.info(s"Testing with seed $seed")
 
