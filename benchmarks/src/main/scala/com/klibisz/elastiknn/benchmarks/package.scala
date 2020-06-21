@@ -95,14 +95,16 @@ package object benchmarks {
       "query"
     )
 
-    private def mappingToAlgorithmName(m: Mapping): String = m match {
-      case _: SparseBool                                            => s"Exact"
-      case _: DenseFloat                                            => "exact"
-      case _: SparseIndexed                                         => "sparse indexed"
-      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "lsh"
+    private def algorithmName(m: Mapping, q: NearestNeighborsQuery): String = m match {
+      case _: SparseBool    => s"Exact"
+      case _: DenseFloat    => "Exact"
+      case _: SparseIndexed => "Sparse indexed"
+      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh =>
+        q match {
+          case lsh: NearestNeighborsQuery.LshQuery if lsh.useMLTQuery => "LSH w/ MLT"
+          case _                                                      => "LSH"
+        }
     }
-
-    private def queryToSimilarityName(q: NearestNeighborsQuery): String = q.similarity.toString
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
       val ptile = new Percentile()
@@ -110,8 +112,8 @@ package object benchmarks {
       val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
       new AggregateResult(
         benchmarkResult.dataset.name,
-        queryToSimilarityName(benchmarkResult.query),
-        mappingToAlgorithmName(benchmarkResult.mapping),
+        benchmarkResult.query.similarity.toString,
+        algorithmName(benchmarkResult.mapping, benchmarkResult.query),
         benchmarkResult.k,
         ptile.evaluate(recalls, 0.1).toFloat,
         ptile.evaluate(durations, 0.1).toFloat,
