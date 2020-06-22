@@ -6,12 +6,18 @@ import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 import com.klibisz.elastiknn.api.{Similarity, Vec}
 import io.circe._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
+import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 
 import scala.util.{Random, Try}
 
-case class Query(vector: Vec, similarities: Vector[Float], indices: Vector[Int])
+case class Result(similarity: Similarity, values: Vector[Double])
+object Result {
+  implicit val codec: Codec[Result] = deriveCodec[Result]
+}
+
+case class Query(vector: Vec, results: Seq[Result])
 object Query {
   implicit val codec: Codec[Query] = deriveCodec[Query]
 }
@@ -21,65 +27,64 @@ object TestData {
 
   implicit val codec: Codec[TestData] = deriveCodec[TestData]
 
-  val generatedDims = Seq(10, 128, 1024)
-
-  def read(similarity: Similarity, dims: Int): Try[TestData] = {
-    val name = s"testdata-${similarity.toString.toLowerCase}-$dims.json.gz"
-    val resource = getClass.getResource(name)
+  def read(fname: String): TestData = {
+    val resource = getClass.getResource(fname)
     val gin = new GZIPInputStream(resource.openStream())
     val contents = new String(gin.readAllBytes())
-    io.circe.parser.decode[TestData](contents).toTry
+    gin.close()
+    io.circe.parser.decode[TestData](contents).toTry.get
   }
 
-  def write(testData: TestData, similarity: Similarity, dims: Int): Unit = {
-    val name = s"testdata-${similarity.toString.toLowerCase}-$dims.json.gz"
-    val gout = new GZIPOutputStream(new FileOutputStream(name))
+  def write(testData: TestData, fname: String): Unit = {
+    val gout = new GZIPOutputStream(new FileOutputStream(fname))
     gout.write(testData.asJson.noSpaces.getBytes())
     gout.close()
   }
 
-  def genSparseBool(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, simFunc: (Vec.SparseBool, Vec.SparseBool) => Double)(
-      implicit rng: Random): TestData = {
+  def genSparseBool(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int)(implicit rng: Random): TestData = {
     val corpus = Vec.SparseBool.randoms(dims, numCorpus)
     val queries = Vec.SparseBool.randoms(dims, numQueries).map { qv =>
-      val nearest = corpus.map(cv => simFunc(cv, qv)).zipWithIndex.sortBy(_._1 * -1).take(numNeighbors)
-      Query(qv, nearest.map(_._1.toFloat), nearest.map(_._2))
+      Query(
+        qv,
+        Seq(
+          Result(Similarity.Jaccard, corpus.map(cv => ExactSimilarityFunction.Jaccard(cv, qv)).sorted.reverse.take(numNeighbors)),
+          Result(Similarity.Hamming, corpus.map(cv => ExactSimilarityFunction.Hamming(cv, qv)).sorted.reverse.take(numNeighbors))
+        )
+      )
     }
     TestData(corpus, queries)
   }
 
-  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, simFunc: (Vec.DenseFloat, Vec.DenseFloat) => Double)(
+  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(
       implicit rng: Random): TestData = {
     val corpus = Vec.DenseFloat.randoms(dims, numCorpus)
     val queries = Vec.DenseFloat.randoms(dims, numQueries).map { qv =>
-      val nearest = corpus.map(cv => simFunc(cv, qv)).zipWithIndex.sortBy(_._1 * -1).take(numNeighbors)
-      Query(qv, nearest.map(_._1.toFloat), nearest.map(_._2))
+      Query(
+        qv,
+        Seq(
+          Result(Similarity.L1, corpus.map(cv => ExactSimilarityFunction.L1(cv, qv)).sorted.reverse.take(numNeighbors)),
+          Result(Similarity.L2, corpus.map(cv => ExactSimilarityFunction.L2(cv, qv)).sorted.reverse.take(numNeighbors)),
+          Result(Similarity.Angular, corpus.map(cv => ExactSimilarityFunction.Angular(cv, qv)).sorted.reverse.take(numNeighbors))
+        )
+      )
     }
     TestData(corpus, queries)
   }
 }
 
 /**
-  * Run this to generate test data.
+  * Run this to generate test data. Then copy the json.gz files from the root directory to the resources directory.
   */
 object Generate {
 
   import TestData._
 
   def main(args: Array[String]): Unit = {
-    implicit val rng: Random = new Random(0)
-    val numCorpus = 10000
-    val numQueries = 100
-    val numNeighbors = 100
-    for {
-      dims <- TestData.generatedDims
-    } {
-      write(genSparseBool(dims, numCorpus, numQueries, numNeighbors, ExactSimilarityReference.Jaccard), Similarity.Jaccard, dims)
-      write(genSparseBool(dims, numCorpus, numQueries, numNeighbors, ExactSimilarityReference.Hamming), Similarity.Hamming, dims)
-      write(genDenseFloat(dims, numCorpus, numQueries, numNeighbors, ExactSimilarityReference.Angular), Similarity.Angular, dims)
-      write(genDenseFloat(dims, numCorpus, numQueries, numNeighbors, ExactSimilarityReference.L2), Similarity.L2, dims)
-      write(genDenseFloat(dims, numCorpus, numQueries, numNeighbors, ExactSimilarityReference.L1), Similarity.L1, dims)
-    }
+    implicit val rng = new Random(0)
+    val dims = 1024
+    write(genSparseBool(dims, 5000, 50, 100), "testdata-sparsebool.json.gz")
+    write(genDenseFloat(dims, 5000, 50, 100), "testdata-densefloat.json.gz")
+    write(genDenseFloat(dims, 5000, 50, 100, unit = true), "testdata-densefloat-unit.json.gz")
   }
 
 }

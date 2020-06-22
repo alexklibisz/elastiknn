@@ -56,7 +56,6 @@ object SparseIndexedQuery {
         val clause = new BooleanClause(constQuery, BooleanClause.Occur.SHOULD)
         builder.add(clause)
       }
-      builder.setMinimumNumberShouldMatch(1)
       builder.build()
     }
     val f = new SparseIndexedScoreFunction(field, queryVec, simFunc)

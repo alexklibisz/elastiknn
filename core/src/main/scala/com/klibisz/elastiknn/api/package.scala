@@ -62,16 +62,21 @@ package object api {
     }
 
     object DenseFloat {
-      def random(length: Int)(implicit rng: Random): DenseFloat =
-        DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat))
+      def random(length: Int, unit: Boolean = false)(implicit rng: Random): DenseFloat = {
+        val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat))
+        if (unit) {
+          val norm = math.sqrt(v.values.map(x => x * x).sum).toFloat
+          DenseFloat(v.values.map(_ / norm))
+        } else v
+      }
 
-      def randoms(length: Int, n: Int)(implicit rng: Random): Vector[DenseFloat] =
-        (0 until n).map(_ => random(length)).toVector
+      def randoms(length: Int, n: Int, unit: Boolean = false)(implicit rng: Random): Vector[DenseFloat] =
+        (0 until n).map(_ => random(length, unit)).toVector
     }
 
     final case class Indexed(index: String, id: String, field: String) extends Vec
 
-    private[elastiknn] final case class Empty() extends Vec
+    final case class Empty() extends Vec
 
   }
 
@@ -95,18 +100,12 @@ package object api {
     def withVec(v: Vec): NearestNeighborsQuery
   }
   object NearestNeighborsQuery {
-    final case class Exact(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+    final case class Exact(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
-    }
-    object Exact {
-      def apply(field: String, similarity: Similarity): Exact = Exact(field, Vec.Empty(), similarity)
     }
 
-    final case class SparseIndexed(field: String, vec: Vec, similarity: Similarity) extends NearestNeighborsQuery {
+    final case class SparseIndexed(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
-    }
-    object SparseIndexed {
-      def apply(field: String, similarity: Similarity): SparseIndexed = SparseIndexed(field, Vec.Empty(), similarity)
     }
 
     sealed trait LshQuery extends NearestNeighborsQuery {

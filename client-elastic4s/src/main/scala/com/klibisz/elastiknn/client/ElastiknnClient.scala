@@ -41,8 +41,12 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     execute(bulk(withIds).refresh(refresh))
   }
 
-  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, fetchSource: Boolean = false): F[Response[SearchResponse]] =
-    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, fetchSource))
+  def nearestNeighbors(index: String,
+                       query: NearestNeighborsQuery,
+                       k: Int,
+                       fetchSource: Boolean = false,
+                       preference: Option[String] = None): F[Response[SearchResponse]] =
+    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, fetchSource, preference))
 
 }
 
