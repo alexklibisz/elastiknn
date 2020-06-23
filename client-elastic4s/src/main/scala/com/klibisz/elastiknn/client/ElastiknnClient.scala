@@ -99,13 +99,13 @@ object ElastiknnClient {
         }
     if (res.isError) {
       Left(res.error.asException)
-    } else if (res.status != 200) Left(StrictFailureException(s"Returned non-200 response: [$res]"))
+    } else if (res.status != 200) Left(StrictFailureException(s"Returned non-200 response [$res] for request [$req]."))
     else
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
           findBulkError(bulkResponse.items) match {
             case Some(err) => Left(err.asException)
-            case None      => Left(StrictFailureException(s"Unknown bulk execution error in response $res"))
+            case None      => Left(StrictFailureException(s"Unknown bulk execution error [$res] for request [$req]."))
           }
         case other => Right(other)
       }
