@@ -147,7 +147,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.67,
         NearestNeighborsQuery.L2Lsh(fieldName, 200, useMLTQuery = true) -> 0.26,
         NearestNeighborsQuery.L2Lsh(fieldName, 400, useMLTQuery = true) -> 0.43,
-        NearestNeighborsQuery.L2Lsh(fieldName, 800, useMLTQuery = true) -> 0.65,
+        NearestNeighborsQuery.L2Lsh(fieldName, 800, useMLTQuery = true) -> 0.64,
       )
     )
   )
