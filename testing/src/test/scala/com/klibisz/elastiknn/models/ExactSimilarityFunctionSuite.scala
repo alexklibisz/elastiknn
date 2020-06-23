@@ -85,7 +85,7 @@ class ExactSimilarityFunctionSuite extends FunSpec with Matchers with LazyLoggin
       val v1 = Vec.DenseFloat.random(199)
       val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
       ExactSimilarityFunction.Angular(v1, v2) shouldBe >=(0d)
-      ExactSimilarityFunction.Angular(v2, v2) shouldBe 1
+      ExactSimilarityFunction.Angular(v2, v2) shouldBe 2d
     }
 
   }

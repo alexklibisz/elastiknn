@@ -1,3 +1,5 @@
+- Updated L1, and L2 similarities such that they're bounded in [0,1].
+---
 - Added an option for LSH queries to use the more-like-this heuristics to pick a subset of LSH hashes to retrieve candidate vectors.
   Uses Lucene's [MoreLikeThis class](https://lucene.apache.org/core/8_5_0/queries/org/apache/lucene/queries/mlt/MoreLikeThis.html)
   to pick a subset of hashes based on index statistics. It's generally much faster than using _all_ of the hashes,
