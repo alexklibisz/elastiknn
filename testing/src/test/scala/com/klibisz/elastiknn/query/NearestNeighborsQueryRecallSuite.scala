@@ -104,9 +104,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.8,
         NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
         NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.63,
+        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.62,
         NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.79,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.93
+        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.92
       )
     ),
     // Angular Lsh
@@ -143,7 +143,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
         NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.27,
-        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.46,
+        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.45,
         NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.67,
         NearestNeighborsQuery.L2Lsh(fieldName, 200, useMLTQuery = true) -> 0.26,
         NearestNeighborsQuery.L2Lsh(fieldName, 400, useMLTQuery = true) -> 0.43,
