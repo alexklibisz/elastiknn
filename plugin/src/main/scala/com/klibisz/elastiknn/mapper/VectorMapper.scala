@@ -62,6 +62,7 @@ object VectorMapper {
 
     // We generally only care about the presence or absence of terms, not their counts or anything fancier.
     this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
+    // TODO: Any way to dedup the settings here and in simpleTokenFieldType?
     this.setOmitNorms(true)
     this.setBoost(1f)
     this.setTokenized(false)
