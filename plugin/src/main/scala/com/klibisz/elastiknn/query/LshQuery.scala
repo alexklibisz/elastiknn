@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.io.{ByteArrayInputStream, InputStreamReader}
 import java.lang
 import java.util.Objects
 
@@ -9,13 +8,12 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
-import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
-import org.apache.lucene.queries.mlt.MoreLikeThis
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
+import scala.collection.JavaConverters._
 
 object LshQuery {
 
@@ -40,15 +38,8 @@ object LshQuery {
 
       new LeafScoreFunction {
         override def score(docId: Int, intersection: Float): Double =
-          if (candidates == 0) intersection
-          else if (candsHeap.size() < candidates) {
-            candsHeap.add(intersection)
-            exactScore(docId)
-          } else if (intersection > candsHeap.peekFirst()) {
-            candsHeap.removeFirst()
-            candsHeap.add(intersection)
-            exactScore(docId)
-          } else 0f
+          if (intersection > 0) exactScore(docId)
+          else 0f
 
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
           Explanation.`match`(100, "Computing LSH similarity")
@@ -75,25 +66,28 @@ object LshQuery {
                                                     useMLTQuery: Boolean)(implicit codec: StoredVec.Codec[V, S]): Query = {
     val lshFunc: LshFunction[M, V, S] = lshFunctionCache(mapping)
     val hashes: Array[Int] = lshFunc(queryVec)
-    val isecQuery: Query = if (useMLTQuery) {
-      val mlt = new MoreLikeThis(indexReader)
-      mlt.setFieldNames(Array(field))
-      mlt.setMinTermFreq(1)
-      mlt.setMaxQueryTerms(hashes.length)
-      mlt.setAnalyzer(new KeywordAnalyzer())
-      val readers = hashes.map(h => new InputStreamReader(new ByteArrayInputStream(UnsafeSerialization.writeInt(h))))
-      mlt.like(field, readers: _*)
-    } else {
-      val builder = new BooleanQuery.Builder
-      hashes.foreach { h =>
-        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
-        val termQuery = new TermQuery(term)
-        val constQuery = new ConstantScoreQuery(termQuery)
-        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
-      }
-      builder.setMinimumNumberShouldMatch(1)
-      builder.build()
-    }
+    val isecQuery = new HashesInSetQuery(field, hashes)
+//    val byteRefs = hashes.map(UnsafeSerialization.writeInt).map(new BytesRef(_)).toSeq.asJavaCollection
+//    val isecQuery = new TermInSetQuery(field, byteRefs)
+//    val isecQuery: Query = if (useMLTQuery) {
+//      val mlt = new MoreLikeThis(indexReader)
+//      mlt.setFieldNames(Array(field))
+//      mlt.setMinTermFreq(1)
+//      mlt.setMaxQueryTerms(hashes.length)
+//      mlt.setAnalyzer(new KeywordAnalyzer())
+//      val readers = hashes.map(h => new InputStreamReader(new ByteArrayInputStream(UnsafeSerialization.writeInt(h))))
+//      mlt.like(field, readers: _*)
+//    } else {
+//      val builder = new BooleanQuery.Builder
+//      hashes.foreach { h =>
+//        val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
+//        val termQuery = new TermQuery(term)
+//        val constQuery = new ConstantScoreQuery(termQuery)
+//        builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
+//      }
+//      builder.setMinimumNumberShouldMatch(1)
+//      builder.build()
+//    }
     val func = new LshScoreFunction(field, queryVec, candidates, lshFunc)
     new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }

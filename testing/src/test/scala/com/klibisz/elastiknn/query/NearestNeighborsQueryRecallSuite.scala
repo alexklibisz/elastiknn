@@ -34,107 +34,107 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 
   private val tests = Seq(
     // Exact
-    Test(
-      Mapping.SparseBool(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d
-      )
-    ),
-    Test(
-      Mapping.DenseFloat(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d
-      )
-    ),
-    // SparseIndexed
-    Test(
-      Mapping.SparseIndexed(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Hamming) -> 1d
-      )
-    ),
-    // Jaccard LSH
-    Test(
-      Mapping.JaccardLsh(dims, 200, 1),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.7,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.8,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.2,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.3,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.6,
-      )
-    ),
-    Test(
-      Mapping.JaccardLsh(dims, 300, 2),
-      Seq(
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.6,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.75,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.3,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.55,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.75
-      )
-    ),
-    // Hamming LSH
-    Test(
-      Mapping.HammingLsh(dims, dims * 7 / 10),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.78,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.76,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.9
-      )
-    ),
-    Test(
-      Mapping.HammingLsh(dims, dims * 9 / 10),
-      Seq(
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.8,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.62,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.79,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.92
-      )
-    ),
-    // Angular Lsh
-    Test(
-      Mapping.AngularLsh(dims, 400, 1),
-      Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
-      )
-    ),
-    Test(
-      Mapping.AngularLsh(dims, 400, 2),
-      Seq(
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
-      )
-    ),
+//    Test(
+//      Mapping.SparseBool(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d
+//      )
+//    ),
+//    Test(
+//      Mapping.DenseFloat(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d
+//      )
+//    ),
+//    // SparseIndexed
+//    Test(
+//      Mapping.SparseIndexed(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Hamming) -> 1d
+//      )
+//    ),
+//    // Jaccard LSH
+//    Test(
+//      Mapping.JaccardLsh(dims, 200, 1),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.5,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.7,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.8,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.2,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.3,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.6,
+//      )
+//    ),
+//    Test(
+//      Mapping.JaccardLsh(dims, 300, 2),
+//      Seq(
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.6,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.75,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.85,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.3,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.55,
+//        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.75
+//      )
+//    ),
+//    // Hamming LSH
+//    Test(
+//      Mapping.HammingLsh(dims, dims * 7 / 10),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.78,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.6,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.76,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.9
+//      )
+//    ),
+//    Test(
+//      Mapping.HammingLsh(dims, dims * 9 / 10),
+//      Seq(
+//        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.8,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.62,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.79,
+//        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.92
+//      )
+//    ),
+//    // Angular Lsh
+//    Test(
+//      Mapping.AngularLsh(dims, 400, 1),
+//      Seq(
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
+//      )
+//    ),
+//    Test(
+//      Mapping.AngularLsh(dims, 400, 2),
+//      Seq(
+//        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
+//        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
+//      )
+//    ),
     // L2 Lsh
     Test(
       Mapping.L2Lsh(dims, 400, 1, 3),
