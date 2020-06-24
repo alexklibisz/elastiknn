@@ -377,15 +377,21 @@ These restrictions aren't inherent to the types and algorithms. They just seem u
 
 ### Similarity Scoring
 
-Elasticsearch queries must return a non-negative floating-point score. For Elastiknn, the score for an indexed vector represents its similarity to the query vector. However, not all similarity functions increase as similarity increases. For example, a perfect similarity for the L1 and L2 functions is 0. Such functions really represent _distance_ without a well-defined mapping from distance to similarity. In these cases Elastiknn applies a transformation to invert the score such that more similar (_less distant_) vectors have higher scores. The exact transformations are described below.
+Elasticsearch queries must return a non-negative floating-point score. 
+For Elastiknn, the score for an indexed vector represents its similarity to the query vector. 
+However, not all similarity functions increase as similarity increases. 
+For example, a perfect similarity for the L1 and L2 functions is 0. 
+Such functions really represent _distance_ without a well-defined mapping from distance to similarity. 
+In these cases Elastiknn applies a transformation to invert the score such that more similar vectors have higher scores. 
+The exact transformations are described below.
 
 |Similarity|Transformtion to Elasticsearch Score|Min Value|Max Value|
 |:--|:--|:--|
 |Jaccard|N/A|0|1.0|
 |Hamming|N/A|0|1.0|
-|Angular|`cosine similarity + 1`|0|2.0|
-|L1|`1 / (l1 distance + 1e-6)`|0|1e6|
-|L2|`1 / (l2 distance + 1e-6)`|0|1e6|
+|Angular|`cosine similarity + 1`|0|2|
+|L1|`1 / (1 + l1 distance)`|0|1|
+|L2|`1 / (1 + l2 distance)`|0|1|
 
 If you're using the `elastiknn_nearest_neighbors` query with other queries, and the score values are inconvenient (e.g. huge values like 1e6), consider wrapping the query in a [Script Score Query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html), where you can access and transform the `_score` value.
 

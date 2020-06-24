@@ -68,27 +68,27 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     import NearestNeighborsQuery._
 
     (query, mapping) match {
-      case (Exact(f, v: Vec.SparseBool, Similarity.Jaccard),
+      case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Jaccard)
 
-      case (Exact(f, v: Vec.SparseBool, Similarity.Hamming),
+      case (Exact(f, Similarity.Hamming, v: Vec.SparseBool),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Hamming)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L1), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.L1, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L1)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.L2), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.L2, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L2)
 
-      case (Exact(f, v: Vec.DenseFloat, Similarity.Angular), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.Angular, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Angular)
 
-      case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Jaccard), _: Mapping.SparseIndexed) =>
+      case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
 
-      case (SparseIndexed(f, sbv: Vec.SparseBool, Similarity.Hamming), _: Mapping.SparseIndexed) =>
+      case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool, useMLTQuery), m: Mapping.JaccardLsh) =>

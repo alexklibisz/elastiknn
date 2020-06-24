@@ -42,11 +42,11 @@ object Dataset extends ElastiknnRequests {
       "mnist-jaccard",
       "https://keras.io/datasets/",
       Seq(
-        example("Exact", "mnist-jaccard-exact", Mapping.SparseBool(784), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Jaccard)),
+        example("Exact", "mnist-jaccard-exact", Mapping.SparseBool(784), (f, v) => NearestNeighborsQuery.Exact(f, Similarity.Jaccard, v)),
         example("Sparse Indexed",
                 "mnist-jaccard-sparse-indexed",
                 Mapping.SparseIndexed(784),
-                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Jaccard)),
+                (f, v) => NearestNeighborsQuery.SparseIndexed(f, Similarity.Jaccard, v)),
         example("Jaccard LSH #1",
                 "mnist-jaccard-lsh-1",
                 Mapping.JaccardLsh(784, 100, 1),
@@ -63,14 +63,11 @@ object Dataset extends ElastiknnRequests {
       "mnist-hamming",
       "https://keras.io/datasets/",
       Seq(
-        example("Exact",
-                "mnist-hamming-exact",
-                Mapping.SparseBool(784),
-                (field, vec) => NearestNeighborsQuery.Exact(field, vec, Similarity.Hamming)),
+        example("Exact", "mnist-hamming-exact", Mapping.SparseBool(784), (f, v) => NearestNeighborsQuery.Exact(f, Similarity.Hamming, v)),
         example("Sparse Indexed",
                 "mnist-hamming-sparse-indexed",
                 Mapping.SparseIndexed(784),
-                (f, v) => NearestNeighborsQuery.SparseIndexed(f, v, Similarity.Hamming)),
+                (f, v) => NearestNeighborsQuery.SparseIndexed(f, Similarity.Hamming, v)),
         example("Hamming LSH #1",
                 "mnist-hamming-lsh-1",
                 Mapping.HammingLsh(784, 100),
@@ -91,7 +88,7 @@ object Dataset extends ElastiknnRequests {
           "Exact",
           "word2vec-google-angular-exact",
           Mapping.DenseFloat(300),
-          (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.Angular)
+          (f, v) => NearestNeighborsQuery.Exact(f, Similarity.Angular, v)
         ),
         example("Angular LSH 1",
                 "word2vec-google-angular-lsh-1",
@@ -109,7 +106,7 @@ object Dataset extends ElastiknnRequests {
       "cifar-l2",
       "https://keras.io/datasets/",
       Seq(
-        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, v, Similarity.L2)),
+        example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, Similarity.L2, v)),
         example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 100, v)),
         example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 20, v)),
       )

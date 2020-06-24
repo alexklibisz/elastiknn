@@ -14,12 +14,21 @@ trait ElastiknnRequests {
     IndexRequest(indexName, source = Some(xcb.string()), id = id)
   }
 
-  def nearestNeighborsQuery(index: String, query: NearestNeighborsQuery, k: Int, fetchSource: Boolean = false): SearchRequest = {
+  def nearestNeighborsQuery(index: String,
+                            query: NearestNeighborsQuery,
+                            k: Int,
+                            fetchSource: Boolean = false,
+                            preference: Option[String] = None): SearchRequest = {
     val json = ElasticsearchCodec.nospaces(query)
     val customQuery = new CustomQuery {
       override def buildQueryBody(): XContentBuilder = XContentFactory.jsonBuilder.rawField("elastiknn_nearest_neighbors", json)
     }
-    ElasticDsl.search(index).query(customQuery).fetchSource(fetchSource).size(k)
+    val request = ElasticDsl.search(index).query(customQuery).fetchSource(fetchSource).size(k)
+    // https://www.elastic.co/guide/en/elasticsearch/reference/master/consistent-scoring.html
+    preference match {
+      case Some(pref) => request.preference(pref)
+      case None       => request
+    }
   }
 
   def putMapping(index: String, field: String, mapping: Mapping): PutMappingRequest = {

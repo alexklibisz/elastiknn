@@ -79,12 +79,12 @@ jobs:
       run: make compile/gradle
     - name: Start Testing Cluster
       run: make run/cluster
+    - name: Run Examples
+      run: make examples
     - name: Test JVM
       run: make test/gradle
     - name: Test Python
       run: make test/python
-    - name: Run Examples
-      run: make examples
 
     # Site and Docs
     - name: Compile Site and Docs

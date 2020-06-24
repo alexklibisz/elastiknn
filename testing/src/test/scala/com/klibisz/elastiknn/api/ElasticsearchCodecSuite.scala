@@ -147,7 +147,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] Exact("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Jaccard)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] Exact("vec", Similarity.Jaccard, Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{
@@ -159,7 +159,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Hamming)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Hamming, Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{
@@ -171,7 +171,7 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Vec.SparseBool(Array(1, 2, 3), 99), Similarity.Jaccard)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Jaccard, Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{

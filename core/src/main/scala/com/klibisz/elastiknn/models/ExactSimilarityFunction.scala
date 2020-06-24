@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.models
 
+import java.util
+
 import com.klibisz.elastiknn.api.{Similarity, Vec}
 import com.klibisz.elastiknn.storage.StoredVec
 import com.klibisz.elastiknn.utils.ArrayUtils._
@@ -29,8 +31,10 @@ object ExactSimilarityFunction {
     override def similarity: Similarity = Similarity.Jaccard
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
       val isec = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
-      val sim = isec * 1.0 / (v1.trueIndices.length + v2.trueIndices.length - isec)
-      sim
+      val denom = v1.trueIndices.length + v2.trueIndices.length - isec
+      if (isec == 0 && denom == 0) 1d
+      else if (denom > 0) isec * 1.0 / denom
+      else 0d
     }
   }
 
@@ -55,7 +59,7 @@ object ExactSimilarityFunction {
         sumAbsDiff += (v1.values(i) - v2.values(i)).abs
         i += 1
       }
-      1.0 / sumAbsDiff.max(1e-6)
+      1.0 / (1 + sumAbsDiff)
     }
   }
   object L2 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
@@ -69,15 +73,15 @@ object ExactSimilarityFunction {
         i += 1
       }
       val dist = math.sqrt(sumSqrDiff)
-      1.0 / dist.max(1e-6)
+      1.0 / (1 + dist)
     }
   }
   object Angular extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.Angular
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
       var dotProd: Double = 0
-      var v1SqrSum: Double = 1e-16 // Prevent NaNs.
-      var v2SqrSum: Double = 1e-16
+      var v1SqrSum: Double = 0
+      var v2SqrSum: Double = 0
       var i = 0
       while (i < v1.values.length) {
         dotProd += v1.values(i) * v2.values(i)
@@ -85,8 +89,10 @@ object ExactSimilarityFunction {
         v2SqrSum += math.pow(v2.values(i), 2)
         i += 1
       }
-      val sim = dotProd / (math.sqrt(v1SqrSum) * math.sqrt(v2SqrSum))
-      1 + sim
+      val denom = math.sqrt(v1SqrSum) * math.sqrt(v2SqrSum)
+      if (denom > 0) 1 + (dotProd / denom)
+      else if (util.Arrays.equals(v1.values, v2.values)) 2d
+      else 0d
     }
   }
 }

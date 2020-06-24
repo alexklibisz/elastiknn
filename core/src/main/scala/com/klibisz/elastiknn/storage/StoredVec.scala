@@ -2,6 +2,8 @@ package com.klibisz.elastiknn.storage
 
 import com.klibisz.elastiknn.api.Vec
 
+import scala.language.implicitConversions
+
 /**
   * Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
   * This is decoupled from the api Vec case classes so we can support various optimizations that might change the
@@ -30,8 +32,20 @@ object StoredVec {
     val trueIndices: Array[Int]
   }
 
+  object SparseBool {
+    implicit def fromApiVec(v: Vec.SparseBool): SparseBool = new SparseBool {
+      override val trueIndices: Array[Int] = v.trueIndices
+    }
+  }
+
   sealed trait DenseFloat extends StoredVec {
     val values: Array[Float]
+  }
+
+  object DenseFloat {
+    implicit def fromApiVec(v: Vec.DenseFloat): DenseFloat = new DenseFloat {
+      override val values: Array[Float] = v.values
+    }
   }
 
   /**
