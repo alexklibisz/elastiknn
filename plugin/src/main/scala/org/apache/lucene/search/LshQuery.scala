@@ -2,6 +2,7 @@ package org.apache.lucene.search
 
 import java.util
 
+import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache}
@@ -62,7 +63,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           () => DisjunctionMatchesIterator.fromTermsEnum(context, doc, getQuery, field, sortedTerms.iterator())
         )
 
-      private def docWithTermCountIterator(leafReader: LeafReader): DocIdSetIterator = {
+      private def buildIterator(leafReader: LeafReader): LshQuery.DocIdSetWithMatchedTermsIterator = {
         val terms = leafReader.terms(field)
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
@@ -85,20 +86,39 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
       }
 
       private def scorer(leafReader: LeafReader): Scorer = {
-        val vecDocVals = leafReader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
-        val disiwtc = docWithTermCountIterator(leafReader)
         new Scorer(this) {
-          override def iterator(): DocIdSetIterator = disiwtc
-          override def getMaxScore(upTo: Int): Float = lshFunc.exact.maxScore
-          override def score(): Float = {
-            val did = disiwtc.docID()
-            if (vecDocVals.advanceExact(did)) {
+
+          private val vecDocVals = leafReader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
+          private val disi = buildIterator(leafReader)
+
+          // TODO: Use the maxSize() builder to avoid the size checks below.
+          private val candsHeap: MinMaxPriorityQueue[java.lang.Integer] = MinMaxPriorityQueue.expectedSize(candidates).create()
+
+          private def exactScore(docId: Int): Float =
+            if (vecDocVals.advanceExact(docId)) {
               val binVal = vecDocVals.binaryValue()
               val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
               lshFunc.exact(query, storedVec).toFloat
-            } else throw new RuntimeException(s"Couldn't advance to doc with id [$did]")
+            } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+
+          override def iterator(): DocIdSetIterator = disi
+
+          override def getMaxScore(upTo: Int): Float = lshFunc.exact.maxScore
+
+          override def score(): Float = {
+            val matchedTerms = disi.matchedTerms()
+            if (candidates == 0) (matchedTerms / queryHashes.length) * lshFunc.exact.maxScore
+            else if (candsHeap.size() < candidates) {
+              candsHeap.add(matchedTerms)
+              exactScore(disi.docID())
+            } else if (matchedTerms > candsHeap.peekFirst()) {
+              candsHeap.removeFirst()
+              candsHeap.add(matchedTerms)
+              exactScore(disi.docID())
+            } else 0f
           }
-          override def docID(): Int = disiwtc.docID()
+
+          override def docID(): Int = disi.docID()
         }
 
       }
@@ -153,29 +173,6 @@ object LshQuery {
     override def cost(): Long = sortedIds.length
 
     def matchedTerms(): Int = docIdToTermCount(docID())
-
-//    private val sortedIds = docIdToTermCount.keys.toArray.sorted
-//    private var i = -1;
-//
-//    override def docID(): Int = if (i < 0) i else sortedIds(i)
-//
-//    override def nextDoc(): Int =
-//      if (i == sortedIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
-//      else {
-//        i += 1
-//        sortedIds(i)
-//      }
-//
-//    override def advance(target: Int): Int =
-//      if (target < sortedIds.head) sortedIds.head
-//      else if (target > sortedIds.last) DocIdSetIterator.NO_MORE_DOCS
-//      else {
-//        if (i < 0) i = 0
-//        while (sortedIds(i) < target) i += 1
-//        sortedIds(i)
-//      }
-//
-//    override def cost(): Long = sortedIds.length
   }
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
