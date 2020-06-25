@@ -32,9 +32,9 @@ object VectorMapper {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted))
-            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, sorted, m))
-            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, sorted, m))
+            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted, this.fieldType))
+            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, sorted, m, this.fieldType))
+            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, sorted, m, this.fieldType))
             case _                        => Failure(incompatible(mapping, vec))
           }
         }
@@ -48,8 +48,8 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh => Try(LshQuery.index(field, vec, m))
-            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, vec, m))
+            case m: Mapping.AngularLsh => Try(LshQuery.index(field, vec, m, this.fieldType))
+            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, vec, m, this.fieldType))
             case _                     => Failure(incompatible(mapping, vec))
           }
     }
@@ -66,6 +66,8 @@ object VectorMapper {
     this.setOmitNorms(true)
     this.setBoost(1f)
     this.setTokenized(false)
+    this.setStoreTermVectors(true)
+    this.setIndexOptions(IndexOptions.DOCS)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)
@@ -79,15 +81,6 @@ object VectorMapper {
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
   }
 
-  val simpleTokenFieldType: document.FieldType = {
-    val ft = new document.FieldType
-    ft.setIndexOptions(IndexOptions.DOCS)
-    ft.setTokenized(false)
-    ft.setOmitNorms(true)
-    ft.freeze()
-    ft
-  }
-
 }
 
 abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
@@ -95,7 +88,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   val CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  private val fieldType = new VectorMapper.FieldType(CONTENT_TYPE)
+  protected val fieldType = new VectorMapper.FieldType(CONTENT_TYPE)
 
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 

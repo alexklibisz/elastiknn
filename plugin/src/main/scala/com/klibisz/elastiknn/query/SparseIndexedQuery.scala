@@ -11,6 +11,7 @@ import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
+import org.elasticsearch.index.mapper.MappedFieldType
 
 object SparseIndexedQuery {
 
@@ -64,9 +65,9 @@ object SparseIndexedQuery {
 
   def numTrueDocValueField(field: String): String = s"$field.num_true"
 
-  def index(field: String, vec: Vec.SparseBool): Seq[IndexableField] = {
+  def index(field: String, vec: Vec.SparseBool, fieldType: MappedFieldType): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
-      new Field(field, UnsafeSerialization.writeInt(ti), VectorMapper.simpleTokenFieldType)
+      new Field(field, UnsafeSerialization.writeInt(ti), fieldType)
     } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
   }
 

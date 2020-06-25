@@ -72,6 +72,15 @@ class HashesInSetQuery(val field: String, val hashes: Array[Int]) extends Query 
           val disi = docIdSet.iterator()
           if (disi == null) null
           else new ConstantScoreScorer(this, boost, scoreMode, disi)
+//          else
+//            new Scorer(this) {
+//              override def iterator(): DocIdSetIterator = disi
+//              override def getMaxScore(upTo: Int): Float = ???
+//              override def score(): Float = {
+//                disi.docID()
+//              }
+//              override def docID(): Int = ???
+//            }
         }
       }
 
