@@ -8,6 +8,7 @@ import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache}
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
+import org.apache.lucene.search
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.Weight.DefaultBulkScorer
 import org.apache.lucene.util.{ArrayUtil, BytesRef, DocIdSetBuilder}
@@ -24,14 +25,14 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
 
   private val queryHashes = lshFunc(query)
 
-  private val termData: PrefixCodedTerms = {
+  private val sortedTerms: PrefixCodedTerms = {
     val byteRefs = queryHashes.distinct.map(h => new BytesRef(UnsafeSerialization.writeInt(h)))
     ArrayUtil.timSort(byteRefs)
     val b = new PrefixCodedTerms.Builder()
     byteRefs.foreach(t => b.add(field, t))
     b.finish()
   }
-  private val termDataHashCode: Int = termData.hashCode()
+  private val sortedTermsHashCode: Int = sortedTerms.hashCode()
 
   // The original [[TermInSetQuery]] deals with a case where there might be < 16 terms.
   // In that case it rewrites to a BooleanQuery. We can safely ignore that.
@@ -41,7 +42,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
   override def visit(visitor: QueryVisitor): Unit =
     if (visitor.acceptField(field)) {
       val qv = visitor.getSubVisitor(Occur.SHOULD, this)
-      val termIterator = termData.iterator()
+      val termIterator = sortedTerms.iterator()
       val terms = ArrayBuffer.empty[Term]
       var term = termIterator.next()
       while (term != null) {
@@ -58,64 +59,53 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
       override def matches(context: LeafReaderContext, doc: Int): Matches =
         MatchesUtils.forField(
           field,
-          () => DisjunctionMatchesIterator.fromTermsEnum(context, doc, getQuery, field, termData.iterator())
+          () => DisjunctionMatchesIterator.fromTermsEnum(context, doc, getQuery, field, sortedTerms.iterator())
         )
 
-      private def docIdSet(leafReader: LeafReader): DocIdSet = {
+      private def docWithTermCountIterator(leafReader: LeafReader): DocIdSetIterator = {
         val terms = leafReader.terms(field)
-        val termsEnum = terms.iterator()
-        val iterator = termData.iterator()
-        val builder: DocIdSetBuilder = new DocIdSetBuilder(leafReader.maxDoc(), terms)
+        val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
+        val iterator = sortedTerms.iterator()
         var term = iterator.next()
+        val docIdToTermCount = scala.collection.mutable.Map.empty[Int, Int].withDefaultValue(0)
         while (term != null) {
           if (termsEnum.seekExact(term)) {
             docs = termsEnum.postings(docs, PostingsEnum.NONE)
-            builder.add(docs)
+            var i = 0
+            while (i < docs.cost()) {
+              val docId = docs.nextDoc()
+              docIdToTermCount(docId) += 1
+              i += 1
+            }
           }
           term = iterator.next()
         }
-        builder.build()
+        new LshQuery.DocIdSetWithMatchedTermsIterator(docIdToTermCount.toMap)
       }
 
-      private def scorer(docIdSet: DocIdSet, leafReader: LeafReader): Scorer = {
-        val disi = docIdSet.iterator()
-        if (disi == null) null
-        // else new ConstantScoreScorer(this, boost, scoreMode, disi)
-        else
-          new Scorer(this) {
-            private val vecDocVals = leafReader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
-            private val maxScore: Float = lshFunc match {
-              case _: LshFunction.Angular => 2f
-              case _                      => 1f
-            }
-            override def iterator(): DocIdSetIterator = disi
-            override def getMaxScore(upTo: Int): Float = maxScore
-            override def score(): Float = {
-              val did = disi.docID()
-              // val termVector = leafReader.getTermVector(did, field)
-              if (vecDocVals.advanceExact(did)) {
-                val binVal = vecDocVals.binaryValue()
-                val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
-                lshFunc.exact(query, storedVec).toFloat
-              } else throw new RuntimeException(s"Couldn't advance to doc with id [$did]")
-            }
-            override def docID(): Int = disi.docID()
+      private def scorer(leafReader: LeafReader): Scorer = {
+        val vecDocVals = leafReader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
+        val disiwtc = docWithTermCountIterator(leafReader)
+        new Scorer(this) {
+          override def iterator(): DocIdSetIterator = disiwtc
+          override def getMaxScore(upTo: Int): Float = lshFunc.exact.maxScore
+          override def score(): Float = {
+            val did = disiwtc.docID()
+            if (vecDocVals.advanceExact(did)) {
+              val binVal = vecDocVals.binaryValue()
+              val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
+              lshFunc.exact(query, storedVec).toFloat
+            } else throw new RuntimeException(s"Couldn't advance to doc with id [$did]")
           }
+          override def docID(): Int = disiwtc.docID()
+        }
 
       }
 
-      override def bulkScorer(context: LeafReaderContext): BulkScorer = {
-        val docIdSet = this.docIdSet(context.reader())
-        if (docIdSet == null) null
-        else new DefaultBulkScorer(scorer(docIdSet, context.reader))
-      }
+      override def bulkScorer(context: LeafReaderContext): BulkScorer = new DefaultBulkScorer(scorer(context.reader))
 
-      override def scorer(context: LeafReaderContext): Scorer = {
-        val docIdset = this.docIdSet(context.reader())
-        if (docIdset == null) null
-        else this.scorer(docIdset, context.reader())
-      }
+      override def scorer(context: LeafReaderContext): Scorer = scorer(context.reader())
 
       override def explain(context: LeafReaderContext, doc: Int): Explanation = ???
 
@@ -131,11 +121,63 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
     case _ => false
   }
 
-  override def hashCode(): Int = 31 * classHash() + termDataHashCode
+  override def hashCode(): Int = 31 * classHash() + sortedTermsHashCode
 
 }
 
 object LshQuery {
+
+  /** Iterator that lets you access the number of matched terms corresponding to the current doc id. */
+  private class DocIdSetWithMatchedTermsIterator(docIdToTermCount: Map[Int, Int]) extends DocIdSetIterator {
+
+    private val sortedIds = docIdToTermCount.keys.toArray.sorted
+    private var i = 0
+
+    override def docID(): Int = sortedIds(i)
+
+    override def nextDoc(): Int =
+      if (i == sortedIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
+      else {
+        i += 1
+        sortedIds(i)
+      }
+
+    override def advance(target: Int): Int =
+      if (target < sortedIds.head) sortedIds.head
+      else if (target > sortedIds.last) DocIdSetIterator.NO_MORE_DOCS
+      else {
+        while (sortedIds(i) < target) i += 1
+        sortedIds(i)
+      }
+
+    override def cost(): Long = sortedIds.length
+
+    def matchedTerms(): Int = docIdToTermCount(docID())
+
+//    private val sortedIds = docIdToTermCount.keys.toArray.sorted
+//    private var i = -1;
+//
+//    override def docID(): Int = if (i < 0) i else sortedIds(i)
+//
+//    override def nextDoc(): Int =
+//      if (i == sortedIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
+//      else {
+//        i += 1
+//        sortedIds(i)
+//      }
+//
+//    override def advance(target: Int): Int =
+//      if (target < sortedIds.head) sortedIds.head
+//      else if (target > sortedIds.last) DocIdSetIterator.NO_MORE_DOCS
+//      else {
+//        if (i < 0) i = 0
+//        while (sortedIds(i) < target) i += 1
+//        sortedIds(i)
+//      }
+//
+//    override def cost(): Long = sortedIds.length
+  }
+
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
