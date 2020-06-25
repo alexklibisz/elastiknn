@@ -12,7 +12,7 @@ import com.klibisz.elastiknn.storage.StoredVec
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
-import org.apache.lucene.search.Query
+import org.apache.lucene.search.{Query, LshQuery => LuceneLshQuery}
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.admin.indices.mapping.get._
@@ -91,17 +91,17 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
-      case (JaccardLsh(f, candidates, v: Vec.SparseBool, useMLTQuery), m: Mapping.JaccardLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Jaccard, c.getIndexReader, useMLTQuery)
+      case (JaccardLsh(f, candidates, v: Vec.SparseBool, _), m: Mapping.JaccardLsh) =>
+        new LuceneLshQuery(f, v, candidates, LshFunctionCache.Jaccard(m), c.getIndexReader)
 
-      case (HammingLsh(f, candidates, v: Vec.SparseBool, useMLTQuery), m: Mapping.HammingLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Hamming, c.getIndexReader, useMLTQuery)
+      case (HammingLsh(f, candidates, v: Vec.SparseBool, _), m: Mapping.HammingLsh) =>
+        new LuceneLshQuery(f, v, candidates, LshFunctionCache.Hamming(m), c.getIndexReader)
 
-      case (AngularLsh(f, candidates, v: Vec.DenseFloat, useMLTQuery), m: Mapping.AngularLsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.Angular, c.getIndexReader, useMLTQuery)
+      case (AngularLsh(f, candidates, v: Vec.DenseFloat, _), m: Mapping.AngularLsh) =>
+        new LuceneLshQuery(f, v, candidates, LshFunctionCache.Angular(m), c.getIndexReader)
 
-      case (L2Lsh(f, candidates, v: Vec.DenseFloat, useMLTQuery), m: Mapping.L2Lsh) =>
-        LshQuery(f, m, v, candidates, LshFunctionCache.L2, c.getIndexReader, useMLTQuery)
+      case (L2Lsh(f, candidates, v: Vec.DenseFloat, _), m: Mapping.L2Lsh) =>
+        new LuceneLshQuery(f, v, candidates, LshFunctionCache.L2(m), c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
     }

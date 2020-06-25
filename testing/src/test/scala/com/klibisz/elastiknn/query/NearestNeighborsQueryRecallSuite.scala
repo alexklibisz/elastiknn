@@ -139,9 +139,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.L2Lsh(dims, 400, 1, 3),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
         NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.27,
         NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.44,
         NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.67,
