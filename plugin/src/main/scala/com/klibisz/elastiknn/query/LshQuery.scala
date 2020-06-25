@@ -16,6 +16,7 @@ import org.apache.lucene.queries.mlt.MoreLikeThis
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
+import org.elasticsearch.index.mapper.MappedFieldType
 
 object LshQuery {
 
@@ -98,10 +99,10 @@ object LshQuery {
     new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
-  def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, vec: V, mapping: M)(
+  def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
-      new Field(field, UnsafeSerialization.writeInt(h), VectorMapper.simpleTokenFieldType)
+      new Field(field, UnsafeSerialization.writeInt(h), fieldType)
     }
   }
 
