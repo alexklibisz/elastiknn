@@ -9,13 +9,13 @@ import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache}
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
-import org.apache.lucene.search
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.Weight.DefaultBulkScorer
-import org.apache.lucene.util.{ArrayUtil, BytesRef, DocIdSetBuilder}
+import org.apache.lucene.util.{ArrayUtil, BytesRef}
 import org.elasticsearch.index.mapper.MappedFieldType
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConverters._
 
 class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
                                                        val query: V,
@@ -68,21 +68,23 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
+        // val docIdToTermCount = new util.HashMap[Int, Int](leafReader.getDocCount(field))
+        // val docIdToTermCount = mutable.Map.empty[Int, Int].withDefaultValue(0)
+        val docIdToTermCount = new util.HashMap[Int, Int]()
         var term = iterator.next()
-        val docIdToTermCount = scala.collection.mutable.Map.empty[Int, Int].withDefaultValue(0)
         while (term != null) {
           if (termsEnum.seekExact(term)) {
             docs = termsEnum.postings(docs, PostingsEnum.NONE)
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
-              docIdToTermCount(docId) += 1
+              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) + 1)
               i += 1
             }
           }
           term = iterator.next()
         }
-        new LshQuery.DocIdSetWithMatchedTermsIterator(docIdToTermCount.toMap)
+        new LshQuery.DocIdSetWithMatchedTermsIterator(docIdToTermCount)
       }
 
       private def scorer(leafReader: LeafReader): Scorer = {
@@ -148,9 +150,9 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
 object LshQuery {
 
   /** Iterator that lets you access the number of matched terms corresponding to the current doc id. */
-  private class DocIdSetWithMatchedTermsIterator(docIdToTermCount: Map[Int, Int]) extends DocIdSetIterator {
+  private class DocIdSetWithMatchedTermsIterator(docIdToTermCount: util.Map[Int, Int]) extends DocIdSetIterator {
 
-    private val sortedIds = docIdToTermCount.keys.toArray.sorted
+    private val sortedIds = docIdToTermCount.keySet.asScala.toArray.sorted
     private var i = 0
 
     override def docID(): Int = sortedIds(i)
@@ -172,7 +174,7 @@ object LshQuery {
 
     override def cost(): Long = sortedIds.length
 
-    def matchedTerms(): Int = docIdToTermCount(docID())
+    def matchedTerms(): Int = docIdToTermCount.get(docID())
   }
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(

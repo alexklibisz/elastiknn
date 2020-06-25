@@ -26,7 +26,8 @@ object ContinuousBenchmark extends App {
       Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 1300, useMLTQuery = true), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
       )
     ),
 //    // Angular exact, LSH
