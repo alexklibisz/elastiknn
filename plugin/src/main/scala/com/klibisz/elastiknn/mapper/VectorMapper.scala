@@ -10,8 +10,7 @@ import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermInSetQuery, TermQuery}
-import org.apache.lucene.document
+import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
@@ -32,9 +31,9 @@ object VectorMapper {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, sorted, this.fieldType))
-            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, sorted, m, this.fieldType))
-            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, sorted, m, this.fieldType))
+            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
+            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, fieldType, sorted, m))
+            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, fieldType, sorted, m))
             case _                        => Failure(incompatible(mapping, vec))
           }
         }
@@ -48,8 +47,8 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh => Try(LshQuery.index(field, vec, m, this.fieldType))
-            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, vec, m, this.fieldType))
+            case m: Mapping.AngularLsh => Try(LshQuery.index(field, fieldType, vec, m))
+            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, fieldType, vec, m))
             case _                     => Failure(incompatible(mapping, vec))
           }
     }
@@ -61,13 +60,11 @@ object VectorMapper {
   class FieldType(typeName: String) extends MappedFieldType {
 
     // We generally only care about the presence or absence of terms, not their counts or anything fancier.
-    this.setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
-    // TODO: Any way to dedup the settings here and in simpleTokenFieldType?
-    this.setOmitNorms(true)
-    this.setBoost(1f)
-    this.setTokenized(false)
-    this.setStoreTermVectors(true)
-    this.setIndexOptions(IndexOptions.DOCS)
+    setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
+    setOmitNorms(true)
+    setBoost(1f)
+    setTokenized(false)
+    setIndexOptions(IndexOptions.DOCS)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)

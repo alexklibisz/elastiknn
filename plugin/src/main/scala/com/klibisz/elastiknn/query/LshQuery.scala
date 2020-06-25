@@ -15,8 +15,6 @@ import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 import org.elasticsearch.index.mapper.MappedFieldType
 
-import scala.collection.JavaConverters._
-
 object LshQuery {
 
   private class LshScoreFunction[M <: Mapping, V <: Vec, S <: StoredVec](
@@ -94,7 +92,7 @@ object LshQuery {
     new FunctionScoreQuery(isecQuery, func, CombineFunction.REPLACE, 0f, Float.MaxValue)
   }
 
-  def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, vec: V, mapping: M, fieldType: MappedFieldType)(
+  def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
       implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunctionCache(mapping)(vec).map { h =>
       new Field(field, UnsafeSerialization.writeInt(h), fieldType)

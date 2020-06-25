@@ -65,7 +65,7 @@ object SparseIndexedQuery {
 
   def numTrueDocValueField(field: String): String = s"$field.num_true"
 
-  def index(field: String, vec: Vec.SparseBool, fieldType: MappedFieldType): Seq[IndexableField] = {
+  def index(field: String, fieldType: MappedFieldType, vec: Vec.SparseBool): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
       new Field(field, UnsafeSerialization.writeInt(ti), fieldType)
     } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
