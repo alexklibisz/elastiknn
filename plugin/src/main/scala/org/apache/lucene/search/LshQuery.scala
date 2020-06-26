@@ -90,16 +90,11 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         }
 
         val docIds: Array[Int] = if (docIdToTermCount.size() < candidates) {
-          val docIds = new ArrayBuffer[Int](docIdToTermCount.size())
-          docIdToTermCount.forEach((c: IntIntCursor) => docIds.append(c.key))
-          docIds.toArray
+          docIdToTermCount.keys().toArray
         } else {
-          val termCounts = new ArrayBuffer[Int](docIdToTermCount.size())
-          docIdToTermCount.forEach((c: IntIntCursor) => termCounts.append(c.value))
-          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts.toArray, candidates)
-          val docIds = new ArrayBuffer[Int](candidates)
-          docIdToTermCount.forEach((c: IntIntCursor) => if (c.value > minCandidateTermCount) docIds.append(c.key) else ())
-          docIds.toArray
+          val termCounts = docIdToTermCount.values().toArray
+          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts, candidates)
+          docIdToTermCount.keys().toArray.filter(k => docIdToTermCount.get(k) >= minCandidateTermCount)
         }
 
         new LshQuery.DocIdSetArrayIterator(docIds.sorted)
