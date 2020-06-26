@@ -12,6 +12,7 @@ import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import com.google.common.collect
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.utils.ArrayUtils
+import org.apache.lucene
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
 import org.apache.lucene.search
@@ -82,7 +83,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
-              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) + 1)
+              docIdToTermCount.putOrAdd(docId, 0, 1)
               i += 1
             }
           }
@@ -96,11 +97,8 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           docIdToTermCount.keys().toArray.filter(k => docIdToTermCount.get(k) >= minCandidateTermCount)
         }
 
-        // TODO: if docIds.max - docIds.min < docIds.length * log2(docIds.length), turn the docIds into a set and build
-        // an iterator that iterates all of the docs in that range, with a method to check if the doc should be checked
-        // (using the set).
+        new LshQuery.GivenDocIdsIterator(docIds)
 
-        new LshQuery.DocIdSetArrayIterator(docIds.sorted)
       }
 
       private def scorer(leafReader: LeafReader): Scorer = {
@@ -152,28 +150,29 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
 object LshQuery {
 
   /** DocIdSetIterator constructed from an Array of doc ids. I'm surprised this doesn't exist already. */
-  private class DocIdSetArrayIterator(sortedDocIds: Array[Int]) extends DocIdSetIterator {
+  private class GivenDocIdsIterator(docIds: Array[Int]) extends DocIdSetIterator {
 
     private var i = 0
+    util.Arrays.sort(docIds)
 
-    override def docID(): Int = sortedDocIds(i)
+    override def docID(): Int = docIds(i)
 
     override def nextDoc(): Int =
-      if (i == sortedDocIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
+      if (i == docIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
       else {
         i += 1
-        sortedDocIds(i)
+        docIds(i)
       }
 
     override def advance(target: Int): Int =
-      if (target < sortedDocIds.head) sortedDocIds.head
-      else if (target > sortedDocIds.last) DocIdSetIterator.NO_MORE_DOCS
+      if (target < docIds.head) docIds.head
+      else if (target > docIds.last) DocIdSetIterator.NO_MORE_DOCS
       else {
-        while (sortedDocIds(i) < target) i += 1
-        sortedDocIds(i)
+        while (docIds(i) < target) i += 1
+        docIds(i)
       }
 
-    override def cost(): Long = sortedDocIds.length
+    override def cost(): Long = docIds.length
   }
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
