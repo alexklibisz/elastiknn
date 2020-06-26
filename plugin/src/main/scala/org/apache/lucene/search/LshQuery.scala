@@ -3,7 +3,7 @@ package org.apache.lucene.search
 import java.util
 import java.util.Comparator
 
-import com.carrotsearch.hppc.IntIntHashMap
+import com.carrotsearch.hppc.{IntIntHashMap, IntIntScatterMap}
 import com.carrotsearch.hppc.cursors.IntIntCursor
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
@@ -74,7 +74,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
-        val docIdToTermCount = new IntIntHashMap(leafReader.getDocCount(field))
+        val docIdToTermCount = new IntIntScatterMap(leafReader.getDocCount(field))
         var term = iterator.next()
         while (term != null) {
           if (termsEnum.seekExact(term)) {
@@ -82,32 +82,27 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
-              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) - 1)
+              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) + 1)
               i += 1
             }
           }
           term = iterator.next()
         }
 
-        val docIds: ArrayBuffer[Int] = if (docIdToTermCount.size() < candidates) {
+        val docIds: Array[Int] = if (docIdToTermCount.size() < candidates) {
           val docIds = new ArrayBuffer[Int](docIdToTermCount.size())
           docIdToTermCount.forEach((c: IntIntCursor) => docIds.append(c.key))
-          docIds
+          docIds.toArray
         } else {
           val termCounts = new ArrayBuffer[Int](docIdToTermCount.size())
           docIdToTermCount.forEach((c: IntIntCursor) => termCounts.append(c.value))
-          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts.toArray, termCounts.length - candidates)
+          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts.toArray, candidates)
           val docIds = new ArrayBuffer[Int](candidates)
-          docIdToTermCount.forEach((c: IntIntCursor) => if (c.value > minCandidateTermCount) docIds.append(c.value) else ())
-          docIds
+          docIdToTermCount.forEach((c: IntIntCursor) => if (c.value > minCandidateTermCount) docIds.append(c.key) else ())
+          docIds.toArray
         }
 
-        new LshQuery.DocIdSetArrayIterator(docIds.toArray.sorted)
-
-//        val distinctScores = docIdToTermCount.values.distinct
-//        val lowerBound = (distinctScores.sorted).apply((distinctScores.length - candidates).max(0))
-//        val docIds = docIdToTermCount.keys.filter(k => docIdToTermCount.get(k) >= lowerBound)
-//        new LshQuery.DocIdSetArrayIterator(docIds.sorted)
+        new LshQuery.DocIdSetArrayIterator(docIds.sorted)
       }
 
       private def scorer(leafReader: LeafReader): Scorer = {
