@@ -1,14 +1,20 @@
 package org.apache.lucene.search
 
 import java.util
+import java.util.Comparator
 
-import com.google.common.collect.MinMaxPriorityQueue
+import com.carrotsearch.hppc.IntIntHashMap
+import com.carrotsearch.hppc.cursors.IntIntCursor
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache}
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
+import com.google.common.collect
+import com.google.common.collect.MinMaxPriorityQueue
+import com.klibisz.elastiknn.utils.ArrayUtils
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
+import org.apache.lucene.search
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.Weight.DefaultBulkScorer
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
@@ -63,14 +69,12 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           () => DisjunctionMatchesIterator.fromTermsEnum(context, doc, getQuery, field, sortedTerms.iterator())
         )
 
-      private def buildIterator(leafReader: LeafReader): LshQuery.DocIdSetWithMatchedTermsIterator = {
+      private def buildIterator(leafReader: LeafReader): DocIdSetIterator = {
         val terms = leafReader.terms(field)
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
-        // val docIdToTermCount = new util.HashMap[Int, Int](leafReader.getDocCount(field))
-        // val docIdToTermCount = mutable.Map.empty[Int, Int].withDefaultValue(0)
-        val docIdToTermCount = new util.HashMap[Int, Int]()
+        val docIdToTermCount = new IntIntHashMap(leafReader.getDocCount(field))
         var term = iterator.next()
         while (term != null) {
           if (termsEnum.seekExact(term)) {
@@ -78,13 +82,32 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
-              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) + 1)
+              docIdToTermCount.put(docId, docIdToTermCount.getOrDefault(docId, 0) - 1)
               i += 1
             }
           }
           term = iterator.next()
         }
-        new LshQuery.DocIdSetWithMatchedTermsIterator(docIdToTermCount)
+
+        val docIds: ArrayBuffer[Int] = if (docIdToTermCount.size() < candidates) {
+          val docIds = new ArrayBuffer[Int](docIdToTermCount.size())
+          docIdToTermCount.forEach((c: IntIntCursor) => docIds.append(c.key))
+          docIds
+        } else {
+          val termCounts = new ArrayBuffer[Int](docIdToTermCount.size())
+          docIdToTermCount.forEach((c: IntIntCursor) => termCounts.append(c.value))
+          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts.toArray, termCounts.length - candidates)
+          val docIds = new ArrayBuffer[Int](candidates)
+          docIdToTermCount.forEach((c: IntIntCursor) => if (c.value > minCandidateTermCount) docIds.append(c.value) else ())
+          docIds
+        }
+
+        new LshQuery.DocIdSetArrayIterator(docIds.toArray.sorted)
+
+//        val distinctScores = docIdToTermCount.values.distinct
+//        val lowerBound = (distinctScores.sorted).apply((distinctScores.length - candidates).max(0))
+//        val docIds = docIdToTermCount.keys.filter(k => docIdToTermCount.get(k) >= lowerBound)
+//        new LshQuery.DocIdSetArrayIterator(docIds.sorted)
       }
 
       private def scorer(leafReader: LeafReader): Scorer = {
@@ -93,31 +116,17 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           private val vecDocVals = leafReader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
           private val disi = buildIterator(leafReader)
 
-          // TODO: Use the maxSize() builder to avoid the size checks below.
-          private val candsHeap: MinMaxPriorityQueue[java.lang.Integer] = MinMaxPriorityQueue.expectedSize(candidates).create()
-
-          private def exactScore(docId: Int): Float =
-            if (vecDocVals.advanceExact(docId)) {
-              val binVal = vecDocVals.binaryValue()
-              val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
-              lshFunc.exact(query, storedVec).toFloat
-            } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-
           override def iterator(): DocIdSetIterator = disi
 
           override def getMaxScore(upTo: Int): Float = lshFunc.exact.maxScore
 
           override def score(): Float = {
-            val matchedTerms = disi.matchedTerms()
-            if (candidates == 0) (matchedTerms / queryHashes.length) * lshFunc.exact.maxScore
-            else if (candsHeap.size() < candidates) {
-              candsHeap.add(matchedTerms)
-              exactScore(disi.docID())
-            } else if (matchedTerms > candsHeap.peekFirst()) {
-              candsHeap.removeFirst()
-              candsHeap.add(matchedTerms)
-              exactScore(disi.docID())
-            } else 0f
+            val docId = disi.docID()
+            if (vecDocVals.advanceExact(docId)) {
+              val binVal = vecDocVals.binaryValue()
+              val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
+              lshFunc.exact(query, storedVec).toFloat
+            } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
           }
 
           override def docID(): Int = disi.docID()
@@ -149,32 +158,29 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
 
 object LshQuery {
 
-  /** Iterator that lets you access the number of matched terms corresponding to the current doc id. */
-  private class DocIdSetWithMatchedTermsIterator(docIdToTermCount: util.Map[Int, Int]) extends DocIdSetIterator {
+  /** DocIdSetIterator constructed from an Array of doc ids. I'm surprised this doesn't exist already. */
+  private class DocIdSetArrayIterator(sortedDocIds: Array[Int]) extends DocIdSetIterator {
 
-    private val sortedIds = docIdToTermCount.keySet.asScala.toArray.sorted
     private var i = 0
 
-    override def docID(): Int = sortedIds(i)
+    override def docID(): Int = sortedDocIds(i)
 
     override def nextDoc(): Int =
-      if (i == sortedIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
+      if (i == sortedDocIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
       else {
         i += 1
-        sortedIds(i)
+        sortedDocIds(i)
       }
 
     override def advance(target: Int): Int =
-      if (target < sortedIds.head) sortedIds.head
-      else if (target > sortedIds.last) DocIdSetIterator.NO_MORE_DOCS
+      if (target < sortedDocIds.head) sortedDocIds.head
+      else if (target > sortedDocIds.last) DocIdSetIterator.NO_MORE_DOCS
       else {
-        while (sortedIds(i) < target) i += 1
-        sortedIds(i)
+        while (sortedDocIds(i) < target) i += 1
+        sortedDocIds(i)
       }
 
-    override def cost(): Long = sortedIds.length
-
-    def matchedTerms(): Int = docIdToTermCount.get(docID())
+    override def cost(): Long = sortedDocIds.length
   }
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec](field: String, fieldType: MappedFieldType, vec: V, mapping: M)(
