@@ -1,29 +1,36 @@
 package org.apache.lucene.search
 
 import java.util
-import java.util.Comparator
 
-import com.carrotsearch.hppc.{IntIntHashMap, IntIntScatterMap}
-import com.carrotsearch.hppc.cursors.IntIntCursor
+import com.carrotsearch.hppc.IntIntScatterMap
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache}
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
-import com.google.common.collect
-import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.utils.ArrayUtils
-import org.apache.lucene
+import org.apache.logging.log4j.LogManager
 import org.apache.lucene.document.Field
 import org.apache.lucene.index._
-import org.apache.lucene.search
 import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.Weight.DefaultBulkScorer
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
 import org.elasticsearch.index.mapper.MappedFieldType
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
 
+/**
+  * Custom query optimized for efficiently finding a set of candidate vectors that share hashes with the query vector,
+  * then computing exact similarity on those vectors. Much of the implementation is based on the [[TermInSetQuery]].
+  * @param field
+  * @param query
+  * @param candidates
+  * @param lshFunc
+  * @param reader
+  * @param codec
+  * @tparam M
+  * @tparam V
+  * @tparam S
+  */
 class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
                                                        val query: V,
                                                        val candidates: Int,
@@ -33,6 +40,8 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
 
   private val queryHashes = lshFunc(query)
 
+  private val logger = LogManager.getLogger(this.getClass)
+
   private val sortedTerms: PrefixCodedTerms = {
     val byteRefs = queryHashes.distinct.map(h => new BytesRef(UnsafeSerialization.writeInt(h)))
     ArrayUtil.timSort(byteRefs)
@@ -41,6 +50,10 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
     b.finish()
   }
   private val sortedTermsHashCode: Int = sortedTerms.hashCode()
+
+  // Expected size for the doc id -> term count mapping. Limit at 1mb of (int, int) pairs.
+  // If this is too small, the IntIntScatterMap will spend a noticeable amount of time re-sizing itself.
+  private val expectedMatchingDocs: Int = reader.getDocCount(field).min(125000)
 
   // The original [[TermInSetQuery]] deals with a case where there might be < 16 terms.
   // In that case it rewrites to a BooleanQuery. We can safely ignore that.
@@ -75,7 +88,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
-        val docIdToTermCount = new IntIntScatterMap(1024)
+        val docIdToTermCount = new IntIntScatterMap(expectedMatchingDocs)
         var term = iterator.next()
         while (term != null) {
           if (termsEnum.seekExact(term)) {
@@ -91,10 +104,27 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         }
 
         val docIds: Array[Int] = if (docIdToTermCount.size() <= candidates) {
+          // Use all the doc ids.
           docIdToTermCount.keys().toArray
         } else {
+          // Build up an array of doc ids with term counts >= to the _candidates_ largest count, preferring > over >=.
           val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToTermCount.values, candidates)
-          docIdToTermCount.keys().toArray.filter(k => docIdToTermCount.get(k) >= minCandidateTermCount)
+          val docIdsGt = new ArrayBuffer[Int](candidates)
+          val docIdsEq = new ArrayBuffer[Int](candidates)
+          var i = 0
+          while (i < docIdToTermCount.keys.length && docIdsGt.length < candidates) {
+            val docId = docIdToTermCount.keys(i)
+            if (docIdToTermCount.containsKey(docId)) {
+              val count = docIdToTermCount.get(docId)
+              if (count > minCandidateTermCount) docIdsGt.append(docId)
+              else if (count == minCandidateTermCount) docIdsEq.append(docId)
+            }
+            i += 1
+          }
+          if (docIdsGt.length < candidates) {
+            docIdsGt.appendAll(docIdsEq.take(candidates - docIdsGt.length))
+          }
+          docIdsGt.toArray
         }
 
         new LshQuery.GivenDocIdsIterator(docIds)
@@ -112,6 +142,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           override def getMaxScore(upTo: Int): Float = lshFunc.exact.maxScore
 
           override def score(): Float = {
+            // TODO: consider caching now that this read takes about ~20% of runtime on benchmark.
             val docId = disi.docID()
             if (vecDocVals.advanceExact(docId)) {
               val binVal = vecDocVals.binaryValue()
