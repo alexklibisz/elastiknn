@@ -74,7 +74,7 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
         val termsEnum: TermsEnum = terms.iterator()
         var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
-        val docIdToTermCount = new IntIntScatterMap(leafReader.getDocCount(field))
+        val docIdToTermCount = new IntIntScatterMap(1024)
         var term = iterator.next()
         while (term != null) {
           if (termsEnum.seekExact(term)) {
@@ -89,13 +89,16 @@ class LshQuery[M <: Mapping, V <: Vec, S <: StoredVec](val field: String,
           term = iterator.next()
         }
 
-        val docIds: Array[Int] = if (docIdToTermCount.size() < candidates) {
+        val docIds: Array[Int] = if (docIdToTermCount.size() <= candidates) {
           docIdToTermCount.keys().toArray
         } else {
-          val termCounts = docIdToTermCount.values().toArray
-          val minCandidateTermCount = ArrayUtils.quickSelect(termCounts, candidates)
+          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToTermCount.values, candidates)
           docIdToTermCount.keys().toArray.filter(k => docIdToTermCount.get(k) >= minCandidateTermCount)
         }
+
+        // TODO: if docIds.max - docIds.min < docIds.length * log2(docIds.length), turn the docIds into a set and build
+        // an iterator that iterates all of the docs in that range, with a method to check if the doc should be checked
+        // (using the set).
 
         new LshQuery.DocIdSetArrayIterator(docIds.sorted)
       }
