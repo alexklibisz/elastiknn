@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
@@ -32,8 +32,8 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
-            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, fieldType, sorted, m))
-            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, fieldType, sorted, m))
+            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, fieldType, sorted, LshFunctionCache.Jaccard(m)))
+            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, fieldType, sorted, LshFunctionCache.Hamming(m)))
             case _                        => Failure(incompatible(mapping, vec))
           }
         }
@@ -47,8 +47,8 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh => Try(LshQuery.index(field, fieldType, vec, m))
-            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, fieldType, vec, m))
+            case m: Mapping.AngularLsh => Try(LshQuery.index(field, fieldType, vec, LshFunctionCache.Angular(m)))
+            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, fieldType, vec, LshFunctionCache.L2(m)))
             case _                     => Failure(incompatible(mapping, vec))
           }
     }

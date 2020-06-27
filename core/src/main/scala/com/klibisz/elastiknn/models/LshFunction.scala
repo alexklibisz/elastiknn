@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage
 import com.klibisz.elastiknn.storage.StoredVec
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
@@ -84,7 +85,14 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
+
+    // Sample indices without replacement.
+    private val sampledIndices: Array[Int] = {
+      @tailrec
+      def sample(acc: Set[Int], i: Int): Set[Int] =
+        if (acc.size == bits.min(dims)) acc else if (acc(i)) sample(acc, rng.nextInt(dims)) else sample(acc + i, rng.nextInt(dims))
+      sample(Set.empty, rng.nextInt(dims)).toArray
+    }
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {
       val hashes = new Array[Int](bits)
@@ -197,7 +205,9 @@ object LshFunction {
         bandHashes.update(ixBandHashes, bandHash)
         ixBandHashes += 1
       }
-      bandHashes
+
+      // TODO: Find a way to avoid having duplicates.
+      bandHashes.distinct
     }
   }
 

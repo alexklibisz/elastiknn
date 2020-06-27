@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.query
 import java.util.Objects
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, NumericDocValuesField}
