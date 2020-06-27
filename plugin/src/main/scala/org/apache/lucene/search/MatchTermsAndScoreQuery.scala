@@ -6,9 +6,7 @@ import java.util.Objects
 import com.carrotsearch.hppc.IntIntScatterMap
 import com.klibisz.elastiknn.utils.ArrayUtils
 import org.apache.lucene.index._
-import org.apache.lucene.search.OptimizedScoreFunctionQuery.DocIdsArrayIterator
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
-import org.elasticsearch.common.lucene.search.function.ScoreFunction
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -19,14 +17,14 @@ import scala.collection.mutable.ArrayBuffer
   * @param termsField Field containing tokens.
   * @param terms Set of tokens, serialized to Bytesrefs.
   * @param candidates Number of candidates to re-score.
-  * @param scoreFunction Function that takes a LeafReaderContext, returns a function that takes a doc id, returns a score.
+  * @param scoreFunction Fn taking a LeafReaderContext, returns a fn taking doc id and number of matched terms, returns the final score.
   * @param indexReader IndexReader used to get some stats about the tokens field.
   */
-class OptimizedScoreFunctionQuery[T](val termsField: String,
-                                     val terms: Array[BytesRef],
-                                     val candidates: Int,
-                                     val scoreFunction: LeafReaderContext => Int => Double,
-                                     val indexReader: IndexReader)
+class MatchTermsAndScoreQuery[T](val termsField: String,
+                                 val terms: Array[BytesRef],
+                                 val candidates: Int,
+                                 val scoreFunction: LeafReaderContext => (Int, Int) => Double,
+                                 val indexReader: IndexReader)
     extends Query {
 
   private val sortedTerms: PrefixCodedTerms = {
@@ -64,7 +62,7 @@ class OptimizedScoreFunctionQuery[T](val termsField: String,
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
-              docIdToMatchingCount.putOrAdd(docId, 0, 1)
+              docIdToMatchingCount.putOrAdd(docId, 1, 1)
               i += 1
             }
           }
@@ -97,18 +95,15 @@ class OptimizedScoreFunctionQuery[T](val termsField: String,
           docIdsGt.toArray
         }
 
-      def buildIterator(): DocIdSetIterator = {
-        val docidToMatchingCount = getDocIdToMatchingCount()
-        val candidateDocs = getCandidateDocs(docidToMatchingCount)
-        new DocIdsArrayIterator(candidateDocs)
-      }
-
-      val disi = buildIterator()
+      val docidToMatchingCount = getDocIdToMatchingCount()
+      val candidateDocs = getCandidateDocs(docidToMatchingCount)
+      val disi = new MatchTermsAndScoreQuery.DocIdsArrayIterator(candidateDocs)
       val leafScoreFunction = scoreFunction(context)
+
       new Scorer(this) {
         override def iterator(): DocIdSetIterator = disi
         override def getMaxScore(upTo: Int): Float = Float.MaxValue
-        override def score(): Float = leafScoreFunction(docID()).toFloat
+        override def score(): Float = leafScoreFunction(docID(), docidToMatchingCount.get(docID())).toFloat
         override def docID(): Int = disi.docID()
       }
     }
@@ -120,7 +115,7 @@ class OptimizedScoreFunctionQuery[T](val termsField: String,
     s"${this.getClass.getSimpleName} for tokens field [$termsField] with [$candidates] candidates."
 
   override def equals(other: Any): Boolean = other match {
-    case q: OptimizedScoreFunctionQuery[T] =>
+    case q: MatchTermsAndScoreQuery[T] =>
       termsField == q.termsField && candidates == q.candidates && scoreFunction == q.scoreFunction && terms
         .zip(q.terms)
         .forall { case (a, b) => a == b }
@@ -131,7 +126,7 @@ class OptimizedScoreFunctionQuery[T](val termsField: String,
 
 }
 
-object OptimizedScoreFunctionQuery {
+object MatchTermsAndScoreQuery {
 
   private final class DocIdsArrayIterator(docIds: Array[Int]) extends DocIdSetIterator {
     util.Arrays.sort(docIds)

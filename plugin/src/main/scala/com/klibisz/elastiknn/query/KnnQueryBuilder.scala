@@ -8,11 +8,10 @@ import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
-import com.klibisz.elastiknn.storage.StoredVec
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
-import org.apache.lucene.search.{Query, LshQuery => LuceneLshQuery}
+import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.admin.indices.mapping.get._
@@ -86,22 +85,22 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         ExactQuery(f, v, ExactSimilarityFunction.Angular)
 
       case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
+        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard, c.getIndexReader)
 
       case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
+        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, c.getIndexReader)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool, _), m: Mapping.JaccardLsh) =>
-        LuceneLshQuery(f, v, candidates, LshFunctionCache.Jaccard(m), c.getIndexReader)
+        LshQuery(f, v, candidates, LshFunctionCache.Jaccard(m), c.getIndexReader)
 
       case (HammingLsh(f, candidates, v: Vec.SparseBool, _), m: Mapping.HammingLsh) =>
-        LuceneLshQuery(f, v, candidates, LshFunctionCache.Hamming(m), c.getIndexReader)
+        LshQuery(f, v, candidates, LshFunctionCache.Hamming(m), c.getIndexReader)
 
       case (AngularLsh(f, candidates, v: Vec.DenseFloat, _), m: Mapping.AngularLsh) =>
-        LuceneLshQuery(f, v, candidates, LshFunctionCache.Angular(m), c.getIndexReader)
+        LshQuery(f, v, candidates, LshFunctionCache.Angular(m), c.getIndexReader)
 
       case (L2Lsh(f, candidates, v: Vec.DenseFloat, _), m: Mapping.L2Lsh) =>
-        LuceneLshQuery(f, v, candidates, LshFunctionCache.L2(m), c.getIndexReader)
+        LshQuery(f, v, candidates, LshFunctionCache.L2(m), c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
     }

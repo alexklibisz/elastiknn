@@ -49,17 +49,17 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d
 //      )
 //    ),
-//    // SparseIndexed
-//    Test(
-//      Mapping.SparseIndexed(dims),
-//      Seq(
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-//        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Jaccard) -> 1d,
-//        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Hamming) -> 1d
-//      )
-//    ),
-//    // Jaccard LSH
+    // SparseIndexed
+    Test(
+      Mapping.SparseIndexed(dims),
+      Seq(
+        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Hamming) -> 1d
+      )
+    ),
+    // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
       Seq(
@@ -174,7 +174,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     } yield ()
 
   for {
-    Test(mapping, queriesAndExpectedRecall) <- tests
+    Test(mapping, queriesAndExpectedRecall) <- tests.take(1)
     (query, expectedRecall) <- queriesAndExpectedRecall
     testData = query.similarity match {
       case Similarity.Jaccard => sparseBoolTestData
