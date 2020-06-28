@@ -17,7 +17,7 @@ import scala.collection.mutable.ArrayBuffer
   * Inspired by the TermInSetQuery.
   * @param termsField Field containing tokens.
   * @param terms Set of tokens, serialized to Bytesrefs.
-  * @param candidates Number of top candidates to pick and score, based on number of matching tokens. This is _per segment_.
+  * @param candidates Number of top candidates to pick and score per _segment_.
   * @param scoreFunction Fn taking a LeafReaderContext, returns a fn taking doc id and number of matched terms, returns the final score.
   * @param indexReader IndexReader used to get some stats about the tokens field.
   */
@@ -97,8 +97,6 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       }
     }
 
-    override def hashCode(): Int = super.hashCode()
-
     override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
@@ -120,8 +118,8 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
 object MatchTermsAndScoreQuery {
 
   private final class DocIdsArrayIterator(docIds: Array[Int]) extends DocIdSetIterator {
-    util.Arrays.sort(docIds)
     private var i = 0
+    util.Arrays.sort(docIds)
     override def docID(): Int = docIds(i)
     override def nextDoc(): Int =
       if (i == docIds.length - 1) DocIdSetIterator.NO_MORE_DOCS
