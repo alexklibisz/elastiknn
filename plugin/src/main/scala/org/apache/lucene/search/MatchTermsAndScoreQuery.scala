@@ -2,12 +2,10 @@ package org.apache.lucene.search
 
 import java.util
 import java.util.Objects
-import java.util.function.Consumer
 
 import com.carrotsearch.hppc.IntIntScatterMap
 import com.carrotsearch.hppc.cursors.IntIntCursor
 import com.klibisz.elastiknn.utils.ArrayUtils
-import org.apache.logging.log4j.LogManager
 import org.apache.lucene.index._
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
 
@@ -38,9 +36,8 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
     builder.finish()
   }
 
-  // Determine the number of segments in the _shard_ represented by the indexReader.
+  // Determine the number of segments in the shard corresponding to this indexReader.
   private val numSegments = indexReader.getContext.leaves.size()
-  private val candidatesAdjusted = (candidates * 1d / numSegments).ceil.toInt
 
   // Expected size for the doc id -> term count mapping. Limit at 1mb of (int, int) pairs.
   // If this is too small, the IntIntScatterMap will spend a noticeable amount of time re-sizing itself.
@@ -59,9 +56,9 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
         val reader = context.reader()
         val terms = reader.terms(termsField)
         val termsEnum: TermsEnum = terms.iterator()
-        var docs: PostingsEnum = null
         val iterator = sortedTerms.iterator()
         val docIdToMatchingCount = new IntIntScatterMap(expectedMatchingDocs)
+        var docs: PostingsEnum = null
         var term = iterator.next()
         while (term != null) {
           if (termsEnum.seekExact(term)) {
@@ -79,10 +76,10 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       }
 
       def getCandidateDocs(docIdToMatchingCount: IntIntScatterMap): Array[Int] =
-        if (docIdToMatchingCount.size() <= candidatesAdjusted) docIdToMatchingCount.keys().toArray
+        if (docIdToMatchingCount.size() <= candidates) docIdToMatchingCount.keys().toArray
         else {
-          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToMatchingCount.values, candidatesAdjusted)
-          val docIds = new ArrayBuffer[Int](candidatesAdjusted)
+          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToMatchingCount.values, candidates)
+          val docIds = new ArrayBuffer[Int](candidates)
           docIdToMatchingCount.forEach((t: IntIntCursor) => if (t.value >= minCandidateTermCount) docIds.append(t.key))
           docIds.toArray
         }

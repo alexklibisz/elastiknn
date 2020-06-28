@@ -28,7 +28,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val fieldName: String = "vec"
   private val dims: Int = 1024
   private val k: Int = 100
-  private val shards: Int = 1
+  private val shards: Int = 2
   private val segmentsPerShard: Int = 1
   private val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
   private val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
@@ -68,7 +68,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
         NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 1.0,
-//        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.9
+        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 1.0
       )
     ),
     Test(
@@ -149,9 +149,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
             val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
             eknn.index(queriesIndex, fieldName, vecs, Some(ids))
           }
-          _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
           _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
-          // _ <- Future(Thread.sleep(1000))
+          _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
         } yield ()
     } yield ()
 
@@ -175,17 +174,44 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     test(testName) {
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
-        givenQueryResponses <- Future.traverse(testData.queries) { q =>
+        givenQueryResponses1 <- Future.sequence(testData.queries.map { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
-        }
-//        indexedQueryResponses <- Future.traverse(testData.queries) { q =>
-//          val vec = Vec.Indexed(queriesIndex, s"v${q.vector.hashCode()}", fieldName)
-//          eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some("foo"))
-//        }
+        })
+        givenQueryResponses2 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+        })
+        givenQueryResponses3 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+        })
+        indexedQueryResponses1 <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (q, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", fieldName)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(""))
+        })
+        indexedQueryResponses2 <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (q, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", fieldName)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(""))
+        })
+        indexedQueryResponses3 <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (q, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", fieldName)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(""))
+        })
       } yield {
 
+        // Check that the results are deterministic.
+        withClue(s"Given query scores should be deterministic") {
+          Set(
+            givenQueryResponses1.flatMap(_.result.hits.hits.map(_.score)),
+            givenQueryResponses2.flatMap(_.result.hits.hits.map(_.score)),
+            givenQueryResponses3.flatMap(_.result.hits.hits.map(_.score))
+          ).size shouldBe 1
+        }
+
+        // Check the recall.
         val givenQueriesMatches = testData.queries
-          .zip(givenQueryResponses)
+          .zip(givenQueryResponses1)
           .map {
             case (Query(_, correctResults), response) =>
               val correctScores = correctResults(resultsIx).values.map(score => f"$score%.3f")
@@ -194,21 +220,33 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
           }
           .sum
 
-        println(s"${givenQueriesMatches}")
-        // givenQueriesMatches shouldBe >=(givenQueryResponses.length * k * expectedRecall)
-        true shouldBe true
+        withClue(s"Given query recall should be at least ${expectedRecall}") {
+          givenQueriesMatches * 1d / (givenQueryResponses1.length * k) shouldBe >=(expectedRecall)
+        }
 
-//        val indexedQueriesRecall = testData.queries
-//          .zip(indexedQueryResponses)
-//          .map {
-//            case (Query(_, correctResults), response) =>
-//              val correctScores = correctResults(resultsIx).values.map(_.toFloat)
-//              val hitScores = response.result.hits.hits.map(_.score)
-//              correctScores.intersect(hitScores).length * 1d
-//          }
-//          .sum / (testData.queries.length * k)
-//
-//        indexedQueriesRecall shouldBe >=(expectedRecall)
+        // Check that the results are deterministic.
+        withClue(s"Indexed query scores should be deterministic") {
+          Set(
+            indexedQueryResponses1.flatMap(_.result.hits.hits.map(_.score)),
+            indexedQueryResponses2.flatMap(_.result.hits.hits.map(_.score)),
+            indexedQueryResponses3.flatMap(_.result.hits.hits.map(_.score))
+          ).size shouldBe 1
+        }
+
+        // Check the recall.
+        val indexedQueryMatches = testData.queries
+          .zip(indexedQueryResponses1)
+          .map {
+            case (Query(_, correctResults), response) =>
+              val correctScores = correctResults(resultsIx).values.map(score => f"$score%.3f")
+              val hitScores = response.result.hits.hits.map(hit => f"${hit.score}%.3f")
+              correctScores.intersect(hitScores).length
+          }
+          .sum
+
+        withClue(s"Indexed query recall should be at least ${expectedRecall}") {
+          indexedQueryMatches * 1d / (indexedQueryResponses1.length * k) shouldBe >=(expectedRecall)
+        }
       }
     }
   }
