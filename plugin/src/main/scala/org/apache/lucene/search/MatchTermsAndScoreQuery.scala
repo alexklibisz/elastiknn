@@ -6,6 +6,7 @@ import java.util.Objects
 import com.carrotsearch.hppc.IntIntScatterMap
 import com.carrotsearch.hppc.cursors.IntIntCursor
 import com.klibisz.elastiknn.utils.ArrayUtils
+import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.lucene.index._
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
 
@@ -28,12 +29,23 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
                                  val indexReader: IndexReader)
     extends Query {
 
+  private val logger: Logger = LogManager.getLogger(this.getClass)
+
   private val sortedTerms: PrefixCodedTerms = {
-    val builder = new PrefixCodedTerms.Builder()
     ArrayUtil.timSort(terms)
     // If the .add method call fails, it's likely caused by having duplicate bytesrefs.
-    terms.foreach(t => builder.add(termsField, t))
-    builder.finish()
+    try {
+      val builder = new PrefixCodedTerms.Builder()
+      terms.foreach(builder.add(termsField, _))
+      builder.finish()
+    } catch {
+      case ae: AssertionError =>
+        val builder = new PrefixCodedTerms.Builder()
+        val distinct = terms.distinct
+        logger.warn(s"Failed to build PrefixCodedTerms from ${terms.length} terms. Re-trying with ${distinct.length} distinct terms.")
+        distinct.foreach(builder.add(termsField, _))
+        builder.finish()
+    }
   }
 
   // Determine the number of segments in the shard corresponding to this indexReader.

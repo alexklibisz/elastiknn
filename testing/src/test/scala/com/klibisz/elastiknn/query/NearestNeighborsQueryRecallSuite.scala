@@ -31,6 +31,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val k: Int = 100
   private val shards: Int = 2
   private val segmentsPerShard: Int = 1
+  private val recallTolerance: Double = 1e-2
   private val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
   private val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
   private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
@@ -66,18 +67,17 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
       Seq(
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
         NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.73,
-//        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 1.0
+        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.89
       )
     ),
     Test(
       Mapping.JaccardLsh(dims, 300, 2),
       Seq(
-        NearestNeighborsQuery.JaccardLsh(fieldName, 300) -> 0.6,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.75,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.85
+        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.72,
+        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.86
       )
     ),
     // Hamming LSH
@@ -171,7 +171,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   }
 
   for {
-    Test(mapping, queriesAndExpectedRecall) <- tests.drop(3).take(1)
+    Test(mapping, queriesAndExpectedRecall) <- tests.take(5)
     (query, expectedRecall) <- queriesAndExpectedRecall
     testData = query.similarity match {
       case Similarity.Jaccard => sparseBoolTestData
@@ -219,12 +219,12 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         }
 
         // Make sure recall is at or above expected.
-        withClue(s"Explicit query recall should be at least ${expectedRecall}") {
-          explicitRecall1 shouldBe expectedRecall +- (1e-2)
+        withClue(s"Explicit query recall should be ${expectedRecall} +/- ${recallTolerance}") {
+          explicitRecall1 shouldBe expectedRecall +- (recallTolerance)
         }
 
-        withClue(s"Indexed query recall should be at least ${expectedRecall}") {
-          indexedRecall shouldBe expectedRecall +- (1e-2)
+        withClue(s"Indexed query recall should be ${expectedRecall} +/- ${recallTolerance}") {
+          indexedRecall shouldBe expectedRecall +- (recallTolerance)
         }
       }
     }
