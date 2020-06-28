@@ -491,24 +491,16 @@ They first retrieve approximate neighbors based on common hash terms and then co
 The exact steps are as follows:
 
 1. Hash the query vector using model parameters that were specified in the indexed vector's mapping.
-2. Use the hash values to create an approximate query using one of two strategies:
-    - A [boolean query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html) with a _should_ clauses for every hash. 
-    This is currently the default.
-    - A boolean query with _should match_ clauses for a subset of terms, with terms picked using heuristics from the 
-    [More Like This query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-mlt-query.html). 
-    This is generally faster, but is still experimental. To use this strategy, set `useMLTQuery` to `true` in the query JSON.
-3. Execute the approximate query to get vectors with matching hashes. 
-3. Pass Vectors with matching hashes to a scoring function which maintains a min-heap of size `candidates`. 
-The heap maintains the highest-scoring approximate neighbors.
-If an indexed vector exceeds the lowest approximate score in the heap, compute its exact similarity and replace it in the heap. 
-Otherwise, it gets a score of 0.
-
-If you set `candidates` to 0, the query skips all heap-related logic and exact similarity computations. 
-The score for each vector is the number of intersecting hash terms.
-
-It seems reasonable to set `candidates` to 2x to 10x larger than the number of hits you want to return (Elasticsearch defaults to 10 hits). 
-For example, if you have 100,000 vectors in your index, you want the 10 nearest neighbors, and you set `candidates` to 100, 
-then your query will compute the exact similarity roughly 100 times per shard.
+2. Use the hash values to construct and execute a query that finds other vectors with the same hash values.
+   The query is a modification of Lucene's [TermInSetQuery](https://lucene.apache.org/core/8_5_0/core/org/apache/lucene/search/TermInSetQuery.html).
+3. Take the top vectors with the most matching hashes and compute their exact similarity to the query vector.
+   The `candidates` parameter controls the number of exact similarity computations.
+   Specifically, we compute exact similarity for the top _`candidates`_ candidate vectors in each segment.
+   As a reminder, each Elasticsearch index has >= 1 shards, and each shard has >= 1 segments.
+   That means if you set `"candiates": 200` for an index with 2 shards, each with 3 segments, then you'll compute the 
+   exact similarity for `2 * 3 * 200 = 1200` vectors.
+   `candidates` must be set to a number greater or equal to the number of Elasticsearch results you want to get.
+   Higher values generally mean higher recall and higher latency.
 
 ### Jaccard LSH Query
 
@@ -526,8 +518,7 @@ GET /my-index/_search
             },
             "model": "lsh",                        # 3
             "similarity": "jaccard",               # 4
-            "candidates": 50,                      # 5
-            "useMLTQuery": false                   # 6
+            "candidates": 50                       # 5
         }
     }
 }
@@ -539,8 +530,7 @@ GET /my-index/_search
 |2|Query vector. Must be literal sparse bool or a pointer to an indexed sparse bool vector.|
 |3|Model name.|
 |4|Similarity function.|
-|5|Number of candidates. See the section on LSH Search Strategy.|
-|6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
 
 ### Hamming LSH Query
 
@@ -558,8 +548,7 @@ GET /my-index/_search
             },
             "model": "lsh",                        # 3
             "similarity": "hamming",               # 4
-            "candidates": 50,                      # 5
-            "useMLTQuery": false                   # 6
+            "candidates": 50                       # 5
         }
     }
 }
@@ -571,7 +560,7 @@ GET /my-index/_search
 |2|Query vector. Must be literal sparse bool or a pointer to an indexed sparse bool vector.|
 |3|Model name.|
 |4|Similarity function.|
-|5|Number of candidates. See the section on LSH Search Strategy.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
 ### Angular LSH Query
@@ -589,8 +578,7 @@ GET /my-index/_search
             },
             "model": "lsh",                        # 3
             "similarity": "angular",               # 4
-            "candidates": 50,                      # 5
-            "useMLTQuery": false                   # 6
+            "candidates": 50                       # 5
         }
     }
 }
@@ -602,7 +590,7 @@ GET /my-index/_search
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
 |4|Similarity function.|
-|5|Number of candidates. See the section on LSH Search Strategy.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
 ### L1 LSH Query
@@ -625,7 +613,6 @@ GET /my-index/_search
             "model": "lsh",                        # 3
             "similarity": "l2",                    # 4
             "candidates": 50                       # 5
-            "useMLTQuery": false                   # 6
         }
     }
 }
@@ -637,7 +624,7 @@ GET /my-index/_search
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
 |4|Similarity function.|
-|5|Number of candidates. See the section on LSH Search Strategy.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
 ## Mapping and Query Compatibility
