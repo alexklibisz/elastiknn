@@ -97,14 +97,10 @@ package object benchmarks {
     )
 
     private def algorithmName(m: Mapping, q: NearestNeighborsQuery): String = m match {
-      case _: SparseBool    => s"Exact"
-      case _: DenseFloat    => "Exact"
-      case _: SparseIndexed => "Sparse indexed"
-      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh =>
-        q match {
-          case lsh: NearestNeighborsQuery.LshQuery if lsh.useMLTQuery => "LSH w/ MLT"
-          case _                                                      => "LSH"
-        }
+      case _: SparseBool                                            => s"Exact"
+      case _: DenseFloat                                            => "Exact"
+      case _: SparseIndexed                                         => "Sparse indexed"
+      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "LSH"
     }
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {

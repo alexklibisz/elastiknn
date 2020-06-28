@@ -179,12 +179,11 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
-      | "useMLTQuery": true,
       | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99), true)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99))
   }
 }
