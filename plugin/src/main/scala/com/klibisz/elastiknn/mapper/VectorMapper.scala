@@ -65,7 +65,7 @@ object VectorMapper {
     setBoost(1f)
     setTokenized(false)
     setIndexOptions(IndexOptions.DOCS)
-    setStoreTermVectors(true)
+    setStoreTermVectors(false)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)
