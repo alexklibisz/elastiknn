@@ -19,7 +19,6 @@ final case class ExactSimilarityScore(score: Double, distance: Double)
 
 sealed trait ExactSimilarityFunction[V <: Vec, S <: StoredVec] extends ((V, S) => Double) {
   def similarity: Similarity
-  def maxScore: Float
   override def equals(other: Any): Boolean = other match {
     case f: ExactSimilarityFunction[V, S] => f.similarity == similarity
     case _                                => false
@@ -30,7 +29,6 @@ object ExactSimilarityFunction {
 
   object Jaccard extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Jaccard
-    override def maxScore: Float = 1f
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
       val isec = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
       val denom = v1.trueIndices.length + v2.trueIndices.length - isec
@@ -42,7 +40,6 @@ object ExactSimilarityFunction {
 
   object Hamming extends ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] {
     override def similarity: Similarity = Similarity.Hamming
-    override def maxScore: Float = 1f
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = {
       val eqTrueCount = sortedIntersectionCount(v1.trueIndices, v2.trueIndices)
       val totalCount = v1.totalIndices
@@ -55,7 +52,6 @@ object ExactSimilarityFunction {
   }
   object L1 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.L1
-    override def maxScore: Float = 1f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
       var sumAbsDiff: Double = 0.0
       var i = 0
@@ -68,7 +64,6 @@ object ExactSimilarityFunction {
   }
   object L2 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.L2
-    override def maxScore: Float = 1f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
       var sumSqrDiff: Double = 0.0
       var i = 0
@@ -83,7 +78,6 @@ object ExactSimilarityFunction {
   }
   object Angular extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def similarity: Similarity = Similarity.Angular
-    override def maxScore: Float = 2f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
       var dotProd: Double = 0
       var v1SqrSum: Double = 0

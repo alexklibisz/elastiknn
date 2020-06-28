@@ -23,33 +23,29 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.L2),
       Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
         Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
       )
     ),
-//    // Angular exact, LSH
-//    Experiment(
-//      randomDenseFloats,
-//      Mapping.DenseFloat(randomDenseFloats.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-//      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
-//      Seq(
-//        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
-//        Query(NearestNeighborsQuery.AngularLsh(field, 1300, useMLTQuery = true), k),
-//      )
-//    ),
-//    // Jaccard exact, sparse indexed, LSH
-//    Experiment(
-//      randomSparseBools,
-//      Mapping.SparseBool(randomSparseBools.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
-//      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
-//      Seq(
-//        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k),
-//        Query(NearestNeighborsQuery.JaccardLsh(field, 1300, useMLTQuery = true), k)
-//      )
-//    )
+    // Angular exact, LSH
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
+      )
+    ),
+    // Jaccard exact, sparse indexed, LSH
+    Experiment(
+      randomSparseBools,
+      Mapping.SparseBool(randomSparseBools.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
+      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
+      Seq(
+        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
+      )
+    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
