@@ -86,12 +86,12 @@ object LshFunction {
     import mapping._
     private val rng: Random = new Random(0)
 
-    // Sample indices without replacement.
+    // Sample indices without replacement. Important to sort them.
     private val sampledIndices: Array[Int] = {
       @tailrec
       def sample(acc: Set[Int], i: Int): Set[Int] =
         if (acc.size == bits.min(dims)) acc else if (acc(i)) sample(acc, rng.nextInt(dims)) else sample(acc + i, rng.nextInt(dims))
-      sample(Set.empty, rng.nextInt(dims)).toArray
+      sample(Set.empty, rng.nextInt(dims)).toArray.sorted
     }
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {

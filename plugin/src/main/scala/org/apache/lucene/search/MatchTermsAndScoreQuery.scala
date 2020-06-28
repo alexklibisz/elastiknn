@@ -5,18 +5,19 @@ import java.util.Objects
 
 import com.carrotsearch.hppc.IntIntScatterMap
 import com.klibisz.elastiknn.utils.ArrayUtils
+import org.apache.logging.log4j.LogManager
 import org.apache.lucene.index._
 import org.apache.lucene.util.{ArrayUtil, BytesRef}
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Custom query optimized to find the set of candidate documents that most frequently contain the given terms.
+  * Custom query optimized to find the set of candidate documents that contain the greatest number of the given terms.
   * Then scores the the top `candidates` candidates using the given ScoreFunction.
   * Inspired by the TermInSetQuery.
   * @param termsField Field containing tokens.
   * @param terms Set of tokens, serialized to Bytesrefs.
-  * @param candidates Number of candidates to re-score.
+  * @param candidates Number of top candidates to pick and score, based on number of matching tokens. This is _per segment_.
   * @param scoreFunction Fn taking a LeafReaderContext, returns a fn taking doc id and number of matched terms, returns the final score.
   * @param indexReader IndexReader used to get some stats about the tokens field.
   */
@@ -27,17 +28,23 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
                                  val indexReader: IndexReader)
     extends Query {
 
+  private val logger = LogManager.getLogger(this.getClass)
+
   private val sortedTerms: PrefixCodedTerms = {
     val builder = new PrefixCodedTerms.Builder()
     ArrayUtil.timSort(terms)
-    // If the .add method call fails, it's likely cause by having duplicate bytesrefs.
+    // If the .add method call fails, it's likely caused by having duplicate bytesrefs.
     terms.foreach(t => builder.add(termsField, t))
     builder.finish()
   }
 
+  // Determine the number of segments in the _shard_ represented by the indexReader.
+  private val numSegments = 1 // indexReader.getContext.leaves.size()
+  private val candidatesAdjusted = (candidates * 1d / numSegments).ceil.toInt
+
   // Expected size for the doc id -> term count mapping. Limit at 1mb of (int, int) pairs.
   // If this is too small, the IntIntScatterMap will spend a noticeable amount of time re-sizing itself.
-  private val expectedMatchingDocs: Int = indexReader.getDocCount(termsField).min(125000)
+  private val expectedMatchingDocs: Int = (indexReader.getDocCount(termsField) / numSegments).min(125000)
 
   override def createWeight(searcher: IndexSearcher, scoreMode: ScoreMode, boost: Float): Weight = new Weight(this) {
 
@@ -73,14 +80,14 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
 
       def getCandidateDocs(docIdToMatchingCount: IntIntScatterMap): Array[Int] =
         // Use all the doc ids.
-        if (docIdToMatchingCount.size() <= candidates) docIdToMatchingCount.keys().toArray
-        // Build an array of doc ids with term counts >= to the _candidates_ largest count, preferring > over =.
+        if (docIdToMatchingCount.size() <= candidatesAdjusted) docIdToMatchingCount.keys().toArray
+        // Build an array of doc ids with term counts >= to the _candidatesAdjusted_ largest count, preferring > over =.
         else {
-          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToMatchingCount.values, candidates)
-          val docIdsGt = new ArrayBuffer[Int](candidates)
-          val docIdsEq = new ArrayBuffer[Int](candidates)
+          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToMatchingCount.values, candidatesAdjusted)
+          val docIdsGt = new ArrayBuffer[Int](candidatesAdjusted)
+          val docIdsEq = new ArrayBuffer[Int](candidatesAdjusted)
           var i = 0
-          while (i < docIdToMatchingCount.keys.length && docIdsGt.length < candidates) {
+          while (i < docIdToMatchingCount.keys.length && docIdsGt.length < candidatesAdjusted) {
             val docId = docIdToMatchingCount.keys(i)
             if (docIdToMatchingCount.containsKey(docId)) {
               val count = docIdToMatchingCount.get(docId)
@@ -89,8 +96,8 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
             }
             i += 1
           }
-          if (docIdsGt.length < candidates) {
-            docIdsGt.appendAll(docIdsEq.take(candidates - docIdsGt.length))
+          if (docIdsGt.length < candidatesAdjusted) {
+            docIdsGt.appendAll(docIdsEq.take(candidatesAdjusted - docIdsGt.length))
           }
           docIdsGt.toArray
         }
@@ -101,6 +108,9 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       val leafScoreFunction = scoreFunction(context)
 
       new Scorer(this) {
+
+        logger.warn(s"New scorer for query ${Objects.hash(terms: _*)} with ${candidateDocs.length} candidates")
+
         override def iterator(): DocIdSetIterator = disi
         override def getMaxScore(upTo: Int): Float = Float.MaxValue
         override def score(): Float = leafScoreFunction(docID(), docidToMatchingCount.get(docID())).toFloat
@@ -108,7 +118,9 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       }
     }
 
-    override def isCacheable(ctx: LeafReaderContext): Boolean = true
+    override def hashCode(): Int = super.hashCode()
+
+    override def isCacheable(ctx: LeafReaderContext): Boolean = false
   }
 
   override def toString(field: String): String =
@@ -122,7 +134,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
   }
 
   override def hashCode(): Int =
-    31 * classHash() + Objects.hash(termsField, terms, candidates.asInstanceOf[AnyRef], scoreFunction)
+    Objects.hash(termsField, terms, candidates.asInstanceOf[AnyRef], scoreFunction)
 
 }
 
