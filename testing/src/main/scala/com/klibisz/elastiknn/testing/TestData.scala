@@ -42,8 +42,9 @@ object TestData {
   }
 
   def genSparseBool(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int)(implicit rng: Random): TestData = {
-    val corpus = Vec.SparseBool.randoms(dims, numCorpus)
-    val queries = Vec.SparseBool.randoms(dims, numQueries).map { qv =>
+    // TODO: have a min and max bias to introduce more variety to the corpus.
+    val corpus = Vec.SparseBool.randoms(dims, numCorpus, 0.2)
+    val queries = Vec.SparseBool.randoms(dims, numQueries, 0.2).map { qv =>
       Query(
         qv,
         Seq(
