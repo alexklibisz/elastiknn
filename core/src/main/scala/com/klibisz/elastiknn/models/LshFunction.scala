@@ -205,9 +205,7 @@ object LshFunction {
         bandHashes.update(ixBandHashes, bandHash)
         ixBandHashes += 1
       }
-
-      // TODO: Find a way to avoid having duplicates.
-      bandHashes.distinct
+      bandHashes
     }
   }
 

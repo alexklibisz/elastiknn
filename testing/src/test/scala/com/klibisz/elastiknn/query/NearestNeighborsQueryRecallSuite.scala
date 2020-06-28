@@ -82,51 +82,50 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     ),
     // Hamming LSH
     Test(
-      Mapping.HammingLsh(dims, dims * 7 / 10),
+      Mapping.HammingLsh(dims, dims * 5 / 10),
       Seq(
         NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(fieldName, 500) -> 0.5,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.9
+        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.71,
+        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.86
       )
     ),
     Test(
-      Mapping.HammingLsh(dims, dims * 9 / 10),
+      Mapping.HammingLsh(dims, dims * 7 / 10),
       Seq(
-        NearestNeighborsQuery.HammingLsh(fieldName, 300) -> 1d,
-        // NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 1d
+        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.89,
+        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.97
       )
     ),
     // Angular Lsh
     Test(
       Mapping.AngularLsh(dims, 400, 1),
       Seq(
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-//        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-//        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-//        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85
+        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.48,
+        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.69
       )
     ),
-//    Test(
-//      Mapping.AngularLsh(dims, 400, 2),
-//      Seq(
-//        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-//        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-//        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85
-//      )
-//    ),
+    Test(
+      Mapping.AngularLsh(dims, 400, 2),
+      Seq(
+        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.36,
+        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.52,
+        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.74
+      )
+    ),
     // L2 Lsh
     Test(
-      Mapping.L2Lsh(dims, 400, 1, 3),
+      Mapping.L2Lsh(dims, 600, 1, 4),
       Seq(
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
 //        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.27,
-        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.44,
-        NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.67
+        NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.13,
+        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.24,
+        NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.44
       )
     )
   )
@@ -171,7 +170,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   }
 
   for {
-    Test(mapping, queriesAndExpectedRecall) <- tests.take(5)
+    Test(mapping, queriesAndExpectedRecall) <- tests
     (query, expectedRecall) <- queriesAndExpectedRecall
     testData = query.similarity match {
       case Similarity.Jaccard => sparseBoolTestData
@@ -184,7 +183,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     val uuid = UUID.randomUUID().toString
     val corpusIndex = f"test-data-$uuid-c"
     val queriesIndex = f"test-data-$uuid-q"
-    val testName = f"${uuid}%-20s ${mapping.toString}%-30s ${query.toString}%-50s >= ${expectedRecall}%-8f"
+    val testName = f"${uuid}%-20s ${mapping.toString}%-30s ${query.toString}%-50s ~= ${expectedRecall}%-8f"
     // Lookup the correct results based on the similarity function.
     val resultsIx = testData.queries.head.results.zipWithIndex.filter(_._1.similarity == query.similarity).head._2
     test(testName) {
