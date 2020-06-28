@@ -39,7 +39,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       terms.foreach(builder.add(termsField, _))
       builder.finish()
     } catch {
-      case ae: AssertionError =>
+      case _: AssertionError | _: IllegalArgumentException =>
         val builder = new PrefixCodedTerms.Builder()
         val distinct = terms.distinct
         logger.warn(s"Failed to build PrefixCodedTerms from ${terms.length} terms. Re-trying with ${distinct.length} distinct terms.")
