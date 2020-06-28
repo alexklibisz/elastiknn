@@ -190,10 +190,10 @@ object LshFunction {
     private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Int] = {
-      val bandHashes = new Array[Int](bands)
+      val bandHashes = collection.mutable.Set.empty[Int]
       var ixBandHashes = 0
       var ixHashVecs = 0
-      while (ixBandHashes < bandHashes.length) {
+      while (ixBandHashes < bands) {
         var bandHash = ixBandHashes
         var ixRows = 0
         while (ixRows < rows) {
@@ -202,10 +202,11 @@ object LshFunction {
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.update(ixBandHashes, bandHash)
+        bandHashes.add(bandHash)
         ixBandHashes += 1
       }
-      bandHashes
+      // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
+      bandHashes.toArray
     }
   }
 

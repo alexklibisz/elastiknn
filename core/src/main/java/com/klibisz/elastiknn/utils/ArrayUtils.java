@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.utils;
 
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * Java implementations of some hot spots.
@@ -39,19 +38,20 @@ public class ArrayUtils {
     /**
      * Find the kth largest value in the given array.
      * Swaps elements in the given array.
-     * Copied from: https://github.com/bephrem1/backtobackswe, https://www.youtube.com/watch?v=hGK_5n81drs.
+     * Based on: https://github.com/bephrem1/backtobackswe, https://www.youtube.com/watch?v=hGK_5n81drs.
+     * Lucene also has an implementation: https://lucene.apache.org/core/8_0_0/core/org/apache/lucene/util/IntroSelector.html,
+     * but it's more abstract and was slower when I benchmarked it.
      * @param arr The array.
      * @param k The position.
      * @return The index of the kth largest value.
      */
     public static int quickSelect(int[] arr, int k) {
-        Random rand = new Random(0);
         int n = arr.length;
         int left = 0;
         int right = n - 1;
         int finalIndexOfChoosenPivot = 0;
         while (left <= right) {
-            int choosenPivotIndex = rand.nextInt(right - left + 1) + left;
+            int choosenPivotIndex = (right - left + 1) / 2 + left;
             finalIndexOfChoosenPivot = qsPartition(arr, left, right, choosenPivotIndex);
             if (finalIndexOfChoosenPivot == n - k) {
                 break;
