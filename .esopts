@@ -1,2 +1,3 @@
 -Dtests.heap.size=4G
 -Dtests.es.indices.query.bool.max_clause_count=4096
+-Dtests.es.elastiknn.cache.ttl_seconds=900

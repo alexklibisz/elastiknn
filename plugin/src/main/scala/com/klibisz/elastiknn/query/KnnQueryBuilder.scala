@@ -9,7 +9,7 @@ import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, VecCache, api}
 import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -69,20 +69,20 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     (query, mapping) match {
       case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        ExactQuery(f, v, ExactSimilarityFunction.Jaccard)
+        ExactQuery(f, v, ExactSimilarityFunction.Jaccard, VecCache.sparseBoolCache())
 
       case (Exact(f, Similarity.Hamming, v: Vec.SparseBool),
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        ExactQuery(f, v, ExactSimilarityFunction.Hamming)
+        ExactQuery(f, v, ExactSimilarityFunction.Hamming, VecCache.sparseBoolCache())
 
       case (Exact(f, Similarity.L1, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        ExactQuery(f, v, ExactSimilarityFunction.L1)
+        ExactQuery(f, v, ExactSimilarityFunction.L1, VecCache.denseFloatCache())
 
       case (Exact(f, Similarity.L2, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        ExactQuery(f, v, ExactSimilarityFunction.L2)
+        ExactQuery(f, v, ExactSimilarityFunction.L2, VecCache.denseFloatCache())
 
       case (Exact(f, Similarity.Angular, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
-        ExactQuery(f, v, ExactSimilarityFunction.Angular)
+        ExactQuery(f, v, ExactSimilarityFunction.Angular, VecCache.denseFloatCache())
 
       case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard, c.getIndexReader)

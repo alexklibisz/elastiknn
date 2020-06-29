@@ -170,7 +170,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   }
 
   for {
-    Test(mapping, queriesAndExpectedRecall) <- tests
+    Test(mapping, queriesAndExpectedRecall) <- tests.take(3)
     (query, expectedRecall) <- queriesAndExpectedRecall
     testData = query.similarity match {
       case Similarity.Jaccard => sparseBoolTestData

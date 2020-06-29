@@ -23,7 +23,7 @@ object LshQuery {
     val terms = lshFunction(query).map(h => new BytesRef(UnsafeSerialization.writeInt(h)))
 
     val scoreFunction = (lrc: LeafReaderContext) => {
-      val binaryDocValues = lrc.reader.getBinaryDocValues(ExactQuery.vectorDocValuesField(field))
+      val binaryDocValues = lrc.reader.getBinaryDocValues(ExactQuery.vecDocValuesField(field))
       (docId: Int, _: Int) =>
         if (binaryDocValues.advanceExact(docId)) {
           val bref = binaryDocValues.binaryValue()
