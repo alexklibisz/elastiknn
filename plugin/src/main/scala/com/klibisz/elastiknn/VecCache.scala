@@ -1,16 +1,13 @@
 package com.klibisz.elastiknn
 
-import java.{lang, util}
-import java.time.Duration
-import java.util.concurrent.{Callable, TimeUnit}
+import java.lang
+import java.util.concurrent.TimeUnit
 
-import com.google.common.cache.{Cache, CacheBuilder, Weigher}
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.logging.log4j.LogManager
-import org.apache.lucene.index.{BinaryDocValues, NumericDocValues}
-import org.apache.lucene.util.BytesRef
-import org.elasticsearch.common.settings.{ClusterSettings, Setting, Settings}
 import org.elasticsearch.common.settings.Setting.Property.{Final, NodeScope}
+import org.elasticsearch.common.settings.{Setting, Settings}
 
 object VecCache {
 
@@ -22,10 +19,8 @@ object VecCache {
   val NAME_CACHE_TTL_SECONDS = "elastiknn.cache.ttl_seconds"
 
   val cacheEnabled: Setting[lang.Boolean] = Setting.boolSetting(NAME_CACHE_ENABLED, true, NodeScope, Final)
-  val cacheCapacityBytes: Setting[lang.Long] = Setting.longSetting(NAME_CACHE_CAPACITY_BYTES, 1e6.toLong, 0, NodeScope, Final)
+  val cacheCapacityBytes: Setting[lang.Long] = Setting.longSetting(NAME_CACHE_CAPACITY_BYTES, 3e8.toLong, 0, NodeScope, Final)
   val cacheTTLSeconds: Setting[lang.Long] = Setting.longSetting(NAME_CACHE_TTL_SECONDS, 600, 0, NodeScope, Final)
-
-  logger.info(s"Settings: ${Seq(cacheEnabled, cacheCapacityBytes, cacheTTLSeconds)}")
 
   final case class Key(docId: Int, bytesRefCacheKey: Long)
 

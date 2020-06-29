@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.query
 
+import com.google.common.cache.Cache
+import com.klibisz.elastiknn.VecCache
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
 import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
@@ -14,22 +16,21 @@ object LshQuery {
   /**
     * Construct an Lsh query.
     */
-  def apply[M <: Mapping, V <: Vec, S <: StoredVec](field: String,
-                                                    query: V,
-                                                    candidates: Int,
-                                                    lshFunction: LshFunction[M, V, S],
-                                                    indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
+  def apply[M <: Mapping, V <: Vec, S <: StoredVec](
+      field: String,
+      query: V,
+      candidates: Int,
+      lshFunction: LshFunction[M, V, S],
+      indexReader: IndexReader,
+      cacheOpt: Option[Cache[VecCache.Key, S]])(implicit codec: StoredVec.Codec[V, S]): Query = {
 
     val terms = lshFunction(query).map(h => new BytesRef(UnsafeSerialization.writeInt(h)))
 
     val scoreFunction = (lrc: LeafReaderContext) => {
-      val binaryDocValues = lrc.reader.getBinaryDocValues(ExactQuery.vecDocValuesField(field))
+      val cachedReader = new ExactQuery.CachedReader[S](cacheOpt, lrc, field)
       (docId: Int, _: Int) =>
-        if (binaryDocValues.advanceExact(docId)) {
-          val bref = binaryDocValues.binaryValue()
-          val storedVec = codec.decode(bref.bytes, bref.offset, bref.length)
-          lshFunction.exact(query, storedVec)
-        } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+        val storedVec = cachedReader(docId)
+        lshFunction.exact(query, storedVec)
     }
 
     new MatchTermsAndScoreQuery(

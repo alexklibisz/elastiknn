@@ -19,18 +19,7 @@ import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin with MapperPlugin {
 
-  override def createComponents(client: Client,
-                                clusterService: ClusterService,
-                                threadPool: ThreadPool,
-                                resourceWatcherService: ResourceWatcherService,
-                                scriptService: ScriptService,
-                                xContentRegistry: NamedXContentRegistry,
-                                environment: Environment,
-                                nodeEnvironment: NodeEnvironment,
-                                namedWriteableRegistry: NamedWriteableRegistry): util.Collection[AnyRef] = {
-    VecCache.initializeForSettings(clusterService.getSettings)
-    java.util.Collections.emptyList()
-  }
+  VecCache.initializeForSettings(settings)
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
