@@ -110,27 +110,24 @@ package object api {
 
     sealed trait LshQuery extends NearestNeighborsQuery {
       def candidates: Int
-
-      @Experimental
-      def useMLTQuery: Boolean
     }
 
-    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
+    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Jaccard
     }
 
-    final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
+    final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Hamming
     }
 
-    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
+    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.Angular
     }
 
-    final case class L2Lsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), useMLTQuery: Boolean = false) extends LshQuery {
+    final case class L2Lsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends LshQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.L2
     }

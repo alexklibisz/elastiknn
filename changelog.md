@@ -1,3 +1,5 @@
+- Re-implemented LSH and sparse-indexed queries using an optimized custom Lucene query based on the [TermInSetQuery](https://lucene.apache.org/core/8_5_0/core/org/apache/lucene/search/TermInSetQuery.html).
+  This is 3-5x faster on LSH benchmarks.
 - Updated L1, and L2 similarities such that they're bounded in [0,1].
 ---
 - Added an option for LSH queries to use the more-like-this heuristics to pick a subset of LSH hashes to retrieve candidate vectors.

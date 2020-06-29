@@ -104,7 +104,7 @@ object Execute extends App {
             } yield ()
         }
         _ <- eknnClient.execute(refreshIndex(trainIndexName, testIndexName))
-        _ <- eknnClient.execute(forceMerge(trainIndexName, testIndexName))
+        _ <- eknnClient.execute(forceMerge(trainIndexName, testIndexName).maxSegments(1))
       } yield ()
     }
 

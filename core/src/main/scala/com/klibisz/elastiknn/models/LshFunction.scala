@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage
 import com.klibisz.elastiknn.storage.StoredVec
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
@@ -84,7 +85,14 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private val sampledIndices: Array[Int] = (0 until bits).map(_ => rng.nextInt(dims)).sorted.toArray
+
+    // Sample indices without replacement. Important to sort them.
+    private val sampledIndices: Array[Int] = {
+      @tailrec
+      def sample(acc: Set[Int], i: Int): Set[Int] =
+        if (acc.size == bits.min(dims)) acc else if (acc(i)) sample(acc, rng.nextInt(dims)) else sample(acc + i, rng.nextInt(dims))
+      sample(Set.empty, rng.nextInt(dims)).toArray.sorted
+    }
 
     override def apply(vec: Vec.SparseBool): Array[Int] = {
       val hashes = new Array[Int](bits)
@@ -182,10 +190,10 @@ object LshFunction {
     private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Int] = {
-      val bandHashes = new Array[Int](bands)
+      val bandHashes = collection.mutable.Set.empty[Int]
       var ixBandHashes = 0
       var ixHashVecs = 0
-      while (ixBandHashes < bandHashes.length) {
+      while (ixBandHashes < bands) {
         var bandHash = ixBandHashes
         var ixRows = 0
         while (ixRows < rows) {
@@ -194,10 +202,11 @@ object LshFunction {
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.update(ixBandHashes, bandHash)
+        bandHashes.add(bandHash)
         ixBandHashes += 1
       }
-      bandHashes
+      // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
+      bandHashes.toArray
     }
   }
 

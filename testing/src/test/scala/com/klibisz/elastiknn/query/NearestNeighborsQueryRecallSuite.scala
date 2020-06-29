@@ -5,6 +5,8 @@ import java.util.UUID
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.Response
+import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
 
 import scala.concurrent.Future
@@ -28,6 +30,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val dims: Int = 1024
   private val k: Int = 100
   private val shards: Int = 2
+  private val segmentsPerShard: Int = 1
+  private val recallTolerance: Double = 1e-2
   private val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
   private val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
   private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
@@ -65,48 +69,32 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       Seq(
         NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.7,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.8,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.2,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.3,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.6,
+        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.73,
+        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.89
       )
     ),
     Test(
       Mapping.JaccardLsh(dims, 300, 2),
       Seq(
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200) -> 0.6,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.75,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 200, useMLTQuery = true) -> 0.3,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400, useMLTQuery = true) -> 0.55,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800, useMLTQuery = true) -> 0.75
+        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.72,
+        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.86
       )
     ),
     // Hamming LSH
     Test(
-      Mapping.HammingLsh(dims, dims * 7 / 10),
+      Mapping.HammingLsh(dims, dims * 5 / 10),
       Seq(
         NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.78,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.76,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.9
+        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.71,
+        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.86
       )
     ),
     Test(
-      Mapping.HammingLsh(dims, dims * 9 / 10),
+      Mapping.HammingLsh(dims, dims * 7 / 10),
       Seq(
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.8,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.9,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800) -> 0.95,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200, useMLTQuery = true) -> 0.62,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400, useMLTQuery = true) -> 0.79,
-        NearestNeighborsQuery.HammingLsh(fieldName, 800, useMLTQuery = true) -> 0.92
+        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.89,
+        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.97
       )
     ),
     // Angular Lsh
@@ -116,38 +104,28 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
+        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.48,
+        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.69
       )
     ),
     Test(
       Mapping.AngularLsh(dims, 400, 2),
       Seq(
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.5,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.65,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.85,
-        NearestNeighborsQuery.AngularLsh(fieldName, 200, useMLTQuery = true) -> 0.4,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400, useMLTQuery = true) -> 0.6,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800, useMLTQuery = true) -> 0.8
+        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.36,
+        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.52,
+        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.74
       )
     ),
     // L2 Lsh
     Test(
-      Mapping.L2Lsh(dims, 400, 1, 3),
+      Mapping.L2Lsh(dims, 600, 1, 4),
       Seq(
         NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.27,
-        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.44,
-        NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.67,
-        NearestNeighborsQuery.L2Lsh(fieldName, 200, useMLTQuery = true) -> 0.25,
-        NearestNeighborsQuery.L2Lsh(fieldName, 400, useMLTQuery = true) -> 0.42,
-        NearestNeighborsQuery.L2Lsh(fieldName, 800, useMLTQuery = true) -> 0.63,
+        NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.13,
+        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.24,
+        NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.44
       )
     )
   )
@@ -163,15 +141,33 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
           _ <- eknn.putMapping(corpusIndex, fieldName, mapping)
           _ <- eknn.execute(createIndex(queriesIndex).shards(shards).replicas(0))
           _ <- eknn.putMapping(queriesIndex, fieldName, mapping)
-          _ <- Future.traverse(testData.corpus.grouped(500)) { batch =>
-            eknn.index(corpusIndex, fieldName, batch, Some(batch.map(x => s"v${x.hashCode()}")))
+          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(500)) { batch =>
+            val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
+            eknn.index(corpusIndex, fieldName, vecs, Some(ids))
           }
-          _ <- Future.traverse(testData.queries.grouped(500)) { batch =>
-            eknn.index(queriesIndex, fieldName, batch.map(_.vector), Some(batch.map(x => s"v${x.vector.hashCode()}")))
+          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(500)) { batch =>
+            val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
+            eknn.index(queriesIndex, fieldName, vecs, Some(ids))
           }
+          _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
+          _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
+          // TODO: is the last refresh necessary?
           _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
         } yield ()
     } yield ()
+
+  private def recall(queries: Vector[Query], resultsIx: Int, responses: Seq[Response[SearchResponse]]): Double = {
+    val numMatches = queries
+      .zip(responses)
+      .map {
+        case (Query(_, correctResults), response) =>
+          val correctScores: Vector[Float] = correctResults(resultsIx).values.map(_.toFloat)
+          val hitScores: Array[Float] = response.result.hits.hits.map(_.score)
+          correctScores.intersect(hitScores).length
+      }
+      .sum
+    numMatches * 1d / responses.map(_.result.hits.hits.length).sum
+  }
 
   for {
     Test(mapping, queriesAndExpectedRecall) <- tests
@@ -187,43 +183,48 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     val uuid = UUID.randomUUID().toString
     val corpusIndex = f"test-data-$uuid-c"
     val queriesIndex = f"test-data-$uuid-q"
-    val testName = f"${uuid}%-20s ${mapping.toString}%-30s ${query.toString}%-50s >= ${expectedRecall}%-8f"
+    val testName = f"${uuid}%-20s ${mapping.toString}%-30s ${query.toString}%-50s ~= ${expectedRecall}%-8f"
+    // Lookup the correct results based on the similarity function.
     val resultsIx = testData.queries.head.results.zipWithIndex.filter(_._1.similarity == query.similarity).head._2
     test(testName) {
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
-        givenQueryResponses <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(uuid))
+        explicitResponses1 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
         })
-        indexedQueryResponses <- Future.sequence(testData.queries.map { q =>
-          val vec = Vec.Indexed(queriesIndex, s"v${q.vector.hashCode()}", fieldName)
-          eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(uuid))
+        explicitResponses2 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+        })
+        explicitResponses3 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+        })
+        indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (q, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", fieldName)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(""))
         })
       } yield {
 
-        val givenQueriesRecall = testData.queries
-          .zip(givenQueryResponses)
-          .map {
-            case (Query(_, correctResults), response) =>
-              val correctScores = correctResults(resultsIx).values.map(_.toFloat)
-              val hitScores = response.result.hits.hits.map(_.score)
-              correctScores.intersect(hitScores).length * 1d
-          }
-          .sum / (testData.queries.length * k)
+        // First compute recall.
+        val explicitRecall1 = recall(testData.queries, resultsIx, explicitResponses1)
+        val explicitRecall2 = recall(testData.queries, resultsIx, explicitResponses2)
+        val explicitRecall3 = recall(testData.queries, resultsIx, explicitResponses3)
+        val indexedRecall = recall(testData.queries, resultsIx, indexedResponses)
 
-        givenQueriesRecall shouldBe >=(expectedRecall)
+        // Make sure results were deterministic.
+        withClue(s"Explicit query recalls should be deterministic") {
+          explicitRecall2 shouldBe explicitRecall1
+          explicitRecall3 shouldBe explicitRecall1
+        }
 
-        val indexedQueriesRecall = testData.queries
-          .zip(indexedQueryResponses)
-          .map {
-            case (Query(_, correctResults), response) =>
-              val correctScores = correctResults(resultsIx).values.map(_.toFloat)
-              val hitScores = response.result.hits.hits.map(_.score)
-              correctScores.intersect(hitScores).length * 1d
-          }
-          .sum / (testData.queries.length * k)
+        // Make sure recall is at or above expected.
+        withClue(s"Explicit query recall should be ${expectedRecall} +/- ${recallTolerance}") {
+          explicitRecall1 shouldBe expectedRecall +- (recallTolerance)
+        }
 
-        indexedQueriesRecall shouldBe >=(expectedRecall)
+        withClue(s"Indexed query recall should be ${expectedRecall} +/- ${recallTolerance}") {
+          indexedRecall shouldBe expectedRecall +- (recallTolerance)
+        }
       }
     }
   }

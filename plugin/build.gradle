@@ -36,6 +36,7 @@ dependencies {
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation "com.google.guava:guava:28.1-jre"
     runtime "com.google.guava:guava:28.1-jre"
+    implementation 'com.carrotsearch:hppc:0.8.2'
 }
 
 esplugin {
