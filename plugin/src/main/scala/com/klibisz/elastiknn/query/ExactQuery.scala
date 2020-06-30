@@ -9,7 +9,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import com.klibisz.elastiknn.storage.StoredVec.Decoder
-import org.apache.lucene.document.{BinaryDocValuesField, NumericDocValuesField}
+import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Explanation}
 import org.apache.lucene.util.BytesRef
@@ -50,21 +50,16 @@ object ExactQuery {
     */
   final class CachedReader[S <: StoredVec: Decoder](cacheOpt: Option[Cache[Key, S]], lrc: LeafReaderContext, field: String) {
     private val vecDocVals = lrc.reader.getBinaryDocValues(vecDocValuesField(field))
-    private val cacheKeyDocVals = lrc.reader.getNumericDocValues(cacheKeyDocValuesField(field))
-    def apply(docId: Int): S = {
-      def readBinary(): S =
-        if (vecDocVals.advanceExact(docId)) {
-          val bytesRef = vecDocVals.binaryValue()
-          implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
-        } else throw new RuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
-      cacheOpt match {
-        case Some(cache) =>
-          if (cacheKeyDocVals.advanceExact(docId)) {
-            val key = Key(docId, cacheKeyDocVals.longValue())
-            cache.get(key, () => readBinary())
-          } else throw new RuntimeException(s"Couldn't advance to numeric doc values for doc with id [$docId]")
-        case None => readBinary()
-      }
+
+    private def readBinary(docId: Int): S =
+      if (vecDocVals.advanceExact(docId)) {
+        val bytesRef = vecDocVals.binaryValue()
+        implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
+      } else throw new RuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
+
+    def apply(docId: Int): S = cacheOpt match {
+      case Some(cache) => cache.get(Key(docId, lrc.hashCode()), () => readBinary(docId))
+      case None        => readBinary(docId)
     }
   }
 
@@ -84,21 +79,11 @@ object ExactQuery {
   def vecDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
   /**
-    * Appends to the given field name to produce the name where a vector's cache key is stored.
-    */
-  def cacheKeyDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.cache_key"
-
-  /**
-    * Creates and returns two indexable fields based on the given field and vec:
-    * - one that stores the vector contents as a [[BinaryDocValuesField]],
-    * - one that stores a hashcode of the vector contents as a [[NumericDocValuesField]].
+    * Creates and returns a single indexable field that stores the vector contents as a [[BinaryDocValuesField]].
     */
   def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
     val storedVec = implicitly[StoredVec.Encoder[V]].apply(vec)
-    Seq(
-      new BinaryDocValuesField(vecDocValuesField(field), new BytesRef(storedVec)),
-      new NumericDocValuesField(cacheKeyDocValuesField(field), storedVec.hashCode())
-    )
+    Seq(new BinaryDocValuesField(vecDocValuesField(field), new BytesRef(storedVec)))
   }
 
 }

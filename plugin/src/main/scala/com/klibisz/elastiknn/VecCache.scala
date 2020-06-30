@@ -22,7 +22,7 @@ object VecCache {
   val cacheCapacityBytes: Setting[lang.Long] = Setting.longSetting(NAME_CACHE_CAPACITY_BYTES, 3e8.toLong, 0, NodeScope, Final)
   val cacheTTLSeconds: Setting[lang.Long] = Setting.longSetting(NAME_CACHE_TTL_SECONDS, 600, 0, NodeScope, Final)
 
-  final case class Key(docId: Int, bytesRefCacheKey: Long)
+  final case class Key(docId: Int, contextHashCode: Long)
 
   private var _sparseBool: Option[Cache[Key, StoredVec.SparseBool]] = None
   private var _denseFloat: Option[Cache[Key, StoredVec.DenseFloat]] = None

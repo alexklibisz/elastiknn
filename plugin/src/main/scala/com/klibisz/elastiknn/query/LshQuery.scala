@@ -28,7 +28,7 @@ object LshQuery {
 
     val scoreFunction = (lrc: LeafReaderContext) => {
       val cachedReader = new ExactQuery.CachedReader[S](cacheOpt, lrc, field)
-      (docId: Int, _: Int) =>
+      (docId: Int, approximateScore: Int) =>
         val storedVec = cachedReader(docId)
         lshFunction.exact(query, storedVec)
     }
