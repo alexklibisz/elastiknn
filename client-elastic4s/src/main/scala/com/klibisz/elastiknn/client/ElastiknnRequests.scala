@@ -9,21 +9,28 @@ import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
 
 trait ElastiknnRequests {
 
-  def indexVec(indexName: String, fieldName: String, vec: Vec, id: Option[String] = None): IndexRequest = {
-    val xcb = XContentFactory.jsonBuilder.rawField(fieldName, ElasticsearchCodec.nospaces(vec))
-    IndexRequest(indexName, source = Some(xcb.string()), id = id)
+  def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
+    val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
+    IndexRequest(index, source = Some(xcb.string()), id = Some(id))
   }
 
   def nearestNeighborsQuery(index: String,
                             query: NearestNeighborsQuery,
                             k: Int,
+                            storedIdField: String,
                             fetchSource: Boolean = false,
                             preference: Option[String] = None): SearchRequest = {
     val json = ElasticsearchCodec.nospaces(query)
     val customQuery = new CustomQuery {
       override def buildQueryBody(): XContentBuilder = XContentFactory.jsonBuilder.rawField("elastiknn_nearest_neighbors", json)
     }
-    val request = ElasticDsl.search(index).query(customQuery).fetchSource(fetchSource).size(k)
+    val request = ElasticDsl
+      .search(index)
+      .query(customQuery)
+      .fetchSource(fetchSource)
+      .storedFields("_none_")
+      .docValues(Seq(storedIdField))
+      .size(k)
     // https://www.elastic.co/guide/en/elasticsearch/reference/master/consistent-scoring.html
     preference match {
       case Some(pref) => request.preference(pref)
@@ -31,12 +38,16 @@ trait ElastiknnRequests {
     }
   }
 
-  def putMapping(index: String, field: String, mapping: Mapping): PutMappingRequest = {
+  def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): PutMappingRequest = {
     val mappingJsonString =
       s"""
          |{
          |  "properties": {
-         |    "$field": ${ElasticsearchCodec.encode(mapping).spaces2}
+         |    "$vecField": ${ElasticsearchCodec.encode(vecMapping).spaces2},
+         |    "$storedIdField": {
+         |      "type": "keyword",
+         |      "store": true
+         |    }
          |  }
          |}
          |""".stripMargin

@@ -72,8 +72,9 @@ object Execute extends App {
       parallelism: Int): ZIO[Logging with Clock with DatasetClient with ElastiknnZioClient, Throwable, BenchmarkResult] = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val trainIndexName = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
-    val testIndexName = s"$trainIndexName-test"
+    val trainIndex = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
+    val testIndex = s"$trainIndex-test"
+    val storedIdField = "id"
 
     // Create a primary and holdout index with same mappings.
     // Split stream of vectors into primary and holdout vectors and index them separately.
@@ -81,30 +82,30 @@ object Execute extends App {
     def buildIndex(chunkSize: Int = 500) = {
       for {
         eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-        _ <- log.info(s"Creating index $trainIndexName with mapping $eknnMapping and parallelism $parallelism")
-        _ <- eknnClient.execute(createIndex(trainIndexName).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
-        _ <- eknnClient.putMapping(trainIndexName, eknnQuery.field, eknnMapping)
-        _ <- eknnClient.execute(createIndex(testIndexName).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
+        _ <- log.info(s"Creating index $trainIndex with mapping $eknnMapping and parallelism $parallelism")
+        _ <- eknnClient.execute(createIndex(trainIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
+        _ <- eknnClient.putMapping(trainIndex, eknnQuery.field, storedIdField, eknnMapping)
+        _ <- eknnClient.execute(createIndex(testIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Indexing vectors for dataset $dataset")
         _ <- datasets.streamTrain(dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
-            val ids = Some(vecs.indices.map(i => s"$batchIndex-$i"))
+            val ids = vecs.indices.map(i => s"$batchIndex-$i")
             for {
-              (dur, _) <- eknnClient.index(trainIndexName, eknnQuery.field, vecs, ids = ids).timed
-              _ <- log.debug(s"Indexed batch $batchIndex to $trainIndexName in ${dur.toMillis} ms")
+              (dur, _) <- eknnClient.index(trainIndex, eknnQuery.field, vecs, storedIdField, ids).timed
+              _ <- log.debug(s"Indexed batch $batchIndex to $trainIndex in ${dur.toMillis} ms")
             } yield ()
         }
         _ <- datasets.streamTest(dataset).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
-            val ids = Some(vecs.indices.map(i => s"$batchIndex-$i"))
+            val ids = vecs.indices.map(i => s"$batchIndex-$i")
             for {
-              (dur, _) <- eknnClient.index(testIndexName, eknnQuery.field, vecs, ids = ids).timed
-              _ <- log.debug(s"Indexed batch $batchIndex to $testIndexName in ${dur.toMillis} ms")
+              (dur, _) <- eknnClient.index(testIndex, eknnQuery.field, vecs, storedIdField, ids).timed
+              _ <- log.debug(s"Indexed batch $batchIndex to $testIndex in ${dur.toMillis} ms")
             } yield ()
         }
-        _ <- eknnClient.execute(refreshIndex(trainIndexName, testIndexName))
-        _ <- eknnClient.execute(forceMerge(trainIndexName, testIndexName).maxSegments(1))
+        _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
+        _ <- eknnClient.execute(forceMerge(trainIndex, testIndex).maxSegments(1))
       } yield ()
     }
 
@@ -130,11 +131,15 @@ object Execute extends App {
         requests = testVecs.zipWithIndex.mapMPar(parallelism) {
           case (vec, i) =>
             for {
-              (dur, res) <- eknnClient.nearestNeighbors(trainIndexName, eknnQuery.withVec(vec), k).timed
+              (dur, res) <- eknnClient.nearestNeighbors(trainIndex, eknnQuery.withVec(vec), k, storedIdField).timed
               _ <- if (i % 10 == 0) log.debug(s"Completed query $i in ${dur.toMillis} ms") else ZIO.succeed(())
-            } yield {
-              QueryResult(res.result.hits.hits.map(_.id), res.result.took)
-            }
+            } yield
+              QueryResult(res.result.hits.hits.flatMap {
+                _.fields.get(storedIdField) match {
+                  case Some(List(id: String)) => Some(id)
+                  case _                      => None
+                }
+              }, res.result.took)
         }
         (dur, responses) <- requests.run(ZSink.collectAll).timed
       } yield (responses, dur.toMillis)
@@ -144,21 +149,21 @@ object Execute extends App {
       eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
 
       // Check if the index already exists.
-      _ <- log.info(s"Checking for index $trainIndexName with mapping $eknnMapping")
-      trainExists <- eknnClient.execute(indexExists(trainIndexName)).map(_.result.exists).catchSome {
+      _ <- log.info(s"Checking for index $trainIndex with mapping $eknnMapping")
+      trainExists <- eknnClient.execute(indexExists(trainIndex)).map(_.result.exists).catchSome {
         case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
       }
-      testExists <- eknnClient.execute(indexExists(testIndexName)).map(_.result.exists).catchSome {
+      testExists <- eknnClient.execute(indexExists(testIndex)).map(_.result.exists).catchSome {
         case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
       }
 
       // Create the index if primary and holdout don't exist.
       _ <- if (trainExists && testExists)
-        log.info(s"Found indices $trainIndexName and $testIndexName")
+        log.info(s"Found indices $trainIndex and $testIndex")
       else buildIndex()
 
       // Load a stream of vectors from the holdout index.
-      testVecs <- streamFromIndex(testIndexName)
+      testVecs <- streamFromIndex(testIndex)
 
       // Run searches on the holdout vectors.
       (singleResults, totalDuration) <- search(testVecs)

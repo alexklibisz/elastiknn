@@ -22,31 +22,28 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
-  def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] =
-    execute(ElastiknnRequests.putMapping(index, field, mapping))
+  def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
+    execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
 
   def index(index: String,
-            field: String,
+            vecField: String,
             vecs: Seq[Vec],
-            ids: Option[Seq[String]] = None,
+            storedIdField: String,
+            ids: Seq[String],
             refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
-    val reqs = vecs.map(v => ElastiknnRequests.indexVec(index, field, v))
-    val withIds = ids match {
-      case Some(idSeq) if idSeq.length == reqs.length =>
-        reqs.zip(idSeq).map {
-          case (req, id) => req.id(id)
-        }
-      case _ => reqs
+    val reqs = vecs.zip(ids).map {
+      case (vec, id) => ElastiknnRequests.index(index, vecField, vec, storedIdField, id)
     }
-    execute(bulk(withIds).refresh(refresh))
+    execute(bulk(reqs).refresh(refresh))
   }
 
   def nearestNeighbors(index: String,
                        query: NearestNeighborsQuery,
                        k: Int,
+                       storedIdField: String,
                        fetchSource: Boolean = false,
                        preference: Option[String] = None): F[Response[SearchResponse]] =
-    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, fetchSource, preference))
+    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, storedIdField, fetchSource, preference))
 
 }
 
