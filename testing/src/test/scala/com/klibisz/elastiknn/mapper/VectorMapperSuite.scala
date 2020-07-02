@@ -112,9 +112,10 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       _ <- Future.sequence(putMappingReqs)
 
       indexReqs = inputs.map {
-        case (indexName, _, vecs, ids) => eknn.index(indexName, vecField, vecs, storedIdField, ids, refresh = RefreshPolicy.IMMEDIATE)
+        case (indexName, _, vecs, ids) => eknn.index(indexName, vecField, vecs, storedIdField, ids)
       }
       _ <- Future.sequence(indexReqs)
+      _ <- eknn.execute(refreshIndex(inputs.map(_._1)))
 
       getReqs = inputs.map {
         case (indexName, _, _, ids) =>
@@ -152,7 +153,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       indexReqs = inputs.map {
         case (fieldName, _, vec) =>
           recoverToExceptionIf[RuntimeException] {
-            eknn.index(index, fieldName, Seq(vec), storedIdField, Seq(UUID.randomUUID().toString), RefreshPolicy.IMMEDIATE)
+            eknn.index(index, fieldName, Seq(vec), storedIdField, Seq(UUID.randomUUID().toString))
           }
       }
       exceptions <- Future.sequence(indexReqs)

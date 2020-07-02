@@ -18,32 +18,45 @@ import scala.language.higherKinds
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
+  /**
+    * Underlying client from the elastic4s library.
+    */
   val elasticClient: ElasticClient
 
+  /**
+    * Abstract method for executing a request.
+    */
   def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
+  /**
+    * See [[ElastiknnRequests.putMapping()]].
+    */
   def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
     execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
 
-  def index(index: String,
-            vecField: String,
-            vecs: Seq[Vec],
-            storedIdField: String,
-            ids: Seq[String],
-            refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
+  /**
+    * Index a batch of vectors as new Elasticsearch docs, one doc per vector.
+    * Also see [[ElastiknnRequests.index()]].
+    *
+    * @param index Index where vectors are stored.
+    * @param vecField Field in each doc where vector is stored.
+    * @param vecs Sequence of vectors to store.
+    * @param storedIdField Field in each doc where ID is stored as a doc value.
+    * @param ids Sequence of ids. Assumed one-to-one correspondence to given vectors.
+    * @return [[Response]] containing [[BulkResponse]] containing indexing responses.
+    */
+  def index(index: String, vecField: String, vecs: Seq[Vec], storedIdField: String, ids: Seq[String]): F[Response[BulkResponse]] = {
     val reqs = vecs.zip(ids).map {
       case (vec, id) => ElastiknnRequests.index(index, vecField, vec, storedIdField, id)
     }
-    execute(bulk(reqs).refresh(refresh))
+    execute(bulk(reqs))
   }
 
-  def nearestNeighbors(index: String,
-                       query: NearestNeighborsQuery,
-                       k: Int,
-                       storedIdField: String,
-                       fetchSource: Boolean = false,
-                       preference: Option[String] = None): F[Response[SearchResponse]] =
-    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, storedIdField, fetchSource, preference))
+  /**
+    * See [[ElastiknnRequests.nearestNeighbors()]].
+    */
+  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] =
+    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))
 
 }
 

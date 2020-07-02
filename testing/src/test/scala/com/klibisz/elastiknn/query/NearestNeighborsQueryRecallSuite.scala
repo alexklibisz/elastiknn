@@ -191,18 +191,18 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
         explicitResponses1 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         explicitResponses2 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         explicitResponses3 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
           case (_, i) =>
             val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
-            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField, preference = Some(""))
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
         })
       } yield {
 
