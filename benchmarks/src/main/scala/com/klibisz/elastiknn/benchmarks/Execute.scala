@@ -133,13 +133,7 @@ object Execute extends App {
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndex, eknnQuery.withVec(vec), k, storedIdField).timed
               _ <- if (i % 10 == 0) log.debug(s"Completed query $i in ${dur.toMillis} ms") else ZIO.succeed(())
-            } yield
-              QueryResult(res.result.hits.hits.flatMap {
-                _.fields.get(storedIdField) match {
-                  case Some(List(id: String)) => Some(id)
-                  case _                      => None
-                }
-              }, res.result.took)
+            } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
         }
         (dur, responses) <- requests.run(ZSink.collectAll).timed
       } yield (responses, dur.toMillis)

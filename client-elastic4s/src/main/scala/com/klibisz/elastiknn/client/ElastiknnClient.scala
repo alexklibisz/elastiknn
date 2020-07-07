@@ -5,9 +5,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
-import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
-import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
@@ -55,8 +53,26 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   /**
     * See [[ElastiknnRequests.nearestNeighbors()]].
     */
-  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] =
-    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))
+  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
+
+    // Handler that reads the id from the stored field and places it in the id field.
+    // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
+    implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
+      override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
+      override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
+        val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
+        handled.map { sr: SearchResponse =>
+          val hitsWithIds = sr.hits.hits.map(h =>
+            h.copy(id = h.fields.get(storedIdField) match {
+              case Some(List(id: String)) => id
+              case _                      => ""
+            }))
+          sr.copy(hits = sr.hits.copy(hits = hitsWithIds))
+        }
+      }
+    }
+    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))(handler, implicitly[Manifest[SearchResponse]])
+  }
 
 }
 
