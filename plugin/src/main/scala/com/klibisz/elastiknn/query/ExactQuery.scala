@@ -2,9 +2,7 @@ package com.klibisz.elastiknn.query
 
 import java.util.Objects
 
-import com.google.common.cache.Cache
 import com.klibisz.elastiknn.ELASTIKNN_NAME
-import com.klibisz.elastiknn.VecCache._
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
@@ -17,14 +15,12 @@ import org.elasticsearch.common.lucene.search.function._
 
 object ExactQuery {
 
-  private class ExactScoreFunction[V <: Vec, S <: StoredVec](val field: String,
-                                                             val queryVec: V,
-                                                             val simFunc: ExactSimilarityFunction[V, S],
-                                                             val cacheOpt: Option[Cache[Key, S]])(implicit codec: StoredVec.Codec[V, S])
+  private class ExactScoreFunction[V <: Vec, S <: StoredVec](val field: String, val queryVec: V, val simFunc: ExactSimilarityFunction[V, S])(
+      implicit codec: StoredVec.Codec[V, S])
       extends ScoreFunction(CombineFunction.REPLACE) {
 
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
-      val cachedReader = new CachedReader[S](cacheOpt, ctx, field)
+      val cachedReader = new StoredVecReader[S](ctx, field)
       new LeafScoreFunction {
         override def score(docId: Int, subQueryScore: Float): Double = {
           val storedVec = cachedReader(docId)
@@ -38,38 +34,34 @@ object ExactQuery {
     override def needsScores(): Boolean = false
 
     override def doEquals(other: ScoreFunction): Boolean = other match {
-      case f: ExactScoreFunction[V, S] => field == f.field && queryVec == f.queryVec && simFunc == f.simFunc && cacheOpt == f.cacheOpt
+      case f: ExactScoreFunction[V, S] => field == f.field && queryVec == f.queryVec && simFunc == f.simFunc
       case _                           => false
     }
 
-    override def doHashCode(): Int = Objects.hash(field, queryVec, simFunc, cacheOpt)
+    override def doHashCode(): Int = Objects.hash(field, queryVec, simFunc)
   }
 
   /**
     * Helper class that makes it easy to read vectors that were stored using the conventions in this class.
     */
-  final class CachedReader[S <: StoredVec: Decoder](cacheOpt: Option[Cache[Key, S]], lrc: LeafReaderContext, field: String) {
+  final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, field: String) {
     private val vecDocVals = lrc.reader.getBinaryDocValues(vecDocValuesField(field))
 
-    private def readBinary(docId: Int): S =
+    def apply(docId: Int): S =
       if (vecDocVals.advanceExact(docId)) {
         val bytesRef = vecDocVals.binaryValue()
         implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
       } else throw new RuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
 
-    def apply(docId: Int): S = cacheOpt match {
-      case Some(cache) => cache.get(Key(docId, lrc.hashCode()), () => readBinary(docId))
-      case None        => readBinary(docId)
-    }
   }
 
   /**
     * Instantiate an exact query, implemented as an Elasticsearch [[FunctionScoreQuery]].
     */
-  def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S], cacheOpt: Option[Cache[Key, S]])(
+  def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
     val subQuery = new DocValuesFieldExistsQuery(vecDocValuesField(field))
-    val func = new ExactScoreFunction(field, queryVec, simFunc, cacheOpt)
+    val func = new ExactScoreFunction(field, queryVec, simFunc)
     new FunctionScoreQuery(subQuery, func)
   }
 

@@ -19,15 +19,9 @@ import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin with MapperPlugin {
 
-  VecCache.initializeForSettings(settings)
-
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
   )
-
-  override def getSettings: util.List[Setting[_]] = {
-    util.List.of(VecCache.cacheEnabled, VecCache.cacheCapacityBytes, VecCache.cacheTTLSeconds)
-  }
 
   override def getMappers: util.Map[String, Mapper.TypeParser] = {
     import VectorMapper._
