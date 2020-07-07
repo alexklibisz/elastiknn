@@ -23,8 +23,6 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.L2),
       Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k),
         Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
       )
     ),
@@ -48,7 +46,7 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
       )
     )
-  ).take(1)
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
