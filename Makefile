@@ -125,11 +125,11 @@ publish/release/plugin: .mk/gradle-publish-local
 
 publish/snapshot/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r pypi dist/*
+	&& $(vpy) -m twine upload -r pypi --verbose dist/*
 
 publish/release/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r pypi dist/*
+	&& $(vpy) -m twine upload -r pypi --verbose dist/*
 
 .mk/gradle-docs: $(src_all)
 	$(gradle) unifiedScaladocs
