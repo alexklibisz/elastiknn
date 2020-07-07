@@ -1,3 +1,8 @@
+// TODO: split this project into core and api.
+// api should just contain the api objects and codecs.
+// elastic4s-client and core should both depend on api.
+// No reason for the client to have access to the LSH models, etc.
+
 buildscript {
     repositories {
         mavenLocal()

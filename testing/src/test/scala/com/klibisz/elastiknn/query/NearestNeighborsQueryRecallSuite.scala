@@ -26,7 +26,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   // Each query has an expected recall that will be checked.
   private case class Test(mapping: Mapping, queriesAndExpectedRecall: Seq[(NearestNeighborsQuery, Double)])
 
-  private val fieldName: String = "vec"
+  private val vecField: String = "vec"
+  private val storedIdField: String = "id"
   private val dims: Int = 1024
   private val k: Int = 100
   private val shards: Int = 2
@@ -41,91 +42,91 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.SparseBool(dims),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
       )
     ),
     Test(
       Mapping.DenseFloat(dims),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
       )
     ),
     // SparseIndexed
     Test(
       Mapping.SparseIndexed(dims),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(fieldName, Similarity.Hamming) -> 1d
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
       )
     ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.73,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.89
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.73,
+        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.89
       )
     ),
     Test(
       Mapping.JaccardLsh(dims, 300, 2),
       Seq(
-        NearestNeighborsQuery.JaccardLsh(fieldName, 400) -> 0.72,
-        NearestNeighborsQuery.JaccardLsh(fieldName, 800) -> 0.86
+        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.72,
+        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.86
       )
     ),
     // Hamming LSH
     Test(
       Mapping.HammingLsh(dims, dims * 5 / 10),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.71,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.86
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.71,
+        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.86
       )
     ),
     Test(
       Mapping.HammingLsh(dims, dims * 7 / 10),
       Seq(
-        NearestNeighborsQuery.HammingLsh(fieldName, 200) -> 0.89,
-        NearestNeighborsQuery.HammingLsh(fieldName, 400) -> 0.97
+        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.89,
+        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.97
       )
     ),
     // Angular Lsh
     Test(
       Mapping.AngularLsh(dims, 400, 1),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.48,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.69
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.48,
+        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.69
       )
     ),
     Test(
       Mapping.AngularLsh(dims, 400, 2),
       Seq(
-        NearestNeighborsQuery.AngularLsh(fieldName, 200) -> 0.36,
-        NearestNeighborsQuery.AngularLsh(fieldName, 400) -> 0.52,
-        NearestNeighborsQuery.AngularLsh(fieldName, 800) -> 0.74
+        NearestNeighborsQuery.AngularLsh(vecField, 200) -> 0.36,
+        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.52,
+        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.74
       )
     ),
     // L2 Lsh
     Test(
       Mapping.L2Lsh(dims, 600, 1, 4),
       Seq(
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(fieldName, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(fieldName, 200) -> 0.13,
-        NearestNeighborsQuery.L2Lsh(fieldName, 400) -> 0.24,
-        NearestNeighborsQuery.L2Lsh(fieldName, 800) -> 0.44
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.13,
+        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.24,
+        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )
   )
@@ -138,16 +139,16 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       else
         for {
           _ <- eknn.execute(createIndex(corpusIndex).shards(shards).replicas(0))
-          _ <- eknn.putMapping(corpusIndex, fieldName, mapping)
+          _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
           _ <- eknn.execute(createIndex(queriesIndex).shards(shards).replicas(0))
-          _ <- eknn.putMapping(queriesIndex, fieldName, mapping)
-          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(500)) { batch =>
+          _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
+          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(400)) { batch =>
             val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
-            eknn.index(corpusIndex, fieldName, vecs, Some(ids))
+            eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
           }
-          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(500)) { batch =>
+          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(400)) { batch =>
             val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
-            eknn.index(queriesIndex, fieldName, vecs, Some(ids))
+            eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
           }
           _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
           _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
@@ -183,25 +184,25 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     val uuid = UUID.randomUUID().toString
     val corpusIndex = f"test-data-$uuid-c"
     val queriesIndex = f"test-data-$uuid-q"
-    val testName = f"${uuid}%-20s ${mapping.toString}%-30s ${query.toString}%-50s ~= ${expectedRecall}%-8f"
+    val testName = f"$uuid%-20s ${mapping.toString}%-30s ${query.toString}%-50s ~= ${expectedRecall}%-8f"
     // Lookup the correct results based on the similarity function.
     val resultsIx = testData.queries.head.results.zipWithIndex.filter(_._1.similarity == query.similarity).head._2
     test(testName) {
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
         explicitResponses1 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         explicitResponses2 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         explicitResponses3 <- Future.sequence(testData.queries.map { q =>
-          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, preference = Some(""))
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
         indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
-          case (q, i) =>
-            val vec = Vec.Indexed(queriesIndex, s"v$i", fieldName)
-            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, preference = Some(""))
+          case (_, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
         })
       } yield {
 
@@ -218,12 +219,12 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         }
 
         // Make sure recall is at or above expected.
-        withClue(s"Explicit query recall should be ${expectedRecall} +/- ${recallTolerance}") {
-          explicitRecall1 shouldBe expectedRecall +- (recallTolerance)
+        withClue(s"Explicit query recall should be $expectedRecall +/- $recallTolerance") {
+          explicitRecall1 shouldBe expectedRecall +- recallTolerance
         }
 
-        withClue(s"Indexed query recall should be ${expectedRecall} +/- ${recallTolerance}") {
-          indexedRecall shouldBe expectedRecall +- (recallTolerance)
+        withClue(s"Indexed query recall should be $expectedRecall +/- $recallTolerance") {
+          indexedRecall shouldBe expectedRecall +- recallTolerance
         }
       }
     }

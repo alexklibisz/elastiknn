@@ -14,8 +14,9 @@ import scala.collection.mutable.ArrayBuffer
 
 /**
   * Custom query optimized to find the set of candidate documents that contain the greatest number of the given terms.
-  * Then scores the the top `candidates` candidates using the given ScoreFunction.
-  * Inspired by the TermInSetQuery.
+  * Then scores the top `candidates` docs using the given ScoreFunction.
+  * Inspired by Lucene's TermInSetQuery.
+  *
   * @param termsField Field containing tokens.
   * @param terms Set of tokens, serialized to Bytesrefs.
   * @param candidates Number of top candidates to pick and score per _segment_.

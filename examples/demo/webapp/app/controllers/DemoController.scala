@@ -38,7 +38,7 @@ class DemoController @Inject()(val controllerComponents: ControllerComponents, p
                 case (accF, ex) =>
                   for {
                     acc <- accF
-                    q = nearestNeighborsQuery(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, true)
+                    q = nearestNeighbors(ex.index, ex.query.withVec(Vec.Indexed(ex.index, queryId, ex.field)), 10, "id")
                     response <- eknn.execute(q)
                     hits = response.result.hits.hits.toSeq
                     results <- Future.traverse(hits.map(ds.parseHit))(Future.fromTry)

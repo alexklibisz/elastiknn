@@ -20,7 +20,8 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
   implicit val rng: Random = new Random(0)
 
   test("create index and put mapping") {
-    val indexName = s"test-${UUID.randomUUID()}"
+    val index = s"test-${UUID.randomUUID()}"
+    val storedIdField = "id"
     val mappings: Seq[(String, Mapping)] = Seq(
       ("vec_spv", Mapping.SparseBool(100)),
       ("vec_dfv", Mapping.DenseFloat(100)),
@@ -28,16 +29,16 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       ("vec_jcdlsh", Mapping.JaccardLsh(100, 65, 1))
     )
     for {
-      createIndexRes <- eknn.execute(createIndex(indexName))
+      createIndexRes <- eknn.execute(createIndex(index))
       _ = createIndexRes.shouldBeSuccess
 
       putMappingReqs = mappings.map {
-        case (fieldName, mapping) => eknn.putMapping(indexName, fieldName, mapping)
+        case (vecField, mapping) => eknn.putMapping(index, vecField, storedIdField, mapping)
       }
       _ <- Future.sequence(putMappingReqs)
 
       getMappingReqs = mappings.map {
-        case (fieldName, _) => eknn.execute(getMapping(Indexes(indexName), fieldName))
+        case (fieldName, _) => eknn.execute(getMapping(Indexes(index), fieldName))
       }
       getMappingRes <- Future.sequence(getMappingReqs)
     } yield
@@ -70,7 +71,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
 
           val mappingJsonOpt: Option[JsonObject] = for {
             x <- json.toOption
-            x <- x.findAllByKey(indexName).headOption
+            x <- x.findAllByKey(index).headOption
             x <- x.findAllByKey("mappings").headOption
             x <- x.findAllByKey(fieldName).headOption
             x <- x.findAllByKey("mapping").headOption
@@ -86,7 +87,8 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
   }
 
   test("store and read vectors") {
-    val fieldName = "vec"
+    val vecField = "vec"
+    val storedIdField = "id"
     val (dims, n) = (100, 10)
     def ids: Seq[String] = (0 until n).map(_ => UUID.randomUUID().toString)
     val inputs: Seq[(String, Mapping, Vector[Vec], Seq[String])] = Seq(
@@ -104,19 +106,20 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
         case (indexName, mapping, _, _) =>
           for {
             _ <- eknn.execute(createIndex(indexName))
-            _ <- eknn.putMapping(indexName, fieldName, mapping)
+            _ <- eknn.putMapping(indexName, vecField, storedIdField, mapping)
           } yield ()
       }
       _ <- Future.sequence(putMappingReqs)
 
       indexReqs = inputs.map {
-        case (indexName, _, vecs, ids) => eknn.index(indexName, fieldName, vecs, Some(ids), refresh = RefreshPolicy.IMMEDIATE)
+        case (indexName, _, vecs, ids) => eknn.index(indexName, vecField, vecs, storedIdField, ids)
       }
       _ <- Future.sequence(indexReqs)
+      _ <- eknn.execute(refreshIndex(inputs.map(_._1)))
 
       getReqs = inputs.map {
         case (indexName, _, _, ids) =>
-          Future.sequence(ids.map(id => eknn.execute(get(indexName, id).fetchSourceInclude(fieldName))))
+          Future.sequence(ids.map(id => eknn.execute(get(indexName, id).fetchSourceInclude(vecField))))
       }
 
       getResponses: Seq[Seq[Response[GetResponse]]] <- Future.sequence(getReqs)
@@ -127,29 +130,30 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
           getResponses should have length vectors.length
           val parsedVectors = getResponses.map(_.result.sourceAsString).map(parse)
           forAll(parsedVectors)(_ shouldBe 'right)
-          val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(fieldName -> ElasticsearchCodec.encode(v))))
+          val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(vecField -> ElasticsearchCodec.encode(v))))
           forAll(encodedVectors)(v => parsedVectors should contain(Right(v)))
       }
   }
 
   test("throw an error given vector with bad dimensions") {
-    val indexName = s"test-intentional-failure-${UUID.randomUUID()}"
+    val index = s"test-intentional-failure-${UUID.randomUUID()}"
+    val storedIdField = "id"
     val dims = 100
     val inputs = Seq(
       ("intentional-failure-sbv", Mapping.SparseBool(dims), Vec.SparseBool.random(dims + 1)),
       ("intentional-failure-dfv", Mapping.DenseFloat(dims), Vec.DenseFloat.random(dims + 1))
     )
     for {
-      _ <- eknn.execute(createIndex(indexName))
+      _ <- eknn.execute(createIndex(index))
       putMappingReqs = inputs.map {
-        case (fieldName, mapping, _) => eknn.putMapping(indexName, fieldName, mapping)
+        case (fieldName, mapping, _) => eknn.putMapping(index, fieldName, storedIdField, mapping)
       }
       _ <- Future.sequence(putMappingReqs)
 
       indexReqs = inputs.map {
         case (fieldName, _, vec) =>
           recoverToExceptionIf[RuntimeException] {
-            eknn.index(indexName, fieldName, Seq(vec), refresh = RefreshPolicy.IMMEDIATE)
+            eknn.index(index, fieldName, Seq(vec), storedIdField, Seq(UUID.randomUUID().toString))
           }
       }
       exceptions <- Future.sequence(indexReqs)

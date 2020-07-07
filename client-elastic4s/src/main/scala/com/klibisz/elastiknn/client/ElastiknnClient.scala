@@ -5,9 +5,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
-import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
-import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
@@ -18,35 +16,63 @@ import scala.language.higherKinds
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
+  /**
+    * Underlying client from the elastic4s library.
+    */
   val elasticClient: ElasticClient
 
+  /**
+    * Abstract method for executing a request.
+    */
   def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
-  def putMapping(index: String, field: String, mapping: Mapping): F[Response[PutMappingResponse]] =
-    execute(ElastiknnRequests.putMapping(index, field, mapping))
+  /**
+    * See [[ElastiknnRequests.putMapping()]].
+    */
+  def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
+    execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
 
-  def index(index: String,
-            field: String,
-            vecs: Seq[Vec],
-            ids: Option[Seq[String]] = None,
-            refresh: RefreshPolicy = RefreshPolicy.NONE): F[Response[BulkResponse]] = {
-    val reqs = vecs.map(v => ElastiknnRequests.indexVec(index, field, v))
-    val withIds = ids match {
-      case Some(idSeq) if idSeq.length == reqs.length =>
-        reqs.zip(idSeq).map {
-          case (req, id) => req.id(id)
-        }
-      case _ => reqs
+  /**
+    * Index a batch of vectors as new Elasticsearch docs, one doc per vector.
+    * Also see [[ElastiknnRequests.index()]].
+    *
+    * @param index Index where vectors are stored.
+    * @param vecField Field in each doc where vector is stored.
+    * @param vecs Sequence of vectors to store.
+    * @param storedIdField Field in each doc where ID is stored as a doc value.
+    * @param ids Sequence of ids. Assumed one-to-one correspondence to given vectors.
+    * @return [[Response]] containing [[BulkResponse]] containing indexing responses.
+    */
+  def index(index: String, vecField: String, vecs: Seq[Vec], storedIdField: String, ids: Seq[String]): F[Response[BulkResponse]] = {
+    val reqs = vecs.zip(ids).map {
+      case (vec, id) => ElastiknnRequests.index(index, vecField, vec, storedIdField, id)
     }
-    execute(bulk(withIds).refresh(refresh))
+    execute(bulk(reqs))
   }
 
-  def nearestNeighbors(index: String,
-                       query: NearestNeighborsQuery,
-                       k: Int,
-                       fetchSource: Boolean = false,
-                       preference: Option[String] = None): F[Response[SearchResponse]] =
-    execute(ElastiknnRequests.nearestNeighborsQuery(index, query, k, fetchSource, preference))
+  /**
+    * See [[ElastiknnRequests.nearestNeighbors()]].
+    */
+  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
+
+    // Handler that reads the id from the stored field and places it in the id field.
+    // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
+    implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
+      override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
+      override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
+        val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
+        handled.map { sr: SearchResponse =>
+          val hitsWithIds = sr.hits.hits.map(h =>
+            h.copy(id = h.fields.get(storedIdField) match {
+              case Some(List(id: String)) => id
+              case _                      => ""
+            }))
+          sr.copy(hits = sr.hits.copy(hits = hitsWithIds))
+        }
+      }
+    }
+    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))(handler, implicitly[Manifest[SearchResponse]])
+  }
 
 }
 

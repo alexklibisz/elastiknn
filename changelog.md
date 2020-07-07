@@ -1,3 +1,6 @@
+- Switched scala client to store the ID as a doc-value field. This avoids decompressing the document source
+  when reading results, which is about 40% faster on benchmarks for both exact and approx. search.
+---
 - Re-implemented LSH and sparse-indexed queries using an optimized custom Lucene query based on the [TermInSetQuery](https://lucene.apache.org/core/8_5_0/core/org/apache/lucene/search/TermInSetQuery.html).
   This is 3-5x faster on LSH benchmarks.
 - Updated L1, and L2 similarities such that they're bounded in [0,1].

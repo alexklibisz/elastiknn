@@ -6,6 +6,7 @@ import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage.StoredVec.Decoder
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Explanation}
@@ -19,18 +20,14 @@ object ExactQuery {
       extends ScoreFunction(CombineFunction.REPLACE) {
 
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
-      val vecDocVals = ctx.reader.getBinaryDocValues(vectorDocValuesField(field))
+      val cachedReader = new StoredVecReader[S](ctx, field)
       new LeafScoreFunction {
-        override def score(docId: Int, subQueryScore: Float): Double =
-          if (vecDocVals.advanceExact(docId)) {
-            val binVal = vecDocVals.binaryValue()
-            val storedVec = codec.decode(binVal.bytes, binVal.offset, binVal.length)
-            simFunc(queryVec, storedVec)
-          } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-
-        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = {
-          Explanation.`match`(100, s"Elastiknn exact query")
+        override def score(docId: Int, subQueryScore: Float): Double = {
+          val storedVec = cachedReader(docId)
+          simFunc(queryVec, storedVec)
         }
+        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
+          Explanation.`match`(100, s"Elastiknn exact query")
       }
     }
 
@@ -44,19 +41,41 @@ object ExactQuery {
     override def doHashCode(): Int = Objects.hash(field, queryVec, simFunc)
   }
 
+  /**
+    * Helper class that makes it easy to read vectors that were stored using the conventions in this class.
+    */
+  final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, field: String) {
+    private val vecDocVals = lrc.reader.getBinaryDocValues(vecDocValuesField(field))
+
+    def apply(docId: Int): S =
+      if (vecDocVals.advanceExact(docId)) {
+        val bytesRef = vecDocVals.binaryValue()
+        implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
+      } else throw new RuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
+
+  }
+
+  /**
+    * Instantiate an exact query, implemented as an Elasticsearch [[FunctionScoreQuery]].
+    */
   def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
-    val subQuery = new DocValuesFieldExistsQuery(vectorDocValuesField(field))
+    val subQuery = new DocValuesFieldExistsQuery(vecDocValuesField(field))
     val func = new ExactScoreFunction(field, queryVec, simFunc)
     new FunctionScoreQuery(subQuery, func)
   }
 
-  // Docvalue fields can have a custom name, but "regular" values (e.g. Terms) must keep the name of the field.
-  def vectorDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
+  /**
+    * Appends to the given field name to produce the name where a vector is stored.
+    */
+  def vecDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
+  /**
+    * Creates and returns a single indexable field that stores the vector contents as a [[BinaryDocValuesField]].
+    */
   def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
-    val bytes = implicitly[StoredVec.Encoder[V]].apply(vec)
-    Seq(new BinaryDocValuesField(vectorDocValuesField(field), new BytesRef(bytes)))
+    val storedVec = implicitly[StoredVec.Encoder[V]].apply(vec)
+    Seq(new BinaryDocValuesField(vecDocValuesField(field), new BytesRef(storedVec)))
   }
 
 }

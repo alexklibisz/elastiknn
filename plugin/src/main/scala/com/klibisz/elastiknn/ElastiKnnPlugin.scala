@@ -4,10 +4,18 @@ import java.util
 
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.query._
-import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.client.Client
+import org.elasticsearch.cluster.service.ClusterService
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry
+import org.elasticsearch.common.settings.{Setting, Settings}
+import org.elasticsearch.common.xcontent.NamedXContentRegistry
+import org.elasticsearch.env.{Environment, NodeEnvironment}
 import org.elasticsearch.index.mapper.Mapper
 import org.elasticsearch.plugins.SearchPlugin.QuerySpec
 import org.elasticsearch.plugins._
+import org.elasticsearch.script.ScriptService
+import org.elasticsearch.threadpool.ThreadPool
+import org.elasticsearch.watcher.ResourceWatcherService
 
 class ElastiKnnPlugin(settings: Settings) extends Plugin with IngestPlugin with SearchPlugin with ActionPlugin with MapperPlugin {
 

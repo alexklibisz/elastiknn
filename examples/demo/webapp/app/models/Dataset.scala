@@ -31,7 +31,7 @@ object Dataset extends ElastiknnRequests {
       name,
       index,
       "vec",
-      putMapping(index, "vec", mapping),
+      putMapping(index, "vec", "id", mapping),
       mkQuery("vec", Vec.Indexed(index, "1", "vec"))
     )
 

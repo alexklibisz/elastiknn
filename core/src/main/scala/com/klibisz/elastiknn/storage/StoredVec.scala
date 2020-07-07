@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.storage
 
+import java.util
+
 import com.klibisz.elastiknn.api.Vec
 
 import scala.language.implicitConversions
@@ -30,6 +32,7 @@ object StoredVec {
 
   sealed trait SparseBool extends StoredVec {
     val trueIndices: Array[Int]
+    override def hashCode: Int = util.Arrays.hashCode(trueIndices)
   }
 
   object SparseBool {
@@ -40,6 +43,7 @@ object StoredVec {
 
   sealed trait DenseFloat extends StoredVec {
     val values: Array[Float]
+    override def hashCode: Int = util.Arrays.hashCode(values)
   }
 
   object DenseFloat {
@@ -77,6 +81,8 @@ object StoredVec {
       new DenseFloat {
         override val values: Array[Float] = UnsafeSerialization.readFloats(barr, offset, length)
     }
+    implicit def derived[V <: Vec, S <: StoredVec](implicit codec: Codec[V, S]): Decoder[S] =
+      (barr: Array[Byte], offset: Int, length: Int) => codec.decode(barr, offset, length)
   }
 
   trait Encoder[V <: Vec] {
