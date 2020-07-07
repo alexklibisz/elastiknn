@@ -276,7 +276,7 @@ PUT /my-index/_mapping
             "elastiknn": {
                 "dims": 100,                        # 2
                 "model": "lsh",                     # 3
-                "similarity": "angular",            # 4
+                "similarity": "l2",                 # 4
                 "bands": 99,                        # 5
                 "rows": 1,                          # 6
                 "width": 3,                         # 7
