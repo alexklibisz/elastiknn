@@ -690,3 +690,12 @@ From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no 
 Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. 
 This means the simplest way to increase query parallelism is to add shards to your index. 
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
+
+### Use stored fields for faster queries
+
+This is a fairly well-known Elasticsearch optimization that applies nicely to some elastiknn use cases.
+If you only need to retrieve a small subset of the document source (e.g. only the ID), you can store the 
+relavant fields as `stored` fields to get a meaningful speedup.
+The Elastiknn scala client uses this optimization to store and retrieve document IDs, yielding a ~40% speedup.
+The setting [is documented here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html)
+and discussed in detail [in this Github issue.](https://github.com/elastic/elasticsearch/issues/17159)
