@@ -90,51 +90,40 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    //    private val barrZero: Array[Byte] = writeInt(0)
-    //    private val barrOne: Array[Byte] = writeInt(1)
 
     private case class Position(vecIndex: Int, hashIndexes: Array[Int]) {
       val barrZero: Array[Byte] = writeInt(vecIndex * 2)
       val barrOne: Array[Byte] = writeInt(vecIndex * 2 + 1)
     }
 
-    //    // Sample L * k tuples containing (index between 0 and L, index between 0 and dims).
-    //    // Sort them by the second value before returning for more efficient intersection in apply method.
-    //    private val sampledPositions: Array[Position] = {
-    //      case class Pair(hashIndex: Int, vecIndex: Int)
-    //      @tailrec
-    //      def sample(acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
-    //        if (acc.size == k.min(dims)) acc.toArray
-    //        else if (acc(i)) sample(acc, rng.nextInt(dims))
-    //        else sample(acc + i, rng.nextInt(dims))
-    //      (0 until L)
-    //        .flatMap(hi => sample().map(vi => Pair(hi, vi)))
-    //        .groupBy(_.vecIndex)
-    //        .mapValues(_.map(_.hashIndex))
-    //        .map(t => Position(t._1, t._2.toArray))
-    //        .toArray
-    //        .sortBy(_.vecIndex)
-    //    }
-
-    // Sample L * k tuples containing (index between 0 and L, index between 0 and dims).
-    // Sort them by the second value before returning for more efficient intersection in apply method.
+    // Sample L * k Positions, sorted by vecIndex for more efficient intersection in apply method.
     private val sampledPositions: Array[Position] = {
+      case class Pair(vecIndex: Int, hashIndex: Int)
       @tailrec
-      def sample(n: Int = L * k, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
-        if (acc.size == n) acc.toArray
-        else if (acc(i)) sample(n, acc, rng.nextInt(dims))
-        else sample(n, acc + i, rng.nextInt(dims))
-      sample().zipWithIndex
-        .map {
-          case (vi, hi) => Position(vi, Array(hi))
-        }
+      def sampleVecIndicesWithoutRepetition(n: Int, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
+        if (acc.size == n.min(dims)) acc.toArray
+        else if (acc(i)) sampleVecIndicesWithoutRepetition(n, acc, rng.nextInt(dims))
+        else sampleVecIndicesWithoutRepetition(n, acc + i, rng.nextInt(dims))
+
+      // If L * k <= dims, just sample vec indices once, guaranteeing no repetition.
+      val pairs: Array[Pair] = if ((L * k) <= dims) {
+        sampleVecIndicesWithoutRepetition(L * k).zipWithIndex.map(Pair.tupled)
+      } else {
+        (0 until L).toArray.flatMap(hi => sampleVecIndicesWithoutRepetition(k).map(vi => Pair(hi, vi)))
+      }
+
+      pairs
+        .groupBy(_.vecIndex)
+        .mapValues(_.map(_.hashIndex))
+        .map(Position.tupled)
+        .toArray
         .sortBy(_.vecIndex)
     }
 
     override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
       val hashBuffers = (0 until L).toArray.map { l =>
         val lbarr = writeInt(l)
-        val buff = new ArrayBuffer[Byte](k * 3 + lbarr.length)
+        val buff = new ArrayBuffer[Byte](k * 3 + lbarr.length) // 3 because not _all_ ints will be 4 bytes.
         buff.appendAll(lbarr)
         buff
       }
@@ -161,8 +150,7 @@ object LshFunction {
         pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrZero))
         ixSampledPositions += 1
       }
-      val hashes = hashBuffers.map(_.toArray)
-      hashes
+      hashBuffers.map(_.toArray)
     }
   }
 

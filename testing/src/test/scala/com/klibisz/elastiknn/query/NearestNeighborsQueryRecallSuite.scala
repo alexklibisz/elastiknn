@@ -88,7 +88,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
         NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.71,
-//        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.86
+        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.86
       )
     ),
     Test(
