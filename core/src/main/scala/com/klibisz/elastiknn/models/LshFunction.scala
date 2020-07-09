@@ -90,6 +90,7 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
+    private val zeroUntilL: Array[Int] = (0 until L).toArray
     private val barrZero: Array[Byte] = writeInt(0)
     private val barrOne: Array[Byte] = writeInt(1)
 
@@ -120,7 +121,7 @@ object LshFunction {
     }
 
     override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
-      val hashBuffers = (0 until L).toArray.map { l =>
+      val hashBuffers = zeroUntilL.map { l =>
         val lbarr = writeInt(l)
         val buff = new ArrayBuffer[Byte](lbarr.length + k) // Each array will contain the l int plus k 0s and 1s.
         buff.appendAll(lbarr)
@@ -144,7 +145,7 @@ object LshFunction {
           ixTrueIndices += 1
         }
       }
-      // Traverse the remaining sampled positions, if any.
+      // Traverse the remaining sampled positions, if any, appending zeros.
       while (ixSampledPositions < sampledPositions.length) {
         val pos = sampledPositions(ixSampledPositions)
         pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrZero))
