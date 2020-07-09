@@ -90,11 +90,10 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
+    private val barrZero: Array[Byte] = writeInt(0)
+    private val barrOne: Array[Byte] = writeInt(1)
 
-    private case class Position(vecIndex: Int, hashIndexes: Array[Int]) {
-      val barrZero: Array[Byte] = writeInt(vecIndex * 2)
-      val barrOne: Array[Byte] = writeInt(vecIndex * 2 + 1)
-    }
+    private case class Position(vecIndex: Int, hashIndexes: Array[Int])
 
     // Sample L * k Positions, sorted by vecIndex for more efficient intersection in apply method.
     private val sampledPositions: Array[Position] = {
@@ -123,7 +122,7 @@ object LshFunction {
     override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
       val hashBuffers = (0 until L).toArray.map { l =>
         val lbarr = writeInt(l)
-        val buff = new ArrayBuffer[Byte](k * 3 + lbarr.length) // 3 because not _all_ ints will be 4 bytes.
+        val buff = new ArrayBuffer[Byte](lbarr.length + k) // Each array will contain the l int plus k 0s and 1s.
         buff.appendAll(lbarr)
         buff
       }
@@ -132,22 +131,23 @@ object LshFunction {
       while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
         val pos = sampledPositions(ixSampledPositions)
         val trueIndex = vec.trueIndices(ixTrueIndices)
-        // The true index wasn't sampled.
+        // The true index wasn't sampled, move along.
         if (pos.vecIndex > trueIndex) ixTrueIndices += 1
-        // The sampled index wasn't true.
+        // The sampled index is negative, append a zero.
         else if (pos.vecIndex < trueIndex) {
-          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrZero))
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrZero))
           ixSampledPositions += 1
         }
-        // The sampled index was true.
+        // The sampled index is positive, append a one.
         else {
-          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrOne))
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrOne))
           ixTrueIndices += 1
         }
       }
+      // Traverse the remaining sampled positions, if any.
       while (ixSampledPositions < sampledPositions.length) {
         val pos = sampledPositions(ixSampledPositions)
-        pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrZero))
+        pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrZero))
         ixSampledPositions += 1
       }
       hashBuffers.map(_.toArray)

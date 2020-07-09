@@ -85,8 +85,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.HammingLsh(dims, dims * 1 / 2, 1),
       Seq(
-//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
         NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.71,
         NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.86
       )
@@ -129,7 +129,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )
-  ).drop(5).take(1)
+  ).drop(5).take(2)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
