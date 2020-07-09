@@ -2,12 +2,13 @@ package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage
-import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
+sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Array[Byte]]) {
   val mapping: M
   val exact: ExactSimilarityFunction[V, S]
 }
@@ -29,8 +30,8 @@ object LshFunction {
     * perform equivalently.
     *
     * @param mapping JaccardLsh Mapping. The members are used as follows:
-    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
-    *                rows: number of rows in each band. Generally, more rows yield higher precision.
+    *                L: number of hash tables. Generally, higher L yields higher recall.
+    *                k: number of hash functions combined to generate a hash for each table. Generally, higher k yields higher precision.
     */
   final class Jaccard(override val mapping: Mapping.JaccardLsh)
       extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
@@ -39,37 +40,37 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private val alphas: Array[Int] = (0 until bands * rows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
-    private val betas: Array[Int] = (0 until bands * rows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-    private val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
+    private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
+    private val betas: Array[Int] = (0 until L * k).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
+    private val emptyHashes: Array[Array[Byte]] = Array.fill(k)(HASH_PRIME).map(UnsafeSerialization.writeInt)
 
-    override def apply(v: Vec.SparseBool): Array[Int] =
+    override def apply(v: Vec.SparseBool): Array[Array[Byte]] =
       if (v.trueIndices.isEmpty) emptyHashes
       else {
-        val bandHashes = new Array[Int](bands)
-        var ixBandHashes = 0
+        val hashesForTable = new Array[Array[Byte]](L)
+        var ixL = 0
         var ixCoefficients = 0
-        while (ixBandHashes < bandHashes.length) {
-          var bandHash = 0
-          var ixRows = 0
-          while (ixRows < rows) {
+        while (ixL < hashesForTable.length) {
+          val hashForTable = ArrayBuffer[Byte](UnsafeSerialization.writeInt(ixL): _*)
+          var ixk = 0
+          while (ixk < k) {
             val a = alphas(ixCoefficients)
             val b = betas(ixCoefficients)
-            var rowHash = Int.MaxValue
+            var minHash = Int.MaxValue
             var ixTrueIndices = 0
             while (ixTrueIndices < v.trueIndices.length) {
               val indexHash = ((1 + v.trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-              if (indexHash < rowHash) rowHash = indexHash // Actually faster than math.min or a.min(b).
+              if (indexHash < minHash) minHash = indexHash // Actually faster than math.min or a.min(b).
               ixTrueIndices += 1
             }
-            bandHash = (bandHash + rowHash) % HASH_PRIME
-            ixRows += 1
+            hashForTable.appendAll(UnsafeSerialization.writeInt(minHash))
+            ixk += 1
             ixCoefficients += 1
           }
-          bandHashes.update(ixBandHashes, ((ixBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
-          ixBandHashes += 1
+          hashesForTable.update(ixL, hashForTable.toArray)
+          ixL += 1
         }
-        bandHashes
+        hashesForTable
       }
   }
 
@@ -94,7 +95,7 @@ object LshFunction {
       sample(Set.empty, rng.nextInt(dims)).toArray.sorted
     }
 
-    override def apply(vec: Vec.SparseBool): Array[Int] = {
+    override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
       val hashes = new Array[Int](bits)
       var (hi, ti, si) = (0, 0, 0)
       while (ti < vec.trueIndices.length && si < sampledIndices.length) {
@@ -121,7 +122,7 @@ object LshFunction {
         hi += 1
         si += 1
       }
-      hashes
+      hashes.map(UnsafeSerialization.writeInt)
     }
   }
 
@@ -143,7 +144,7 @@ object LshFunction {
     private implicit val rng: Random = new Random(0)
     private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
-    override def apply(v: Vec.DenseFloat): Array[Int] = {
+    override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
       val bandHashes = new Array[Int](bands)
       var ixBandHashes = 0
       var ixHashVecs = 0
@@ -165,7 +166,7 @@ object LshFunction {
         bandHashes.update(ixBandHashes, bandHash)
         ixBandHashes += 1
       }
-      bandHashes
+      bandHashes.map(UnsafeSerialization.writeInt)
     }
   }
 
@@ -189,7 +190,7 @@ object LshFunction {
     private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
     private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
 
-    override def apply(v: Vec.DenseFloat): Array[Int] = {
+    override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
       val bandHashes = collection.mutable.Set.empty[Int]
       var ixBandHashes = 0
       var ixHashVecs = 0
@@ -206,7 +207,7 @@ object LshFunction {
         ixBandHashes += 1
       }
       // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
-      bandHashes.toArray
+      bandHashes.toArray.map(UnsafeSerialization.writeInt)
     }
   }
 

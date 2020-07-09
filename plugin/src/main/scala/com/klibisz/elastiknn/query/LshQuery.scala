@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.LshFunction
-import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
+import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{MatchTermsAndScoreQuery, Query}
@@ -20,11 +20,11 @@ object LshQuery {
                                                     lshFunction: LshFunction[M, V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
 
-    val terms = lshFunction(query).map(h => new BytesRef(UnsafeSerialization.writeInt(h)))
+    val terms = lshFunction(query).map(h => new BytesRef(h))
 
     val scoreFunction = (lrc: LeafReaderContext) => {
       val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
-      (docId: Int, approximateScore: Int) =>
+      (docId: Int, _: Int) =>
         val storedVec = cachedReader(docId)
         lshFunction.exact(query, storedVec)
     }
@@ -47,7 +47,7 @@ object LshQuery {
       vec: V,
       lshFunction: LshFunction[M, V, S])(implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunction(vec).map { h =>
-      new Field(field, UnsafeSerialization.writeInt(h), fieldType)
+      new Field(field, h, fieldType)
     }
   }
 }

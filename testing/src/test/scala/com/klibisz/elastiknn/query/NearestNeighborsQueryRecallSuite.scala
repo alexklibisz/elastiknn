@@ -129,7 +129,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )
-  )
+  ).drop(3).take(2)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
