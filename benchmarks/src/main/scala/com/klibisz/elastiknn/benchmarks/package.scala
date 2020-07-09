@@ -180,13 +180,14 @@ package object benchmarks {
         )
       )
       val lsh = for {
-        bitsProp <- Seq(0.1, 0.3, 0.5, 0.7, 0.9)
+        l <- 100 to 350 by 50
+        kProp <- Seq(0.01, 0.1, 0.20)
       } yield
         Experiment(
           dataset,
           Mapping.SparseBool(dataset.dims),
           NearestNeighborsQuery.Exact(vecName, Similarity.Hamming),
-          Mapping.HammingLsh(dataset.dims, (bitsProp * dataset.dims).toInt),
+          Mapping.HammingLsh(dataset.dims, L = l, k = (kProp * dataset.dims).toInt),
           for {
             k <- ks
             m <- Seq(1, 2, 10, 50)

@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.storage
-import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
+import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -42,16 +42,16 @@ object LshFunction {
     private val rng: Random = new Random(0)
     private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
     private val betas: Array[Int] = (0 until L * k).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-    private val emptyHashes: Array[Array[Byte]] = Array.fill(k)(HASH_PRIME).map(UnsafeSerialization.writeInt)
+    private val emptyHashes: Array[Array[Byte]] = Array.fill(k)(HASH_PRIME).map(writeInt)
 
     override def apply(v: Vec.SparseBool): Array[Array[Byte]] =
       if (v.trueIndices.isEmpty) emptyHashes
       else {
-        val hashesForTable = new Array[Array[Byte]](L)
+        val hashes = new Array[Array[Byte]](L)
         var ixL = 0
         var ixCoefficients = 0
-        while (ixL < hashesForTable.length) {
-          val hashForTable = ArrayBuffer[Byte](UnsafeSerialization.writeInt(ixL): _*)
+        while (ixL < hashes.length) {
+          val hash = ArrayBuffer[Byte](writeInt(ixL): _*)
           var ixk = 0
           while (ixk < k) {
             val a = alphas(ixCoefficients)
@@ -63,22 +63,26 @@ object LshFunction {
               if (indexHash < minHash) minHash = indexHash // Actually faster than math.min or a.min(b).
               ixTrueIndices += 1
             }
-            hashForTable.appendAll(UnsafeSerialization.writeInt(minHash))
+            hash.appendAll(writeInt(minHash))
             ixk += 1
             ixCoefficients += 1
           }
-          hashesForTable.update(ixL, hashForTable.toArray)
+          hashes.update(ixL, hash.toArray)
           ixL += 1
         }
-        hashesForTable
+        hashes
       }
   }
 
   /**
-    * Locality sensitive hashing for hamming similarity using the index sampling technique from MMDS Chapter 3.
+    * Locality sensitive hashing for hamming similarity using a modification of the index sampling technique from MMDS Chapter 3.
+    * Specifically, there are L hash tables, and each table's hash function is implemented by randomly sampling and combining
+    * k bits from the vector and combining them to create a hash value. The original method would just sample k bits and
+    * treat each one as a hash value.
     *
     * @param mapping HammingLsh Mapping. The members are used as follows:
-    *                 bits: determines the number of randomly sampled indices.
+    *                L: number of hash tables. Generally, higher L yields higher recall.
+    *                k: number of randomly sampled bits for each hash function.
     */
   final class Hamming(override val mapping: Mapping.HammingLsh)
       extends LshFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
@@ -86,43 +90,79 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
+    //    private val barrZero: Array[Byte] = writeInt(0)
+    //    private val barrOne: Array[Byte] = writeInt(1)
 
-    // Sample indices without replacement. Important to sort them.
-    private val sampledIndices: Array[Int] = {
+    private case class Position(vecIndex: Int, hashIndexes: Array[Int]) {
+      val barrZero: Array[Byte] = writeInt(vecIndex * 2)
+      val barrOne: Array[Byte] = writeInt(vecIndex * 2 + 1)
+    }
+
+    //    // Sample L * k tuples containing (index between 0 and L, index between 0 and dims).
+    //    // Sort them by the second value before returning for more efficient intersection in apply method.
+    //    private val sampledPositions: Array[Position] = {
+    //      case class Pair(hashIndex: Int, vecIndex: Int)
+    //      @tailrec
+    //      def sample(acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
+    //        if (acc.size == k.min(dims)) acc.toArray
+    //        else if (acc(i)) sample(acc, rng.nextInt(dims))
+    //        else sample(acc + i, rng.nextInt(dims))
+    //      (0 until L)
+    //        .flatMap(hi => sample().map(vi => Pair(hi, vi)))
+    //        .groupBy(_.vecIndex)
+    //        .mapValues(_.map(_.hashIndex))
+    //        .map(t => Position(t._1, t._2.toArray))
+    //        .toArray
+    //        .sortBy(_.vecIndex)
+    //    }
+
+    // Sample L * k tuples containing (index between 0 and L, index between 0 and dims).
+    // Sort them by the second value before returning for more efficient intersection in apply method.
+    private val sampledPositions: Array[Position] = {
       @tailrec
-      def sample(acc: Set[Int], i: Int): Set[Int] =
-        if (acc.size == bits.min(dims)) acc else if (acc(i)) sample(acc, rng.nextInt(dims)) else sample(acc + i, rng.nextInt(dims))
-      sample(Set.empty, rng.nextInt(dims)).toArray.sorted
+      def sample(n: Int = L * k, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
+        if (acc.size == n) acc.toArray
+        else if (acc(i)) sample(n, acc, rng.nextInt(dims))
+        else sample(n, acc + i, rng.nextInt(dims))
+      sample().zipWithIndex
+        .map {
+          case (vi, hi) => Position(vi, Array(hi))
+        }
+        .sortBy(_.vecIndex)
     }
 
     override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
-      val hashes = new Array[Int](bits)
-      var (hi, ti, si) = (0, 0, 0)
-      while (ti < vec.trueIndices.length && si < sampledIndices.length) {
-        val s = sampledIndices(si)
-        val t = vec.trueIndices(ti)
+      val hashBuffers = (0 until L).toArray.map { l =>
+        val lbarr = writeInt(l)
+        val buff = new ArrayBuffer[Byte](k * 3 + lbarr.length)
+        buff.appendAll(lbarr)
+        buff
+      }
+
+      var (ixTrueIndices, ixSampledPositions) = (0, 0)
+      while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
+        val pos = sampledPositions(ixSampledPositions)
+        val trueIndex = vec.trueIndices(ixTrueIndices)
         // The true index wasn't sampled.
-        if (s > t) ti += 1
+        if (pos.vecIndex > trueIndex) ixTrueIndices += 1
         // The sampled index wasn't true.
-        else if (s < t) {
-          hashes.update(hi, s * 2)
-          hi += 1
-          si += 1
+        else if (pos.vecIndex < trueIndex) {
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrZero))
+          ixSampledPositions += 1
         }
         // The sampled index was true.
         else {
-          hashes.update(hi, s * 2 + 1)
-          hi += 1
-          si += 1
-          ti += 1
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrOne))
+          ixTrueIndices += 1
         }
       }
-      while (si < sampledIndices.length) {
-        hashes.update(hi, sampledIndices(si) * 2)
-        hi += 1
-        si += 1
+      while (ixSampledPositions < sampledPositions.length) {
+        val pos = sampledPositions(ixSampledPositions)
+        pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(pos.barrZero))
+        ixSampledPositions += 1
       }
-      hashes.map(UnsafeSerialization.writeInt)
+      val hashes = hashBuffers.map(_.toArray)
+      hashes
     }
   }
 
@@ -166,7 +206,7 @@ object LshFunction {
         bandHashes.update(ixBandHashes, bandHash)
         ixBandHashes += 1
       }
-      bandHashes.map(UnsafeSerialization.writeInt)
+      bandHashes.map(writeInt)
     }
   }
 
@@ -207,7 +247,7 @@ object LshFunction {
         ixBandHashes += 1
       }
       // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
-      bandHashes.toArray.map(UnsafeSerialization.writeInt)
+      bandHashes.toArray.map(writeInt)
     }
   }
 
