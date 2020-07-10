@@ -92,11 +92,14 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       )
     ),
     Test(
-      Mapping.HammingLsh(dims, dims * 7 / 10, 1),
-      Seq(
-        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.89,
-        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.97
-      )
+      // Increasing k increases recall up to a point.
+      Mapping.HammingLsh(dims, dims * 2 / 5, 2),
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.82)
+    ),
+    Test(
+      // But increasing it too far decreases recall.
+      Mapping.HammingLsh(dims, dims * 2 / 5, 4),
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.65)
     ),
     // Angular Lsh
     Test(
@@ -129,7 +132,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )
-  ).drop(5).take(2)
+  )
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {

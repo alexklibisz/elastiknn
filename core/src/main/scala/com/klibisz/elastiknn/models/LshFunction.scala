@@ -107,9 +107,19 @@ object LshFunction {
 
       // If L * k <= dims, just sample vec indices once, guaranteeing no repetition.
       val pairs: Array[Pair] = if ((L * k) <= dims) {
-        sampleVecIndicesWithoutRepetition(L * k).zipWithIndex.map(Pair.tupled)
+//        val q = sampleVecIndicesWithoutRepetition(L * k)
+//          .grouped(k)
+//          .zipWithIndex
+//          .flatMap {
+//            case (hii, vi) => hii.map(hi => Pair(vi, hi))
+//          }
+//          .toArray
+//        require(q.map(_.hashIndex) < L)
+        sampleVecIndicesWithoutRepetition(L * k).zipWithIndex.map {
+          case (vi, hi) => Pair(vi, hi % L)
+        }
       } else {
-        (0 until L).toArray.flatMap(hi => sampleVecIndicesWithoutRepetition(k).map(vi => Pair(hi, vi)))
+        zeroUntilL.flatMap(hi => sampleVecIndicesWithoutRepetition(k).map(vi => Pair(vi, hi)))
       }
 
       pairs
