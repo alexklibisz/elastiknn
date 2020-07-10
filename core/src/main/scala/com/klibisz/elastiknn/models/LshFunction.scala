@@ -100,28 +100,19 @@ object LshFunction {
     private val sampledPositions: Array[Position] = {
       case class Pair(vecIndex: Int, hashIndex: Int)
       @tailrec
-      def sampleVecIndicesWithoutRepetition(n: Int, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
+      def sampleIndicesWithoutReplacement(n: Int, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
         if (acc.size == n.min(dims)) acc.toArray
-        else if (acc(i)) sampleVecIndicesWithoutRepetition(n, acc, rng.nextInt(dims))
-        else sampleVecIndicesWithoutRepetition(n, acc + i, rng.nextInt(dims))
+        else if (acc(i)) sampleIndicesWithoutReplacement(n, acc, rng.nextInt(dims))
+        else sampleIndicesWithoutReplacement(n, acc + i, rng.nextInt(dims))
 
       // If L * k <= dims, just sample vec indices once, guaranteeing no repetition.
       val pairs: Array[Pair] = if ((L * k) <= dims) {
-//        val q = sampleVecIndicesWithoutRepetition(L * k)
-//          .grouped(k)
-//          .zipWithIndex
-//          .flatMap {
-//            case (hii, vi) => hii.map(hi => Pair(vi, hi))
-//          }
-//          .toArray
-//        require(q.map(_.hashIndex) < L)
-        sampleVecIndicesWithoutRepetition(L * k).zipWithIndex.map {
-          case (vi, hi) => Pair(vi, hi % L)
+        sampleIndicesWithoutReplacement(L * k).zipWithIndex.map {
+          case (vi, hi) => Pair(vi, hi % L) // Careful setting hashIndex, so it's < L.
         }
       } else {
-        zeroUntilL.flatMap(hi => sampleVecIndicesWithoutRepetition(k).map(vi => Pair(vi, hi)))
+        zeroUntilL.flatMap(hi => sampleIndicesWithoutReplacement(k).map(vi => Pair(vi, hi)))
       }
-
       pairs
         .groupBy(_.vecIndex)
         .mapValues(_.map(_.hashIndex))
