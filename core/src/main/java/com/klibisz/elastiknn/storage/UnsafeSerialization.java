@@ -26,11 +26,11 @@ public class UnsafeSerialization {
     public static byte[] writeInt(final int i) {
         final int a = Math.abs(i);
         if (a <= Byte.MAX_VALUE) {
-            final byte[] buf = new byte[4]; // TODO: change me back
+            final byte[] buf = new byte[1];
             u.unsafe.putInt(buf, u.byteArrayOffset, i);
             return buf;
         } else if (a <= Short.MAX_VALUE) {
-            final byte[] buf = new byte[4]; // TODO: change me back
+            final byte[] buf = new byte[2];
             u.unsafe.putInt(buf, u.byteArrayOffset, i);
             return buf;
         } else {

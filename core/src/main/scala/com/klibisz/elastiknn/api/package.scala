@@ -87,7 +87,7 @@ package object api {
     final case class JaccardLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class HammingLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class DenseFloat(dims: Int) extends Mapping
-    final case class AngularLsh(dims: Int, bands: Int, rows: Int) extends Mapping
+    final case class AngularLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class L2Lsh(dims: Int, bands: Int, rows: Int, width: Int) extends Mapping
   }
 

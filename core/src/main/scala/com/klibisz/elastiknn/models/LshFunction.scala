@@ -1,7 +1,8 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage
+import com.klibisz.elastiknn.storage.{BitBuffer, StoredVec}
 import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
 
 import scala.annotation.tailrec
@@ -91,8 +92,6 @@ object LshFunction {
     import mapping._
     private val rng: Random = new Random(0)
     private val zeroUntilL: Array[Int] = (0 until L).toArray
-    private val barrZero: Array[Byte] = writeInt(0)
-    private val barrOne: Array[Byte] = writeInt(1)
 
     private case class Position(vecIndex: Int, hashIndexes: Array[Int])
 
@@ -122,13 +121,7 @@ object LshFunction {
     }
 
     override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
-      val hashBuffers = zeroUntilL.map { l =>
-        val lbarr = writeInt(l)
-        val buff = new ArrayBuffer[Byte](lbarr.length + k) // Each array will contain the l int plus k 0s and 1s.
-        buff.appendAll(lbarr)
-        buff
-      }
-
+      val hashBuffers = zeroUntilL.map(l => new BitBuffer.IntBuffer(writeInt(l)))
       var (ixTrueIndices, ixSampledPositions) = (0, 0)
       while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
         val pos = sampledPositions(ixSampledPositions)
@@ -137,22 +130,22 @@ object LshFunction {
         if (pos.vecIndex > trueIndex) ixTrueIndices += 1
         // The sampled index is negative, append a zero.
         else if (pos.vecIndex < trueIndex) {
-          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrZero))
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
           ixSampledPositions += 1
         }
         // The sampled index is positive, append a one.
         else {
-          pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrOne))
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).putOne())
           ixTrueIndices += 1
         }
       }
       // Traverse the remaining sampled positions, if any, appending zeros.
       while (ixSampledPositions < sampledPositions.length) {
         val pos = sampledPositions(ixSampledPositions)
-        pos.hashIndexes.foreach(hi => hashBuffers(hi).appendAll(barrZero))
+        pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
         ixSampledPositions += 1
       }
-      hashBuffers.map(_.toArray)
+      hashBuffers.map(_.toByteArray)
     }
   }
 
@@ -161,10 +154,7 @@ object LshFunction {
     *
     * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
     *
-    * @param mapping AngularLsh Mapping. The members are used as follows:
-    *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
-    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
-    *                rows: number of rows per band. Generally, more rows yield higher precision.
+    * @param mapping AngularLsh Mapping.
     */
   final class Angular(override val mapping: Mapping.AngularLsh)
       extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
@@ -172,31 +162,24 @@ object LshFunction {
 
     import mapping._
     private implicit val rng: Random = new Random(0)
-    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
+
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
-      val bandHashes = new Array[Int](bands)
-      var ixBandHashes = 0
-      var ixHashVecs = 0
-      while (ixBandHashes < bandHashes.length) {
-        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
-        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
-        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
-        var bandHash = ixBandHashes * (1 << rows)
+      val hashes = new Array[Array[Byte]](L)
+      var (ixHashes, ixHashVecs) = (0, 0)
+      while (ixHashes < L) {
+        val hashBuf = new BitBuffer.IntBuffer(writeInt(ixHashes))
         var ixRows = 0
-        while (ixRows < rows) {
-          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
-          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
-          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
-          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
-          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
+        while (ixRows < k) {
+          if (hashVecs(ixHashVecs).dot(v) > 0) hashBuf.putOne() else hashBuf.putZero()
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.update(ixBandHashes, bandHash)
-        ixBandHashes += 1
+        hashes.update(ixHashes, hashBuf.toByteArray)
+        ixHashes += 1
       }
-      bandHashes.map(writeInt)
+      hashes
     }
   }
 
