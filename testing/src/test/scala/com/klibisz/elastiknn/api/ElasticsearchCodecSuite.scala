@@ -106,8 +106,8 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |  "dims": 100,
       |  "model": "lsh",
       |  "similarity": "jaccard",
-      |  "bands": 99,
-      |  "rows": 1
+      |  "L": 99,
+      |  "k": 1
       | }
       |}
       |""".stripMargin shouldDecodeTo [Mapping] Mapping.JaccardLsh(100, 99, 1)

@@ -83,7 +83,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     ),
     // Hamming LSH
     Test(
-      Mapping.HammingLsh(dims, dims * 5 / 10),
+      Mapping.HammingLsh(dims, dims * 1 / 2, 1),
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
@@ -92,11 +92,14 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       )
     ),
     Test(
-      Mapping.HammingLsh(dims, dims * 7 / 10),
-      Seq(
-        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.89,
-        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.97
-      )
+      // Increasing k increases recall up to a point.
+      Mapping.HammingLsh(dims, dims * 2 / 5, 2),
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.82)
+    ),
+    Test(
+      // But increasing it too far decreases recall.
+      Mapping.HammingLsh(dims, dims * 2 / 5, 4),
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.65)
     ),
     // Angular Lsh
     Test(
@@ -124,8 +127,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.13,
-        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.24,
+        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.15,
+        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.25,
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )

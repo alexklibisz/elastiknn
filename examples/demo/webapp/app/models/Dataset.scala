@@ -70,11 +70,11 @@ object Dataset extends ElastiknnRequests {
                 (f, v) => NearestNeighborsQuery.SparseIndexed(f, Similarity.Hamming, v)),
         example("Hamming LSH #1",
                 "mnist-hamming-lsh-1",
-                Mapping.HammingLsh(784, 100),
+                Mapping.HammingLsh(784, 100, 1),
                 (f, v) => NearestNeighborsQuery.HammingLsh(f, 100, v)),
         example("Hamming LSH #2",
                 "mnist-hamming-lsh-2",
-                Mapping.HammingLsh(784, 100),
+                Mapping.HammingLsh(784, 100, 1),
                 (f, v) => NearestNeighborsQuery.HammingLsh(f, 20, v)),
       )
     ),

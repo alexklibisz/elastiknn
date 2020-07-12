@@ -95,8 +95,8 @@ class Mapping:
     @dataclass(frozen=True)
     class JaccardLsh(Base):
         dims: int
-        bands: int
-        rows: int
+        K: int
+        l: int
 
         def to_dict(self):
             return {
@@ -105,15 +105,16 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "jaccard",
                     "dims": self.dims,
-                    "bands": self.bands,
-                    "rows": self.rows
+                    "K": self.K,
+                    "l": self.l
                 }
             }
 
     @dataclass(frozen=True)
     class HammingLsh(Base):
         dims: int
-        bits: int
+        L: int
+        k: int
 
         def to_dict(self):
             return {
@@ -122,7 +123,8 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "jaccard",
                     "dims": self.dims,
-                    "bits": self.bits
+                    "L": self.L,
+                    "k": self.k
                 }
             }
 
@@ -141,8 +143,8 @@ class Mapping:
     @dataclass(frozen=True)
     class AngularLsh(Base):
         dims: int
-        bands: int
-        rows: int
+        K: int
+        l: int
 
         def to_dict(self):
             return {
@@ -151,17 +153,17 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "angular",
                     "dims": self.dims,
-                    "bands": self.bands,
-                    "rows": self.rows
+                    "K": self.K,
+                    "l": self.l
                 }
             }
 
     @dataclass(frozen=True)
     class L2LSH(Base):
         dims: int
-        bands: int
-        rows: int
-        width: int
+        K: int
+        l: int
+        r: int
 
         def to_dict(self):
             return {
@@ -170,9 +172,9 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "l2",
                     "dims": self.dims,
-                    "bands": self.bands,
-                    "rows": self.rows,
-                    "width": self.width
+                    "K": self.K,
+                    "l": self.l,
+                    "r": self.r
                 }
             }
 

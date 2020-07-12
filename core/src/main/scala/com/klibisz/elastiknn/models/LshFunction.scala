@@ -2,12 +2,14 @@ package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage
-import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage.{BitBuffer, StoredVec}
+import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Int]) {
+sealed trait LshFunction[M <: Mapping, V <: Vec, S <: StoredVec] extends (V => Array[Array[Byte]]) {
   val mapping: M
   val exact: ExactSimilarityFunction[V, S]
 }
@@ -29,8 +31,8 @@ object LshFunction {
     * perform equivalently.
     *
     * @param mapping JaccardLsh Mapping. The members are used as follows:
-    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
-    *                rows: number of rows in each band. Generally, more rows yield higher precision.
+    *                L: number of hash tables. Generally, higher L yields higher recall.
+    *                k: number of hash functions combined to generate a hash for each table. Generally, higher k yields higher precision.
     */
   final class Jaccard(override val mapping: Mapping.JaccardLsh)
       extends LshFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
@@ -39,45 +41,49 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
-    private val alphas: Array[Int] = (0 until bands * rows).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
-    private val betas: Array[Int] = (0 until bands * rows).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-    private val emptyHashes: Array[Int] = Array.fill(rows)(HASH_PRIME)
+    private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
+    private val betas: Array[Int] = (0 until L * k).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
+    private val emptyHashes: Array[Array[Byte]] = Array.fill(k)(HASH_PRIME).map(writeInt)
 
-    override def apply(v: Vec.SparseBool): Array[Int] =
+    override def apply(v: Vec.SparseBool): Array[Array[Byte]] =
       if (v.trueIndices.isEmpty) emptyHashes
       else {
-        val bandHashes = new Array[Int](bands)
-        var ixBandHashes = 0
+        val hashes = new Array[Array[Byte]](L)
+        var ixL = 0
         var ixCoefficients = 0
-        while (ixBandHashes < bandHashes.length) {
-          var bandHash = 0
-          var ixRows = 0
-          while (ixRows < rows) {
+        while (ixL < hashes.length) {
+          val hash = ArrayBuffer[Byte](writeInt(ixL): _*)
+          var ixk = 0
+          while (ixk < k) {
             val a = alphas(ixCoefficients)
             val b = betas(ixCoefficients)
-            var rowHash = Int.MaxValue
+            var minHash = Int.MaxValue
             var ixTrueIndices = 0
             while (ixTrueIndices < v.trueIndices.length) {
               val indexHash = ((1 + v.trueIndices(ixTrueIndices)) * a + b) % HASH_PRIME
-              if (indexHash < rowHash) rowHash = indexHash // Actually faster than math.min or a.min(b).
+              if (indexHash < minHash) minHash = indexHash // Actually faster than math.min or a.min(b).
               ixTrueIndices += 1
             }
-            bandHash = (bandHash + rowHash) % HASH_PRIME
-            ixRows += 1
+            hash.appendAll(writeInt(minHash))
+            ixk += 1
             ixCoefficients += 1
           }
-          bandHashes.update(ixBandHashes, ((ixBandHashes % HASH_PRIME) + bandHash) % HASH_PRIME)
-          ixBandHashes += 1
+          hashes.update(ixL, hash.toArray)
+          ixL += 1
         }
-        bandHashes
+        hashes
       }
   }
 
   /**
-    * Locality sensitive hashing for hamming similarity using the index sampling technique from MMDS Chapter 3.
+    * Locality sensitive hashing for hamming similarity using a modification of the index sampling technique from MMDS Chapter 3.
+    * Specifically, there are L hash tables, and each table's hash function is implemented by randomly sampling and combining
+    * k bits from the vector and combining them to create a hash value. The original method would just sample k bits and
+    * treat each one as a hash value.
     *
     * @param mapping HammingLsh Mapping. The members are used as follows:
-    *                 bits: determines the number of randomly sampled indices.
+    *                L: number of hash tables. Generally, higher L yields higher recall.
+    *                k: number of randomly sampled bits for each hash function.
     */
   final class Hamming(override val mapping: Mapping.HammingLsh)
       extends LshFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
@@ -85,43 +91,61 @@ object LshFunction {
 
     import mapping._
     private val rng: Random = new Random(0)
+    private val zeroUntilL: Array[Int] = (0 until L).toArray
 
-    // Sample indices without replacement. Important to sort them.
-    private val sampledIndices: Array[Int] = {
+    private case class Position(vecIndex: Int, hashIndexes: Array[Int])
+
+    // Sample L * k Positions, sorted by vecIndex for more efficient intersection in apply method.
+    private val sampledPositions: Array[Position] = {
+      case class Pair(vecIndex: Int, hashIndex: Int)
       @tailrec
-      def sample(acc: Set[Int], i: Int): Set[Int] =
-        if (acc.size == bits.min(dims)) acc else if (acc(i)) sample(acc, rng.nextInt(dims)) else sample(acc + i, rng.nextInt(dims))
-      sample(Set.empty, rng.nextInt(dims)).toArray.sorted
+      def sampleIndicesWithoutReplacement(n: Int, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
+        if (acc.size == n.min(dims)) acc.toArray
+        else if (acc(i)) sampleIndicesWithoutReplacement(n, acc, rng.nextInt(dims))
+        else sampleIndicesWithoutReplacement(n, acc + i, rng.nextInt(dims))
+
+      // If L * k <= dims, just sample vec indices once, guaranteeing no repetition.
+      val pairs: Array[Pair] = if ((L * k) <= dims) {
+        sampleIndicesWithoutReplacement(L * k).zipWithIndex.map {
+          case (vi, hi) => Pair(vi, hi % L) // Careful setting hashIndex, so it's < L.
+        }
+      } else {
+        zeroUntilL.flatMap(hi => sampleIndicesWithoutReplacement(k).map(vi => Pair(vi, hi)))
+      }
+      pairs
+        .groupBy(_.vecIndex)
+        .mapValues(_.map(_.hashIndex))
+        .map(Position.tupled)
+        .toArray
+        .sortBy(_.vecIndex)
     }
 
-    override def apply(vec: Vec.SparseBool): Array[Int] = {
-      val hashes = new Array[Int](bits)
-      var (hi, ti, si) = (0, 0, 0)
-      while (ti < vec.trueIndices.length && si < sampledIndices.length) {
-        val s = sampledIndices(si)
-        val t = vec.trueIndices(ti)
-        // The true index wasn't sampled.
-        if (s > t) ti += 1
-        // The sampled index wasn't true.
-        else if (s < t) {
-          hashes.update(hi, s * 2)
-          hi += 1
-          si += 1
+    override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
+      val hashBuffers = zeroUntilL.map(l => new BitBuffer.IntBuffer(writeInt(l)))
+      var (ixTrueIndices, ixSampledPositions) = (0, 0)
+      while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
+        val pos = sampledPositions(ixSampledPositions)
+        val trueIndex = vec.trueIndices(ixTrueIndices)
+        // The true index wasn't sampled, move along.
+        if (pos.vecIndex > trueIndex) ixTrueIndices += 1
+        // The sampled index is negative, append a zero.
+        else if (pos.vecIndex < trueIndex) {
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
+          ixSampledPositions += 1
         }
-        // The sampled index was true.
+        // The sampled index is positive, append a one.
         else {
-          hashes.update(hi, s * 2 + 1)
-          hi += 1
-          si += 1
-          ti += 1
+          pos.hashIndexes.foreach(hi => hashBuffers(hi).putOne())
+          ixTrueIndices += 1
         }
       }
-      while (si < sampledIndices.length) {
-        hashes.update(hi, sampledIndices(si) * 2)
-        hi += 1
-        si += 1
+      // Traverse the remaining sampled positions, if any, appending zeros.
+      while (ixSampledPositions < sampledPositions.length) {
+        val pos = sampledPositions(ixSampledPositions)
+        pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
+        ixSampledPositions += 1
       }
-      hashes
+      hashBuffers.map(_.toByteArray)
     }
   }
 
@@ -130,10 +154,7 @@ object LshFunction {
     *
     * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
     *
-    * @param mapping AngularLsh Mapping. The members are used as follows:
-    *                dims: sets the dimension of the hyperplanes equal to that of the vectors hashed by this model.
-    *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
-    *                rows: number of rows per band. Generally, more rows yield higher precision.
+    * @param mapping AngularLsh Mapping.
     */
   final class Angular(override val mapping: Mapping.AngularLsh)
       extends LshFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
@@ -141,31 +162,24 @@ object LshFunction {
 
     import mapping._
     private implicit val rng: Random = new Random(0)
-    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
-    override def apply(v: Vec.DenseFloat): Array[Int] = {
-      val bandHashes = new Array[Int](bands)
-      var ixBandHashes = 0
-      var ixHashVecs = 0
-      while (ixBandHashes < bandHashes.length) {
-        // The minimum hash value for each band is the index times 2 ^ rows. The integers between each minimum value
-        // are used based on the rows. For example, if there are 4 rows, then the 3rd band can hash the given vector
-        // to values in [3 * 2 ^ 4, 4 * 2 ^ 4).
-        var bandHash = ixBandHashes * (1 << rows)
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+
+    override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
+      val hashes = new Array[Array[Byte]](L)
+      var (ixHashes, ixHashVecs) = (0, 0)
+      while (ixHashes < L) {
+        val hashBuf = new BitBuffer.IntBuffer(writeInt(ixHashes))
         var ixRows = 0
-        while (ixRows < rows) {
-          // Take the dot product of the hashing vector and the given vector. If the sign is positive, add 2 ^ r to the
-          // hash value for this band. For example, if we're on the 3rd band, there are 4 rows per band, and the hash
-          // vectors corresponding to the 2nd and 3rd rows yield a positive dot product, then the hash value will be:
-          // 3 * 2^4 + 2^2 + 2^3 = 48 + 4 + 8 = 60.
-          if (hashVecs(ixHashVecs).dot(v) > 0) bandHash += 1 << ixRows
+        while (ixRows < k) {
+          if (hashVecs(ixHashVecs).dot(v) > 0) hashBuf.putOne() else hashBuf.putZero()
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.update(ixBandHashes, bandHash)
-        ixBandHashes += 1
+        hashes.update(ixHashes, hashBuf.toByteArray)
+        ixHashes += 1
       }
-      bandHashes
+      hashes
     }
   }
 
@@ -186,27 +200,28 @@ object LshFunction {
 
     import mapping._
     private implicit val rng: Random = new Random(0)
-    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
-    private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+    private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
-    override def apply(v: Vec.DenseFloat): Array[Int] = {
-      val bandHashes = collection.mutable.Set.empty[Int]
-      var ixBandHashes = 0
+    override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
+      val hashes = new Array[Array[Byte]](L)
+      var ixHashes = 0
       var ixHashVecs = 0
-      while (ixBandHashes < bands) {
-        var bandHash = ixBandHashes
+      while (ixHashes < L) {
+        val lBarr = writeInt(ixHashes)
+        val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
+        hashBuf.appendAll(lBarr)
         var ixRows = 0
-        while (ixRows < rows) {
-          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / width).toInt
-          bandHash = (31 * bandHash + hash) % HASH_PRIME // TODO: is this a sufficient Pairing function?
+        while (ixRows < k) {
+          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / r).toInt
+          hashBuf.appendAll(writeInt(hash))
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.add(bandHash)
-        ixBandHashes += 1
+        hashes.update(ixHashes, hashBuf.toArray)
+        ixHashes += 1
       }
-      // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
-      bandHashes.toArray
+      hashes
     }
   }
 
