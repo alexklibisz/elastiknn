@@ -127,12 +127,12 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.13,
-        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.24,
+        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.15,
+        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.25,
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     )
-  ).drop(8).take(2)
+  )
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {

@@ -200,27 +200,28 @@ object LshFunction {
 
     import mapping._
     private implicit val rng: Random = new Random(0)
-    private val hashVecs: Array[Vec.DenseFloat] = (0 until (bands * rows)).map(_ => Vec.DenseFloat.random(dims)).toArray
-    private val biases: Array[Float] = (0 until (bands * rows)).map(_ => rng.nextFloat() * width).toArray
+    private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+    private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
     override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
-      val bandHashes = collection.mutable.Set.empty[Int]
-      var ixBandHashes = 0
+      val hashes = new Array[Array[Byte]](L)
+      var ixHashes = 0
       var ixHashVecs = 0
-      while (ixBandHashes < bands) {
-        var bandHash = ixBandHashes
+      while (ixHashes < L) {
+        val lBarr = writeInt(ixHashes)
+        val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
+        hashBuf.appendAll(lBarr)
         var ixRows = 0
-        while (ixRows < rows) {
-          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / width).toInt
-          bandHash = (31 * bandHash + hash) % HASH_PRIME // TODO: is this a sufficient Pairing function?
+        while (ixRows < k) {
+          val hash = math.floor((hashVecs(ixHashVecs).dot(v) + biases(ixHashVecs)) / r).toInt
+          hashBuf.appendAll(writeInt(hash))
           ixRows += 1
           ixHashVecs += 1
         }
-        bandHashes.add(bandHash)
-        ixBandHashes += 1
+        hashes.update(ixHashes, hashBuf.toArray)
+        ixHashes += 1
       }
-      // TODO: figure out how to reduce number of duplicate hashes and just use an array allocated at the start of the function.
-      bandHashes.toArray.map(writeInt)
+      hashes
     }
   }
 
