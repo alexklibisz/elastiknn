@@ -158,11 +158,13 @@ PUT /my-index/_mapping
 
 ### Jaccard LSH Mapping
 
-The Jaccard LSH Model enables approximate queries for the Jaccard similarity function on sparse bool vectors using the [Minhash algorithm](https://en.wikipedia.org/wiki/MinHash).
+Uses the [Minhash algorithm](https://en.wikipedia.org/wiki/MinHash) to hash and store sparse bool vectors such that they
+support approximate Jaccard similarity queries.
 
-The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/) the [Spark MinHash implementation](https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance), the [tdebatty/java-LSH Github project](https://github.com/tdebatty/java-LSH), and the [Minhash for Dummies](http://matthewcasperson.blogspot.com/2013/11/minhash-for-dummies.html) blog post.
-
-The total number of hash functions computed is `bands * rows`, and the total number indexed is `bands`.
+The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/), 
+the [Spark MinHash implementation](https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance), 
+the [tdebatty/java-LSH Github project](https://github.com/tdebatty/java-LSH), 
+and the [Minhash for Dummies](http://matthewcasperson.blogspot.com/2013/11/minhash-for-dummies.html) blog post.
 
 ```json
 PUT /my-index/_mapping
@@ -174,8 +176,8 @@ PUT /my-index/_mapping
                 "dims": 25000,                      # 2
                 "model": "lsh",                     # 3
                 "similarity": "jaccard",            # 4
-                "bands": 99,                        # 5
-                "rows": 1,                          # 6
+                "L": 99,                            # 5
+                "k": 1                              # 6
             }
         }
     }
@@ -188,16 +190,17 @@ PUT /my-index/_mapping
 |2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|5|Number of hash tables. Generally, increasing this value increases recall.|
+|6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
 
 ### Hamming LSH Mapping
 
-Enables approximate queries for the Hamming similarity function on sparse bool vectors using the [Bit-Sampling algorithm](http://mlwiki.org/index.php/Bit_Sampling_LSH).
+Uses the [Bit-Sampling algorithm](http://mlwiki.org/index.php/Bit_Sampling_LSH) to hash and store sparse bool vectors
+such that they support approximate Hamming similarity queries.
 
-The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
-
-The total number of hash functions computed and indexed for each vector is `bits`.
+Only difference from the canonical bit-sampling method is that it samples and combines `k` bits to form a single hash value.
+For example, if you set `L = 100, k = 3`, it samples `100 * 3 = 300` bits from the vector and concatenates sets of 3 
+bits to form each hash value, for a total of 100 hash values.
 
 ```json
 PUT /my-index/_mapping
@@ -209,7 +212,8 @@ PUT /my-index/_mapping
                 "dims": 25000,                      # 2
                 "model": "lsh",                     # 3
                 "similarity": "hamming",            # 4
-                "bits": 99,                         # 5
+                "L": 99,                            # 5
+                "k": 2
             }
         }
     }
@@ -222,15 +226,15 @@ PUT /my-index/_mapping
 |2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bits (indices) to sample from each vector. This should not exceed the dimensionality. Generally, increasing the number of bits increases [recall.](https://en.wikipedia.org/wiki/Precision_and_recall#Recall)|
+|5|Number of hash tables. Generally, increasing this value increases recall.|
+|6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
 
 ### Angular LSH Mapping
 
-Enables approximate queries for the Angular similarity function on dense float vectors using the [Random Projection algorithm.](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
+Uses the [Random Projection algorithm](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
+to hash and store dense float vectors such that they support approximate Angular similarity queries.
 
 The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
-
-The total number of hash functions computed is `bands * rows`, and the total number indexed is `bands`.
 
 ```json
 PUT /my-index/_mapping
@@ -242,8 +246,8 @@ PUT /my-index/_mapping
                 "dims": 100,                        # 2
                 "model": "lsh",                     # 3
                 "similarity": "angular",            # 4
-                "bands": 99,                        # 5
-                "rows": 1,                          # 6
+                "L": 99,                            # 5
+                "k": 1                              # 6
             }
         }
     }
@@ -256,16 +260,15 @@ PUT /my-index/_mapping
 |2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
+|5|Number of hash tables. Generally, increasing this value increases recall.|
+|6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
 
 ### L2 LSH Mapping
 
-Enables approximate queries for the L2 (Euclidean) similarity function on dense float vectors using the [Stable Distributions method.](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Stable_distributions)
+Uses the [Stable Distributions method](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Stable_distributions)
+to hash and store dense float vectors such that they support approximate L2 (Euclidean) similarity queries.
 
 The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
-
-The total number of hash functions computed is `bands * rows`, and the total number indexed is `bands`.
 
 ```json
 PUT /my-index/_mapping
@@ -277,9 +280,9 @@ PUT /my-index/_mapping
                 "dims": 100,                        # 2
                 "model": "lsh",                     # 3
                 "similarity": "l2",                 # 4
-                "bands": 99,                        # 5
-                "rows": 1,                          # 6
-                "width": 3,                         # 7
+                "L": 99,                            # 5
+                "k": 1,                             # 6
+                "r": 3                              # 7
             }
         }
     }
@@ -292,13 +295,16 @@ PUT /my-index/_mapping
 |2|Vector dimensionality.|
 |3|Model type.|
 |4|Similarity.|
-|5|Number of bands. Sometimes called the number of tables or `L`. Generally, increasing the number of bands increases [recall](https://en.wikipedia.org/wiki/Precision_and_recall#Recall) at the cost of additional compuation.|
-|6|Number of rows per band. Sometimes called the number of hash functions (per table) or `k`. Generally, increasing the number of rows increases [precision](https://en.wikipedia.org/wiki/Precision_and_recall#Precision) at the cost of additional computation.|
-|7|Integer bucket width. This determines how close two vectors have to be, when projected onto a third common vector, in order for the two vectors to fall in the same bucket. Typical values are low single-digit integers.|
+|5|Number of hash tables. Generally, increasing this value increases recall.|
+|6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
+|7|Integer bucket width. This determines how close two vectors have to be, when projected onto a third common vector, in order for the two vectors to share a hash value. Typical values are low single-digit integers.|
 
 ## Vectors
 
-You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries with a literal query vector. In both cases you use the same JSON structure to define vectors. The examples below show the indexing case; the query case will be covered later.
+You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries
+with a literal query vector. 
+In both cases you use the same JSON structure to define vectors. 
+The examples below show the indexing case; the query case will be covered later.
 
 ### elastiknn_sparse_bool_vector
 
@@ -659,13 +665,14 @@ Perhaps there will be a more cohesive way to present these in the future.
 ### Storing Model Parameters
 
 The LSH models all use randomized parameters to hash vectors. 
-The simplest example is the bit-sampling model for Hamming similarity, which is parameterized by a list of randomly sampled indices. 
-A more complicated example is the stable distributions model for L2 similarity, which is parameterized by a set of random unit vectors and a set of random bias values. 
+The simplest example is the bit-sampling model for Hamming similarity, parameterized by a list of randomly sampled indices. 
+A more complicated example is the stable distributions model for L2 similarity, parameterized by a set of random unit vectors 
+and a set of random bias scalars.
 These parameters aren't actually stored anywhere in Elasticsearch. 
-Rather, they are lazily re-computed from a fixed random seed each time they are needed. 
-The advantage of this is that you don't have to worry about storing and synchronizing potentially large parameter documents somewhere in the cluster. 
+Rather, they are lazily re-computed from a fixed random seed (0) each time they are needed. 
+The advantage of this is that it avoids storing and synchronizing potentially large parameter blobs in the cluster. 
 The disadvantage is that it's expensive to re-compute the randomized parameters. 
-So instead we keep an internal cache of models, keyed on the model hyperparameters (e.g. `bands`, `rows`, etc.). 
+So instead we keep a cache of models in each Elasticsearch node, keyed on the model hyperparameters (e.g. `L`, `k`, etc.). 
 The hyperparameters are stored inside the mappings where they are originally defined.
 
 ### Transforming and Indexing Vectors
