@@ -1,3 +1,8 @@
+- Switched LSH parameter names to more canonical equivalents: `bands -> L`, `rows -> k`,
+  based on the [LSH wikipedia article](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#LSH_algorithm_for_nearest_neighbor_search) 
+  and material from Indyk, et. al, e.g. [these slides](http://people.csail.mit.edu/indyk/mmds.pdf).
+- Added a `k` parameter to Hamming LSH model, which lets you concatenate > 1 bits to form a single hash value.
+---
 - Switched scala client to store the ID as a doc-value field. This avoids decompressing the document source
   when reading results, which is about 40% faster on benchmarks for both exact and approx. search.
 ---
