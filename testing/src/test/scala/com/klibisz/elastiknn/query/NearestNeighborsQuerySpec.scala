@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.time.Duration
-
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}

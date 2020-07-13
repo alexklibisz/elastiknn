@@ -42,7 +42,7 @@ trait ElastiknnRequests {
     * @param storedIdField Field containing the document ID. See [[ElastiknnRequests.index()]] method.
     * @return Instance of [[com.sksamuel.elastic4s.requests.searches.SearchRequest]].
     */
-  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): SearchRequest = {
+  def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): SearchRequest =
     ElasticDsl
       .search(index)
       .query(query)
@@ -51,7 +51,6 @@ trait ElastiknnRequests {
       .docValues(Seq(storedIdField))
       .preference(query.hashCode.toString)
       .size(k)
-  }
 
   /**
     * Create a mapping containing a vector field and a stored ID field.
