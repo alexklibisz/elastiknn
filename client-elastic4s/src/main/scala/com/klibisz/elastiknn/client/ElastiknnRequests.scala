@@ -1,12 +1,11 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
-import com.sksamuel.elastic4s.{ElasticDsl, Indexes, XContentBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
-import com.sksamuel.elastic4s.requests.searches.queries.CustomQuery
+import com.sksamuel.elastic4s.{ElasticDsl, Indexes, XContentFactory}
+import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 
 /**
   * Methods for creating Elastic4s requests for common elastiknn tasks.
@@ -44,14 +43,9 @@ trait ElastiknnRequests {
     * @return Instance of [[com.sksamuel.elastic4s.requests.searches.SearchRequest]].
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): SearchRequest = {
-    val json = ElasticsearchCodec.nospaces(query)
-    val customQuery = new CustomQuery {
-      override def buildQueryBody(): XContentBuilder =
-        XContentFactory.jsonBuilder.rawField(s"${ELASTIKNN_NAME}_nearest_neighbors", json)
-    }
     ElasticDsl
       .search(index)
-      .query(customQuery)
+      .query(query)
       .fetchSource(false)
       .storedFields("_none_")
       .docValues(Seq(storedIdField))
