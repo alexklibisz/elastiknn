@@ -114,28 +114,30 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   private def getMapping(context: QueryShardContext): Mapping = {
     import KnnQueryBuilder.mappingCache
     val index = context.index.getName
-    mappingCache.get(
-      (index, query.field),
-      () =>
-        try {
+    try {
+      mappingCache.get(
+        (index, query.field),
+        () => {
           val client = context.getClient
           val request = new GetFieldMappingsRequest().indices(index).fields(query.field)
           val response = client.execute(GetFieldMappingsAction.INSTANCE, request).actionGet(1000)
-          val srcMap = response
+          val mappingMap = response
             .mappings()
             .get(index)
             .get("_doc")
             .get(query.field)
             .sourceAsMap()
-            .get(query.field)
-            .asInstanceOf[JavaJsonMap]
-          val srcJson = javaMapEncoder(srcMap)
-          val mapping = ElasticsearchCodec.decodeJsonGet[Mapping](srcJson)
-          mapping
-        } catch {
-          case e: Exception => throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e)
-      }
-    )
+            .get(query.field.split('.').last) // For nested fields e.g. "foo.bar.vec" -> "vec"
+          val mappingJsonMap = mappingMap.asInstanceOf[JavaJsonMap]
+          val mappingJson = javaMapEncoder(mappingJsonMap)
+          ElasticsearchCodec.decodeJsonGet[Mapping](mappingJson)
+        }
+      )
+    } catch {
+      // Pass along only the cause instead of the ExecutionException.
+      case e: java.util.concurrent.ExecutionException =>
+        throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e.getCause)
+    }
   }
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
@@ -158,7 +160,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.withVec(vector)))
-              l.asInstanceOf[ActionListener[Any]].onResponse(null)
+              l match {
+                case a: ActionListener[Any] => a.onResponse(null)
+                case _                      =>
+              }
             } catch {
               case e: Exception => l.onFailure(ex(e))
             }
