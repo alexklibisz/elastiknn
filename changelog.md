@@ -1,3 +1,5 @@
+- Fixed error with KNN queries against vectors that are stored in nested fields, e.g. `outer.inner.vec`.
+---
 - Switched LSH parameter names to more canonical equivalents: `bands -> L`, `rows -> k`,
   based on the [LSH wikipedia article](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#LSH_algorithm_for_nearest_neighbor_search) 
   and material from Indyk, et. al, e.g. [these slides](http://people.csail.mit.edu/indyk/mmds.pdf).

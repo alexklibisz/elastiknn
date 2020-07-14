@@ -134,9 +134,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         }
       )
     } catch {
-      // Pass along only the cause instead of the ExecutionException.
+      // Guava cache wraps any exceptions in an ExecutionException. Pass along only the cause.
       case e: java.util.concurrent.ExecutionException =>
         throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e.getCause)
+      case e: Throwable => throw e
     }
   }
 
