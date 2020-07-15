@@ -1,12 +1,9 @@
 package com.klibisz.elastiknn
 
-import java.util.Base64
-
-import com.klibisz.elastiknn.api.Mapping.{AngularLsh, DenseFloat, HammingLsh, JaccardLsh, L2Lsh, SparseBool, SparseIndexed}
+import com.klibisz.elastiknn.api.Mapping._
 import com.klibisz.elastiknn.api._
+import io.circe.Codec
 import io.circe.generic.semiauto._
-import io.circe.syntax._
-import io.circe.{Codec, Encoder}
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.math3.stat.descriptive.rank.Percentile
 import zio.Has

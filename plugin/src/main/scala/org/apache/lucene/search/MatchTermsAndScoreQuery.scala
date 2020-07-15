@@ -98,7 +98,9 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
         }
 
       val docIdToMatchingCount = getDocIdToMatchingCount()
+      logger.info(s"Found ${docIdToMatchingCount.size()} docs matching at least one hash value")
       val candidateDocs = getCandidateDocs(docIdToMatchingCount)
+      logger.info(s"Found ${candidateDocs.length} candidate docs")
       val disi = new MatchTermsAndScoreQuery.DocIdsArrayIterator(candidateDocs)
       val leafScoreFunction = scoreFunction(context)
 

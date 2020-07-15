@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity, Vec}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity}
 import zio._
 import zio.console.Console
 
@@ -10,7 +10,6 @@ import zio.console.Console
 object ContinuousBenchmark extends App {
 
   private val randomDenseFloats = Dataset.RandomDenseFloat(1000, 50000, 1000)
-  private val randomSparseBools = Dataset.RandomSparseBool(3000, 50000, 1000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
@@ -28,10 +27,12 @@ object ContinuousBenchmark extends App {
 //    ),
     // Angular exact, LSH
     Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
+      Dataset.AnnbGlove100,
+      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
+//      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+//      NearestNeighborsQuery.AngularLsh(field, 1000),
+      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
