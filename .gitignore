@@ -7,6 +7,7 @@ release.md
 *.csv
 
 # Git LFS
+.minio
 !.minio/elastiknn-benchmarks/data/processed/annbglove100/*.json.gz
 
 # Ignore Gradle GUI config
