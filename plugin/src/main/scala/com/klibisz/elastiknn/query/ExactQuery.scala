@@ -58,7 +58,7 @@ object ExactQuery {
   /**
     * Instantiate an exact query, implemented as an Elasticsearch [[FunctionScoreQuery]].
     */
-  def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
+  def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S], filterQuery: )(
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
     val subQuery = new DocValuesFieldExistsQuery(vecDocValuesField(field))
     val func = new ExactScoreFunction(field, queryVec, simFunc)
