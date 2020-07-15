@@ -8,7 +8,7 @@ release.md
 
 # Git LFS
 .minio/*
-!.minio/data/processed/annbglove100
+!.minio/elastiknn-benchmarks/data/processed/annbglove100
 
 # Ignore Gradle GUI config
 gradle-app.setting
