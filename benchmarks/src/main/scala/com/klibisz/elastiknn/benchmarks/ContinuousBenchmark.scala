@@ -16,16 +16,16 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // L2 exact, LSH
-    Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
-      )
-    ),
+//    // L2 exact, LSH
+//    Experiment(
+//      randomDenseFloats,
+//      Mapping.DenseFloat(randomDenseFloats.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
+//      )
+//    ),
     // Angular exact, LSH
     Experiment(
       randomDenseFloats,
@@ -36,16 +36,16 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
     ),
-    // Jaccard exact, sparse indexed, LSH
-    Experiment(
-      randomSparseBools,
-      Mapping.SparseBool(randomSparseBools.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
-      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
-      Seq(
-        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
-      )
-    )
+//    // Jaccard exact, sparse indexed, LSH
+//    Experiment(
+//      randomSparseBools,
+//      Mapping.SparseBool(randomSparseBools.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
+//      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
+//      Seq(
+//        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
+//      )
+//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
