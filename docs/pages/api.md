@@ -684,7 +684,7 @@ GET /my-index/_search
     "query": {
         "bool": {
             "filter": [
-                "term": { "term": { "color": "blue" } },     # 1
+                { "term": { "color": "blue" } },             # 1
             ],
             "must": {
                 "elastiknn_nearest_neighbors": {             # 2
