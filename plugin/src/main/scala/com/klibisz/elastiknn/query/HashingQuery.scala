@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.models.LshFunction
+import com.klibisz.elastiknn.models.HashingFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
@@ -9,15 +9,15 @@ import org.apache.lucene.search.{MatchTermsAndScoreQuery, Query}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.MappedFieldType
 
-object LshQuery {
+object HashingQuery {
 
   /**
-    * Construct an Lsh query.
+    * Construct a hashing query.
     */
   def apply[M <: Mapping, V <: Vec, S <: StoredVec](field: String,
                                                     query: V,
                                                     candidates: Int,
-                                                    lshFunction: LshFunction[M, V, S],
+                                                    lshFunction: HashingFunction[M, V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
 
     val terms = lshFunction(query).map(h => new BytesRef(h))
@@ -45,7 +45,7 @@ object LshQuery {
       field: String,
       fieldType: MappedFieldType,
       vec: V,
-      lshFunction: LshFunction[M, V, S])(implicit lshFunctionCache: LshFunctionCache[M, V, S]): Seq[IndexableField] = {
+      lshFunction: HashingFunction[M, V, S])(implicit lshFunctionCache: HashingFunctionCache[M, V, S]): Seq[IndexableField] = {
     ExactQuery.index(field, vec) ++ lshFunction(vec).map { h =>
       new Field(field, h, fieldType)
     }
