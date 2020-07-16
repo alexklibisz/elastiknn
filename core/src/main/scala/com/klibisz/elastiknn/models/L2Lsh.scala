@@ -20,7 +20,6 @@ import scala.util.Random
   *
   */
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-  override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.L2
 
   import mapping._
   private implicit val rng: Random = new Random(0)

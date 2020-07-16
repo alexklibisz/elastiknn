@@ -95,16 +95,22 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, c.getIndexReader)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Jaccard(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Jaccard(m), ExactSimilarityFunction.Jaccard, c.getIndexReader)
 
       case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), ExactSimilarityFunction.Hamming, c.getIndexReader)
 
       case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Angular(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Angular(m), ExactSimilarityFunction.Angular, c.getIndexReader)
 
       case (L2Lsh(f, candidates, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), ExactSimilarityFunction.L2, c.getIndexReader)
+
+      case (MagnitudesLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.Angular, c.getIndexReader)
+
+      case (MagnitudesLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.L2, c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
     }
@@ -165,10 +171,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.withVec(vector)))
-              l match {
-                case a: ActionListener[Any] => a.onResponse(null)
-                case _                      =>
-              }
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
               case e: Exception => l.onFailure(ex(e))
             }

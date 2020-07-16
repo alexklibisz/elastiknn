@@ -23,6 +23,8 @@ dependencies {
     compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
     compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+    implementation "com.google.guava:guava:28.1-jre"
+    runtime "com.google.guava:guava:28.1-jre"
 }
 
 task sourceJar(type: Jar) {

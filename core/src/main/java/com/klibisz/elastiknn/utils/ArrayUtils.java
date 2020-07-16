@@ -45,14 +45,14 @@ public class ArrayUtils {
      * @param k The position.
      * @return The index of the kth largest value.
      */
-    public static int quickSelect(int[] arr, int k) {
+    public static int quickSelectInts(int[] arr, int k) {
         int n = arr.length;
         int left = 0;
         int right = n - 1;
         int finalIndexOfChoosenPivot = 0;
         while (left <= right) {
             int choosenPivotIndex = (right - left + 1) / 2 + left;
-            finalIndexOfChoosenPivot = qsPartition(arr, left, right, choosenPivotIndex);
+            finalIndexOfChoosenPivot = qsPartitionInts(arr, left, right, choosenPivotIndex);
             if (finalIndexOfChoosenPivot == n - k) {
                 break;
             } else if (finalIndexOfChoosenPivot > n - k) {
@@ -70,27 +70,73 @@ public class ArrayUtils {
      * @param k
      * @return
      */
-    public static int quickSelectCopy(int[] arr, int k) {
-        return quickSelect(Arrays.copyOf(arr, arr.length), k);
+    public static int quickSelectIntsCopy(int[] arr, int k) {
+        return quickSelectInts(Arrays.copyOf(arr, arr.length), k);
     }
 
 
-    private static int qsPartition(int[] arr, int left, int right, int pivotIndex) {
+    private static int qsPartitionInts(int[] arr, int left, int right, int pivotIndex) {
         int pivotValue = arr[pivotIndex];
         int lesserItemsTailIndex = left;
-        qsSwap(arr, pivotIndex, right);
+        qsSwapInts(arr, pivotIndex, right);
         for (int i = left; i < right; i++) {
             if (arr[i] < pivotValue) {
-                qsSwap(arr, i, lesserItemsTailIndex);
+                qsSwapInts(arr, i, lesserItemsTailIndex);
                 lesserItemsTailIndex++;
             }
         }
-        qsSwap(arr, right, lesserItemsTailIndex);
+        qsSwapInts(arr, right, lesserItemsTailIndex);
         return lesserItemsTailIndex;
     }
 
-    private static void qsSwap(int[] arr, int first, int second) {
+    private static void qsSwapInts(int[] arr, int first, int second) {
         int temp = arr[first];
+        arr[first] = arr[second];
+        arr[second] = temp;
+    }
+
+    /**
+     * Same as [[quickSelectInts]], except for floats.
+     */
+    public static float quickSelectFloats(float[] arr, int k) {
+        int n = arr.length;
+        int left = 0;
+        int right = n - 1;
+        int finalIndexOfChoosenPivot = 0;
+        while (left <= right) {
+            int choosenPivotIndex = (right - left + 1) / 2 + left;
+            finalIndexOfChoosenPivot = qsPartitionFloats(arr, left, right, choosenPivotIndex);
+            if (finalIndexOfChoosenPivot == n - k) {
+                break;
+            } else if (finalIndexOfChoosenPivot > n - k) {
+                right = finalIndexOfChoosenPivot - 1;
+            } else {
+                left = finalIndexOfChoosenPivot + 1;
+            }
+        }
+        return arr[finalIndexOfChoosenPivot];
+    }
+
+    public static float quickSelectFloatsCopy(float[] arr, int k) {
+        return quickSelectFloats(Arrays.copyOf(arr, arr.length), k);
+    }
+
+    private static int qsPartitionFloats(float[] arr, int left, int right, int pivotIndex) {
+        float pivotValue = arr[pivotIndex];
+        int lesserItemsTailIndex = left;
+        qsSwapFloats(arr, pivotIndex, right);
+        for (int i = left; i < right; i++) {
+            if (arr[i] < pivotValue) {
+                qsSwapFloats(arr, i, lesserItemsTailIndex);
+                lesserItemsTailIndex++;
+            }
+        }
+        qsSwapFloats(arr, right, lesserItemsTailIndex);
+        return lesserItemsTailIndex;
+    }
+
+    private static void qsSwapFloats(float[] arr, int first, int second) {
+        float temp = arr[first];
         arr[first] = arr[second];
         arr[second] = temp;
     }

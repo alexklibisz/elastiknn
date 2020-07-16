@@ -19,7 +19,6 @@ import scala.util.Random
   */
 final class HammingLsh(override val mapping: Mapping.HammingLsh)
     extends HashingFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
-  override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Hamming
 
   import mapping._
   private val rng: Random = new Random(0)

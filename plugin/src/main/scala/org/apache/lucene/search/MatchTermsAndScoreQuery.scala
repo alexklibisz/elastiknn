@@ -91,7 +91,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
       def getCandidateDocs(docIdToMatchingCount: IntIntScatterMap): Array[Int] =
         if (docIdToMatchingCount.size() <= candidates) docIdToMatchingCount.keys().toArray
         else {
-          val minCandidateTermCount = ArrayUtils.quickSelectCopy(docIdToMatchingCount.values, candidates)
+          val minCandidateTermCount = ArrayUtils.quickSelectIntsCopy(docIdToMatchingCount.values, candidates)
           val docIds = new ArrayBuffer[Int](candidates)
           docIdToMatchingCount.forEach((t: IntIntCursor) => if (t.value >= minCandidateTermCount) docIds.append(t.key))
           docIds.toArray

@@ -15,7 +15,6 @@ import scala.util.Random
   */
 final class AngularLsh(override val mapping: Mapping.AngularLsh)
     extends HashingFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-  override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.Angular
 
   import mapping._
 

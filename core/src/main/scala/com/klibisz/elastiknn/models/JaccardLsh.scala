@@ -28,8 +28,6 @@ import scala.util.Random
 final class JaccardLsh(override val mapping: Mapping.JaccardLsh)
     extends HashingFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
 
-  override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Jaccard
-
   import mapping._
   private val rng: Random = new Random(0)
   private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
