@@ -21,7 +21,9 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. 
 These determine how vectors are indexed to support different kinds of searches.
 
-The general structure for specifying a mapping looks like this:
+### General Structure
+
+The general mapping structure looks like this:
 
 ```json
 PUT /my-index/_mapping
@@ -345,7 +347,10 @@ POST /my-index/_doc
 
 ## Nearest Neighbor Queries
 
-Elastiknn provides a query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like standard Elasticsearch queries. 
+Elastiknn provides a query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like 
+standard Elasticsearch queries, as well as in combination with standard Elasticsearch queries. 
+
+### General Structure
 
 The general query structure looks like this:
 
@@ -375,11 +380,14 @@ GET /my-index/_search
 |5|One of the five similarity functions used to score indexed vectors.|
 |6|Additional query parameters for different model/similarity combinations. Covered more below.|
 
-### Datatypes and Similarities
+### Compatibility of Vector Types and Similarities
 
-Jaccard and Hamming similarity only work with sparse bool vectors. Angular, L1, and L2 similarity only work with dense float vectors. The following documentation assume this restriction is known.
+Jaccard and Hamming similarity only work with sparse bool vectors. 
+Angular, L1, and L2 similarity only work with dense float vectors. 
+The following documentation assume this restriction is known.
 
-These restrictions aren't inherent to the types and algorithms. They just seem uncommon and complicate the implementation, so they were left out initially.
+These restrictions aren't inherent to the types and algorithms, i.e., you could in theory run angular similarity on sparse vectors.
+The restriction merely reflects the most common patterns and simplifies the implementation.
 
 ### Similarity Scoring
 
@@ -633,13 +641,17 @@ GET /my-index/_search
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
-## Mapping and Query Compatibility
+### Mapping and Query Compatibility
 
-Some models can be used for more than one type of query. For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using Jaccard and Hamming similarity. The opposite is _not_ true; vectors stored using the exact model do not support Jaccard LSH queries.
+Some models can be used for more than one type of query. 
+For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using Jaccard and Hamming similarity. 
+The opposite is _not_ true; vectors stored using the exact model do not support Jaccard LSH queries.
 
-The tables below show valid model/query combinations. Rows are models and columns are queries. The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1, L2).
+The tables below show valid model/query combinations. 
+Rows are models and columns are queries. 
+The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1, L2).
 
-### elastiknn_sparse_bool_vector
+#### elastiknn_sparse_bool_vector
 
 |Model / Query                  |Exact    |Sparse Indexed |Jaccard LSH |Hamming LSH |
 |:--                            |:--      |:--            |:--         |:--         |
@@ -648,7 +660,7 @@ The tables below show valid model/query combinations. Rows are models and column
 |Jaccard LSH                    |✔ (J, H) |x              |✔           |x           |
 |Hamming LSH                    |✔ (J, H) |x              |x           |✔           |
 
-### elastiknn_dense_float_vector
+#### elastiknn_dense_float_vector
 
 |Model / Query                   |Exact         |Angular LSH |L2 LSH |
 |:--                             |:--           |:--         |:--    |
@@ -656,6 +668,43 @@ The tables below show valid model/query combinations. Rows are models and column
 |Angular LSH                     |✔ (A, L1, L2) |✔           |x      |
 |L2 LSH                          |✔ (A, L1, L2) |x           |✔      |
 
+### Running Nearest Neighbors Query on a Filtered Subset of Documents
+
+It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors`
+query on that subset.
+For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`,
+and only run `elastiknn_nearest_neighbors` on that subset.
+To do this, you can use the `elastiknn_nearest_neighbors` query in a [boolean query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html).
+
+Consider this example:
+
+```json
+GET /my-index/_search
+{
+    "query": {
+        "bool": {
+            "filter": [
+                "term": { "term": { "color": "blue" } },     # 1
+            ],
+            "must": {
+                "elastiknn_nearest_neighbors": {             # 2
+                    "field": "vec",
+                    "vec": { 
+                        "values": [0.1, 0.2, 0.3, ...]
+                    },
+                    "model": "exact",
+                    "similarity": "l2"
+                 }
+            }           
+        }
+    }
+}
+``` 
+
+|#|Description|
+|:--|:--|
+|1|Filter clause that will limit the query to only run on documents containing `"color": "blue"`.|
+|2|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
 
 ## Miscellaneous Implementation Details
 

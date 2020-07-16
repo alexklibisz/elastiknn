@@ -10,7 +10,7 @@ import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
-import io.circe.{Codec, Json, JsonObject}
+import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
@@ -18,8 +18,7 @@ import org.elasticsearch.action.admin.indices.mapping.get._
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.common.xcontent.json.{JsonXContent, JsonXContentParser}
-import org.elasticsearch.common.xcontent.{DeprecationHandler, NamedXContentRegistry, ToXContent, XContent, XContentBuilder, XContentParser}
+import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
 
 object KnnQueryBuilder {
@@ -34,9 +33,8 @@ object KnnQueryBuilder {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       val map = parser.map()
       val json: Json = javaMapEncoder(map)
-      val filter: Json = json.findAllByKey("filter").headOption.getOrElse(Json.obj())
       val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
-      new KnnQueryBuilder(query, filter)
+      new KnnQueryBuilder(query)
     }
   }
 
@@ -45,8 +43,7 @@ object KnnQueryBuilder {
       in.readFloat() // boost
       in.readOptionalString() // query name
       val query = decodeB64[NearestNeighborsQuery](in.readString())
-      val filter = decodeB64[Json](in.readString())
-      new KnnQueryBuilder(query, filter)
+      new KnnQueryBuilder(query)
     }
   }
 
@@ -55,11 +52,10 @@ object KnnQueryBuilder {
 
 }
 
-final case class KnnQueryBuilder(query: NearestNeighborsQuery, filter: Json) extends AbstractQueryBuilder[KnnQueryBuilder] {
+final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
   override def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(KnnQueryBuilder.encodeB64(query))
-    out.writeString(KnnQueryBuilder.encodeB64(filter))
   }
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
@@ -73,13 +69,6 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery, filter: Json) ext
     // Have to get the mapping inside doToQuery because only QueryShardContext defines the index name and a client to make requests.
     val mapping: Mapping = getMapping(c)
     import NearestNeighborsQuery._
-
-    // If the filter is non-empty, parse it to a query.
-    val filterQueryBuilder: QueryBuilder = if (filter != Json.obj()) {
-      val parser = JsonXContent.jsonXContent
-        .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, filter.noSpaces)
-      AbstractQueryBuilder.parseInnerQueryBuilder(parser)
-    } else new MatchAllQueryBuilder
 
     (query, mapping) match {
       case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),

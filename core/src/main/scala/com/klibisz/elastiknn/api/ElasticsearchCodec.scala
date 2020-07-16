@@ -85,11 +85,6 @@ object ElasticsearchCodec { esc =>
   def decodeJsonGet[T: ElasticsearchCodec](j: Json): T = decodeJson[T](j).toTry.get
   def parseGet[T: ElasticsearchCodec](s: String): Json = parse(s).toTry.get
 
-  implicit val json: ESC[Json] = new ESC[Json] {
-    override def apply(c: HCursor): Result[Json] = Right(c.value)
-    override def apply(a: Json): Json = a
-  }
-
   implicit val similarity: ESC[Similarity] = new ESC[Similarity] {
     // Circe's default enumeration codec is case-sensitive and gives useless errors.
     override def apply(c: HCursor): Result[Similarity] =
