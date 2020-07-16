@@ -31,9 +31,10 @@ object KnnQueryBuilder {
 
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
-      val json: Json = javaMapEncoder(parser.map)
-      val queryTry = ElasticsearchCodec.decodeJson[NearestNeighborsQuery](json).toTry
-      new KnnQueryBuilder(queryTry.get)
+      val map = parser.map()
+      val json: Json = javaMapEncoder(map)
+      val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
+      new KnnQueryBuilder(query)
     }
   }
 
@@ -41,7 +42,8 @@ object KnnQueryBuilder {
     override def read(in: StreamInput): KnnQueryBuilder = {
       in.readFloat() // boost
       in.readOptionalString() // query name
-      new KnnQueryBuilder(decodeB64[NearestNeighborsQuery](in.readString()))
+      val query = decodeB64[NearestNeighborsQuery](in.readString())
+      new KnnQueryBuilder(query)
     }
   }
 
@@ -52,7 +54,9 @@ object KnnQueryBuilder {
 
 final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
-  override def doWriteTo(out: StreamOutput): Unit = out.writeString(KnnQueryBuilder.encodeB64(query))
+  override def doWriteTo(out: StreamOutput): Unit = {
+    out.writeString(KnnQueryBuilder.encodeB64(query))
+  }
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 

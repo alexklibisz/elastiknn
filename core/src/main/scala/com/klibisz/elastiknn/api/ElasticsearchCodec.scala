@@ -119,7 +119,7 @@ object ElasticsearchCodec { esc =>
     ElasticsearchCodec(deriveConfiguredCodec)
   }
 
-  implicit val vector: ESC[api.Vec] = new ESC[api.Vec] {
+  implicit val vec: ESC[api.Vec] = new ESC[api.Vec] {
     override def apply(t: Vec): Json = t match {
       case ixv: Vec.Indexed    => encode(ixv)
       case sbv: Vec.SparseBool => encode(sbv)
