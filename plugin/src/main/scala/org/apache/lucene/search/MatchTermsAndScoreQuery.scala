@@ -79,6 +79,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
             var i = 0
             while (i < docs.cost()) {
               val docId = docs.nextDoc()
+              // TODO: increment by docs.freq() instead of 1.
               docIdToMatchingCount.putOrAdd(docId, 1, 1)
               i += 1
             }

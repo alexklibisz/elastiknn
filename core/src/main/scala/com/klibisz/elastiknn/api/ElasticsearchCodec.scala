@@ -60,7 +60,6 @@ object ElasticsearchCodec { esc =>
   private def fail[T](msg: String): Either[DecodingFailure, T] = Left(DecodingFailure(msg, List.empty))
   private def failTypes[T](field: String, good: Seq[String], bad: String): Either[DecodingFailure, T] =
     fail(s"Expected field $field to be one of (${good.mkString(", ")}) but got $bad")
-  private def failTypes[T](good: Seq[String], bad: String): Either[DecodingFailure, T] = failTypes(TYPE, good, bad)
 
   private implicit def jsonObjToJson(jo: JsonObject): Json = Json.fromJsonObject(jo)
   private implicit def intToJson(i: Int): Json = Json.fromInt(i)
