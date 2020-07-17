@@ -47,8 +47,3 @@ final class MagnitudesLsh(override val mapping: Mapping.MagnitudesLsh)
     hashes
   }
 }
-
-object Foo extends App {
-  val mlsh = new MagnitudesLsh(Mapping.MagnitudesLsh(5, 3))
-  mlsh(Vec.DenseFloat(Array(5f, -4f, -1f, 0f, 4f)))
-}

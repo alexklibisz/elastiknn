@@ -131,8 +131,21 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.25,
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
+    ),
+    // Magnitudes Lsh
+    Test(
+      Mapping.MagnitudesLsh(dims, dims / 5),
+      Seq(
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 200) -> 1d,
+        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 400) -> 1d,
+        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 1d,
+        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 1d
+      )
     )
-  )
+  ).takeRight(1)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
@@ -222,11 +235,11 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         }
 
         // Make sure recall is at or above expected.
-        withClue(s"Explicit query recall should be $expectedRecall +/- $recallTolerance") {
+        withClue(s"Explicit query recall") {
           explicitRecall1 shouldBe expectedRecall +- recallTolerance
         }
 
-        withClue(s"Indexed query recall should be $expectedRecall +/- $recallTolerance") {
+        withClue(s"Indexed query recall") {
           indexedRecall shouldBe expectedRecall +- recallTolerance
         }
       }
