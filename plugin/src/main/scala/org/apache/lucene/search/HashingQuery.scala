@@ -23,11 +23,11 @@ import scala.collection.mutable.ArrayBuffer
   * @param scoreFunction Fn taking a LeafReaderContext, returns a fn taking doc id and number of matched terms, returns the final score.
   * @param indexReader IndexReader used to get some stats about the tokens field.
   */
-class HashingQuery[T](val termsField: String,
-                      val terms: Array[BytesRef],
-                      val candidates: Int,
-                      val scoreFunction: LeafReaderContext => (Int, Int) => Double,
-                      val indexReader: IndexReader)
+class HashingQuery(val termsField: String,
+                   val terms: Array[BytesRef],
+                   val candidates: Int,
+                   val scoreFunction: LeafReaderContext => (Int, Int) => Double,
+                   val indexReader: IndexReader)
     extends Query {
 
   private val logger: Logger = LogManager.getLogger(this.getClass)
@@ -66,7 +66,7 @@ class HashingQuery[T](val termsField: String,
     override def scorer(context: LeafReaderContext): Scorer = {
 
       def getDocIdToMatchingCount(): IntIntScatterMap = {
-        val reader = context.reader()
+        val reader: LeafReader = context.reader()
         val terms = reader.terms(termsField)
         val termsEnum: TermsEnum = terms.iterator()
         val iterator = sortedTerms.iterator()
@@ -117,7 +117,7 @@ class HashingQuery[T](val termsField: String,
     s"${this.getClass.getSimpleName} for tokens field [$termsField] with [$candidates] candidates."
 
   override def equals(other: Any): Boolean = other match {
-    case q: HashingQuery[T] =>
+    case q: HashingQuery =>
       termsField == q.termsField && candidates == q.candidates && scoreFunction == q.scoreFunction && terms
         .zip(q.terms)
         .forall { case (a, b) => a == b }
