@@ -41,6 +41,10 @@ dependencies {
     implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
     implementation "ch.qos.logback:logback-classic:1.2.3"
     implementation 'org.scalanlp:breeze_2.12:1.0'
+    testImplementation project(':plugin')
     testImplementation 'org.apache.commons:commons-math3:3.6.1'
+    testImplementation 'org.apache.lucene:lucene-codecs:8.4.0'
+    testImplementation 'org.apache.lucene:lucene-analyzers-common:8.4.0'
+    testImplementation 'org.elasticsearch:elasticsearch:7.6.2'
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }

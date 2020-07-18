@@ -23,11 +23,11 @@ import scala.collection.mutable.ArrayBuffer
   * @param scoreFunction Fn taking a LeafReaderContext, returns a fn taking doc id and number of matched terms, returns the final score.
   * @param indexReader IndexReader used to get some stats about the tokens field.
   */
-class MatchTermsAndScoreQuery[T](val termsField: String,
-                                 val terms: Array[BytesRef],
-                                 val candidates: Int,
-                                 val scoreFunction: LeafReaderContext => (Int, Int) => Double,
-                                 val indexReader: IndexReader)
+class HashingQuery[T](val termsField: String,
+                      val terms: Array[BytesRef],
+                      val candidates: Int,
+                      val scoreFunction: LeafReaderContext => (Int, Int) => Double,
+                      val indexReader: IndexReader)
     extends Query {
 
   private val logger: Logger = LogManager.getLogger(this.getClass)
@@ -99,7 +99,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
 
       val docIdToMatchingCount = getDocIdToMatchingCount()
       val candidateDocs = getCandidateDocs(docIdToMatchingCount)
-      val disi = new MatchTermsAndScoreQuery.DocIdsArrayIterator(candidateDocs)
+      val disi = new HashingQuery.DocIdsArrayIterator(candidateDocs)
       val leafScoreFunction = scoreFunction(context)
 
       new Scorer(this) {
@@ -117,7 +117,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
     s"${this.getClass.getSimpleName} for tokens field [$termsField] with [$candidates] candidates."
 
   override def equals(other: Any): Boolean = other match {
-    case q: MatchTermsAndScoreQuery[T] =>
+    case q: HashingQuery[T] =>
       termsField == q.termsField && candidates == q.candidates && scoreFunction == q.scoreFunction && terms
         .zip(q.terms)
         .forall { case (a, b) => a == b }
@@ -128,7 +128,7 @@ class MatchTermsAndScoreQuery[T](val termsField: String,
 
 }
 
-object MatchTermsAndScoreQuery {
+object HashingQuery {
 
   private final class DocIdsArrayIterator(docIds: Array[Int]) extends DocIdSetIterator {
     private var i = 0

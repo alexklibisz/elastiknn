@@ -24,7 +24,7 @@ object SparseIndexedQuery {
         } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
     }
 
-    new MatchTermsAndScoreQuery(
+    new HashingQuery(
       field,
       terms,
       indexReader.getDocCount(field),

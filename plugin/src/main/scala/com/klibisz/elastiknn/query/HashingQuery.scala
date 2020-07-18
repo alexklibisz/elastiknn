@@ -5,7 +5,7 @@ import com.klibisz.elastiknn.models.HashingFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
-import org.apache.lucene.search.{MatchTermsAndScoreQuery, Query}
+import org.apache.lucene.search.{HashingQuery => LuceneHashingQuery, Query}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.MappedFieldType
 
@@ -29,7 +29,7 @@ object HashingQuery {
         lshFunction.exact(query, storedVec)
     }
 
-    new MatchTermsAndScoreQuery(
+    new LuceneHashingQuery(
       field,
       terms,
       candidates,
