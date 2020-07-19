@@ -1,8 +1,6 @@
 package org.apache.lucene.search;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIntScatterMap;
-import com.carrotsearch.hppc.cursors.IntIntCursor;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.ArrayUtil;
@@ -12,7 +10,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class MatchHashesAndScoreQuery extends Query {
@@ -70,7 +67,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int numDocsInSegment;
 
     private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-        // PrefixCodedTerms.Builder expects the hashes in osrted order.
+        // PrefixCodedTerms.Builder expects the hashes in sorted order.
         ArrayUtil.timSort(hashes);
         PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
         for (BytesRef br : hashes) builder.add(field, br);
@@ -94,8 +91,6 @@ public class MatchHashesAndScoreQuery extends Query {
     @Override
     public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
 
-        final int n = this.numDocsInSegment;
-
         return new Weight(this) {
 
             private int[] countMatches(LeafReaderContext context) throws IOException {
@@ -103,7 +98,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PrefixCodedTerms.TermIterator iterator = prefixCodedTerms.iterator();
-                int[] counts = new int[n];
+                int[] counts = new int[numDocsInSegment];
                 PostingsEnum docs = null;
                 BytesRef term = iterator.next();
                 while (term != null) {

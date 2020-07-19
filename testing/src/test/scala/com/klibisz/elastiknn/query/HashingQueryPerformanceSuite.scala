@@ -23,7 +23,7 @@ class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHar
   test("indexing and searching on par with GloVe-25") {
     implicit val rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000000)
-    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 100)
+    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000)
     val lshFunc = new AngularLsh(Mapping.AngularLsh(25, 50, 1))
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)
