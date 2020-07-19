@@ -5,7 +5,7 @@ import com.klibisz.elastiknn.models.HashingFunction
 import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
-import org.apache.lucene.search.{HashingQueryJava, Query, HashingQuery => LuceneHashingQuery}
+import org.apache.lucene.search.{MatchHashesAndScoreQuery, Query}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.MappedFieldType
 
@@ -19,16 +19,17 @@ object HashingQuery {
                                                     candidates: Int,
                                                     lshFunction: HashingFunction[M, V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
-    val terms = lshFunction(query).map(h => new BytesRef(h))
-    val scoreFunction: java.util.function.Function[LeafReaderContext, HashingQueryJava.ScoreFunction] = (lrc: LeafReaderContext) => {
-      val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
-      (docId: Int, _: Int) =>
-        val storedVec = cachedReader(docId)
-        lshFunction.exact(query, storedVec)
-    }
-    new HashingQueryJava(
+    val hashes = lshFunction(query).map(h => new BytesRef(h))
+    val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
+      (lrc: LeafReaderContext) => {
+        val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
+        (docId: Int, _: Int) =>
+          val storedVec = cachedReader(docId)
+          lshFunction.exact(query, storedVec)
+      }
+    new MatchHashesAndScoreQuery(
       field,
-      terms,
+      hashes,
       candidates,
       indexReader,
       scoreFunction

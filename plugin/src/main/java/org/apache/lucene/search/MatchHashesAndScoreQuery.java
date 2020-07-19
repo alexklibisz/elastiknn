@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class HashingQueryJava extends Query {
+public class MatchHashesAndScoreQuery extends Query {
 
     public interface ScoreFunction {
         double score(int docId, int numMatchingHashes);
@@ -46,7 +46,7 @@ public class HashingQueryJava extends Query {
         }
 
         @Override
-        public int advance(int target) throws IOException {
+        public int advance(int target) {
             if (target < docIds[0]) return docIds[0];
             else if (target > docIds[docIds.length - 1]) return DocIdSetIterator.NO_MORE_DOCS;
             else {
@@ -70,18 +70,18 @@ public class HashingQueryJava extends Query {
     private final int expectedMatchingDocs;
 
     private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-        // TODO: ensure the hashes are prefixed with sorted tokens so that the sort is unnecessary.
+        // PrefixCodedTerms.Builder expects the hashes in osrted order.
         ArrayUtil.timSort(hashes);
         PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
         for (BytesRef br : hashes) builder.add(field, br);
         return builder.finish();
     }
 
-    public HashingQueryJava(final String field,
-                            final BytesRef[] hashes,
-                            final int candidates,
-                            final IndexReader indexReader,
-                            final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) throws IOException {
+    public MatchHashesAndScoreQuery(final String field,
+                                    final BytesRef[] hashes,
+                                    final int candidates,
+                                    final IndexReader indexReader,
+                                    final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) throws IOException {
         this.field = field;
         this.hashes = hashes;
         this.candidates = candidates;
@@ -109,7 +109,7 @@ public class HashingQueryJava extends Query {
                 while (term != null) {
                     if (termsEnum.seekExact(term)) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                        for (int i = 0; i < docs.cost(); i ++) {
+                        for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
                             docToCount.putOrAdd(docId, 1, 1);
                         }
@@ -187,8 +187,8 @@ public class HashingQueryJava extends Query {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof HashingQueryJava) {
-            HashingQueryJava q = (HashingQueryJava) obj;
+        if (obj instanceof MatchHashesAndScoreQuery) {
+            MatchHashesAndScoreQuery q = (MatchHashesAndScoreQuery) obj;
             return q.hashCode() == this.hashCode();
         } else {
             return false;

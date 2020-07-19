@@ -6,7 +6,7 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
-        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.25'
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.26'
     }
 }
 
@@ -33,6 +33,7 @@ test {
 dependencies {
     implementation project(':core')
     implementation project(':client-elastic4s')
+    implementation project(':plugin')
     implementation "org.scala-lang:scala-library:$scalaVersion"
     implementation 'com.typesafe:config:1.4.0'
     implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
@@ -40,11 +41,10 @@ dependencies {
     implementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
     implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
     implementation "ch.qos.logback:logback-classic:1.2.3"
-    implementation 'org.scalanlp:breeze_2.12:1.0'
-    testImplementation project(':plugin')
-    testImplementation 'org.apache.commons:commons-math3:3.6.1'
-    testImplementation 'org.apache.lucene:lucene-codecs:8.4.0'
-    testImplementation 'org.apache.lucene:lucene-analyzers-common:8.4.0'
-    testImplementation 'org.elasticsearch:elasticsearch:7.6.2'
+    implementation 'org.apache.commons:commons-math3:3.6.1'
+    implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+    implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+    implementation "org.elasticsearch:elasticsearch:${esVersion}"
+    implementation "com.storm-enroute:scalameter_${scalaVersion}:0.19"
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }
