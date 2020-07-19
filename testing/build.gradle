@@ -46,5 +46,6 @@ dependencies {
     implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
     implementation "org.elasticsearch:elasticsearch:${esVersion}"
     implementation "com.storm-enroute:scalameter_${scalaVersion}:0.19"
+    implementation "org.scalanlp:breeze_${scalaVersion}:1.0"
     testRuntime 'org.pegdown:pegdown:1.4.2'
 }

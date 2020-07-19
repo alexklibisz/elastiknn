@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.query
 
+import java.nio.file.{Files, Path}
+
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.AngularLsh
@@ -11,10 +13,17 @@ import scala.util.Random
 
 class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
 
+  private val p = Path.of("/tmp/wait")
+  if (!Files.exists(p)) Files.createFile(p)
+  while (Files.exists(p)) {
+    println(s"Waiting. Please delete ${p.toAbsolutePath.toString} to start.")
+    Thread.sleep(1000)
+  }
+
   test("indexing and searching on par with GloVe-25") {
     implicit val rng: Random = new Random(0)
-    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 20000)
-    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000)
+    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000000)
+    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 100)
     val lshFunc = new AngularLsh(Mapping.AngularLsh(25, 50, 1))
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)

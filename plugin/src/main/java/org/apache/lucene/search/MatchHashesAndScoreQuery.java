@@ -67,7 +67,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
     private final PrefixCodedTerms prefixCodedTerms;
-    private final int expectedMatchingDocs;
+    private final int numDocsInSegment;
 
     private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
         // PrefixCodedTerms.Builder expects the hashes in osrted order.
@@ -81,29 +81,29 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final BytesRef[] hashes,
                                     final int candidates,
                                     final IndexReader indexReader,
-                                    final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) throws IOException {
+                                    final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         this.field = field;
         this.hashes = hashes;
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
         this.prefixCodedTerms = makePrefixCodedTerms(field, hashes);
-
-        // Rough prediction for the number of (docId, count) pairs that will be kept in memory.
-        int numSegments = indexReader.getContext().leaves().size();
-        this.expectedMatchingDocs = Math.min(130000, (indexReader.getDocCount(field) / numSegments));
+        this.numDocsInSegment = indexReader.numDocs();
     }
 
     @Override
-    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
+    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
+
+        final int n = this.numDocsInSegment;
+
         return new Weight(this) {
 
-            private IntIntScatterMap countMatches(LeafReaderContext context) throws IOException {
+            private int[] countMatches(LeafReaderContext context) throws IOException {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PrefixCodedTerms.TermIterator iterator = prefixCodedTerms.iterator();
-                IntIntScatterMap docToCount = new IntIntScatterMap(expectedMatchingDocs);
+                int[] counts = new int[n];
                 PostingsEnum docs = null;
                 BytesRef term = iterator.next();
                 while (term != null) {
@@ -111,38 +111,35 @@ public class MatchHashesAndScoreQuery extends Query {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            docToCount.putOrAdd(docId, 1, 1);
+                            counts[docId] += 1;
                         }
                     }
                     term = iterator.next();
                 }
-                return docToCount;
+                return counts;
             }
 
-            private int[] pickCandidates(IntIntScatterMap counts) {
-                if (counts.size() <= candidates) return counts.keys().toArray();
-                else {
-                    int minCount = ArrayUtils.quickSelectCopy(counts.values, candidates);
-                    IntArrayList docIds = new IntArrayList(candidates * 11 / 10);
-                    counts.forEach((Consumer<IntIntCursor>) c -> {
-                        if (c.value >= minCount) docIds.add(c.key);
-                    });
-                    return docIds.toArray();
+            private int[] pickCandidates(int[] counts) {
+                int minCount = ArrayUtils.quickSelectCopy(counts, candidates);
+                IntArrayList docIds = new IntArrayList(candidates * 11 / 10);
+                for (int docId = 0; docId < counts.length; docId++) {
+                    if (counts[docId] >= minCount) docIds.add(docId);
                 }
+                return docIds.toArray();
             }
 
             @Override
             public void extractTerms(Set<Term> terms) { }
 
             @Override
-            public Explanation explain(LeafReaderContext context, int doc) throws IOException {
+            public Explanation explain(LeafReaderContext context, int doc) {
                 return null;
             }
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                IntIntScatterMap matches = countMatches(context);
-                int[] candidates = pickCandidates(matches);
+                int[] counts = countMatches(context);
+                int[] candidates = pickCandidates(counts);
                 DocIdsArrayIterator disi = new DocIdsArrayIterator(candidates);
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 return new Scorer(this) {
@@ -158,7 +155,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), matches.get(docID()));
+                        return (float) scoreFunction.score(docID(), counts[docID()]);
                     }
 
                     @Override
