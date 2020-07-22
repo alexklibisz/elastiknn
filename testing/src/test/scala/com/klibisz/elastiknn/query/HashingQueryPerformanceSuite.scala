@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.nio.file.{Files, Path}
-
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.AngularLsh
@@ -13,6 +11,7 @@ import scala.util.Random
 
 class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
 
+  import java.nio.file.{Files, Path}
   private val p = Path.of("/tmp/wait")
   if (!Files.exists(p)) Files.createFile(p)
   while (Files.exists(p)) {
@@ -20,7 +19,7 @@ class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHar
     Thread.sleep(1000)
   }
 
-  test("indexing and searching on par with GloVe-25") {
+  test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000000)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000)
@@ -39,15 +38,12 @@ class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHar
     } {
       case (r, s) =>
         val t0 = System.currentTimeMillis()
-        val times = queryVecs.foldLeft(Vector.empty[Long]) {
-          case (accTimes, vec) =>
-            val q = HashingQuery("vec", vec, 2000, lshFunc, r)
-            val t0 = System.currentTimeMillis()
-            val dd = s.search(q, 100)
-            dd.scoreDocs should have length 100
-            accTimes :+ System.currentTimeMillis() - t0
+        queryVecs.foreach { vec =>
+          val q = HashingQuery(field, vec, 2000, lshFunc, r)
+          val dd = s.search(q, 100)
+          dd.scoreDocs should have length 100
         }
-        info(s"Ran [${times.length}] searches in [${System.currentTimeMillis() - t0}] ms.")
+        info(s"Ran [${queryVecs.length}] searches in [${System.currentTimeMillis() - t0}] ms.")
     }
   }
 

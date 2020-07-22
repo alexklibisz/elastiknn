@@ -115,7 +115,7 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private int[] pickCandidates(int[] counts) {
-                int minCount = ArrayUtils.quickSelectCopy(counts, candidates);
+                int minCount = ArrayUtils.quickSelect(counts, candidates);
                 IntArrayList docIds = new IntArrayList(candidates * 11 / 10);
                 for (int docId = 0; docId < counts.length; docId++) {
                     if (counts[docId] >= minCount) docIds.add(docId);
