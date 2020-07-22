@@ -1,6 +1,5 @@
 package org.apache.lucene.search;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.ArrayUtil;
@@ -93,12 +92,12 @@ public class MatchHashesAndScoreQuery extends Query {
 
         return new Weight(this) {
 
-            private int[] countMatches(LeafReaderContext context) throws IOException {
+            private short[] countMatches(LeafReaderContext context) throws IOException {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PrefixCodedTerms.TermIterator iterator = prefixCodedTerms.iterator();
-                int[] counts = new int[numDocsInSegment];
+                short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
                 BytesRef term = iterator.next();
                 while (term != null) {
@@ -114,15 +113,6 @@ public class MatchHashesAndScoreQuery extends Query {
                 return counts;
             }
 
-            private int[] pickCandidates(int[] counts) {
-                int minCount = ArrayUtils.quickSelect(counts, candidates);
-                IntArrayList docIds = new IntArrayList(candidates * 11 / 10);
-                for (int docId = 0; docId < counts.length; docId++) {
-                    if (counts[docId] >= minCount) docIds.add(docId);
-                }
-                return docIds.toArray();
-            }
-
             @Override
             public void extractTerms(Set<Term> terms) { }
 
@@ -133,9 +123,9 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                int[] counts = countMatches(context);
-                int[] candidates = pickCandidates(counts);
-                DocIdsArrayIterator disi = new DocIdsArrayIterator(candidates);
+                short[] counts = countMatches(context);
+                int[] docIds = ArrayUtils.kLargestIndices(counts, candidates);
+                DocIdsArrayIterator disi = new DocIdsArrayIterator(docIds);
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 return new Scorer(this) {
                     @Override

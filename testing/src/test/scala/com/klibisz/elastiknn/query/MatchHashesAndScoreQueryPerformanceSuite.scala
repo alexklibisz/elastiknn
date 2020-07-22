@@ -9,7 +9,7 @@ import org.scalatest._
 
 import scala.util.Random
 
-class HashingQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
+class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
 
   import java.nio.file.{Files, Path}
   private val p = Path.of("/tmp/wait")

@@ -35,37 +35,80 @@ public class ArrayUtils {
         return n;
     }
 
-
     /**
-     * Return the k-th largest value in the array.
-     * Makes a copy of the array so the original is not modified.
-     * @param arr an array of ints, usually counts of some sort.
-     * @param k the position of interest, usually a cutoff of some sort.
-     * @return the k-th largest value in the array.
+     * Find the indices of values >= the kth largest value in the given array of shorts in O(N) time and space.
+     * Assumes that the max value in the array is small enough that you can keep an array of that length in memory.
+     *
+     * @param arr array of non-negative shorts, presumably some type of count.
+     * @param k the desired largest value.
+     * @return Indices of the k largest values.
      */
-    public static int quickSelect(final int[] arr, final int k) {
-        return quickSelect(Arrays.copyOf(arr, arr.length), 0, arr.length - 1, k);
+    public static int[] kLargestIndices(short[] arr, int k) {
+        // Find the min and max values.
+        short max = arr[0];
+        short min = arr[0];
+        for (short a: arr) {
+            if (a > max) max = a;
+            else if (a < min) min = a;
+        }
+
+        // Build and populate a histogram for non-zero values.
+        int[] hist = new int[max - min + 1];
+        for (short a: arr) {
+            // System.out.println(String.format("(%d, %d)", a, min));
+            hist[a - min] += 1;
+        }
+
+        // Find the kth largest value by iterating from the end of the histogram.
+        int geqk = 0;
+        int kthLargest = max;
+        while (kthLargest >= min) {
+            geqk += hist[kthLargest - min];
+            if (geqk > k) break;
+            else kthLargest--;
+        }
+
+        // Build the array of indices.
+        int[] kLargestIndices = new int[geqk];
+        int j = 0;
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] >= kthLargest) kLargestIndices[j++] = i;
+        }
+
+        return kLargestIndices;
     }
 
-    private static int quickSelect(int[] arr, int lo, int hi, int k) {
-        if (lo == hi) {
-            return arr[lo];
-        } else {
-            int p = arr[(lo + hi) / 2];
-            int i = lo - 1;
-            int j = hi + 1;
-            while (true) {
-                while (arr[++i] > p);
-                while (arr[--j] < p);
-                if (i >= j) break;
-                int tmp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tmp;
-            }
-            if (k <= j) return quickSelect(arr, lo, j, k);
-            else return quickSelect(arr, j + 1, hi, k);
-        }
-    }
+
+//    /**
+//     * Return the k-th largest value in the array.
+//     * Makes a copy of the array so the original is not modified.
+//     * @param arr an array of ints, usually counts of some sort.
+//     * @param k the position of interest, usually a cutoff of some sort.
+//     * @return the k-th largest value in the array.
+//     */
+//    public static int quickSelect(final int[] arr, final int k) {
+//        return quickSelect(Arrays.copyOf(arr, arr.length), 0, arr.length - 1, k);
+//    }
+
+//    private static int quickSelect(int[] arr, int lo, int hi, int k) {
+//        if (lo == hi) {
+//            return arr[lo];
+//        } else {
+//            int p = arr[(lo + hi) / 2];
+//            int i = lo - 1;
+//            int j = hi + 1;
+//            while (true) {
+//                while (arr[++i] > p);
+//                while (arr[--j] < p);
+//                if (i >= j) break;
+//                int tmp = arr[i];
+//                arr[i] = arr[j];
+//                arr[j] = tmp;
+//            }
+//            if (k <= j) return quickSelect(arr, lo, j, k);
+//            else return quickSelect(arr, j + 1, hi, k);
+//        }
+//    }
 
 //    /**
 //     * Find the kth largest value in the given array.
