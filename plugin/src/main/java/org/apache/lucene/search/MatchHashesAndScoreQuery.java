@@ -6,7 +6,6 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -15,46 +14,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     public interface ScoreFunction {
         double score(int docId, int numMatchingHashes);
-    }
-
-    private static class DocIdsArrayIterator extends DocIdSetIterator {
-
-        private final int[] docIds;
-        private int i = 0;
-
-        public DocIdsArrayIterator(int[] docIds) {
-            Arrays.sort(docIds);
-            this.docIds = docIds;
-        }
-
-        @Override
-        public int docID() {
-            return docIds[i];
-        }
-
-        @Override
-        public int nextDoc() {
-            if (i == docIds.length - 1) return DocIdSetIterator.NO_MORE_DOCS;
-            else {
-                i += 1;
-                return docID();
-            }
-        }
-
-        @Override
-        public int advance(int target) {
-            if (target < docIds[0]) return docIds[0];
-            else if (target > docIds[docIds.length - 1]) return DocIdSetIterator.NO_MORE_DOCS;
-            else {
-                while (docIds[i] < target) i += 1;
-                return docID();
-            }
-        }
-
-        @Override
-        public long cost() {
-            return docIds.length;
-        }
     }
 
     private final String field;
@@ -123,10 +82,41 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                short[] counts = countMatches(context);
-                int[] docIds = ArrayUtils.kLargestIndices(counts, candidates);
-                DocIdsArrayIterator disi = new DocIdsArrayIterator(docIds);
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
+                short[] counts = countMatches(context);
+                int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
+
+                // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
+                DocIdSetIterator disi = new DocIdSetIterator() {
+
+                    private int i = 0;
+
+                    @Override
+                    public int docID() {
+                        return i;
+                    }
+
+                    @Override
+                    public int nextDoc() {
+                        while (true) {
+                            i += 1;
+                            if (i == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
+                            else if (counts[i] >= minCandidateCount) return docID();
+                        }
+                    }
+
+                    @Override
+                    public int advance(int target) {
+                        while (i != target) nextDoc();
+                        return docID();
+                    }
+
+                    @Override
+                    public long cost() {
+                        return counts.length;
+                    }
+                };
+
                 return new Scorer(this) {
                     @Override
                     public DocIdSetIterator iterator() {

@@ -36,14 +36,16 @@ public class ArrayUtils {
     }
 
     /**
-     * Find the indices of values >= the kth largest value in the given array of shorts in O(N) time and space.
-     * Assumes that the max value in the array is small enough that you can keep an array of that length in memory.
+     * Find the kth greatest value in the given array of shorts in O(N) time and space.
+     * Works by creating a histogram of the array values and traversing the histogram in reverse order.
+     * Assumes the max value in the array is small enough that you can keep an array of that length in memory.
+     * This is generally true for term counts.
      *
      * @param arr array of non-negative shorts, presumably some type of count.
      * @param k the desired largest value.
-     * @return Indices of the k largest values.
+     * @return the kth largest value.
      */
-    public static int[] kLargestIndices(short[] arr, int k) {
+    public static short kthGreatest(short[] arr, int k) {
         // Find the min and max values.
         short max = arr[0];
         short min = arr[0];
@@ -55,120 +57,18 @@ public class ArrayUtils {
         // Build and populate a histogram for non-zero values.
         int[] hist = new int[max - min + 1];
         for (short a: arr) {
-            // System.out.println(String.format("(%d, %d)", a, min));
             hist[a - min] += 1;
         }
 
         // Find the kth largest value by iterating from the end of the histogram.
         int geqk = 0;
-        int kthLargest = max;
+        short kthLargest = max;
         while (kthLargest >= min) {
             geqk += hist[kthLargest - min];
             if (geqk > k) break;
             else kthLargest--;
         }
 
-        // Build the array of indices.
-        int[] kLargestIndices = new int[geqk];
-        int j = 0;
-        for (int i = 0; i < arr.length; i++) {
-            if (arr[i] >= kthLargest) kLargestIndices[j++] = i;
-        }
-
-        return kLargestIndices;
+        return kthLargest;
     }
-
-
-//    /**
-//     * Return the k-th largest value in the array.
-//     * Makes a copy of the array so the original is not modified.
-//     * @param arr an array of ints, usually counts of some sort.
-//     * @param k the position of interest, usually a cutoff of some sort.
-//     * @return the k-th largest value in the array.
-//     */
-//    public static int quickSelect(final int[] arr, final int k) {
-//        return quickSelect(Arrays.copyOf(arr, arr.length), 0, arr.length - 1, k);
-//    }
-
-//    private static int quickSelect(int[] arr, int lo, int hi, int k) {
-//        if (lo == hi) {
-//            return arr[lo];
-//        } else {
-//            int p = arr[(lo + hi) / 2];
-//            int i = lo - 1;
-//            int j = hi + 1;
-//            while (true) {
-//                while (arr[++i] > p);
-//                while (arr[--j] < p);
-//                if (i >= j) break;
-//                int tmp = arr[i];
-//                arr[i] = arr[j];
-//                arr[j] = tmp;
-//            }
-//            if (k <= j) return quickSelect(arr, lo, j, k);
-//            else return quickSelect(arr, j + 1, hi, k);
-//        }
-//    }
-
-//    /**
-//     * Find the kth largest value in the given array.
-//     * Swaps elements in the given array.
-//     * Based on: https://github.com/bephrem1/backtobackswe, https://www.youtube.com/watch?v=hGK_5n81drs.
-//     * Lucene also has an implementation: https://lucene.apache.org/core/8_0_0/core/org/apache/lucene/util/IntroSelector.html,
-//     * but it's more abstract and was slower when I benchmarked it.
-//     * @param arr The array.
-//     * @param k The position.
-//     * @return The index of the kth largest value.
-//     */
-//    public static int quickSelect(int[] arr, int k) {
-//        int n = arr.length;
-//        int left = 0;
-//        int right = n - 1;
-//        int finalIndexOfChoosenPivot = 0;
-//        while (left <= right) {
-//            int choosenPivotIndex = (right - left + 1) / 2 + left;
-//            finalIndexOfChoosenPivot = qsPartition(arr, left, right, choosenPivotIndex);
-//            if (finalIndexOfChoosenPivot == n - k) {
-//                break;
-//            } else if (finalIndexOfChoosenPivot > n - k) {
-//                right = finalIndexOfChoosenPivot - 1;
-//            } else {
-//                left = finalIndexOfChoosenPivot + 1;
-//            }
-//        }
-//        return arr[finalIndexOfChoosenPivot];
-//    }
-//
-//    /**
-//     * Same as quickSelect, except makes a copy of the array so the original is unmodified.
-//     * @param arr
-//     * @param k
-//     * @return
-//     */
-//    public static int quickSelectCopy(int[] arr, int k) {
-//        return quickSelect(Arrays.copyOf(arr, arr.length), k);
-//    }
-//
-//
-//    private static int qsPartition(int[] arr, int left, int right, int pivotIndex) {
-//        int pivotValue = arr[pivotIndex];
-//        int lesserItemsTailIndex = left;
-//        qsSwap(arr, pivotIndex, right);
-//        for (int i = left; i < right; i++) {
-//            if (arr[i] < pivotValue) {
-//                qsSwap(arr, i, lesserItemsTailIndex);
-//                lesserItemsTailIndex++;
-//            }
-//        }
-//        qsSwap(arr, right, lesserItemsTailIndex);
-//        return lesserItemsTailIndex;
-//    }
-//
-//    private static void qsSwap(int[] arr, int first, int second) {
-//        int temp = arr[first];
-//        arr[first] = arr[second];
-//        arr[second] = temp;
-//    }
-
-
 }
