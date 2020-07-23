@@ -6,7 +6,6 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -90,26 +89,25 @@ public class MatchHashesAndScoreQuery extends Query {
                 // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
                 DocIdSetIterator disi = new DocIdSetIterator() {
 
-                    private int i = 0;
+                    private int doc = 0;
 
                     @Override
                     public int docID() {
-                        return i;
+                        return doc;
                     }
 
                     @Override
                     public int nextDoc() {
-                        while (true) {
-                            i += 1;
-                            if (i == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
-                            else if (counts[i] >= minCandidateCount) return docID();
-                        }
+                        // Increment doc until it exceeds the min candidate count.
+                        do doc++;
+                        while (doc < counts.length && counts[doc]< minCandidateCount);
+                        if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
+                        else return docID();
                     }
 
                     @Override
                     public int advance(int target) {
-                        while (i != target) nextDoc();
-                        return docID();
+                        throw new UnsupportedOperationException("Advance is not supported");
                     }
 
                     @Override
