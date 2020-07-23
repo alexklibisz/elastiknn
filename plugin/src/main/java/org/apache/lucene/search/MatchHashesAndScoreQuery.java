@@ -6,6 +6,7 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -77,7 +78,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Explanation explain(LeafReaderContext context, int doc) {
-                return null;
+                return Explanation.match( 0, "If someone know what this should return, please submit a PR. :)");
             }
 
             @Override
