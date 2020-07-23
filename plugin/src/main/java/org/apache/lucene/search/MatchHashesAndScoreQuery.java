@@ -107,7 +107,8 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public int advance(int target) {
-                        throw new UnsupportedOperationException("Advance is not supported");
+                        while (doc < target) nextDoc();
+                        return docID();
                     }
 
                     @Override
