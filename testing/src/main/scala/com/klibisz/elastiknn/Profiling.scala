@@ -13,7 +13,7 @@ import scala.util.Random
 object ProfileVectorHashing {
   def main(args: Array[String]): Unit = {
     implicit val r: Random = new Random(100)
-    val m = new elastiknn.models.LshFunction.Jaccard(Mapping.JaccardLsh(100, 150, 1))
+    val m = new elastiknn.models.JaccardLsh(Mapping.JaccardLsh(100, 150, 1))
     val vecs = Vec.SparseBool.randoms(100, 5000)
     while (true) {
       val t0 = System.currentTimeMillis()

@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactQuery, LshFunctionCache, LshQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, HashingFunctionCache, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
@@ -12,6 +12,7 @@ import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
+import org.elasticsearch.common.lucene.Lucene
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
@@ -32,8 +33,8 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
-            case m: Mapping.JaccardLsh    => Try(LshQuery.index(field, fieldType, sorted, LshFunctionCache.Jaccard(m)))
-            case m: Mapping.HammingLsh    => Try(LshQuery.index(field, fieldType, sorted, LshFunctionCache.Hamming(m)))
+            case m: Mapping.JaccardLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Jaccard(m)))
+            case m: Mapping.HammingLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Hamming(m)))
             case _                        => Failure(incompatible(mapping, vec))
           }
         }
@@ -47,8 +48,8 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh => Try(LshQuery.index(field, fieldType, vec, LshFunctionCache.Angular(m)))
-            case m: Mapping.L2Lsh      => Try(LshQuery.index(field, fieldType, vec, LshFunctionCache.L2(m)))
+            case m: Mapping.AngularLsh => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Angular(m)))
+            case m: Mapping.L2Lsh      => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)))
             case _                     => Failure(incompatible(mapping, vec))
           }
     }
@@ -66,6 +67,8 @@ object VectorMapper {
     setTokenized(false)
     setIndexOptions(IndexOptions.DOCS)
     setStoreTermVectors(false)
+    setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
+    setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)

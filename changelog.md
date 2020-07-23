@@ -1,3 +1,5 @@
+- Performance improvements for LSH queries. 1.5-2x faster on regular benchmarks with randomized data. See PR #114.
+---
 - Fixed error with KNN queries against vectors that are stored in nested fields, e.g. `outer.inner.vec`.
 ---
 - Switched LSH parameter names to more canonical equivalents: `bands -> L`, `rows -> k`,
