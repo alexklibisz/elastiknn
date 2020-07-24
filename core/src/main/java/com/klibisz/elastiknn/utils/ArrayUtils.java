@@ -49,7 +49,10 @@ public class ArrayUtils {
         if (arr.length == 0) {
             throw new IllegalArgumentException("Array must be non-empty");
         } else if (k < 0 || k >= arr.length) {
-            throw new IllegalArgumentException("k must be >= 0 and less than length of array");
+            throw new IllegalArgumentException(String.format(
+                    "k [%d] must be >= 0 and less than length of array [%d]",
+                    k, arr.length
+            ));
         } else {
             // Find the min and max values.
             short max = arr[0];
