@@ -12,6 +12,7 @@ import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
+import org.elasticsearch.common.lucene.Lucene
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
@@ -66,6 +67,8 @@ object VectorMapper {
     setTokenized(false)
     setIndexOptions(IndexOptions.DOCS)
     setStoreTermVectors(false)
+    setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
+    setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)
