@@ -6,13 +6,25 @@ import scala.util.Random
 
 class ArrayUtilsSuite extends FunSuite with Matchers {
 
-  test("kLargest example") {
+  test("kthGreatest example") {
     val counts: Array[Short] = Array(2, 2, 8, 7, 4, 4)
     val res = ArrayUtils.kthGreatest(counts, 3)
     res shouldBe 4
   }
 
-  test("kLargest randomized") {
+  test("kthGreatest bad args") {
+    an[IllegalArgumentException] shouldBe thrownBy {
+      ArrayUtils.kthGreatest(Array.empty, 3)
+    }
+    an[IllegalArgumentException] shouldBe thrownBy {
+      ArrayUtils.kthGreatest(Array(1, 2, 3), -1)
+    }
+    an[IllegalArgumentException] shouldBe thrownBy {
+      ArrayUtils.kthGreatest(Array(1, 2, 3), 4)
+    }
+  }
+
+  test("kthGreatest randomized") {
     val seed = System.currentTimeMillis()
     val rng = new Random(seed)
     info(s"Using seed $seed")
