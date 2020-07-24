@@ -15,21 +15,22 @@ object SparseIndexedQuery {
 
     val terms = queryVec.trueIndices.map(i => new BytesRef(UnsafeSerialization.writeInt(i)))
 
-    val scoreFunction = (lrc: LeafReaderContext) => {
-      val numericDocValues = lrc.reader.getNumericDocValues(numTrueDocValueField(field))
-      (docId: Int, matchingTerms: Int) =>
-        if (numericDocValues.advanceExact(docId)) {
-          val numTrue = numericDocValues.longValue.toInt
-          simFunc(queryVec, matchingTerms, numTrue)
-        } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
-    }
+    val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
+      (lrc: LeafReaderContext) => {
+        val numericDocValues = lrc.reader.getNumericDocValues(numTrueDocValueField(field))
+        (docId: Int, matchingTerms: Int) =>
+          if (numericDocValues.advanceExact(docId)) {
+            val numTrue = numericDocValues.longValue.toInt
+            simFunc(queryVec, matchingTerms, numTrue)
+          } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+      }
 
-    new MatchTermsAndScoreQuery(
+    new MatchHashesAndScoreQuery(
       field,
       terms,
       indexReader.getDocCount(field),
-      scoreFunction,
-      indexReader
+      indexReader,
+      scoreFunction
     )
   }
 

@@ -36,110 +36,45 @@ public class ArrayUtils {
     }
 
     /**
-     * Find the kth largest value in the given array.
-     * Swaps elements in the given array.
-     * Based on: https://github.com/bephrem1/backtobackswe, https://www.youtube.com/watch?v=hGK_5n81drs.
-     * Lucene also has an implementation: https://lucene.apache.org/core/8_0_0/core/org/apache/lucene/util/IntroSelector.html,
-     * but it's more abstract and was slower when I benchmarked it.
-     * @param arr The array.
-     * @param k The position.
-     * @return The index of the kth largest value.
+     * Find the kth greatest value in the given array of shorts in O(N) time and space.
+     * Works by creating a histogram of the array values and traversing the histogram in reverse order.
+     * Assumes the max value in the array is small enough that you can keep an array of that length in memory.
+     * This is generally true for term counts.
+     *
+     * @param arr array of non-negative shorts, presumably some type of count.
+     * @param k the desired largest value.
+     * @return the kth largest value.
      */
-    public static int quickSelectInts(int[] arr, int k) {
-        int n = arr.length;
-        int left = 0;
-        int right = n - 1;
-        int finalIndexOfChoosenPivot = 0;
-        while (left <= right) {
-            int choosenPivotIndex = (right - left + 1) / 2 + left;
-            finalIndexOfChoosenPivot = qsPartitionInts(arr, left, right, choosenPivotIndex);
-            if (finalIndexOfChoosenPivot == n - k) {
-                break;
-            } else if (finalIndexOfChoosenPivot > n - k) {
-                right = finalIndexOfChoosenPivot - 1;
-            } else {
-                left = finalIndexOfChoosenPivot + 1;
+    public static short kthGreatest(short[] arr, int k) {
+        if (arr.length == 0) {
+            throw new IllegalArgumentException("Array must be non-empty");
+        } else if (k < 0 || k >= arr.length) {
+            throw new IllegalArgumentException("k must be >= 0 and less than length of array");
+        } else {
+            // Find the min and max values.
+            short max = arr[0];
+            short min = arr[0];
+            for (short a: arr) {
+                if (a > max) max = a;
+                else if (a < min) min = a;
             }
-        }
-        return arr[finalIndexOfChoosenPivot];
-    }
 
-    /**
-     * Same as quickSelect, except makes a copy of the array so the original is unmodified.
-     * @param arr
-     * @param k
-     * @return
-     */
-    public static int quickSelectIntsCopy(int[] arr, int k) {
-        return quickSelectInts(Arrays.copyOf(arr, arr.length), k);
-    }
-
-
-    private static int qsPartitionInts(int[] arr, int left, int right, int pivotIndex) {
-        int pivotValue = arr[pivotIndex];
-        int lesserItemsTailIndex = left;
-        qsSwapInts(arr, pivotIndex, right);
-        for (int i = left; i < right; i++) {
-            if (arr[i] < pivotValue) {
-                qsSwapInts(arr, i, lesserItemsTailIndex);
-                lesserItemsTailIndex++;
+            // Build and populate a histogram for non-zero values.
+            int[] hist = new int[max - min + 1];
+            for (short a: arr) {
+                hist[a - min] += 1;
             }
-        }
-        qsSwapInts(arr, right, lesserItemsTailIndex);
-        return lesserItemsTailIndex;
-    }
 
-    private static void qsSwapInts(int[] arr, int first, int second) {
-        int temp = arr[first];
-        arr[first] = arr[second];
-        arr[second] = temp;
-    }
-
-    /**
-     * Same as [[quickSelectInts]], except for floats.
-     */
-    public static float quickSelectFloats(float[] arr, int k) {
-        int n = arr.length;
-        int left = 0;
-        int right = n - 1;
-        int finalIndexOfChoosenPivot = 0;
-        while (left <= right) {
-            int choosenPivotIndex = (right - left + 1) / 2 + left;
-            finalIndexOfChoosenPivot = qsPartitionFloats(arr, left, right, choosenPivotIndex);
-            if (finalIndexOfChoosenPivot == n - k) {
-                break;
-            } else if (finalIndexOfChoosenPivot > n - k) {
-                right = finalIndexOfChoosenPivot - 1;
-            } else {
-                left = finalIndexOfChoosenPivot + 1;
+            // Find the kth largest value by iterating from the end of the histogram.
+            int geqk = 0;
+            short kthLargest = max;
+            while (kthLargest >= min) {
+                geqk += hist[kthLargest - min];
+                if (geqk > k) break;
+                else kthLargest--;
             }
+
+            return kthLargest;
         }
-        return arr[finalIndexOfChoosenPivot];
     }
-
-    public static float quickSelectFloatsCopy(float[] arr, int k) {
-        return quickSelectFloats(Arrays.copyOf(arr, arr.length), k);
-    }
-
-    private static int qsPartitionFloats(float[] arr, int left, int right, int pivotIndex) {
-        float pivotValue = arr[pivotIndex];
-        int lesserItemsTailIndex = left;
-        qsSwapFloats(arr, pivotIndex, right);
-        for (int i = left; i < right; i++) {
-            if (arr[i] < pivotValue) {
-                qsSwapFloats(arr, i, lesserItemsTailIndex);
-                lesserItemsTailIndex++;
-            }
-        }
-        qsSwapFloats(arr, right, lesserItemsTailIndex);
-        return lesserItemsTailIndex;
-    }
-
-    private static void qsSwapFloats(float[] arr, int first, int second) {
-        float temp = arr[first];
-        arr[first] = arr[second];
-        arr[second] = temp;
-    }
-
-
 }
