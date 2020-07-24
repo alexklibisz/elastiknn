@@ -25,10 +25,17 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int numDocsInSegment;
 
     private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-        // PrefixCodedTerms.Builder expects the hashes in sorted order.
+        // PrefixCodedTerms.Builder expects the hashes in sorted order, with no duplicates.
         ArrayUtil.timSort(hashes);
         PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
-        for (BytesRef br : hashes) builder.add(field, br);
+        BytesRef prev = hashes[0];
+        builder.add(field, prev);
+        for (int i = 1; i < hashes.length; i++) {
+            if (hashes[i].compareTo(prev) > 0) {
+                builder.add(field, hashes[i]);
+                prev = hashes[i];
+            }
+        }
         return builder.finish();
     }
 
@@ -64,7 +71,7 @@ public class MatchHashesAndScoreQuery extends Query {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += 1;
+                            counts[docId] += docs.freq();
                         }
                     }
                     term = iterator.next();
