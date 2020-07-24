@@ -1,5 +1,0 @@
--e ../../client-python/
-h5py==2.10.0
-dataclasses==0.7
-dataclasses-json==0.4.1
-matplotlib
