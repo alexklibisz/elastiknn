@@ -72,6 +72,43 @@ public class MatchHashesAndScoreQuery extends Query {
                 return counts;
             }
 
+            private DocIdSetIterator buildDocIdSetIterator(short[] counts) {
+                if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
+                else {
+                    int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
+                    // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
+                    return new DocIdSetIterator() {
+
+                        private int doc = 0;
+
+                        @Override
+                        public int docID() {
+                            return doc;
+                        }
+
+                        @Override
+                        public int nextDoc() {
+                            // Increment doc until it exceeds the min candidate count.
+                            do doc++;
+                            while (doc < counts.length && counts[doc]< minCandidateCount);
+                            if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
+                            else return docID();
+                        }
+
+                        @Override
+                        public int advance(int target) {
+                            while (doc < target) nextDoc();
+                            return docID();
+                        }
+
+                        @Override
+                        public long cost() {
+                            return counts.length;
+                        }
+                    };
+                }
+            }
+
             @Override
             public void extractTerms(Set<Term> terms) { }
 
@@ -84,38 +121,7 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 short[] counts = countMatches(context);
-                int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
-
-                // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
-                DocIdSetIterator disi = new DocIdSetIterator() {
-
-                    private int doc = 0;
-
-                    @Override
-                    public int docID() {
-                        return doc;
-                    }
-
-                    @Override
-                    public int nextDoc() {
-                        // Increment doc until it exceeds the min candidate count.
-                        do doc++;
-                        while (doc < counts.length && counts[doc]< minCandidateCount);
-                        if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
-                        else return docID();
-                    }
-
-                    @Override
-                    public int advance(int target) {
-                        while (doc < target) nextDoc();
-                        return docID();
-                    }
-
-                    @Override
-                    public long cost() {
-                        return counts.length;
-                    }
-                };
+                DocIdSetIterator disi = buildDocIdSetIterator(counts);
 
                 return new Scorer(this) {
                     @Override
