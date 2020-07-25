@@ -86,6 +86,7 @@ object Execute extends App {
         _ <- eknnClient.execute(createIndex(trainIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
         _ <- eknnClient.putMapping(trainIndex, eknnQuery.field, storedIdField, eknnMapping)
         _ <- eknnClient.execute(createIndex(testIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
+        _ <- eknnClient.putMapping(testIndex, eknnQuery.field, storedIdField, eknnMapping)
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Indexing vectors for dataset $dataset")
         _ <- datasets.streamTrain(dataset).grouped(chunkSize).zipWithIndex.foreach {

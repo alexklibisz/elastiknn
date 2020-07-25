@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity, Vec}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity}
 import zio._
 import zio.console.Console
 
@@ -26,7 +26,6 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
       )
     ),
-    // Angular exact, LSH
     Experiment(
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
@@ -45,8 +44,18 @@ object ContinuousBenchmark extends App {
       Seq(
         Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
       )
+    ),
+    // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
+    Experiment(
+      Dataset.AnnbGlove100,
+      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
+      )
     )
-  )
+  ).take(3)
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
