@@ -98,6 +98,7 @@ package object benchmarks {
       case _: DenseFloat                                            => "Exact"
       case _: SparseIndexed                                         => "Sparse indexed"
       case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "LSH"
+      case _: MagnitudesLsh                                         => "Magnitudes"
     }
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {

@@ -22,6 +22,10 @@ allprojects {
     ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
     ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : ""
     ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
+
+    tasks.withType(ScalaCompile) {
+        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
+    }
 }
 
 task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {

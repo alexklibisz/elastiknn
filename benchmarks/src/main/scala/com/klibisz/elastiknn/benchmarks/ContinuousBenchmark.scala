@@ -16,35 +16,36 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // L2 exact, LSH
-    Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
-      )
-    ),
+//    // L2 exact, LSH
+//    Experiment(
+//      randomDenseFloats,
+//      Mapping.DenseFloat(randomDenseFloats.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
+//      )
+//    ),
     Experiment(
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
+      // Angular LSH seems to benefit a lot from increasing k.
+      Mapping.AngularLsh(randomDenseFloats.dims, 250, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
     ),
-    // Jaccard exact, sparse indexed, LSH
-    Experiment(
-      randomSparseBools,
-      Mapping.SparseBool(randomSparseBools.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
-      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
-      Seq(
-        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
-      )
-    ),
+//    // Jaccard exact, sparse indexed, LSH
+//    Experiment(
+//      randomSparseBools,
+//      Mapping.SparseBool(randomSparseBools.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
+//      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
+//      Seq(
+//        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
+//      )
+//    ),
     // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
     Experiment(
       Dataset.AnnbGlove100,
@@ -52,10 +53,21 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
       Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 250, 3),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
+        Query(NearestNeighborsQuery.AngularLsh(field, 2000), k)
+      )
+    ),
+    Experiment(
+      Dataset.AnnbGlove100,
+      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.MagnitudesLsh(Dataset.AnnbGlove100.dims, 20),
+      Seq(
+        Query(NearestNeighborsQuery.MagnitudesLsh(field, Similarity.Angular, 1000), k),
+        Query(NearestNeighborsQuery.MagnitudesLsh(field, Similarity.Angular, 2000), k)
       )
     )
-  ).takeRight(1)
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
