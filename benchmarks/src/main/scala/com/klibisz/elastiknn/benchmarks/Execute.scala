@@ -89,7 +89,7 @@ object Execute extends App {
         _ <- eknnClient.putMapping(testIndex, eknnQuery.field, storedIdField, eknnMapping)
         datasets <- ZIO.access[DatasetClient](_.get)
         _ <- log.info(s"Indexing vectors for dataset $dataset")
-        _ <- datasets.streamTrain(dataset).grouped(chunkSize).zipWithIndex.foreach {
+        _ <- datasets.streamTrain(dataset).take(100000).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
             val ids = vecs.indices.map(i => s"$batchIndex-$i")
             for {
@@ -97,7 +97,7 @@ object Execute extends App {
               _ <- log.debug(s"Indexed batch $batchIndex to $trainIndex in ${dur.toMillis} ms")
             } yield ()
         }
-        _ <- datasets.streamTest(dataset).grouped(chunkSize).zipWithIndex.foreach {
+        _ <- datasets.streamTest(dataset).take(1000).grouped(chunkSize).zipWithIndex.foreach {
           case (vecs, batchIndex) =>
             val ids = vecs.indices.map(i => s"$batchIndex-$i")
             for {

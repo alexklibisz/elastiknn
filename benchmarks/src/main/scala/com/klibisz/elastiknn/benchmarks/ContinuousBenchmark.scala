@@ -50,12 +50,12 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove100,
       Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 250, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
     )
-  ).take(3)
+  ).takeRight(1)
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
