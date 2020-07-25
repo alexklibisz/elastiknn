@@ -10,44 +10,52 @@ import zio.console.Console
 object ContinuousBenchmark extends App {
 
   private val randomDenseFloats = Dataset.RandomDenseFloat(1000, 50000, 1000)
+  private val randomSparseBools = Dataset.RandomSparseBool(3000, 50000, 1000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
 
   private val experiments = Seq(
-//    // L2 exact, LSH
-//    Experiment(
-//      randomDenseFloats,
-//      Mapping.DenseFloat(randomDenseFloats.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
-//      )
-//    ),
-    // Angular exact, LSH
+    // L2 exact, LSH
     Experiment(
-      Dataset.AnnbGlove100,
-      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
+      )
+    ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-//      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
-//      NearestNeighborsQuery.AngularLsh(field, 1000),
-      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
     ),
-//    // Jaccard exact, sparse indexed, LSH
-//    Experiment(
-//      randomSparseBools,
-//      Mapping.SparseBool(randomSparseBools.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
-//      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
-//      Seq(
-//        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
-//      )
-//    )
-  )
+    // Jaccard exact, sparse indexed, LSH
+    Experiment(
+      randomSparseBools,
+      Mapping.SparseBool(randomSparseBools.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
+      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
+      Seq(
+        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
+      )
+    ),
+    // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
+    Experiment(
+      Dataset.AnnbGlove100,
+      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+      Seq(
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
+      )
+    )
+  ).take(3)
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
