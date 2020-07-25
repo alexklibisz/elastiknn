@@ -20,7 +20,8 @@ gradle-app.setting
 .gradletasknamecache
 
 # IntelliJ configs
-.idea
+.idea/
+!.idea/runConfigurations/Debug_Elasticsearch.xml
 
 # Misc log files
 *.log
