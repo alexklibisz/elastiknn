@@ -134,15 +134,15 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     ),
     // Magnitudes Lsh
     Test(
-      Mapping.MagnitudesLsh(dims, dims / 5),
+      Mapping.MagnitudesLsh(dims, 30),
       Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
         NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 200) -> 1d,
         NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 400) -> 1d,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 1d,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 1d
+//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 1d,
+//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 1d
       )
     )
   ).takeRight(1)

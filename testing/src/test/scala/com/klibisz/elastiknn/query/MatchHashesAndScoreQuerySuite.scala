@@ -41,7 +41,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneHa
     }
   }
 
-  test("minimal HashingQuery") {
+  test("no repeating values") {
     indexAndSearch { w =>
       val d = new Document()
       d.add(new Field("vec", writeInt(42), vecFieldType))
@@ -67,6 +67,29 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneHa
         dd.scoreDocs.head.score shouldBe 99f
         dd.scoreDocs.head.doc shouldBe 0
         dd.scoreDocs.head.shardIndex shouldBe 0
+    }
+  }
+
+  test("repeating terms") {
+    indexAndSearch { w =>
+      val (d1, d2) = (new Document(), new Document())
+      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), vecFieldType)))
+      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), vecFieldType)))
+      w.addDocument(d1)
+      w.addDocument(d2)
+    } {
+      case (r, s) =>
+        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => new BytesRef(writeInt(i)))
+        val q = new MatchHashesAndScoreQuery(
+          "vec",
+          hashes,
+          10,
+          r,
+          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
+        )
+        val dd = s.search(q, 10)
+        dd.scoreDocs should have length 2
+        dd.scoreDocs.map(_.score) shouldBe Array(3f, 2f)
     }
   }
 
