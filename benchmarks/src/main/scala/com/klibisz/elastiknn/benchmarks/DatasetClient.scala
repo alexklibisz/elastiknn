@@ -43,7 +43,8 @@ object DatasetClient {
             case _ =>
               def parseDecode(s: String): Either[circe.Error, Vec] =
                 ElasticsearchCodec.parse(s).flatMap(j => ElasticsearchCodec.decode[Vec](j.hcursor))
-              val obj = client.getObject(bucket, s"$keyPrefix/${dataset.name}/${name}.json.gz")
+              val key = s"$keyPrefix/${dataset.name}/$name.json.gz".toLowerCase
+              val obj = client.getObject(bucket, key)
               val iterManaged = Managed.makeEffect(Source.fromInputStream(new GZIPInputStream(obj.getObjectContent)))(_.close())
               val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines.take(n)).getOrElse(src.getLines())))
               val rawJson = lines.map(_.dropWhile(_ != '{'))
