@@ -134,18 +134,18 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     ),
     // Magnitudes Lsh
     Test(
-      Mapping.MagnitudesLsh(dims, 30),
+      Mapping.MagnitudesLsh(dims, 128),
       Seq(
 //        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
 //        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 200) -> 1d,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 400) -> 1d,
-//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 1d,
-//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 1d
+//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 200) -> 0.14,
+//        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 400) -> 0.21,
+        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 0.12,
+        // NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 0.20
       )
     )
-  ).drop(2)
+  ).takeRight(1)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {

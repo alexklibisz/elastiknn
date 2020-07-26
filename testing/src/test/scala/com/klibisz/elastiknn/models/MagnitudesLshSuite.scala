@@ -28,14 +28,6 @@ class MagnitudesLshSuite extends FunSuite with Matchers with LuceneSupport {
     val mapping = Mapping.MagnitudesLsh(6, 3)
     val mlsh = new MagnitudesLsh(mapping)
     val ft = new mapper.VectorMapper.FieldType("elastiknn_dense_float_vector")
-//    val v0 = Vec.DenseFloat(9f, -9, 3, -2, 6, -5) // 0, -1, 4, -5, 2, -3 -> 0, 0, 0, 7, 7, 4
-//    mlsh(v0).map(readInt) shouldBe Array(0, 0, 0, 7, 7, 4)
-//
-//    val v1 = Vec.DenseFloat(-3f, -1, 10, 8, 0, 0) // 2, 3, -0, -1, 4, 5  -> 2, 2, 2, 3, 3, 6
-//    mlsh(v1).map(readInt) shouldBe Array(2, 2, 2, 3, 3, 6)
-//
-//    val vq = Vec.DenseFloat(0, -10, 0, 9, 8, 0)   // -1, 3, 4, 0, 2, 5   -> 7, 7, 7, 3, 3, 4
-//    mlsh(vq).map(readInt) shouldBe Array(7, 7, 7, 3, 3, 4)
 
     val hd0 = Array(0, 0, 0, 2, 2, 4).map(writeInt)
     val hd1 = Array(4, 4, 4, 1, 1, 2).map(writeInt)

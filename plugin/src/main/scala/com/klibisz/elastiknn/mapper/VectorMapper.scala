@@ -68,8 +68,6 @@ object VectorMapper {
     setTokenized(false)
     setIndexOptions(IndexOptions.DOCS_AND_FREQS)
     setStoreTermVectors(false)
-    setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
-    setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
 
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)

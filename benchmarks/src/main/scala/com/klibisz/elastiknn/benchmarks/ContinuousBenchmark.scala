@@ -61,9 +61,9 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove100,
       Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.MagnitudesLsh(Dataset.AnnbGlove100.dims, 80),
+      Mapping.MagnitudesLsh(Dataset.AnnbGlove100.dims, 20),
       Seq(
-        Query(NearestNeighborsQuery.MagnitudesLsh(field, Similarity.Angular, 1000), k)
+        Query(NearestNeighborsQuery.MagnitudesLsh(field, Similarity.Angular, 1100), k)
       )
     )
   ).takeRight(1)

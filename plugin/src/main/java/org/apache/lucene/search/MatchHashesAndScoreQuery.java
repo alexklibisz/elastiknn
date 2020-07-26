@@ -73,15 +73,16 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Seek to this term in the shard.
                     if (termsEnum.seekExact(term)) {
                         // Count the number of times this term occurs in the `hashes` array.
+                        int hashesFreq = 0;
                         while (hashes[hashesIx].compareTo(term) < 0) {
                             hashesIx++;
                         }
-                        int hashesFreq = 0;
                         while (hashesIx < hashes.length && hashes[hashesIx].compareTo(term) == 0) {
                             hashesIx++;
                             hashesFreq++;
                         }
-                        // Add the min of the term frequency in the doc and in the hashes array.
+                        // Loop over docs containing this term. Increment the count for each doc by adding
+                        // the min of the term freq. in the doc and the term freq. in the hashes array.
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
@@ -97,6 +98,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
+
                     // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
