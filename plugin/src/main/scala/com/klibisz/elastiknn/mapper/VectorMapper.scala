@@ -69,6 +69,10 @@ object VectorMapper {
     setIndexOptions(IndexOptions.DOCS_AND_FREQS)
     setStoreTermVectors(false)
 
+    // TODO: are these necessary?
+    setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
+    setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
+
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {

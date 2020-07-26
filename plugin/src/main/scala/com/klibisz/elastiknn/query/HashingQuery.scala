@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashingFunction}
-import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{MatchHashesAndScoreQuery, Query}
@@ -26,7 +26,8 @@ object HashingQuery {
         val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = cachedReader(docId)
-          exactFunction(query, storedVec)
+          val exactScore = exactFunction(query, storedVec)
+          exactScore
       }
     new MatchHashesAndScoreQuery(
       field,
@@ -45,7 +46,10 @@ object HashingQuery {
       fieldType: MappedFieldType,
       vec: V,
       lshFunction: HashingFunction[M, V, S])(implicit lshFunctionCache: HashingFunctionCache[M, V, S]): Seq[IndexableField] = {
-    ExactQuery.index(field, vec) ++ lshFunction(vec).map { h =>
+    val hashes = lshFunction(vec)
+//    System.out.println(s"EKNNDEBUG: ${hashes.map(UnsafeSerialization.readInt).mkString(",")}")
+//    System.out.println("")
+    ExactQuery.index(field, vec) ++ hashes.map { h =>
       new Field(field, h, fieldType)
     }
   }
