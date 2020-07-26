@@ -157,7 +157,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //         NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 0.20
       )
     )
-  ).dropRight(1)
+  ).takeRight(1)
 //    .drop(3).take(8)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =

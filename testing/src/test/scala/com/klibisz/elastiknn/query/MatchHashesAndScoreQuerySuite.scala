@@ -13,13 +13,10 @@ import org.scalatest._
 
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
-  val vecFieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector")
-
-  def indexAndSearch[W, R]: (IndexWriter => W) => ((IndexReader, IndexSearcher) => R) => Unit =
-    indexAndSearch(new Lucene84Codec(), vecFieldType.indexAnalyzer.analyzer)
+  val ft = new VectorMapper.FieldType("elastiknn_dense_float_vector")
 
   test("empty harness") {
-    indexAndSearch { (_: IndexWriter) =>
+    indexAndSearch() { (_: IndexWriter) =>
       Assertions.succeed
     } { (_: IndexReader, _: IndexSearcher) =>
       Assertions.succeed
@@ -27,7 +24,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
   }
 
   test("minimal id example") {
-    indexAndSearch { w =>
+    indexAndSearch() { w =>
       val d = new Document()
       val ft = new FieldType()
       ft.setIndexOptions(IndexOptions.DOCS)
@@ -43,10 +40,10 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
   }
 
   test("no repeating values") {
-    indexAndSearch { w =>
+    indexAndSearch() { w =>
       val d = new Document()
-      d.add(new Field("vec", writeInt(42), vecFieldType))
-      d.add(new Field("vec", writeInt(99), vecFieldType))
+      d.add(new Field("vec", writeInt(42), ft))
+      d.add(new Field("vec", writeInt(99), ft))
       w.addDocument(d)
     } {
       case (r, s) =>
@@ -72,10 +69,10 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
   }
 
   test("repeating terms") {
-    indexAndSearch { w =>
+    indexAndSearch() { w =>
       val (d1, d2) = (new Document(), new Document())
-      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), vecFieldType)))
-      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), vecFieldType)))
+      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), ft)))
+      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), ft)))
       w.addDocument(d1)
       w.addDocument(d2)
     } {

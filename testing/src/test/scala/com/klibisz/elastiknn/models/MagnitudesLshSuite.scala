@@ -2,11 +2,12 @@ package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper
+import com.klibisz.elastiknn.query.HashingQuery
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
-import org.apache.lucene.search.MatchHashesAndScoreQuery
+import org.apache.lucene.search.{MatchHashesAndScoreQuery, TopDocs}
 import org.scalatest._
 
 import scala.util.Random
@@ -42,7 +43,7 @@ class MagnitudesLshSuite extends FunSuite with Matchers with LuceneSupport {
     hashes.sorted shouldBe Array((6, 4), (1, 3), (2, 3), (5, 1)).sorted
   }
 
-  test("deterministic") {
+  test("deterministic hashing") {
     implicit val rng: Random = new Random(0)
     val dims = 1024
     val mlsh = new MagnitudesLsh(Mapping.MagnitudesLsh(dims, 128))
@@ -80,6 +81,35 @@ class MagnitudesLshSuite extends FunSuite with Matchers with LuceneSupport {
         res.scoreDocs.map(_.score) shouldBe Array(3f, 2f)
     }
 
+  }
+
+  test("deterministic lucene indexing and queries") {
+    // Re-index the same set of docs several times and run the same queries on each index.
+    // The results from each repetition should be identical to all other repetitions.
+    implicit val rng: Random = new Random(0)
+    val corpusVecs = Vec.DenseFloat.randoms(1024, 1000, unit = true)
+    val queryVecs = Vec.DenseFloat.randoms(1024, 100, unit = true)
+    val lsh = new MagnitudesLsh(Mapping.MagnitudesLsh(1024, 128))
+
+    // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
+    val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
+      val (_, queryResults) = indexAndSearch() { w =>
+        corpusVecs.foreach { v =>
+          val d = new Document()
+          HashingQuery.index("vec", ft, v, lsh).foreach(d.add)
+          w.addDocument(d)
+        }
+      } {
+        case (r, s) =>
+          queryVecs.map { v =>
+            val q = HashingQuery("vec", v, 200, lsh, ExactSimilarityFunction.Angular, r)
+            s.search(q, 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
+          }
+      }
+      queryResults
+    }
+    val distinct = repeatedResults.distinct
+    distinct.length shouldBe 1
   }
 
 }

@@ -13,22 +13,24 @@ import org.elasticsearch.common.lucene.Lucene
 trait LuceneSupport {
 
   def indexAndSearch[I, S](codec: Codec = new Lucene84Codec(), analyzer: Analyzer = Lucene.KEYWORD_ANALYZER)(index: IndexWriter => I)(
-      search: (IndexReader, IndexSearcher) => S): Unit = {
+      search: (IndexReader, IndexSearcher) => S): (I, S) = {
     val tmpDir = Files.createTempDirectory(null).toFile
     val indexDir = new MMapDirectory(tmpDir.toPath)
     val indexWriterCfg = new IndexWriterConfig(analyzer).setCodec(codec)
     val indexWriter = new IndexWriter(indexDir, indexWriterCfg)
-    try {
-      index(indexWriter)
+    val res = try {
+      val ires = index(indexWriter)
       indexWriter.commit()
       indexWriter.forceMerge(1)
       val indexReader = DirectoryReader.open(indexDir)
-      try search(indexReader, new IndexSearcher(indexReader))
+      val sres = try search(indexReader, new IndexSearcher(indexReader))
       finally indexReader.close()
+      (ires, sres)
     } finally {
       indexWriter.close()
       tmpDir.delete()
     }
+    res
   }
 
 }
