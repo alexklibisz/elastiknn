@@ -26,8 +26,8 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
   private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
-  override def apply(v: Vec.DenseFloat): Array[HashAndFrequency] = {
-    val hashes = new Array[HashAndFrequency](L)
+  override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = {
+    val hashes = new Array[HashAndFreq](L)
     var ixHashes = 0
     var ixHashVecs = 0
     while (ixHashes < L) {
@@ -41,7 +41,7 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         ixRows += 1
         ixHashVecs += 1
       }
-      hashes.update(ixHashes, new HashAndFrequency(hashBuf.toArray))
+      hashes.update(ixHashes, HashAndFreq.once(hashBuf.toArray))
       ixHashes += 1
     }
     hashes

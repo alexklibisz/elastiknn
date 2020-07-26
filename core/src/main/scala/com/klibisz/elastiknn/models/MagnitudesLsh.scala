@@ -12,7 +12,7 @@ import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
 final class MagnitudesLsh(override val mapping: Mapping.MagnitudesLsh)
     extends HashingFunction[Mapping.MagnitudesLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
-  override def apply(vec: Vec.DenseFloat): Array[HashAndFrequency] = {
+  override def apply(vec: Vec.DenseFloat): Array[HashAndFreq] = {
 
     // Build a heap of the k highest-absolute-value indices.
     val ixHeap = MinMaxPriorityQueue
@@ -33,7 +33,7 @@ final class MagnitudesLsh(override val mapping: Mapping.MagnitudesLsh)
     // Indexes of negative values are negated. Positive indexes are incremented by 1 and negative indexes decremented by 1
     // do avoid ambiguity of zero and negative zero. Ties are handled by repeating the tied indexes the same number of times,
     // and reducing subsequent repetition for each tie. Meaning if there's a two-way tie for 2nd place, there's no 3rd.
-    val hashes = new Array[HashAndFrequency](mapping.k)
+    val hashes = new Array[HashAndFreq](mapping.k)
     var hashesIx = 0
     var rankComplement = -1
     var currTies = 0
@@ -47,7 +47,7 @@ final class MagnitudesLsh(override val mapping: Mapping.MagnitudesLsh)
         currTies = 0
       } else currTies += 1
       val hash = if (vec.values(ix) >= 0) writeInt(ix + 1) else writeInt(-1 - ix)
-      hashes.update(hashesIx, new HashAndFrequency(hash, mapping.k - rankComplement))
+      hashes.update(hashesIx, new HashAndFreq(hash, mapping.k - rankComplement))
       hashesIx += 1
     }
     hashes

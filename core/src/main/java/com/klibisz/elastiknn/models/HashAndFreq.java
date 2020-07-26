@@ -7,16 +7,15 @@ import java.util.Objects;
  * As the name suggests, represents a hash value and the number of the times it occurs in some context.
  * This enables LSH algorithms where the repetition of a hash has some significance.
  */
-public class HashAndFrequency implements Comparable<HashAndFrequency> {
+public class HashAndFreq implements Comparable<HashAndFreq> {
     private final byte[] hash;
     private final int freq;
 
-    public HashAndFrequency(byte[] hash) {
-        this.hash = hash;
-        this.freq = 1;
+    public static HashAndFreq once(byte[] hash) {
+        return new HashAndFreq(hash, 1);
     }
 
-    public HashAndFrequency(byte[] hash, int freq) {
+    public HashAndFreq(byte[] hash, int freq) {
         this.hash = hash;
         this.freq = freq;
     }
@@ -30,7 +29,7 @@ public class HashAndFrequency implements Comparable<HashAndFrequency> {
     }
 
     @Override
-    public int compareTo(HashAndFrequency o) {
+    public int compareTo(HashAndFreq o) {
         byte[] ohash = o.getHash();
         return Arrays.compareUnsigned(hash, 0, hash.length, ohash, 0, ohash.length);
     }
@@ -39,7 +38,7 @@ public class HashAndFrequency implements Comparable<HashAndFrequency> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        HashAndFrequency that = (HashAndFrequency) o;
+        HashAndFreq that = (HashAndFreq) o;
         return freq == that.freq &&
                 Arrays.equals(hash, that.hash);
     }

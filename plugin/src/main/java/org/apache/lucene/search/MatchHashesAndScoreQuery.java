@@ -1,6 +1,6 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.models.HashAndFrequency;
+import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.ArrayUtil;
@@ -18,14 +18,14 @@ public class MatchHashesAndScoreQuery extends Query {
     }
 
     private final String field;
-    private final HashAndFrequency[] hashAndFrequencies;
+    private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
     private final int numDocsInSegment;
 
     public MatchHashesAndScoreQuery(final String field,
-                                    final HashAndFrequency[] hashAndFrequencies,
+                                    final HashAndFreq[] hashAndFrequencies,
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
@@ -51,7 +51,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 TermsEnum termsEnum = terms.iterator();
                 short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
-                for (HashAndFrequency hac : hashAndFrequencies) {
+                for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {

@@ -32,12 +32,12 @@ final class JaccardLsh(override val mapping: Mapping.JaccardLsh)
   private val rng: Random = new Random(0)
   private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
   private val betas: Array[Int] = (0 until L * k).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-  private val emptyHashes: Array[HashAndFrequency] = Array.fill(k)(HASH_PRIME).map(writeInt).map(new HashAndFrequency(_))
+  private val emptyHashes: Array[HashAndFreq] = Array.fill(k)(HASH_PRIME).map(writeInt).map(HashAndFreq.once)
 
-  override def apply(v: Vec.SparseBool): Array[HashAndFrequency] =
+  override def apply(v: Vec.SparseBool): Array[HashAndFreq] =
     if (v.trueIndices.isEmpty) emptyHashes
     else {
-      val hashes = new Array[HashAndFrequency](L)
+      val hashes = new Array[HashAndFreq](L)
       var ixL = 0
       var ixCoefficients = 0
       while (ixL < hashes.length) {
@@ -57,7 +57,7 @@ final class JaccardLsh(override val mapping: Mapping.JaccardLsh)
           ixk += 1
           ixCoefficients += 1
         }
-        hashes.update(ixL, new HashAndFrequency(hash.toArray))
+        hashes.update(ixL, HashAndFreq.once(hash.toArray))
         ixL += 1
       }
       hashes

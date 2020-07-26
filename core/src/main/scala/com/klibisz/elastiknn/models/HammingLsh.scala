@@ -51,7 +51,7 @@ final class HammingLsh(override val mapping: Mapping.HammingLsh)
       .sortBy(_.vecIndex)
   }
 
-  override def apply(vec: Vec.SparseBool): Array[HashAndFrequency] = {
+  override def apply(vec: Vec.SparseBool): Array[HashAndFreq] = {
     val hashBuffers = zeroUntilL.map(l => new BitBuffer.IntBuffer(writeInt(l)))
     var (ixTrueIndices, ixSampledPositions) = (0, 0)
     while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
@@ -76,6 +76,6 @@ final class HammingLsh(override val mapping: Mapping.HammingLsh)
       pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
       ixSampledPositions += 1
     }
-    hashBuffers.map(hb => new HashAndFrequency(hb.toByteArray))
+    hashBuffers.map(hb => HashAndFreq.once(hb.toByteArray))
   }
 }
