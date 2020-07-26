@@ -21,22 +21,22 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-    private final PrefixCodedTerms prefixCodedTerms;
+//    private final PrefixCodedTerms prefixCodedTerms;
     private final int numDocsInSegment;
 
-    private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-        // PrefixCodedTerms.Builder expects the hashes in sorted order, with no duplicates.
-        PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
-        BytesRef prev = hashes[0];
-        builder.add(field, prev);
-        for (int i = 1; i < hashes.length; i++) {
-            if (hashes[i].compareTo(prev) > 0) {
-                builder.add(field, hashes[i]);
-                prev = hashes[i];
-            }
-        }
-        return builder.finish();
-    }
+//    private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
+//        // PrefixCodedTerms.Builder expects the hashes in sorted order, with no duplicates.
+//        PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
+//        BytesRef prev = hashes[0];
+//        builder.add(field, prev);
+//        for (int i = 1; i < hashes.length; i++) {
+//            if (hashes[i].compareTo(prev) > 0) {
+//                builder.add(field, hashes[i]);
+//                prev = hashes[i];
+//            }
+//        }
+//        return builder.finish();
+//    }
 
     public MatchHashesAndScoreQuery(final String field,
                                     final BytesRef[] hashes,
@@ -51,7 +51,7 @@ public class MatchHashesAndScoreQuery extends Query {
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
-        this.prefixCodedTerms = makePrefixCodedTerms(field, hashes);
+//        this.prefixCodedTerms = makePrefixCodedTerms(field, hashes);
         this.numDocsInSegment = indexReader.numDocs();
     }
 
@@ -64,33 +64,40 @@ public class MatchHashesAndScoreQuery extends Query {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
-                PrefixCodedTerms.TermIterator iterator = prefixCodedTerms.iterator();
                 short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
-                BytesRef term = iterator.next();
-                int hashesIx = 0;
-                while (term != null) {
-                    // Seek to this term in the shard.
-                    if (termsEnum.seekExact(term)) {
-                        // Count the number of times this term occurs in the `hashes` array.
-                        int hashesFreq = 0;
-                        while (hashes[hashesIx].compareTo(term) < 0) {
-                            hashesIx++;
-                        }
-                        while (hashesIx < hashes.length && hashes[hashesIx].compareTo(term) == 0) {
-                            hashesIx++;
-                            hashesFreq++;
-                        }
-                        // Loop over docs containing this term. Increment the count for each doc by adding
-                        // the min of the term freq. in the doc and the term freq. in the hashes array.
+                for (BytesRef hash : hashes) {
+                    if (termsEnum.seekExact(hash)) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += Math.min(docs.freq(), hashesFreq);
+                            counts[docId] += 1;
                         }
                     }
-                    term = iterator.next();
                 }
+//                int hashesIx = 0;
+//                while (term != null) {
+//                    // Seek to this term in the shard.
+//                    if (termsEnum.seekExact(term)) {
+//                        // Count the number of times this term occurs in the `hashes` array.
+//                        int hashesFreq = 0;
+//                        while (hashes[hashesIx].compareTo(term) < 0) {
+//                            hashesIx++;
+//                        }
+//                        while (hashesIx < hashes.length && hashes[hashesIx].compareTo(term) == 0) {
+//                            hashesIx++;
+//                            hashesFreq++;
+//                        }
+//                        // Loop over docs containing this term. Increment the count for each doc by adding
+//                        // the min of the term freq. in the doc and the term freq. in the hashes array.
+//                        docs = termsEnum.postings(docs, PostingsEnum.NONE);
+//                        for (int i = 0; i < docs.cost(); i++) {
+//                            int docId = docs.nextDoc();
+//                            counts[docId] += Math.min(docs.freq(), hashesFreq);
+//                        }
+//                    }
+//                    term = iterator.next();
+//                }
                 return counts;
             }
 

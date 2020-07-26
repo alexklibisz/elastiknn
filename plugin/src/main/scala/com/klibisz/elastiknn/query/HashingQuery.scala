@@ -49,7 +49,7 @@ object HashingQuery {
     val hashes = lshFunction(vec)
 //    System.out.println(s"EKNNDEBUG: ${hashes.map(UnsafeSerialization.readInt).mkString(",")}")
 //    System.out.println("")
-    ExactQuery.index(field, vec) ++ hashes.map { h =>
+    ExactQuery.index(field, vec) ++ hashes.distinct.map { h =>
       new Field(field, h, fieldType)
     }
   }

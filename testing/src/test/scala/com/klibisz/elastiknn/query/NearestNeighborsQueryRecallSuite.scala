@@ -157,7 +157,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //         NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 0.20
       )
     )
-  ).drop(3).take(1)
+  ).drop(3).take(8)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
@@ -224,33 +224,36 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         explicitResponses2 <- Future.sequence(testData.queries.map { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         })
-//        explicitResponses3 <- Future.sequence(testData.queries.map { q =>
-//          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
-//        })
-//        indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
-//          case (_, i) =>
-//            val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
-//            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
-//        })
+        explicitResponses3 <- Future.sequence(testData.queries.map { q =>
+          eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
+        })
+        indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
+          case (_, i) =>
+            val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
+            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
+        })
       } yield {
 
         // First compute recall.
         val explicitRecall1 = recall(testData.queries, resultsIx, explicitResponses1)
-//        val explicitRecall2 = recall(testData.queries, resultsIx, explicitResponses2)
-//        val explicitRecall3 = recall(testData.queries, resultsIx, explicitResponses3)
-//        val indexedRecall = recall(testData.queries, resultsIx, indexedResponses)
+        val explicitRecall2 = recall(testData.queries, resultsIx, explicitResponses2)
+        val explicitRecall3 = recall(testData.queries, resultsIx, explicitResponses3)
+        val indexedRecall = recall(testData.queries, resultsIx, indexedResponses)
 
-//        // Make sure results were deterministic.
-//        withClue(s"Explicit query recalls should be deterministic") {
-//          explicitRecall2 shouldBe explicitRecall1
-//          explicitRecall3 shouldBe explicitRecall1
-//        }
+        val idsHashCodes = Seq(explicitResponses1, explicitResponses2, explicitResponses3, indexedResponses).map { responses =>
+          MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.id)))
+        }
+        info(s"IDs hashes: ${idsHashCodes.mkString(",")}")
 
-        Seq(explicitResponses1, explicitResponses2).foreach { responses =>
-          val idsHashCode = MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.id)))
-          val scoresHashCode = MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.score)))
-          info(s"IDs hash = ${idsHashCode}")
-          info(s"Scores hash = ${scoresHashCode}")
+        val scoresHashCodes = Seq(explicitResponses1, explicitResponses2, explicitResponses3, indexedResponses).map { responses =>
+          MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.score)))
+        }
+        info(s"Scores hashes: ${scoresHashCodes.mkString(",")}")
+
+        // Make sure results were deterministic.
+        withClue(s"Explicit query recalls should be deterministic") {
+          explicitRecall2 shouldBe explicitRecall1
+          explicitRecall3 shouldBe explicitRecall1
         }
 
         // Make sure recall is at or above expected.
@@ -258,9 +261,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
           explicitRecall1 shouldBe expectedRecall +- recallTolerance
         }
 
-//        withClue(s"Indexed query recall") {
-//          indexedRecall shouldBe expectedRecall +- recallTolerance
-//        }
+        withClue(s"Indexed query recall") {
+          indexedRecall shouldBe expectedRecall +- recallTolerance
+        }
       }
     }
   }
