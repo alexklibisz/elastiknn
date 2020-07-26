@@ -20,7 +20,7 @@ object HashingQuery {
                                                     lshFunction: HashingFunction[M, V, S],
                                                     exactFunction: ExactSimilarityFunction[V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
-    val hashes = lshFunction(query).map(h => new BytesRef(h))
+    val hashes = lshFunction(query).map(new BytesRef(_))
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
         val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)

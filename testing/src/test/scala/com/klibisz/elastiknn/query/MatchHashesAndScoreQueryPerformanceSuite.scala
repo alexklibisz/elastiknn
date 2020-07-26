@@ -3,13 +3,13 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{AngularLsh, ExactSimilarityFunction}
-import com.klibisz.elastiknn.testing.LuceneHarness
+import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.Document
 import org.scalatest._
 
 import scala.util.Random
 
-class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
+class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneSupport {
 
   // Hacky way to give you some time for setting up the Profiler :)
 //  import java.nio.file.{Files, Path}

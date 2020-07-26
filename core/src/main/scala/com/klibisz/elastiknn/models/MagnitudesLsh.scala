@@ -28,13 +28,12 @@ final class MagnitudesLsh(override val mapping: Mapping.MagnitudesLsh)
     vec.values.indices.foreach(ixHeap.add)
 
     // Build the hash array by repeating each index k - rank(index) times for a total of k + (k + 1) / 2 hashes.
-    // Indexes of negative values are negated. In the original paper you would add the length of the vector, but
-    // smaller magnitude ints create smaller byte arrays.
+    // Indexes of negative values are negated.
     val hashes = new Array[Array[Byte]](mapping.k * (mapping.k + 1) / 2)
     var (hashexIx, rank) = (0, 0)
     while (!ixHeap.isEmpty) {
       val ix = ixHeap.removeFirst()
-      val hash = if (vec.values(ix) >= 0) writeInt(ix) else writeInt(-ix)
+      val hash = if (vec.values(ix) >= 0) writeInt(ix) else writeInt(vec.values.length + ix)
       var repIx = 0
       while (repIx < mapping.k - rank) {
         hashes.update(hashexIx, hash)

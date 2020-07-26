@@ -60,6 +60,8 @@ package object api {
     }
 
     object DenseFloat {
+      def apply(values: Float *): DenseFloat = DenseFloat(values.toArray)
+
       def random(length: Int, unit: Boolean = false)(implicit rng: Random): DenseFloat = {
         val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat))
         if (unit) {

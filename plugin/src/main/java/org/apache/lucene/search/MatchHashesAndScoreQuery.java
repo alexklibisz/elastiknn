@@ -26,7 +26,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
         // PrefixCodedTerms.Builder expects the hashes in sorted order, with no duplicates.
-        ArrayUtil.timSort(hashes);
         PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
         BytesRef prev = hashes[0];
         builder.add(field, prev);
@@ -44,6 +43,9 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
+        // `makePrefixCodedTerms` and `countMatches` both expect hashes to be in sorted order.
+        ArrayUtil.timSort(hashes);
+
         this.field = field;
         this.hashes = hashes;
         this.candidates = candidates;
@@ -66,12 +68,24 @@ public class MatchHashesAndScoreQuery extends Query {
                 short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
                 BytesRef term = iterator.next();
+                int hashesIx = 0;
                 while (term != null) {
+                    // Seek to this term in the shard.
                     if (termsEnum.seekExact(term)) {
+                        // Count the number of times this term occurs in the `hashes` array.
+                        while (hashes[hashesIx].compareTo(term) < 0) {
+                            hashesIx++;
+                        }
+                        int hashesFreq = 0;
+                        while (hashesIx < hashes.length && hashes[hashesIx].compareTo(term) == 0) {
+                            hashesIx++;
+                            hashesFreq++;
+                        }
+                        // Add the min of the term frequency in the doc and in the hashes array.
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += docs.freq();
+                            counts[docId] += Math.min(docs.freq(), hashesFreq);
                         }
                     }
                     term = iterator.next();

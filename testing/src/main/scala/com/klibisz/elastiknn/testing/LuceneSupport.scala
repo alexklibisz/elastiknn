@@ -9,7 +9,7 @@ import org.apache.lucene.index._
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.MMapDirectory
 
-trait LuceneHarness {
+trait LuceneSupport {
 
   def indexAndSearch[I, S](codec: Codec = new Lucene84Codec(), analyzer: Analyzer)(index: IndexWriter => I)(
       search: (IndexReader, IndexSearcher) => S): Unit = {

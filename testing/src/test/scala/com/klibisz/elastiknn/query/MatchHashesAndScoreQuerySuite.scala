@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
-import com.klibisz.elastiknn.testing.LuceneHarness
+import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
@@ -10,7 +10,7 @@ import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQu
 import org.apache.lucene.util.BytesRef
 import org.scalatest._
 
-class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneHarness {
+class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
   val vecFieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector")
 
