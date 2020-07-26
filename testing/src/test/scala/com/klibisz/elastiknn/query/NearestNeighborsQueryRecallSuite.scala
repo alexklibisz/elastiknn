@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import java.util.{Objects, UUID}
+import java.util.UUID
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
@@ -10,7 +10,7 @@ import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
 
 import scala.concurrent.Future
-import scala.util.hashing.MurmurHash3
+import scala.util.hashing.MurmurHash3.orderedHash
 
 /**
   * Tests for recall regressions for all of the mappings and their queries using random vectors.
@@ -157,7 +157,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 //         NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 0.20
       )
     )
-  ).drop(3).take(8)
+  ).dropRight(1)
+//    .drop(3).take(8)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
@@ -240,14 +241,14 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         val explicitRecall3 = recall(testData.queries, resultsIx, explicitResponses3)
         val indexedRecall = recall(testData.queries, resultsIx, indexedResponses)
 
+        // Print the hashcodes for the returned ids and scores. These should all be identical.
         val idsHashCodes = Seq(explicitResponses1, explicitResponses2, explicitResponses3, indexedResponses).map { responses =>
-          MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.id)))
+          orderedHash(responses.flatMap(_.result.hits.hits.map(_.id)))
+        }
+        val scoresHashCodes = Seq(explicitResponses1, explicitResponses2, explicitResponses3, indexedResponses).map { responses =>
+          orderedHash(responses.flatMap(_.result.hits.hits.map(_.score)))
         }
         info(s"IDs hashes: ${idsHashCodes.mkString(",")}")
-
-        val scoresHashCodes = Seq(explicitResponses1, explicitResponses2, explicitResponses3, indexedResponses).map { responses =>
-          MurmurHash3.orderedHash(responses.flatMap(_.result.hits.hits.map(_.score)))
-        }
         info(s"Scores hashes: ${scoresHashCodes.mkString(",")}")
 
         // Make sure results were deterministic.

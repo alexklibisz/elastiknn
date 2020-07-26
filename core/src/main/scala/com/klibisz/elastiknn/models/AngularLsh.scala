@@ -22,8 +22,8 @@ final class AngularLsh(override val mapping: Mapping.AngularLsh)
 
   private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
-  override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
-    val hashes = new Array[Array[Byte]](L)
+  override def apply(v: Vec.DenseFloat): Array[HashAndFrequency] = {
+    val hashes = new Array[HashAndFrequency](L)
     var (ixHashes, ixHashVecs) = (0, 0)
     while (ixHashes < L) {
       val hashBuf = new BitBuffer.IntBuffer(writeInt(ixHashes))
@@ -33,7 +33,7 @@ final class AngularLsh(override val mapping: Mapping.AngularLsh)
         ixRows += 1
         ixHashVecs += 1
       }
-      hashes.update(ixHashes, hashBuf.toByteArray)
+      hashes.update(ixHashes, new HashAndFrequency(hashBuf.toByteArray))
       ixHashes += 1
     }
     hashes

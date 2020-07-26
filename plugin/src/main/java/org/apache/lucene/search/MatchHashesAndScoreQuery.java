@@ -1,5 +1,6 @@
 package org.apache.lucene.search;
 
+import com.klibisz.elastiknn.models.HashAndFrequency;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.ArrayUtil;
@@ -17,41 +18,25 @@ public class MatchHashesAndScoreQuery extends Query {
     }
 
     private final String field;
-    private final BytesRef[] hashes;
+    private final HashAndFrequency[] hashAndFrequencies;
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-//    private final PrefixCodedTerms prefixCodedTerms;
     private final int numDocsInSegment;
 
-//    private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-//        // PrefixCodedTerms.Builder expects the hashes in sorted order, with no duplicates.
-//        PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
-//        BytesRef prev = hashes[0];
-//        builder.add(field, prev);
-//        for (int i = 1; i < hashes.length; i++) {
-//            if (hashes[i].compareTo(prev) > 0) {
-//                builder.add(field, hashes[i]);
-//                prev = hashes[i];
-//            }
-//        }
-//        return builder.finish();
-//    }
-
     public MatchHashesAndScoreQuery(final String field,
-                                    final BytesRef[] hashes,
+                                    final HashAndFrequency[] hashAndFrequencies,
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
-        // `makePrefixCodedTerms` and `countMatches` both expect hashes to be in sorted order.
-        ArrayUtil.timSort(hashes);
+        // `countMatches` expects hashes to be in sorted order.
+        ArrayUtil.timSort(hashAndFrequencies);
 
         this.field = field;
-        this.hashes = hashes;
+        this.hashAndFrequencies = hashAndFrequencies;
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
-//        this.prefixCodedTerms = makePrefixCodedTerms(field, hashes);
         this.numDocsInSegment = indexReader.numDocs();
     }
 
@@ -66,12 +51,12 @@ public class MatchHashesAndScoreQuery extends Query {
                 TermsEnum termsEnum = terms.iterator();
                 short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
-                for (BytesRef hash : hashes) {
-                    if (termsEnum.seekExact(hash)) {
+                for (HashAndFrequency hac : hashAndFrequencies) {
+                    if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += 1;
+                            counts[docId] += Math.min(hac.getFreq(), docs.freq());
                         }
                     }
                 }
@@ -189,7 +174,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 "%s for field [%s] with [%d] hashes and [%d] candidates",
                 this.getClass().getSimpleName(),
                 this.field,
-                this.hashes.length,
+                this.hashAndFrequencies.length,
                 this.candidates);
     }
 
@@ -205,6 +190,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, hashes, candidates, indexReader, scoreFunctionBuilder);
+        return Objects.hash(field, hashAndFrequencies, candidates, indexReader, scoreFunctionBuilder);
     }
 }

@@ -20,14 +20,13 @@ object HashingQuery {
                                                     lshFunction: HashingFunction[M, V, S],
                                                     exactFunction: ExactSimilarityFunction[V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
-    val hashes = lshFunction(query).map(new BytesRef(_))
+    val hashes = lshFunction(query)
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
         val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = cachedReader(docId)
-          val exactScore = exactFunction(query, storedVec)
-          exactScore
+          exactFunction(query, storedVec)
       }
     new MatchHashesAndScoreQuery(
       field,
@@ -47,10 +46,10 @@ object HashingQuery {
       vec: V,
       lshFunction: HashingFunction[M, V, S])(implicit lshFunctionCache: HashingFunctionCache[M, V, S]): Seq[IndexableField] = {
     val hashes = lshFunction(vec)
-//    System.out.println(s"EKNNDEBUG: ${hashes.map(UnsafeSerialization.readInt).mkString(",")}")
-//    System.out.println("")
-    ExactQuery.index(field, vec) ++ hashes.distinct.map { h =>
-      new Field(field, h, fieldType)
+    // System.out.println(s"EKNNDEBUG: ${hashes.map(UnsafeSerialization.readInt).mkString(",")}")
+    ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
+      val f = new Field(field, h.getHash, fieldType)
+      (0 until h.getFreq).map(_ => f)
     }
   }
 }

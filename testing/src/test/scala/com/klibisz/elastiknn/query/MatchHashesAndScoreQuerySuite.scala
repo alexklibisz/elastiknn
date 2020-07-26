@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.mapper.VectorMapper
+import com.klibisz.elastiknn.models.HashAndFrequency
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
@@ -49,7 +50,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
       w.addDocument(d)
     } {
       case (r, s) =>
-        val hashes = Array(new BytesRef(writeInt(42)), new BytesRef(writeInt(99)), new BytesRef(writeInt(22)))
+        val hashes = Array(new HashAndFrequency(writeInt(42)), new HashAndFrequency(writeInt(99)), new HashAndFrequency(writeInt(22)))
         val q = new MatchHashesAndScoreQuery(
           "vec",
           hashes,
@@ -79,7 +80,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
       w.addDocument(d2)
     } {
       case (r, s) =>
-        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => new BytesRef(writeInt(i)))
+        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => new HashAndFrequency(writeInt(i)))
         val q = new MatchHashesAndScoreQuery(
           "vec",
           hashes,
@@ -89,7 +90,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 2
-        dd.scoreDocs.map(_.score) shouldBe Array(3f, 2f)
+        dd.scoreDocs.map(_.score) shouldBe Array(3f, 1f)
     }
   }
 
