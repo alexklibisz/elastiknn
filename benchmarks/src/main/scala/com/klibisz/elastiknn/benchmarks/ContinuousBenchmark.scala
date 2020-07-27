@@ -54,19 +54,21 @@ object ContinuousBenchmark extends App {
       Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 250, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
-        Query(NearestNeighborsQuery.AngularLsh(field, 2000), k)
+        Query(NearestNeighborsQuery.AngularLsh(field, 2000), k),
+        Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
       )
     ),
     Experiment(
       Dataset.AnnbGlove100,
       Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove100.dims, 20, repeating = false),
+      Mapping.PermutationLsh(Dataset.AnnbGlove100.dims, 50, repeating = false),
       Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1100), k)
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 2000), k),
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     )
-  ).takeRight(1)
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()

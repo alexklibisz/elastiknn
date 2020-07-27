@@ -22,8 +22,8 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)
-    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000000)
-    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 1000)
+    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 10000)
+    val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 100)
     val lshFunc = new AngularLsh(Mapping.AngularLsh(25, 50, 1))
     val exactFunc = ExactSimilarityFunction.Angular
     val field = "vec"
