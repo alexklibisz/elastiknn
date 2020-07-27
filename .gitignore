@@ -8,7 +8,8 @@ release.md
 
 # Git LFS
 .minio
-!.minio/elastiknn-benchmarks/data/processed/*/*.json.gz
+!.minio/elastiknn-benchmarks/data/processed/annbglove100/*.json.gz
+!.minio/elastiknn-benchmarks/data/processed/annbglove25/*.json.gz
 
 # Ignore Gradle GUI config
 gradle-app.setting
