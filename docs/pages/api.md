@@ -318,8 +318,10 @@ Indices can optionally be repeated based on their ranking.
 In this example, the indices would be repeated `[4, 4, 4, 4, 7, 7, 7, -8, -8, 1]`.
 Index 4 has the highest absolute value, so it's repeated `k - 0 = 4` times. 
 Index 7 has the second highest absolute value, so it's repeated `k - 1 = 3` times, and so on.
-Given a query vector represented by `[2, 2, 2, 2, 7, 7, 7, 4, 4, 5]`, the algorithm produces a score of 5 for the 
-original example vector, because the intersection of the two representations `(7, 7, 7, 4, 4)` has length 5. 
+The search algorithm computes the score as the size of the intersection of the stored vector's representation and the 
+query vector's representation.
+So for a query vector represented by `[2, 2, 2, 2, 7, 7, 7, 4, 4, 5]`, the intersection is `[7, 7, 7, 4, 4]`, producing
+a score of 5. 
 In some experiments, repetition has actually decreased recall, so it's advised that you try with and without repetition.
 
 ```json
@@ -331,7 +333,7 @@ PUT /my-index/_mapping
             "elastiknn": {
                 "dims": 100,                        # 2
                 "model": "permutation_lsh",         # 3
-                "similarity": "l2",                 # 4
+                "similarity": "angular",            # 4
                 "k": 10,                            # 5
                 "repeating": true                   # 6
             }
@@ -690,13 +692,43 @@ GET /my-index/_search
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
-### Mapping and Query Compatibility
+### Permutation LSH Query
 
-Some models can be used for more than one type of query. 
-For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using Jaccard and Hamming similarity. 
-The opposite is _not_ true; vectors stored using the exact model do not support Jaccard LSH queries.
+Retrieve dense float vectors based on the permutation LSH algorithm.
+See the permutation LSH mapping for more about the algorithm.
 
-The tables below show valid model/query combinations. 
+```json
+GET /my-index/_search
+{
+    "query": {
+        "elastiknn_nearest_neighbors": {
+            "field": "my_vec",                     # 1
+            "vec": {                               # 2
+                "values": [0.1, 0.2, 0.3, ...]
+            },
+            "model": "permutation_lsh",            # 3
+            "similarity": "angular",               # 4
+            "candidates": 50                       # 5
+        }
+    }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|Indexed field. Must use `permutation_lsh` mapping to use this query.|
+|2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
+|3|Model name.|
+|4|Similarity function. Supports Angular, L1, and L2.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
+
+### Model and Query Compatibility
+
+Some models can support more than one type of query. 
+For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using both Jaccard and Hamming similarity. 
+The opposite is _not_ true: vectors stored using the exact model do not support Jaccard LSH queries.
+
+The tables below shows valid model/query combinations. 
 Rows are models and columns are queries. 
 The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1, L2).
 
@@ -711,11 +743,12 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 #### elastiknn_dense_float_vector
 
-|Model / Query                   |Exact         |Angular LSH |L2 LSH |
-|:--                             |:--           |:--         |:--    |
-|Exact (i.e. no model specified) |✔ (A, L1, L2) |x           |x      |
-|Angular LSH                     |✔ (A, L1, L2) |✔           |x      |
-|L2 LSH                          |✔ (A, L1, L2) |x           |✔      |
+|Model / Query                   |Exact         |Angular LSH |L2 LSH |Permutation LSH|
+|:--                             |:--           |:--         |:--    |:--            |
+|Exact (i.e. no model specified) |✔ (A, L1, L2) |x           |x      |x              | 
+|Angular LSH                     |✔ (A, L1, L2) |✔           |x      |x              |
+|L2 LSH                          |✔ (A, L1, L2) |x           |✔      |x              |
+|Permutation LSH                 |✔ (A, L1, L2) |x           |x      |✔              |
 
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
@@ -776,9 +809,11 @@ The hyperparameters are stored inside the mappings where they are originally def
 ### Transforming and Indexing Vectors
 
 Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. 
-All vectors index a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) containing a serialized version of the vector, as well as term fields based on the vector's mapping. 
-For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in a doc values field and the vector's hash values as a set of Lucene Terms which point back to the document and field containing the vector. 
-All of this transformation is part of the implementation for the `elastiknn_sparse_bool_vector` and `elastiknn_dense_float_vector` datatypes.
+All vectors store a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) 
+containing a serialized version of the vector for exact queries, and vectors indexed using an LSH model index the hashes
+using a Lucene Term field. 
+For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in 
+a doc values field and the vector's hash values as a set of Lucene Terms.
 
 ### Caching Mappings
 
