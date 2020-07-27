@@ -60,29 +60,6 @@ public class MatchHashesAndScoreQuery extends Query {
                         }
                     }
                 }
-//                int hashesIx = 0;
-//                while (term != null) {
-//                    // Seek to this term in the shard.
-//                    if (termsEnum.seekExact(term)) {
-//                        // Count the number of times this term occurs in the `hashes` array.
-//                        int hashesFreq = 0;
-//                        while (hashes[hashesIx].compareTo(term) < 0) {
-//                            hashesIx++;
-//                        }
-//                        while (hashesIx < hashes.length && hashes[hashesIx].compareTo(term) == 0) {
-//                            hashesIx++;
-//                            hashesFreq++;
-//                        }
-//                        // Loop over docs containing this term. Increment the count for each doc by adding
-//                        // the min of the term freq. in the doc and the term freq. in the hashes array.
-//                        docs = termsEnum.postings(docs, PostingsEnum.NONE);
-//                        for (int i = 0; i < docs.cost(); i++) {
-//                            int docId = docs.nextDoc();
-//                            counts[docId] += Math.min(docs.freq(), hashesFreq);
-//                        }
-//                    }
-//                    term = iterator.next();
-//                }
                 return counts;
             }
 

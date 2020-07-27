@@ -6,7 +6,6 @@ import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, NumericDocValuesField}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
-import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.MappedFieldType
 
 object SparseIndexedQuery {

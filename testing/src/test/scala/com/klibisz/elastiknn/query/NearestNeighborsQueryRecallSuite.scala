@@ -156,8 +156,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2
     )
-  ).takeRight(1)
-//    .drop(3).take(8)
+  )
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
