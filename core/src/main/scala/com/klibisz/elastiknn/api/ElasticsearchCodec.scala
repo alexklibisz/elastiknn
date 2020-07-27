@@ -31,7 +31,7 @@ private object Keys {
   val L1 = "l1"
   val L2 = "l2"
   val LSH = "lsh"
-  val MAGNITUDE_LSH = "magnitude_lsh"
+  val PERMUTATION_LSH = "permutation_lsh"
   val MODEL = "model"
   val QUERY_OPTIONS = "query_options"
   val SIMILARITY = "similarity"
@@ -155,7 +155,7 @@ object ElasticsearchCodec { esc =>
       case m: Mapping.L2Lsh =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> L2)))
       case m: Mapping.MagnitudesLsh =>
-        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> MAGNITUDE_LSH)))
+        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> PERMUTATION_LSH)))
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
@@ -179,7 +179,7 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.AngularLsh](c)
           case (EKNN_DENSE_FLOAT_VECTOR, Some(LSH), Some(Similarity.L2)) =>
             esc.decode[Mapping.L2Lsh](c)
-          case (EKNN_DENSE_FLOAT_VECTOR, Some(MAGNITUDE_LSH), None) => esc.decode[Mapping.MagnitudesLsh](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), None) => esc.decode[Mapping.MagnitudesLsh](c)
           case _ =>
             val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
             fail[Mapping](msg)
@@ -193,19 +193,19 @@ object ElasticsearchCodec { esc =>
   implicit val hammingLshNNQ: ESC[NearestNeighborsQuery.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val angularLshNNQ: ESC[NearestNeighborsQuery.AngularLsh] = ElasticsearchCodec(deriveCodec)
   implicit val l2LshNNQ: ESC[NearestNeighborsQuery.L2Lsh] = ElasticsearchCodec(deriveCodec)
-  implicit val magnitudeLshNNQ: ESC[NearestNeighborsQuery.MagnitudesLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val magnitudeLshNNQ: ESC[NearestNeighborsQuery.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {
       val default = JsonObject(FIELD -> a.field, VEC -> esc.encode(a.vec), SIMILARITY -> esc.encode(a.similarity))
       a match {
-        case q: NearestNeighborsQuery.Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.HammingLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.AngularLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.L2Lsh         => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.MagnitudesLsh => JsonObject(MODEL -> MAGNITUDE_LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.Exact          => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.SparseIndexed  => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.JaccardLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.HammingLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.AngularLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.L2Lsh          => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.PermutationLsh => JsonObject(MODEL -> PERMUTATION_LSH) ++ (default ++ esc.encode(q))
       }
     }
     override def apply(c: HCursor): Result[NearestNeighborsQuery] =
@@ -213,9 +213,9 @@ object ElasticsearchCodec { esc =>
         model <- c.downField(MODEL).as[String]
         sim <- c.downField(SIMILARITY).as[Json].flatMap(esc.decodeJson[Similarity])
         nnq <- model match {
-          case EXACT          => esc.decode[NearestNeighborsQuery.Exact](c)
-          case SPARSE_INDEXED => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
-          case MAGNITUDE_LSH  => esc.decode[NearestNeighborsQuery.MagnitudesLsh](c)
+          case EXACT           => esc.decode[NearestNeighborsQuery.Exact](c)
+          case SPARSE_INDEXED  => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
+          case PERMUTATION_LSH => esc.decode[NearestNeighborsQuery.PermutationLsh](c)
           case LSH =>
             sim match {
               case Similarity.Jaccard => esc.decode[NearestNeighborsQuery.JaccardLsh](c)

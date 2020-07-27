@@ -12,7 +12,7 @@ import org.scalatest._
 
 import scala.util.Random
 
-class MagnitudesLshSuite extends FunSuite with Matchers with LuceneSupport {
+class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
 
   val ft = new mapper.VectorMapper.FieldType("elastiknn_dense_float_vector")
 

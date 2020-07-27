@@ -63,7 +63,7 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
       Mapping.MagnitudesLsh(Dataset.AnnbGlove100.dims, 20),
       Seq(
-        Query(NearestNeighborsQuery.MagnitudesLsh(field, Similarity.Angular, 1100), k)
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1100), k)
       )
     )
   ).takeRight(1)

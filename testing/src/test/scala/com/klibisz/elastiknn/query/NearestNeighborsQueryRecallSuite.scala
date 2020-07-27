@@ -148,10 +148,10 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 200) -> 0.14,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.Angular, 400) -> 0.21,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 200) -> 0.12,
-        NearestNeighborsQuery.MagnitudesLsh(vecField, Similarity.L2, 400) -> 0.20
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
       ),
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2

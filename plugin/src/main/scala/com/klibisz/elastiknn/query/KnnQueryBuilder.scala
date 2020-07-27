@@ -109,10 +109,10 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (L2Lsh(f, candidates, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), ExactSimilarityFunction.L2, c.getIndexReader)
 
-      case (MagnitudesLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
+      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.Angular, c.getIndexReader)
 
-      case (MagnitudesLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
+      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.L2, c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
