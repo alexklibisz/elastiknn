@@ -1,3 +1,6 @@
+- Added Permutation Lsh model and query, based on paper _Large Scale Image Retrieval with Elasticsearch_ by Amato, et. al.
+- Several internal improvements, including support for LSH models with repeated hashes.
+---
 - Performance improvements for LSH queries. 1.5-2x faster on regular benchmarks with randomized data. See PR #114.
 ---
 - Fixed error with KNN queries against vectors that are stored in nested fields, e.g. `outer.inner.vec`.
