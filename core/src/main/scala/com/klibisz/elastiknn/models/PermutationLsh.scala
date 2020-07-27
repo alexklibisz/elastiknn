@@ -18,11 +18,10 @@ final class PermutationLsh(override val mapping: Mapping.PermutationLsh)
     val ixHeap = MinMaxPriorityQueue
       .orderedBy(
         (o1: Int, o2: Int) =>
-          scala.Ordering
-            .Tuple2[Float, Int]
+          scala.Ordering.Float
             .compare(
-              (math.abs(vec.values(o2)), o2),
-              (math.abs(vec.values(o1)), o1)
+              math.abs(vec.values(o2)),
+              math.abs(vec.values(o1))
           ))
       .maximumSize(mapping.k)
       .create[Int]()
