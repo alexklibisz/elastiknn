@@ -138,7 +138,7 @@ object ElasticsearchCodec { esc =>
   implicit val mappingHammingLsh: ESC[Mapping.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingAngularLsh: ESC[Mapping.AngularLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingL2Lsh: ESC[Mapping.L2Lsh] = ElasticsearchCodec(deriveCodec)
-  implicit val mappingMagnitudeLsh: ESC[Mapping.MagnitudesLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingPermutationLsh: ESC[Mapping.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
     override def apply(t: Mapping): Json = t match {
@@ -154,7 +154,7 @@ object ElasticsearchCodec { esc =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> ANGULAR)))
       case m: Mapping.L2Lsh =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> L2)))
-      case m: Mapping.MagnitudesLsh =>
+      case m: Mapping.PermutationLsh =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> PERMUTATION_LSH)))
     }
 
@@ -179,7 +179,7 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.AngularLsh](c)
           case (EKNN_DENSE_FLOAT_VECTOR, Some(LSH), Some(Similarity.L2)) =>
             esc.decode[Mapping.L2Lsh](c)
-          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), None) => esc.decode[Mapping.MagnitudesLsh](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), None) => esc.decode[Mapping.PermutationLsh](c)
           case _ =>
             val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
             fail[Mapping](msg)
@@ -193,7 +193,7 @@ object ElasticsearchCodec { esc =>
   implicit val hammingLshNNQ: ESC[NearestNeighborsQuery.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val angularLshNNQ: ESC[NearestNeighborsQuery.AngularLsh] = ElasticsearchCodec(deriveCodec)
   implicit val l2LshNNQ: ESC[NearestNeighborsQuery.L2Lsh] = ElasticsearchCodec(deriveCodec)
-  implicit val magnitudeLshNNQ: ESC[NearestNeighborsQuery.PermutationLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val queryPermutationLsh: ESC[NearestNeighborsQuery.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {

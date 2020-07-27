@@ -17,16 +17,16 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
   val ft = new mapper.VectorMapper.FieldType("elastiknn_dense_float_vector")
 
   test("example from paper") {
-    val mapping = Mapping.MagnitudesLsh(6, 4)
-    val mlsh = new MagnitudesLsh(mapping)
+    val mapping = Mapping.PermutationLsh(6, 4)
+    val mlsh = new PermutationLsh(mapping)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
     val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
     hashes shouldBe Array((-3, 4), (-2, 3), (5, 2), (1, 1))
   }
 
   test("another example") {
-    val mapping = Mapping.MagnitudesLsh(10, 4)
-    val mlsh = new MagnitudesLsh(mapping)
+    val mapping = Mapping.PermutationLsh(10, 4)
+    val mlsh = new PermutationLsh(mapping)
     val vec = Vec.DenseFloat(10f, -2f, 0f, 99f, 0.1f, -8f, 42f, -13f, 6f, 0.1f)
     val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
     // Get the top 4 indices by absolute value:   (4, 7, 8, 1)
@@ -37,7 +37,7 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
 
   test("ties") {
     // Since index 1 and 2 are tied, index 5 should have freq = 2 instead of 3.
-    val mlsh = new MagnitudesLsh(Mapping.MagnitudesLsh(6, 4))
+    val mlsh = new PermutationLsh(Mapping.PermutationLsh(6, 4))
     val vec = Vec.DenseFloat(2f, 2f, 0f, 0f, 1f, 4f)
     val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
     hashes.sorted shouldBe Array((6, 4), (1, 3), (2, 3), (5, 1)).sorted
@@ -46,7 +46,7 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
   test("deterministic hashing") {
     implicit val rng: Random = new Random(0)
     val dims = 1024
-    val mlsh = new MagnitudesLsh(Mapping.MagnitudesLsh(dims, 128))
+    val mlsh = new PermutationLsh(Mapping.PermutationLsh(dims, 128))
     (0 until 100).foreach { _ =>
       val vec = Vec.DenseFloat.random(dims)
       val hashes = (0 until 100).map(_ => mlsh(vec).map(h => (readInt(h.getHash), h.getFreq)).mkString(","))
@@ -89,7 +89,7 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
     implicit val rng: Random = new Random(0)
     val corpusVecs = Vec.DenseFloat.randoms(1024, 1000, unit = true)
     val queryVecs = Vec.DenseFloat.randoms(1024, 100, unit = true)
-    val lsh = new MagnitudesLsh(Mapping.MagnitudesLsh(1024, 128))
+    val lsh = new PermutationLsh(Mapping.PermutationLsh(1024, 128))
 
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>

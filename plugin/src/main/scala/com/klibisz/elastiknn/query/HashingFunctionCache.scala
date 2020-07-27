@@ -34,7 +34,8 @@ object HashingFunctionCache {
   implicit object L2 extends HashingFunctionCache[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
     def load(m: Mapping.L2Lsh): HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] = new L2Lsh(m)
   }
-  implicit object Magnitudes extends HashingFunctionCache[Mapping.MagnitudesLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-    def load(m: Mapping.MagnitudesLsh): HashingFunction[Mapping.MagnitudesLsh, Vec.DenseFloat, StoredVec.DenseFloat] = new MagnitudesLsh(m)
+  implicit object Permutation extends HashingFunctionCache[Mapping.PermutationLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+    def load(m: Mapping.PermutationLsh): HashingFunction[Mapping.PermutationLsh, Vec.DenseFloat, StoredVec.DenseFloat] =
+      new PermutationLsh(m)
   }
 }

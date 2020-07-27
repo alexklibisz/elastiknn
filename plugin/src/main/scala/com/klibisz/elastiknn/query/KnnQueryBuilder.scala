@@ -80,15 +80,15 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         ExactQuery(f, v, ExactSimilarityFunction.Hamming)
 
       case (Exact(f, Similarity.L1, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.MagnitudesLsh) =>
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L1)
 
       case (Exact(f, Similarity.L2, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.MagnitudesLsh) =>
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L2)
 
       case (Exact(f, Similarity.Angular, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.MagnitudesLsh) =>
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Angular)
 
       case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
@@ -109,11 +109,11 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
       case (L2Lsh(f, candidates, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), ExactSimilarityFunction.L2, c.getIndexReader)
 
-      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.Angular, c.getIndexReader)
+      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ExactSimilarityFunction.Angular, c.getIndexReader)
 
-      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.MagnitudesLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Magnitudes(m), ExactSimilarityFunction.L2, c.getIndexReader)
+      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ExactSimilarityFunction.L2, c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
     }

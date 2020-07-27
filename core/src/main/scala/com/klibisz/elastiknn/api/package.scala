@@ -91,7 +91,7 @@ package object api {
     final case class DenseFloat(dims: Int) extends Mapping
     final case class AngularLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class L2Lsh(dims: Int, L: Int, k: Int, r: Int) extends Mapping
-    final case class MagnitudesLsh(dims: Int, k: Int) extends Mapping
+    final case class PermutationLsh(dims: Int, k: Int) extends Mapping
   }
 
   sealed trait NearestNeighborsQuery {

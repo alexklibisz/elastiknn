@@ -141,9 +141,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
       )
     ),
-    // Magnitudes Lsh
+    // Permutation Lsh
     Test(
-      Mapping.MagnitudesLsh(dims, 128),
+      Mapping.PermutationLsh(dims, 128),
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
