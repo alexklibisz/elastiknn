@@ -46,7 +46,7 @@ final class PermutationLsh(override val mapping: Mapping.PermutationLsh)
         currTies = 0
       } else currTies += 1
       val hash = if (vec.values(ix) >= 0) writeInt(ix + 1) else writeInt(-1 - ix)
-      hashes.update(hashesIx, new HashAndFreq(hash, mapping.k - rankComplement))
+      hashes.update(hashesIx, new HashAndFreq(hash, if (mapping.repeating) mapping.k - rankComplement else 1))
       hashesIx += 1
     }
     hashes

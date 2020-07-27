@@ -61,7 +61,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove100,
       Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove100.dims, 20),
+      Mapping.PermutationLsh(Dataset.AnnbGlove100.dims, 20, repeating = false),
       Seq(
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1100), k)
       )

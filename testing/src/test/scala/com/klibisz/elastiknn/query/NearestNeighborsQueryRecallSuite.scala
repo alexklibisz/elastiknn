@@ -143,7 +143,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     ),
     // Permutation Lsh
     Test(
-      Mapping.PermutationLsh(dims, 128),
+      Mapping.PermutationLsh(dims, 128, true),
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
@@ -151,12 +151,30 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L1, 200) -> 0.12,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L1, 400) -> 0.20
+      ),
+      // TODO: This one seems to be more sensitive for some unknown reason.
+      recallTolerance = 5e-2
+    ),
+    Test(
+      Mapping.PermutationLsh(dims, 128, false),
+      Seq(
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.36,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.51,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.43,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L1, 200) -> 0.3,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L1, 400) -> 0.43
       ),
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2
     )
-  )
+  ).takeRight(2)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {

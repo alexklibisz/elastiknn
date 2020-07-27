@@ -18,8 +18,8 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 
 ## Mappings
 
-Before indexing vectors you must define a mapping specifying one of two vector datatypes and a few other properties. 
-These determine how vectors are indexed to support different kinds of searches.
+Before indexing vectors you must define a mapping specifying one of two vector datatypes, an indexing model, and the model's parameters. 
+This determines which queries are supported for the indexed vectors.
 
 ### General Structure
 
@@ -300,6 +300,55 @@ PUT /my-index/_mapping
 |5|Number of hash tables. Generally, increasing this value increases recall.|
 |6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
 |7|Integer bucket width. This determines how close two vectors have to be, when projected onto a third common vector, in order for the two vectors to share a hash value. Typical values are low single-digit integers.|
+
+### Permutation LSH Mapping
+
+Uses the model described in [Large-Scale Image Retrieval with Elasticsearch by Amato, et. al.](https://dl.acm.org/doi/10.1145/3209978.3210089).
+
+This model describes a vector by the `k` indices (_positions in the vector_) with the greatest absolute values.
+The intuition is that each index corresponds to some latent concept, and indices with high absolute values carry more 
+information about their respective concepts than those with low absolute values.
+The research for this method has focused mainly on Angular similarity, though the implementation supports Angular, L1, and L2.
+
+**An example**
+
+The vector `[10, -2, 0, 99, 0.1, -8, 42, -13, 6, 0.1]` with `k = 4` is represented by indices `[4, 7, -8, 1]`.
+Indices are 1-indexed and indices for negative values are negated (hence the -8). 
+Indices can optionally be repeated based on their ranking.
+In this example, the indices would be repeated `[4, 4, 4, 4, 7, 7, 7, -8, -8, 1]`.
+Index 4 has the highest absolute value, so it's repeated `k - 0 = 4` times. 
+Index 7 has the second highest absolute value, so it's repeated `k - 1 = 3` times, and so on.
+Given a query vector represented by `[2, 2, 2, 2, 7, 7, 7, 4, 4, 5]`, the algorithm produces a score of 5 for the 
+original example vector, because the intersection of the two representations `(7, 7, 7, 4, 4)` has length 5. 
+In some experiments, repetition has actually decreased recall, so it's advised that you try with and without repetition.
+
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_dense_float_vector", # 1
+            "elastiknn": {
+                "dims": 100,                        # 2
+                "model": "permutation_lsh",         # 3
+                "similarity": "l2",                 # 4
+                "k": 10,                            # 5
+                "repeating": true                   # 6
+            }
+        }
+    }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|Vector datatype. Must be dense float vector.|
+|2|Vector dimensionality.|
+|3|Model type.|
+|4|Similarity. Supports angular, l1, and l2|
+|5|The number of top indices to pick.|
+|6|Whether or not to repeat the indices proportionally to their rank. See the notes on repeating above.|
+  
 
 ## Vectors
 
