@@ -117,8 +117,8 @@ package object benchmarks {
         ptile.evaluate(durations, 0.5).toFloat,
         ptile.evaluate(recalls, 0.9).toFloat,
         ptile.evaluate(durations, 0.9).toFloat,
-        ElasticsearchCodec.encode(benchmarkResult.mapping).spaces2,
-        ElasticsearchCodec.encode(benchmarkResult.query).spaces2
+        ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
+        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
       )
     }
   }
