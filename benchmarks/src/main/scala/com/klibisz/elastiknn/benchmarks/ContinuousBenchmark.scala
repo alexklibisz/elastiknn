@@ -68,7 +68,7 @@ object ContinuousBenchmark extends App {
           datasetsPrefix = "data/processed",
           resultsBucket = bucket,
           resultsPrefix = "results",
-          parallelism = 1,
+          parallelism = 2,
           s3Minio = true,
           recompute = true
         )
