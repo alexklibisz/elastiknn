@@ -25,7 +25,7 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
     ),
-    // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
+    // Angular
     Experiment(
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
