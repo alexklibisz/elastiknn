@@ -33,6 +33,7 @@ jobs:
         run: |
           sudo apt install -y tree
           tree .minio
+          find .minio -name '*.json.gz' | xargs du -hs
 
       - name: Setup Java
         uses: actions/setup-java@v1
