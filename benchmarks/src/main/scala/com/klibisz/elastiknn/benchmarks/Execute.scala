@@ -109,8 +109,7 @@ object Execute extends App {
         _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
         _ <- eknnClient.execute(forceMerge(trainIndex).maxSegments(1))
         _ <- eknnClient.execute(forceMerge(testIndex).maxSegments(1))
-        _ <- eknnClient.execute(FreezeIndexRequest(trainIndex))
-        _ <- eknnClient.execute(FreezeIndexRequest(testIndex))
+        _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
         _ <- ZIO.sleep(Duration(10, TimeUnit.SECONDS))
       } yield ()
     }
