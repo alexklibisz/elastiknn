@@ -21,26 +21,21 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: printenv | sort
-      - name: Checkout Branch
+      - name: Checkout Branch with LFS
         uses: actions/checkout@v2
         with:
           # This seems to work even if client_payload is empty?
           ref: '${{ github.event.client_payload.branch }}'
+          lfs: 'true'
       - name: Print Branch
         run: |
           git rev-parse --abbrev-ref HEAD
-      - name: Checkout LFS
-        run: |
-          sudo apt install -y tree
-          tree .minio
-          find .minio -name '*.json.gz' | xargs du -hs
 
+      # Needs to run after language setup.
       - name: Setup Java
         uses: actions/setup-java@v1
         with:
           java-version: 14
-
-      # Needs to run after language setup.
       - name: Setup Environment
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
