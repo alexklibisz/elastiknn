@@ -26,14 +26,12 @@ private object Keys {
   val EXACT = "exact"
   val FIELD = "field"
   val HAMMING = "hamming"
-  val HAMMING_INDEXED = "hamming_indexed"
   val INDEX = "index"
   val JACCARD = "jaccard"
-  val JACCARD_INDEXED = "jaccard_indexed"
-  val JACCARD_LSH = "jaccard_lsh"
   val L1 = "l1"
   val L2 = "l2"
   val LSH = "lsh"
+  val PERMUTATION_LSH = "permutation_lsh"
   val MODEL = "model"
   val QUERY_OPTIONS = "query_options"
   val SIMILARITY = "similarity"
@@ -42,6 +40,9 @@ private object Keys {
   val VEC = "vec"
 }
 
+/**
+  * If you think this is a lot of boilerplate you should see the Json parsing in Elasticsearch.
+  */
 object ElasticsearchCodec { esc =>
 
   import Keys._
@@ -59,7 +60,6 @@ object ElasticsearchCodec { esc =>
   private def fail[T](msg: String): Either[DecodingFailure, T] = Left(DecodingFailure(msg, List.empty))
   private def failTypes[T](field: String, good: Seq[String], bad: String): Either[DecodingFailure, T] =
     fail(s"Expected field $field to be one of (${good.mkString(", ")}) but got $bad")
-  private def failTypes[T](good: Seq[String], bad: String): Either[DecodingFailure, T] = failTypes(TYPE, good, bad)
 
   private implicit def jsonObjToJson(jo: JsonObject): Json = Json.fromJsonObject(jo)
   private implicit def intToJson(i: Int): Json = Json.fromInt(i)
@@ -138,6 +138,7 @@ object ElasticsearchCodec { esc =>
   implicit val mappingHammingLsh: ESC[Mapping.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingAngularLsh: ESC[Mapping.AngularLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingL2Lsh: ESC[Mapping.L2Lsh] = ElasticsearchCodec(deriveCodec)
+  implicit val mappingPermutationLsh: ESC[Mapping.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
     override def apply(t: Mapping): Json = t match {
@@ -153,6 +154,8 @@ object ElasticsearchCodec { esc =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> ANGULAR)))
       case m: Mapping.L2Lsh =>
         JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> L2)))
+      case m: Mapping.PermutationLsh =>
+        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> PERMUTATION_LSH)))
     }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
@@ -176,6 +179,7 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.AngularLsh](c)
           case (EKNN_DENSE_FLOAT_VECTOR, Some(LSH), Some(Similarity.L2)) =>
             esc.decode[Mapping.L2Lsh](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), None) => esc.decode[Mapping.PermutationLsh](c)
           case _ =>
             val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
             fail[Mapping](msg)
@@ -189,17 +193,19 @@ object ElasticsearchCodec { esc =>
   implicit val hammingLshNNQ: ESC[NearestNeighborsQuery.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val angularLshNNQ: ESC[NearestNeighborsQuery.AngularLsh] = ElasticsearchCodec(deriveCodec)
   implicit val l2LshNNQ: ESC[NearestNeighborsQuery.L2Lsh] = ElasticsearchCodec(deriveCodec)
+  implicit val queryPermutationLsh: ESC[NearestNeighborsQuery.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {
       val default = JsonObject(FIELD -> a.field, VEC -> esc.encode(a.vec), SIMILARITY -> esc.encode(a.similarity))
       a match {
-        case q: NearestNeighborsQuery.Exact         => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.SparseIndexed => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.JaccardLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.HammingLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.AngularLsh    => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.L2Lsh         => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.Exact          => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.SparseIndexed  => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.JaccardLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.HammingLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.AngularLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.L2Lsh          => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
+        case q: NearestNeighborsQuery.PermutationLsh => JsonObject(MODEL -> PERMUTATION_LSH) ++ (default ++ esc.encode(q))
       }
     }
     override def apply(c: HCursor): Result[NearestNeighborsQuery] =
@@ -207,8 +213,9 @@ object ElasticsearchCodec { esc =>
         model <- c.downField(MODEL).as[String]
         sim <- c.downField(SIMILARITY).as[Json].flatMap(esc.decodeJson[Similarity])
         nnq <- model match {
-          case EXACT          => esc.decode[NearestNeighborsQuery.Exact](c)
-          case SPARSE_INDEXED => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
+          case EXACT           => esc.decode[NearestNeighborsQuery.Exact](c)
+          case SPARSE_INDEXED  => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
+          case PERMUTATION_LSH => esc.decode[NearestNeighborsQuery.PermutationLsh](c)
           case LSH =>
             sim match {
               case Similarity.Jaccard => esc.decode[NearestNeighborsQuery.JaccardLsh](c)

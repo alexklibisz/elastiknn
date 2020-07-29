@@ -79,13 +79,16 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Hamming)
 
-      case (Exact(f, Similarity.L1, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.L1, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L1)
 
-      case (Exact(f, Similarity.L2, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.L2, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.L2)
 
-      case (Exact(f, Similarity.Angular, v: Vec.DenseFloat), _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh) =>
+      case (Exact(f, Similarity.Angular, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ExactSimilarityFunction.Angular)
 
       case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
@@ -95,16 +98,25 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, c.getIndexReader)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Jaccard(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Jaccard(m), ExactSimilarityFunction.Jaccard, c.getIndexReader)
 
       case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), ExactSimilarityFunction.Hamming, c.getIndexReader)
 
       case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Angular(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.Angular(m), ExactSimilarityFunction.Angular, c.getIndexReader)
 
       case (L2Lsh(f, candidates, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), c.getIndexReader)
+        HashingQuery(f, v, candidates, HashingFunctionCache.L2(m), ExactSimilarityFunction.L2, c.getIndexReader)
+
+      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ExactSimilarityFunction.Angular, c.getIndexReader)
+
+      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ExactSimilarityFunction.L2, c.getIndexReader)
+
+      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ExactSimilarityFunction.L1, c.getIndexReader)
 
       case _ => throw incompatible(mapping, query)
     }
@@ -165,10 +177,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
               val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.withVec(vector)))
-              l match {
-                case a: ActionListener[Any] => a.onResponse(null)
-                case _                      =>
-              }
+              l.asInstanceOf[ActionListener[Any]].onResponse(null)
             } catch {
               case e: Exception => l.onFailure(ex(e))
             }

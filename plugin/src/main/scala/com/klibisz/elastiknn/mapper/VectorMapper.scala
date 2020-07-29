@@ -47,10 +47,11 @@ object VectorMapper {
           Failure(VectorDimensionException(vec.values.length, mapping.dims))
         else
           mapping match {
-            case Mapping.DenseFloat(_) => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Angular(m)))
-            case m: Mapping.L2Lsh      => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)))
-            case _                     => Failure(incompatible(mapping, vec))
+            case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
+            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Angular(m)))
+            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)))
+            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Permutation(m)))
+            case _                         => Failure(incompatible(mapping, vec))
           }
     }
 
@@ -65,8 +66,10 @@ object VectorMapper {
     setOmitNorms(true)
     setBoost(1f)
     setTokenized(false)
-    setIndexOptions(IndexOptions.DOCS)
+    setIndexOptions(IndexOptions.DOCS_AND_FREQS)
     setStoreTermVectors(false)
+
+    // TODO: are these necessary?
     setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
     setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
 

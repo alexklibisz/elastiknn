@@ -28,6 +28,7 @@ package object benchmarks {
     case object AnnbDeep1b extends Dataset(96)
     case object AnnbFashionMnist extends Dataset(784)
     case object AnnbGist extends Dataset(960)
+    case object AnnbGlove25 extends Dataset(25)
     case object AnnbGlove100 extends Dataset(100)
     case object AnnbKosarak extends Dataset(27983)
     case object AnnbMnist extends Dataset(784)
@@ -98,6 +99,7 @@ package object benchmarks {
       case _: DenseFloat                                            => "Exact"
       case _: SparseIndexed                                         => "Sparse indexed"
       case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "LSH"
+      case _: PermutationLsh                                        => "Permutation LSH"
     }
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {

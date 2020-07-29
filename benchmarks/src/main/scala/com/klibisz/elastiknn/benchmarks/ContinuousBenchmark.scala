@@ -30,7 +30,8 @@ object ContinuousBenchmark extends App {
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(randomDenseFloats.dims, 400, 1),
+      // Angular LSH seems to benefit a lot from increasing k.
+      Mapping.AngularLsh(randomDenseFloats.dims, 250, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
       )
@@ -47,15 +48,39 @@ object ContinuousBenchmark extends App {
     ),
     // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
     Experiment(
-      Dataset.AnnbGlove100,
-      Mapping.DenseFloat(Dataset.AnnbGlove100.dims),
+      Dataset.AnnbGlove25,
+      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove100.dims, 100, 1),
+      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 250, 3),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
+        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
+        Query(NearestNeighborsQuery.AngularLsh(field, 2000), k),
+        Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      Dataset.AnnbGlove25,
+      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
+      Seq(
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1000), k),
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 2000), k),
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
+      )
+    ),
+    Experiment(
+      Dataset.AnnbGlove25,
+      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
+      Seq(
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1000), k),
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 2000), k),
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     )
-  ).take(3)
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()

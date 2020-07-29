@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.models.HashingFunction
-import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashingFunction}
+import com.klibisz.elastiknn.storage.{StoredVec, UnsafeSerialization}
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{MatchHashesAndScoreQuery, Query}
@@ -18,14 +18,15 @@ object HashingQuery {
                                                     query: V,
                                                     candidates: Int,
                                                     lshFunction: HashingFunction[M, V, S],
+                                                    exactFunction: ExactSimilarityFunction[V, S],
                                                     indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
-    val hashes = lshFunction(query).map(h => new BytesRef(h))
+    val hashes = lshFunction(query)
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
         val cachedReader = new ExactQuery.StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = cachedReader(docId)
-          lshFunction.exact(query, storedVec)
+          exactFunction(query, storedVec)
       }
     new MatchHashesAndScoreQuery(
       field,
@@ -44,8 +45,11 @@ object HashingQuery {
       fieldType: MappedFieldType,
       vec: V,
       lshFunction: HashingFunction[M, V, S])(implicit lshFunctionCache: HashingFunctionCache[M, V, S]): Seq[IndexableField] = {
-    ExactQuery.index(field, vec) ++ lshFunction(vec).map { h =>
-      new Field(field, h, fieldType)
+    val hashes = lshFunction(vec)
+    // System.out.println(s"EKNNDEBUG: ${hashes.map(UnsafeSerialization.readInt).mkString(",")}")
+    ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
+      val f = new Field(field, h.getHash, fieldType)
+      (0 until h.getFreq).map(_ => f)
     }
   }
 }

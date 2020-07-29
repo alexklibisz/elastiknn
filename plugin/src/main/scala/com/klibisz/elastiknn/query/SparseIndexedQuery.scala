@@ -1,19 +1,18 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
+import com.klibisz.elastiknn.models.{HashAndFreq, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, NumericDocValuesField}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
-import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.MappedFieldType
 
 object SparseIndexedQuery {
 
   def apply(field: String, queryVec: Vec.SparseBool, simFunc: SparseIndexedSimilarityFunction, indexReader: IndexReader): Query = {
 
-    val terms = queryVec.trueIndices.map(i => new BytesRef(UnsafeSerialization.writeInt(i)))
+    val terms = queryVec.trueIndices.map(i => HashAndFreq.once(UnsafeSerialization.writeInt(i)))
 
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {

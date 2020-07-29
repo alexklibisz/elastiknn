@@ -2,9 +2,9 @@ package com.klibisz.elastiknn.query
 
 import java.time.Duration
 
-import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.models.{AngularLsh, HammingLsh, HashingFunction, JaccardLsh, L2Lsh}
+import com.google.common.cache._
+import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.models._
 import com.klibisz.elastiknn.storage.StoredVec
 
 // The Lsh Functions tend to be expensive to instantiate (i.e. initializing hashing parameters), hence a cache.
@@ -33,5 +33,9 @@ object HashingFunctionCache {
   }
   implicit object L2 extends HashingFunctionCache[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
     def load(m: Mapping.L2Lsh): HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] = new L2Lsh(m)
+  }
+  implicit object Permutation extends HashingFunctionCache[Mapping.PermutationLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+    def load(m: Mapping.PermutationLsh): HashingFunction[Mapping.PermutationLsh, Vec.DenseFloat, StoredVec.DenseFloat] =
+      new PermutationLsh(m)
   }
 }

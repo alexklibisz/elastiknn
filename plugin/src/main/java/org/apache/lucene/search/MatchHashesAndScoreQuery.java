@@ -1,5 +1,6 @@
 package org.apache.lucene.search;
 
+import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.ArrayUtil;
@@ -17,32 +18,25 @@ public class MatchHashesAndScoreQuery extends Query {
     }
 
     private final String field;
-    private final BytesRef[] hashes;
+    private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-    private final PrefixCodedTerms prefixCodedTerms;
     private final int numDocsInSegment;
 
-    private static PrefixCodedTerms makePrefixCodedTerms(String field, BytesRef[] hashes) {
-        // PrefixCodedTerms.Builder expects the hashes in sorted order.
-        ArrayUtil.timSort(hashes);
-        PrefixCodedTerms.Builder builder = new PrefixCodedTerms.Builder();
-        for (BytesRef br : hashes) builder.add(field, br);
-        return builder.finish();
-    }
-
     public MatchHashesAndScoreQuery(final String field,
-                                    final BytesRef[] hashes,
+                                    final HashAndFreq[] hashAndFrequencies,
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
+        // `countMatches` expects hashes to be in sorted order.
+        ArrayUtil.timSort(hashAndFrequencies);
+
         this.field = field;
-        this.hashes = hashes;
+        this.hashAndFrequencies = hashAndFrequencies;
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
-        this.prefixCodedTerms = makePrefixCodedTerms(field, hashes);
         this.numDocsInSegment = indexReader.numDocs();
     }
 
@@ -55,19 +49,16 @@ public class MatchHashesAndScoreQuery extends Query {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
-                PrefixCodedTerms.TermIterator iterator = prefixCodedTerms.iterator();
                 short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
-                BytesRef term = iterator.next();
-                while (term != null) {
-                    if (termsEnum.seekExact(term)) {
+                for (HashAndFreq hac : hashAndFrequencies) {
+                    if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += 1;
+                            counts[docId] += Math.min(hac.getFreq(), docs.freq());
                         }
                     }
-                    term = iterator.next();
                 }
                 return counts;
             }
@@ -76,6 +67,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
+
                     // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
@@ -159,7 +151,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 "%s for field [%s] with [%d] hashes and [%d] candidates",
                 this.getClass().getSimpleName(),
                 this.field,
-                this.hashes.length,
+                this.hashAndFrequencies.length,
                 this.candidates);
     }
 
@@ -175,6 +167,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, hashes, candidates, indexReader, scoreFunctionBuilder);
+        return Objects.hash(field, hashAndFrequencies, candidates, indexReader, scoreFunctionBuilder);
     }
 }

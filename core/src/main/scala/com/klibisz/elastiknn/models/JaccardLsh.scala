@@ -28,18 +28,16 @@ import scala.util.Random
 final class JaccardLsh(override val mapping: Mapping.JaccardLsh)
     extends HashingFunction[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool] {
 
-  override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Jaccard
-
   import mapping._
   private val rng: Random = new Random(0)
   private val alphas: Array[Int] = (0 until L * k).map(_ => 1 + rng.nextInt(HASH_PRIME - 1)).toArray
   private val betas: Array[Int] = (0 until L * k).map(_ => rng.nextInt(HASH_PRIME - 1)).toArray
-  private val emptyHashes: Array[Array[Byte]] = Array.fill(k)(HASH_PRIME).map(writeInt)
+  private val emptyHashes: Array[HashAndFreq] = Array.fill(k)(HASH_PRIME).map(writeInt).map(HashAndFreq.once)
 
-  override def apply(v: Vec.SparseBool): Array[Array[Byte]] =
+  override def apply(v: Vec.SparseBool): Array[HashAndFreq] =
     if (v.trueIndices.isEmpty) emptyHashes
     else {
-      val hashes = new Array[Array[Byte]](L)
+      val hashes = new Array[HashAndFreq](L)
       var ixL = 0
       var ixCoefficients = 0
       while (ixL < hashes.length) {
@@ -59,7 +57,7 @@ final class JaccardLsh(override val mapping: Mapping.JaccardLsh)
           ixk += 1
           ixCoefficients += 1
         }
-        hashes.update(ixL, hash.toArray)
+        hashes.update(ixL, HashAndFreq.once(hash.toArray))
         ixL += 1
       }
       hashes

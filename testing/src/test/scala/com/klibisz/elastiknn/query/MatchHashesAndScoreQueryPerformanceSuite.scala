@@ -2,14 +2,14 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
-import com.klibisz.elastiknn.models.AngularLsh
-import com.klibisz.elastiknn.testing.LuceneHarness
+import com.klibisz.elastiknn.models.{AngularLsh, ExactSimilarityFunction}
+import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.Document
 import org.scalatest._
 
 import scala.util.Random
 
-class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneHarness {
+class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneSupport {
 
   // Hacky way to give you some time for setting up the Profiler :)
 //  import java.nio.file.{Files, Path}
@@ -22,9 +22,10 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)
-    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 100000)
+    val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 10000)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(25, unit = true, n = 100)
     val lshFunc = new AngularLsh(Mapping.AngularLsh(25, 50, 1))
+    val exactFunc = ExactSimilarityFunction.Angular
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)
     indexAndSearch(analyzer = fieldType.indexAnalyzer().analyzer()) { w =>
@@ -40,7 +41,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       case (r, s) =>
         val t0 = System.currentTimeMillis()
         queryVecs.foreach { vec =>
-          val q = HashingQuery(field, vec, 2000, lshFunc, r)
+          val q = HashingQuery(field, vec, 2000, lshFunc, exactFunc, r)
           val dd = s.search(q, 100)
           dd.scoreDocs should have length 100
         }

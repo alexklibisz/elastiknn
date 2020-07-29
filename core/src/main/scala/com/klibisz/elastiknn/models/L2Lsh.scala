@@ -20,15 +20,14 @@ import scala.util.Random
   *
   */
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-  override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.L2
 
   import mapping._
   private implicit val rng: Random = new Random(0)
   private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
   private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
-  override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
-    val hashes = new Array[Array[Byte]](L)
+  override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = {
+    val hashes = new Array[HashAndFreq](L)
     var ixHashes = 0
     var ixHashVecs = 0
     while (ixHashes < L) {
@@ -42,7 +41,7 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         ixRows += 1
         ixHashVecs += 1
       }
-      hashes.update(ixHashes, hashBuf.toArray)
+      hashes.update(ixHashes, HashAndFreq.once(hashBuf.toArray))
       ixHashes += 1
     }
     hashes

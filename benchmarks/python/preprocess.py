@@ -256,6 +256,14 @@ def main(argv: List[str]) -> int:
             s3_bucket,
             s3_prefix
         )
+    elif dataset_name == "annbglove25":
+        annb(
+            benchmarks_bucket,
+            "data/raw/annb/glove-25-angular.hdf5",
+            local_data_dir,
+            s3_bucket,
+            s3_prefix
+        )
     elif dataset_name == "annbglove100":
         annb(
             benchmarks_bucket,

@@ -8,14 +8,10 @@ import scala.util.Random
 
 /**
   * Locality sensitive hashing for Angular similarity using random hyperplanes as described in MMDS Chapter 3.
-  *
-  * TODO: try using sketches as described in MMDS 3.7.3. Could make it a parameter in Mapping.AngularLsh.
-  *
   * @param mapping AngularLsh Mapping.
   */
 final class AngularLsh(override val mapping: Mapping.AngularLsh)
     extends HashingFunction[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat] {
-  override val exact: ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] = ExactSimilarityFunction.Angular
 
   import mapping._
 
@@ -23,8 +19,8 @@ final class AngularLsh(override val mapping: Mapping.AngularLsh)
 
   private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
 
-  override def apply(v: Vec.DenseFloat): Array[Array[Byte]] = {
-    val hashes = new Array[Array[Byte]](L)
+  override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = {
+    val hashes = new Array[HashAndFreq](L)
     var (ixHashes, ixHashVecs) = (0, 0)
     while (ixHashes < L) {
       val hashBuf = new BitBuffer.IntBuffer(writeInt(ixHashes))
@@ -34,7 +30,7 @@ final class AngularLsh(override val mapping: Mapping.AngularLsh)
         ixRows += 1
         ixHashVecs += 1
       }
-      hashes.update(ixHashes, hashBuf.toByteArray)
+      hashes.update(ixHashes, HashAndFreq.once(hashBuf.toByteArray))
       ixHashes += 1
     }
     hashes

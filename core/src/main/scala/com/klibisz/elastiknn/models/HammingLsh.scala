@@ -19,7 +19,6 @@ import scala.util.Random
   */
 final class HammingLsh(override val mapping: Mapping.HammingLsh)
     extends HashingFunction[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool] {
-  override val exact: ExactSimilarityFunction[Vec.SparseBool, StoredVec.SparseBool] = ExactSimilarityFunction.Hamming
 
   import mapping._
   private val rng: Random = new Random(0)
@@ -52,7 +51,7 @@ final class HammingLsh(override val mapping: Mapping.HammingLsh)
       .sortBy(_.vecIndex)
   }
 
-  override def apply(vec: Vec.SparseBool): Array[Array[Byte]] = {
+  override def apply(vec: Vec.SparseBool): Array[HashAndFreq] = {
     val hashBuffers = zeroUntilL.map(l => new BitBuffer.IntBuffer(writeInt(l)))
     var (ixTrueIndices, ixSampledPositions) = (0, 0)
     while (ixTrueIndices < vec.trueIndices.length && ixSampledPositions < sampledPositions.length) {
@@ -77,6 +76,6 @@ final class HammingLsh(override val mapping: Mapping.HammingLsh)
       pos.hashIndexes.foreach(hi => hashBuffers(hi).putZero())
       ixSampledPositions += 1
     }
-    hashBuffers.map(_.toByteArray)
+    hashBuffers.map(hb => HashAndFreq.once(hb.toByteArray))
   }
 }
