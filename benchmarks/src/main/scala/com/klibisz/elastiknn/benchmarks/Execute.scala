@@ -223,7 +223,7 @@ object Execute extends App {
         blockingWithS3 ++
         (blockingWithS3 >>> ResultClient.s3(params.resultsBucket, params.resultsPrefix)) ++
         (blockingWithS3 >>> DatasetClient.s3(params.datasetsBucket, params.datasetsPrefix)) ++
-        ElastiknnZioClient.fromFutureClient("localhost", 9200, true) ++
+        ElastiknnZioClient.fromFutureClient("localhost", 9200, true, 60000) ++
         Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName))
 
     val logic = for {

@@ -8,7 +8,10 @@ import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
-import org.elasticsearch.client.RestClient
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
+import org.elasticsearch.client.{RestClient, RestClientBuilder}
+import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, RequestConfigCallback}
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
@@ -80,9 +83,14 @@ object ElastiknnClient {
 
   final case class StrictFailureException(message: String, cause: Throwable = None.orNull) extends RuntimeException(message, cause)
 
-  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true)(
+  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(
       implicit ec: ExecutionContext): ElastiknnFutureClient = {
-    val rc: RestClient = RestClient.builder(new HttpHost(host, port)).build()
+    val rc: RestClient = RestClient
+      .builder(new HttpHost(host, port))
+      .setRequestConfigCallback(
+        (requestConfigBuilder: RequestConfig.Builder) => requestConfigBuilder.setSocketTimeout(timeoutMillis)
+      )
+      .build()
     val jc: JavaClient = new JavaClient(rc)
     new ElastiknnFutureClient {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
