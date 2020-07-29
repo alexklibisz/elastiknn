@@ -85,7 +85,7 @@ jobs:
       run: make test/gradle
     - name: Test Python
       run: make test/python
-    - name: Docker logs
+    - name: Docker logs (on failure)
       if: ${{ failure() }}
       run: cd testing && docker-compose logs
 

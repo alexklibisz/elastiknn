@@ -29,6 +29,10 @@ jobs:
       - name: Print Branch
         run: |
           git rev-parse --abbrev-ref HEAD
+      - name: Checkout LFS
+        run: |
+          sudo apt install -y tree
+          tree .minio
 
       - name: Setup Java
         uses: actions/setup-java@v1
@@ -56,6 +60,9 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Run Benchmark
         run: make benchmarks/continuous/run
+      - name: Docker logs (on failure)
+        if: ${{ failure() }}
+        run: cd testing && docker-compose logs
       - name: Print Results
         run: |
           python3 -m pip install csv2md

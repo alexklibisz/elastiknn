@@ -25,6 +25,24 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
     ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 300, 1, 5),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 300, 3, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
     // Angular
     Experiment(
       Dataset.AnnbGlove25,
@@ -44,15 +62,15 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     ),
-    Experiment(
-      Dataset.AnnbGlove25,
-      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
-      Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
-      )
-    )
+//    Experiment(
+//      Dataset.AnnbGlove25,
+//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+//      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
+//      Seq(
+//        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
+//      )
+//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
@@ -70,7 +88,7 @@ object ContinuousBenchmark extends App {
           resultsPrefix = "results",
           parallelism = 2,
           s3Minio = true,
-          recompute = true
+          recompute = false
         )
         _ <- Execute(params)
       } yield ()
