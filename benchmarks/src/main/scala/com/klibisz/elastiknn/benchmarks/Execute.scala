@@ -6,6 +6,7 @@ import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
+import com.klibisz.elastiknn.client.ElastiknnRequests.FreezeIndexRequest
 import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
 import com.sksamuel.elastic4s.requests.common.HealthStatus
 import com.sksamuel.elastic4s.requests.searches.SearchIterator
@@ -106,7 +107,10 @@ object Execute extends App {
             } yield ()
         }
         _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
-        _ <- eknnClient.execute(forceMerge(trainIndex, testIndex).maxSegments(1))
+        _ <- eknnClient.execute(forceMerge(trainIndex).maxSegments(1))
+        _ <- eknnClient.execute(forceMerge(testIndex).maxSegments(1))
+        _ <- eknnClient.execute(FreezeIndexRequest(trainIndex))
+        _ <- eknnClient.execute(FreezeIndexRequest(testIndex))
         _ <- ZIO.sleep(Duration(10, TimeUnit.SECONDS))
       } yield ()
     }
