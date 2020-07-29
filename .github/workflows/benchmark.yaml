@@ -30,11 +30,6 @@ jobs:
       - name: Print Branch
         run: |
           git rev-parse --abbrev-ref HEAD
-      - name: Checkout LFS
-        run: |
-          sudo apt install -y tree
-          tree .minio
-          find .minio -name '*.json.gz' | xargs du -hs
 
       - name: Setup Java
         uses: actions/setup-java@v1

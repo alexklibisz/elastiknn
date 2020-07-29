@@ -62,15 +62,15 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     ),
-//    Experiment(
-//      Dataset.AnnbGlove25,
-//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-//      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
-//      Seq(
-//        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
-//      )
-//    )
+    Experiment(
+      Dataset.AnnbGlove25,
+      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
+      Seq(
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
+      )
+    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
