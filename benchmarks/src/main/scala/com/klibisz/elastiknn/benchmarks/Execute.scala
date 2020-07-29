@@ -133,7 +133,7 @@ object Execute extends App {
           case (vec, i) =>
             for {
               (dur, res) <- eknnClient.nearestNeighbors(trainIndex, eknnQuery.withVec(vec), k, storedIdField).timed
-              _ <- if (i % 10 == 0) log.debug(s"Completed query $i in ${dur.toMillis} ms") else ZIO.succeed(())
+              _ <- if (i % 100 == 0) log.debug(s"Completed query $i in $trainIndex in ${dur.toMillis} ms") else ZIO.succeed(())
             } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
         }
         (dur, responses) <- requests.run(ZSink.collectAll).timed
@@ -223,7 +223,7 @@ object Execute extends App {
         blockingWithS3 ++
         (blockingWithS3 >>> ResultClient.s3(params.resultsBucket, params.resultsPrefix)) ++
         (blockingWithS3 >>> DatasetClient.s3(params.datasetsBucket, params.datasetsPrefix)) ++
-        ElastiknnZioClient.fromFutureClient("localhost", 9200, true) ++
+        ElastiknnZioClient.fromFutureClient("localhost", 9200, true, 60000) ++
         Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName))
 
     val logic = for {

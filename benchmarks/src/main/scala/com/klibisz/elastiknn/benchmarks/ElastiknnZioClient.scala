@@ -12,9 +12,9 @@ object ElastiknnZioClient {
     override def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Task[Response[U]]
   }
 
-  def fromFutureClient(host: String, port: Int, strictFailure: Boolean): Layer[Throwable, Has[Service]] =
+  def fromFutureClient(host: String, port: Int, strictFailure: Boolean, timeoutMillis: Int): Layer[Throwable, Has[Service]] =
     ZLayer.fromEffect(ZIO.fromFuture { implicit ec =>
-      val client = ElastiknnClient.futureClient(host, port, strictFailure)
+      val client = ElastiknnClient.futureClient(host, port, strictFailure, timeoutMillis)
       val service = new Service {
         override def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Task[Response[U]] =
           Task.fromFuture(_ => client.execute(t))

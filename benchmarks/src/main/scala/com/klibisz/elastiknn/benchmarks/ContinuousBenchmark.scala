@@ -9,52 +9,29 @@ import zio.console.Console
   */
 object ContinuousBenchmark extends App {
 
-  private val randomDenseFloats = Dataset.RandomDenseFloat(1000, 50000, 1000)
-  private val randomSparseBools = Dataset.RandomSparseBool(3000, 50000, 1000)
+  private val randomDenseFloats = Dataset.RandomDenseFloat(784, 60000, 10000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
 
   private val experiments = Seq(
-    // L2 exact, LSH
+    // L2
     Experiment(
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 400, 1, 3),
+      Mapping.L2Lsh(randomDenseFloats.dims, 300, 2, 3),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
     ),
-    Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      // Angular LSH seems to benefit a lot from increasing k.
-      Mapping.AngularLsh(randomDenseFloats.dims, 250, 3),
-      Seq(
-        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k)
-      )
-    ),
-    // Jaccard exact, sparse indexed, LSH
-    Experiment(
-      randomSparseBools,
-      Mapping.SparseBool(randomSparseBools.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Jaccard),
-      Mapping.JaccardLsh(randomSparseBools.dims, 400, 1),
-      Seq(
-        Query(NearestNeighborsQuery.JaccardLsh(field, 1000), k)
-      )
-    ),
-    // Angular exact, LSH on Glove100 dataset. Still experimental, excluded by default.
+    // Angular
     Experiment(
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 250, 3),
+      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 100, 3),
       Seq(
-        Query(NearestNeighborsQuery.AngularLsh(field, 1000), k),
-        Query(NearestNeighborsQuery.AngularLsh(field, 2000), k),
         Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
       )
     ),
@@ -64,8 +41,6 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
       Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
       Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1000), k),
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 2000), k),
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     ),
@@ -75,8 +50,6 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
       Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
       Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 1000), k),
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 2000), k),
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
     )
