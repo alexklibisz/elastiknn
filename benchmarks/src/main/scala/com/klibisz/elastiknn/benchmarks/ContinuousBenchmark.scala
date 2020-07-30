@@ -20,7 +20,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 100, 3),
+      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 80, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
       )
@@ -29,7 +29,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
+      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 20, repeating = false),
       Seq(
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
@@ -38,7 +38,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
+      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 20, repeating = true),
       Seq(
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
       )
@@ -48,25 +48,34 @@ object ContinuousBenchmark extends App {
       randomDenseFloats,
       Mapping.DenseFloat(randomDenseFloats.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 300, 2, 3),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
-      )
-    ),
-    Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 300, 1, 5),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
-      )
-    ),
-    Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
       Mapping.L2Lsh(randomDenseFloats.dims, 300, 3, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 200, 3, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 100, 3, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      randomDenseFloats,
+      Mapping.DenseFloat(randomDenseFloats.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(randomDenseFloats.dims, 300, 1, 1),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )

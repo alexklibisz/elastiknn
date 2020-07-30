@@ -6,7 +6,6 @@ import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
-import com.klibisz.elastiknn.client.ElastiknnRequests.FreezeIndexRequest
 import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
 import com.sksamuel.elastic4s.requests.common.HealthStatus
 import com.sksamuel.elastic4s.requests.searches.SearchIterator
