@@ -51,7 +51,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: ./.github/scripts/setup-env.sh
 
-      # Caching Setup
       - name: Cache Gradle
         uses: actions/cache@v1
         with:
@@ -59,10 +58,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
       - name: Download Data
-        run: aws s3 ls --recursive s3://elastiknn-benchmarks
-
+        run: |
+          aws s3 sync s3://elastiknn-benchmarks/data/processed/annbglove25 .minio/elastiknn-benchmarks/data/processed/annbglove25
       - name: Run Benchmark
         run: make benchmarks/continuous/run
       - name: Docker logs (on failure)
