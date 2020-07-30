@@ -46,6 +46,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
         SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: ./.github/scripts/setup-env.sh
 
     # Caching Setup

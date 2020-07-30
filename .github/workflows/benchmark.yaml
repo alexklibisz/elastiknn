@@ -35,6 +35,9 @@ jobs:
         with:
           java-version: 14
 
+      - name: Setup AWS CLI
+        uses: chrislennon/action-aws-cli@v1.1
+
       # Needs to run after language setup.
       - name: Setup Environment
         env:
@@ -44,6 +47,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
           SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: ./.github/scripts/setup-env.sh
 
       # Caching Setup
@@ -54,6 +59,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      - name: Download Data
+        run: aws s3 ls --recursive s3://elastiknn-benchmarks
+
       - name: Run Benchmark
         run: make benchmarks/continuous/run
       - name: Docker logs (on failure)
