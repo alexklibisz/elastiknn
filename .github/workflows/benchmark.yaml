@@ -26,7 +26,6 @@ jobs:
         with:
           # This seems to work even if client_payload is empty?
           ref: '${{ github.event.client_payload.branch }}'
-          lfs: 'true'
       - name: Print Branch
         run: |
           git rev-parse --abbrev-ref HEAD
