@@ -1,3 +1,5 @@
+- Changed to GPLv3 license. See: https://github.com/alexklibisz/elastiknn/blob/master/LICENSE.txt.
+---
 - Added Permutation Lsh model and query, based on paper _Large Scale Image Retrieval with Elasticsearch_ by Amato, et. al.
 - Several internal improvements, including support for LSH models with repeated hashes.
 ---
