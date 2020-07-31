@@ -14,6 +14,16 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
+    // L2
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
     // Angular
     Experiment(
       Dataset.AnnbGlove25,
@@ -31,16 +41,6 @@ object ContinuousBenchmark extends App {
       Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
       Seq(
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
-      )
-    ),
-    // L2
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
     )
   )
