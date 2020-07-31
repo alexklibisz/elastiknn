@@ -61,7 +61,7 @@ jobs:
       - name: Download Data
         run: |
           aws s3 sync s3://elastiknn-benchmarks/data/processed/annbglove25 .minio/elastiknn-benchmarks/data/processed/annbglove25
-          aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbmnist .minio/elastiknn-benchmarks/data/processed/annbmnist
+          aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift .minio/elastiknn-benchmarks/data/processed/annbsift
       - name: Run Benchmark
         run: make benchmarks/continuous/run
       - name: Docker logs (on failure)
