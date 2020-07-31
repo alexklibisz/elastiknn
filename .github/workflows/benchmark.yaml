@@ -20,7 +20,9 @@ jobs:
       - name: Print Environment
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: printenv | sort
+        run: |
+          printenv | sort
+          df -h
       - name: Checkout Branch
         uses: actions/checkout@v2
         with:
@@ -64,9 +66,11 @@ jobs:
           aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift .minio/elastiknn-benchmarks/data/processed/annbsift
       - name: Run Benchmark
         run: make benchmarks/continuous/run
-      - name: Docker logs
+      - name: logs
         if: ${{ always() }}
-        run: cd testing && docker-compose logs
+        run: |
+          df -h
+          cd testing && docker-compose logs
       - name: Print Results
         run: |
           python3 -m pip install csv2md
