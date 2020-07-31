@@ -6,7 +6,6 @@ import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
 import com.klibisz.elastiknn.client.ElastiknnClient
-import com.klibisz.elastiknn.client.ElastiknnRequests.FreezeIndexRequest
 import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
 import com.sksamuel.elastic4s.requests.common.HealthStatus
 import com.sksamuel.elastic4s.requests.searches.SearchIterator
@@ -22,6 +21,7 @@ import zio.logging.slf4j.Slf4jLogger
 import zio.stream._
 
 import scala.util.Try
+import scala.concurrent.duration._
 import scala.util.hashing.MurmurHash3
 
 /**
@@ -227,10 +227,10 @@ object Execute extends App {
         blockingWithS3 ++
         (blockingWithS3 >>> ResultClient.s3(params.resultsBucket, params.resultsPrefix)) ++
         (blockingWithS3 >>> DatasetClient.s3(params.datasetsBucket, params.datasetsPrefix)) ++
-        ElastiknnZioClient.fromFutureClient("localhost", 9200, true, 60000) ++
+        ElastiknnZioClient.fromFutureClient("localhost", 9200, true, 99999) ++
         Slf4jLogger.make((_, s) => s, Some(getClass.getSimpleName))
 
-    val logic = for {
+    val steps = for {
 
       // Load the experiment.
       _ <- log.info(params.toString)
@@ -249,7 +249,7 @@ object Execute extends App {
 
     } yield ()
 
-    logic.provideLayer(layer)
+    steps.provideLayer(layer)
   }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {

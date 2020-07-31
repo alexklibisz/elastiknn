@@ -1,12 +1,11 @@
 package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
+import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
-import com.sksamuel.elastic4s.{ElasticDsl, ElasticRequest, Handler, HttpEntity, Indexes, ResponseHandler, XContentFactory}
-import com.klibisz.elastiknn.client.Elastic4sCompatibility._
-import com.klibisz.elastiknn.client.ElastiknnRequests.FreezeIndexRequest
+import com.sksamuel.elastic4s.{ElasticDsl, Indexes, XContentFactory}
 
 /**
   * Methods for creating Elastic4s requests for common elastiknn tasks.
@@ -80,15 +79,4 @@ trait ElastiknnRequests {
 
 }
 
-object ElastiknnRequests extends ElastiknnRequests {
-
-  // Request, response and handler for _freeze_index API:
-  // https://www.elastic.co/guide/en/elasticsearch/reference/current/freeze-index-api.html
-  case class FreezeIndexRequest(index: String)
-  case class FreezeIndexResponse(acknowledged: Boolean, shardsAcknowledged: Boolean)
-
-  implicit object FreezeIndexHandler extends Handler[FreezeIndexRequest, FreezeIndexResponse] {
-    override def build(t: FreezeIndexRequest): ElasticRequest = ElasticRequest("POST", s"${t.index}/_freeze", HttpEntity("{}"))
-  }
-
-}
+object ElastiknnRequests extends ElastiknnRequests
