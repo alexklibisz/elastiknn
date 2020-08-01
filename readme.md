@@ -6,10 +6,12 @@ Elasticsearch Plugin for Nearest Neighbor Search
 
 **[Documentation at elastiknn.klibisz.com](http://elastiknn.klibisz.com)**
 
-## If you're using Elastiknn
+## Community
 
-Please let me know what you think - email aklibisz at gmail, or post an issue on this repo.
-I don't actually use Elasticsearch in my day job, so it's great to get input from people who do.
+Join the Gitter channel at [gitter.im/elastiknn/community](https://gitter.im/elastiknn/community).
+
+If you're using Elastiknn in your research or work, I'd love to hear feedback.
+Post an issue, post in the Gitter channel, or contact me directly (contact info in my Github bio).
 
 ## Builds and Releases
 
