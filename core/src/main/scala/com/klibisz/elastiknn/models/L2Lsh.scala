@@ -88,29 +88,34 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         (parr, harr)
       }
 
-      // Sort the perturbations by their score.
-      val perturbationHeap = MinMaxPriorityQueue
-        .orderedBy((p1: Array[Int], p2: Array[Int]) => {
-          Ordering.Float.compare(
-            scorePerturbation(projections, hashes, p1),
-            scorePerturbation(projections, hashes, p2)
-          )
-        })
-        .maximumSize(probesAdjusted)
-        .create[Array[Int]]()
-
-      // Special case for zero probes.
-      if (probes == 0) perturbationHeap.add(zeroPerturbation)
-      else perturbations.foreach(perturbationHeap.add)
-
-      cfor(0)(_ < probesAdjusted && !perturbationHeap.isEmpty, _ + 1) { ixP =>
+      if (probesAdjusted == 0) {
         val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
         hashBuf.appendAll(lBarr)
-        val perturbation = perturbationHeap.removeFirst()
-        cfor(0)(_ < k, _ + 1) { ixK =>
-          hashBuf.appendAll(writeInt(hashes(ixK) + perturbation(ixK)))
+        hashes.foreach(h => hashBuf.appendAll(writeInt(h)))
+        allHashes.update(ixL, HashAndFreq.once(hashBuf.toArray))
+      } else {
+        // Sort the perturbations by their score. Lower score is better.
+        val perturbationHeap = MinMaxPriorityQueue
+          .orderedBy((p1: Array[Int], p2: Array[Int]) => {
+            Ordering.Float.compare(
+              scorePerturbation(projections, hashes, p1),
+              scorePerturbation(projections, hashes, p2)
+            )
+          })
+          .maximumSize(probesAdjusted)
+          .create[Array[Int]]()
+        perturbations.foreach(perturbationHeap.add)
+
+        // Generate hashes from the top perturbations.
+        cfor(0)(_ < probesAdjusted && !perturbationHeap.isEmpty, _ + 1) { ixP =>
+          val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
+          hashBuf.appendAll(lBarr)
+          val perturbation = perturbationHeap.removeFirst()
+          cfor(0)(_ < k, _ + 1) { ixK =>
+            hashBuf.appendAll(writeInt(hashes(ixK) + perturbation(ixK)))
+          }
+          allHashes.update(ixL * probesAdjusted + ixP, HashAndFreq.once(hashBuf.toArray))
         }
-        allHashes.update(ixL * probesAdjusted + ixP, HashAndFreq.once(hashBuf.toArray))
       }
     }
 

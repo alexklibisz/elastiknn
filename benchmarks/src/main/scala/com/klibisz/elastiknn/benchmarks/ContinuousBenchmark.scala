@@ -28,11 +28,11 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbSift,
       Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 3, 1),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 10), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 15), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 5), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 10), k)
       )
     ),
     // Angular
