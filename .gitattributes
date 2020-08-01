@@ -1,6 +1,2 @@
 # Ignore scratch files for repo language statistics.
 **/*.ipynb linguist-detectable=false
-.minio/elastiknn-benchmarks/data/processed/annbglove100/train.json.gz filter=lfs diff=lfs merge=lfs -text
-.minio/elastiknn-benchmarks/data/processed/annbglove100/test.json.gz filter=lfs diff=lfs merge=lfs -text
-.minio/elastiknn-benchmarks/data/processed/annbglove25/test.json.gz filter=lfs diff=lfs merge=lfs -text
-.minio/elastiknn-benchmarks/data/processed/annbglove25/train.json.gz filter=lfs diff=lfs merge=lfs -text

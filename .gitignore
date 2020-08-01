@@ -6,10 +6,9 @@ target
 release.md
 *.csv
 
-# Git LFS
-.minio
-!.minio/elastiknn-benchmarks/data/processed/annbglove100/*.json.gz
-!.minio/elastiknn-benchmarks/data/processed/annbglove25/*.json.gz
+# Minio data for benchmarks.
+.minio/**
+!.minio/.keep
 
 # Ignore Gradle GUI config
 gradle-app.setting

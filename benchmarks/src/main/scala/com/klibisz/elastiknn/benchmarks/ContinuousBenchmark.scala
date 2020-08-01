@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity}
+import com.klibisz.elastiknn.api._
 import zio._
 import zio.console.Console
 
@@ -9,7 +9,6 @@ import zio.console.Console
   */
 object ContinuousBenchmark extends App {
 
-  private val randomDenseFloats = Dataset.RandomDenseFloat(784, 60000, 10000)
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
@@ -17,10 +16,10 @@ object ContinuousBenchmark extends App {
   private val experiments = Seq(
     // L2
     Experiment(
-      randomDenseFloats,
-      Mapping.DenseFloat(randomDenseFloats.dims),
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(randomDenseFloats.dims, 300, 2, 3),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
@@ -30,7 +29,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbGlove25,
       Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 100, 3),
+      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 60, 3),
       Seq(
         Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
       )
@@ -41,16 +40,7 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.Angular),
       Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
       Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
-      )
-    ),
-    Experiment(
-      Dataset.AnnbGlove25,
-      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = true),
-      Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 4000), k)
+        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
       )
     )
   )
@@ -70,7 +60,7 @@ object ContinuousBenchmark extends App {
           resultsPrefix = "results",
           parallelism = 2,
           s3Minio = true,
-          recompute = true
+          recompute = false
         )
         _ <- Execute(params)
       } yield ()

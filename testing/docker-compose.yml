@@ -1,7 +1,7 @@
 # Docker-compose setup for running tests and micro-benchmarks.
 # Github's virtual environments have 2 CPUs, 7GB memory, 14GB SSD.
 # Important to run in cluster mode because some parts of the plugin
-# deal with communication between nodes.
+# deal with communication/serialization between nodes.
 version: "3"
 
 services:
@@ -22,7 +22,7 @@ services:
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
-      - ES_JAVA_OPTS=-Xms600m -Xmx600m
+      - ES_JAVA_OPTS=-Xms500m -Xmx500m
     ports:
       - "9200:9200"
     ulimits:
@@ -44,7 +44,7 @@ services:
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms2G -Xmx2G
+      - ES_JAVA_OPTS=-Xms4G -Xmx4G
     ulimits:
       nofile:
         soft: 65536
