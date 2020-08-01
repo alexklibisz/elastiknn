@@ -144,13 +144,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.L2Lsh(dims, 10, 3, 1),
       Seq(
-        //        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        //        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        //        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(vecField, 100) -> 1f,
-        //        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.25,
-        //        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
-//        NearestNeighborsQuery.L2Lsh(vecField, 100, 3) -> 1f
+        NearestNeighborsQuery.L2Lsh(vecField, 100) -> 1f
       )
     ),
     // Permutation Lsh
@@ -186,7 +180,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2
     )
-  ).filter(_.mapping.isInstanceOf[Mapping.L2Lsh])
+  )
+
+  // .filter(_.mapping.isInstanceOf[Mapping.L2Lsh]).takeRight(1)
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
