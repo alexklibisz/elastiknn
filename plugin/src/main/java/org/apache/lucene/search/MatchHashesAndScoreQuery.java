@@ -73,7 +73,8 @@ public class MatchHashesAndScoreQuery extends Query {
                     // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int doc = 0;
+                        // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.
+                        private int doc = -1;
 
                         @Override
                         public int docID() {
@@ -84,7 +85,8 @@ public class MatchHashesAndScoreQuery extends Query {
                         public int nextDoc() {
                             // Increment doc until it exceeds the min candidate count.
                             do doc++;
-                            while (doc < counts.length && counts[doc]< minCandidateCount);
+                            while (doc < counts.length && counts[doc] < minCandidateCount);
+                            System.out.println(doc);
                             if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
                             else return docID();
                         }
