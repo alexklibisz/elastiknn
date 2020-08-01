@@ -18,15 +18,23 @@ package object api {
   }
 
   sealed trait Vec
+
   object Vec {
 
-    final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec {
+    sealed trait KnownDims {
+      this: Vec =>
+      def dims: Int
+    }
+
+    final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec with KnownDims {
       def sorted(): SparseBool = copy(trueIndices.sorted)
       override def equals(other: Any): Boolean = other match {
         case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
         case _                 => false
       }
       override def toString: String = s"SparseBool(${trueIndices.take(3).mkString(",")},...,${trueIndices.length}/$totalIndices)"
+
+      def dims: Int = totalIndices
     }
 
     object SparseBool {
@@ -41,7 +49,7 @@ package object api {
         (0 until n).map(_ => random(totalIndices, bias)).toVector
     }
 
-    final case class DenseFloat(values: Array[Float]) extends Vec {
+    final case class DenseFloat(values: Array[Float]) extends Vec with KnownDims {
       override def equals(other: Any): Boolean = other match {
         case other: DenseFloat => other.values.deep == values.deep
         case _                 => false
@@ -57,6 +65,8 @@ package object api {
         }
         dp
       }
+
+      override def dims: Int = values.length
     }
 
     object DenseFloat {

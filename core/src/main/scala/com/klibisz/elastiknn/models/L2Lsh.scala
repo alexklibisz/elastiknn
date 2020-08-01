@@ -39,8 +39,8 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
   // Pre-compute the 3^k perturbations. ({-1, 0, 1}, {-1, 0, 1}, ... {-1, 0, 1}) k times.
-  private val perturbations: Array[Array[Short]] = {
-    val deltas: util.Set[Short] = Set(-1, 0, 1).map(_.toShort).asJava
+  private val perturbations: Array[Array[Int]] = {
+    val deltas: util.Set[Int] = Set(-1, 0, 1).asJava
     Sets
       .cartesianProduct((0 until k).map(_ => deltas): _*)
       .asScala
@@ -48,11 +48,11 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
       .map(_.asScala.toArray)
       .sortBy(_.mkString(","))
   }
-  private val zeroPerturbation: Array[Short] = Array(-1, 0, 1)
+  private val zeroPerturbation: Array[Int] = Array.fill[Int](k)(0)
 
   override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = hashWithProbes(v, 0)
 
-  private def scorePerturbation(projections: Array[Float], hashes: Array[Int], perturbation: Array[Short]): Float = {
+  private def scorePerturbation(projections: Array[Float], hashes: Array[Int], perturbation: Array[Int]): Float = {
     var score = 0f
     cfor(0)(_ < k, _ + 1) { ixK =>
       val xi =
@@ -68,7 +68,8 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   }
 
   def hashWithProbes(v: Vec.DenseFloat, probes: Int): Array[HashAndFreq] = {
-    val allHashes = new ArrayBuffer[HashAndFreq](perturbations.length.max(probes + 1))
+    val probesAdjusted = perturbations.length.min(probes + 1)
+    val allHashes = new Array[HashAndFreq](L * probesAdjusted)
 
     cfor(0)(_ < L, _ + 1) { ixL =>
       // Each hash generated for this table is prefixed with these bytes.
@@ -89,31 +90,31 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
 
       // Sort the perturbations by their score.
       val perturbationHeap = MinMaxPriorityQueue
-        .orderedBy((p1: Array[Short], p2: Array[Short]) => {
+        .orderedBy((p1: Array[Int], p2: Array[Int]) => {
           Ordering.Float.compare(
             scorePerturbation(projections, hashes, p1),
             scorePerturbation(projections, hashes, p2)
           )
         })
-        .maximumSize(probes + 1)
-        .create[Array[Short]]()
+        .maximumSize(probesAdjusted)
+        .create[Array[Int]]()
 
       // Special case for zero probes.
       if (probes == 0) perturbationHeap.add(zeroPerturbation)
       else perturbations.foreach(perturbationHeap.add)
 
-      while (!perturbationHeap.isEmpty) {
+      cfor(0)(_ < probesAdjusted && !perturbationHeap.isEmpty, _ + 1) { ixP =>
         val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
         hashBuf.appendAll(lBarr)
         val perturbation = perturbationHeap.removeFirst()
         cfor(0)(_ < k, _ + 1) { ixK =>
           hashBuf.appendAll(writeInt(hashes(ixK) + perturbation(ixK)))
         }
-        allHashes.append(HashAndFreq.once(hashBuf.toArray))
+        allHashes.update(ixL * probesAdjusted + ixP, HashAndFreq.once(hashBuf.toArray))
       }
     }
 
-    allHashes.toArray
+    allHashes
   }
 
   //  private[models] val pertSets: Array[Array[Int]] = {
