@@ -91,4 +91,19 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     }
   }
 
+  test("no matches") {
+    indexAndSearch() { w =>
+      val d1 = new Document()
+      Array(1, 2, 3, 4, 5).foreach(i => d1.add(new Field("vec", writeInt(i), ft)))
+      w.addDocument(d1)
+    } {
+      case (r, s) =>
+        val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
+        val q = new MatchHashesAndScoreQuery("vec", hashes, 10, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
+        val dd = s.search(q, 10)
+        dd.scoreDocs should have length 1
+        dd.scoreDocs.map(_.score) shouldBe Array(0f)
+    }
+  }
+
 }
