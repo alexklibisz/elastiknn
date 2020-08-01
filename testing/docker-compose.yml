@@ -44,7 +44,7 @@ services:
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms2G -Xmx2G
+      - ES_JAVA_OPTS=-Xms2800m -Xmx2800m
     ulimits:
       nofile:
         soft: 65536
