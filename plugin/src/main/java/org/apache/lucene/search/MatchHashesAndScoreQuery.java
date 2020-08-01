@@ -86,7 +86,6 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Increment doc until it exceeds the min candidate count.
                             do doc++;
                             while (doc < counts.length && counts[doc] < minCandidateCount);
-                            System.out.println(doc);
                             if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
                             else return docID();
                         }
