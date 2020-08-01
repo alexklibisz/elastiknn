@@ -6,10 +6,12 @@ Elasticsearch Plugin for Nearest Neighbor Search
 
 **[Documentation at elastiknn.klibisz.com](http://elastiknn.klibisz.com)**
 
-## If you're using Elastiknn...
+## Community
 
-Please let me know what you think - email aklibisz at gmail, or post an issue on this repo.
-I don't actually use Elasticsearch in my day job, so it's great to get input from people who do.
+Join the Gitter channel at [gitter.im/elastiknn/community](https://gitter.im/elastiknn/community).
+
+If you're using Elastiknn in your research or work, I'd love to hear feedback.
+Post an issue, post in the Gitter channel, or contact me directly (contact info in my Github bio).
 
 ## Builds and Releases
 
@@ -40,3 +42,7 @@ I don't actually use Elasticsearch in my day job, so it's great to get input fro
 [Badge-Python-Release]: https://img.shields.io/pypi/v/elastiknn-client?style=for-the-badge "Python Release"
 [Badge-Scala-Release]: https://img.shields.io/nexus/r/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge
 [Badge-Scala-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=https%3A%2F%2Foss.sonatype.org&style=for-the-badge
+
+## License
+
+Elastiknn is licensed under GPLv3. See License.txt. If you have any questions, contact me.

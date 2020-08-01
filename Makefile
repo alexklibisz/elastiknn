@@ -59,7 +59,7 @@ clean:
 .mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local .mk/vm-max-map-count
 	cd testing \
 	&& $(dc) down \
-	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=2 \
+	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=1 \
 	&& python3 cluster_ready.py
 	touch $@
 
