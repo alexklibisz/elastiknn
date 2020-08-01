@@ -83,7 +83,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
         NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
         NearestNeighborsQuery.Exact("vec", Similarity.Angular, queryVec),
-        NearestNeighborsQuery.L2Lsh("vec", 100, queryVec)
+        NearestNeighborsQuery.L2Lsh("vec", 100, vec = queryVec)
       ),
       Mapping.AngularLsh(dims, 40, 1) -> Seq(
         NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),

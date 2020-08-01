@@ -128,7 +128,7 @@ package object api {
       override def similarity: Similarity = Similarity.Angular
     }
 
-    final case class L2Lsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), probes: Int = 0) extends ApproximateQuery {
+    final case class L2Lsh(field: String, candidates: Int, probes: Int = 0, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def similarity: Similarity = Similarity.L2
     }

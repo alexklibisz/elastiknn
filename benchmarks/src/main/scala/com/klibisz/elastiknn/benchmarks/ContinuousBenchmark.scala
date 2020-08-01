@@ -24,6 +24,17 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
     ),
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 3, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 10), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 15), k)
+      )
+    ),
     // Angular
     Experiment(
       Dataset.AnnbGlove25,
@@ -43,7 +54,7 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
       )
     )
-  )
+  ).drop(1).take(1)
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()

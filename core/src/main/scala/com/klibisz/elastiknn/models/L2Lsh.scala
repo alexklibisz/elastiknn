@@ -68,7 +68,7 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   }
 
   def hashWithProbes(v: Vec.DenseFloat, probes: Int): Array[HashAndFreq] = {
-    val allHashes = new Array[HashAndFreq](L * (probes + 1))
+    val allHashes = new ArrayBuffer[HashAndFreq](perturbations.length.max(probes + 1))
 
     cfor(0)(_ < L, _ + 1) { ixL =>
       // Each hash generated for this table is prefixed with these bytes.
@@ -102,7 +102,6 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
       if (probes == 0) perturbationHeap.add(zeroPerturbation)
       else perturbations.foreach(perturbationHeap.add)
 
-      var ixProbes = 0
       while (!perturbationHeap.isEmpty) {
         val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
         hashBuf.appendAll(lBarr)
@@ -110,13 +109,11 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         cfor(0)(_ < k, _ + 1) { ixK =>
           hashBuf.appendAll(writeInt(hashes(ixK) + perturbation(ixK)))
         }
-        allHashes.update(ixL + ixProbes, HashAndFreq.once(hashBuf.toArray))
-        ixProbes += 1
+        allHashes.append(HashAndFreq.once(hashBuf.toArray))
       }
-
     }
 
-    allHashes
+    allHashes.toArray
   }
 
   //  private[models] val pertSets: Array[Array[Int]] = {
@@ -162,24 +159,5 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   //
   //    ???
   //  }
-
-}
-
-object CartesianProduct extends App {
-
-  import scala.collection.JavaConverters._
-
-  val k = 3
-  val perturbations: Array[Array[Int]] = {
-    val coords = Set(-1, 0, 1).asJava
-    Sets
-      .cartesianProduct((0 until k).map(_ => coords): _*)
-      .asScala
-      .toArray
-      .map(_.asScala.toArray)
-      .sortBy(_.mkString(","))
-  }
-
-  perturbations.map(_.toSeq).foreach(println)
 
 }
