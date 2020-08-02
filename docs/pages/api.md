@@ -677,7 +677,8 @@ GET /my-index/_search
             },
             "model": "lsh",                        # 3
             "similarity": "l2",                    # 4
-            "candidates": 50                       # 5
+            "candidates": 50,                      # 5
+            "probes": 2                            # 6
         }
     }
 }
@@ -690,7 +691,7 @@ GET /my-index/_search
 |3|Model name.|
 |4|Similarity function.|
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
-|6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
+|6|Number of probes for using the multiprobe search technique. Default value is zero. Max value is `3^k`. Generally, increasing `probes` will increase recall, will allow you to use a smaller value for `L` with comparable recall, but introduces some additional computation at query time. See the L2 LSH mapping section for more on `L` and `k`.|
 
 ### Permutation LSH Query
 
