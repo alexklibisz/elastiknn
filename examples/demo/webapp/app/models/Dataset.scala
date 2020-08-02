@@ -107,8 +107,8 @@ object Dataset extends ElastiknnRequests {
       "https://keras.io/datasets/",
       Seq(
         example("Exact", "cifar-l2-exact", Mapping.DenseFloat(3072), (f, v) => NearestNeighborsQuery.Exact(f, Similarity.L2, v)),
-        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 100, v)),
-        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 20, v)),
+        example("L2 LSH #1", "cifar-l2-lsh-1", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 100, 0, v)),
+        example("L2 LSH #2", "cifar-l2-lsh-2", Mapping.L2Lsh(3072, 100, 1, 3), (f, v) => NearestNeighborsQuery.L2Lsh(f, 20, 0, v)),
       )
     )
   )
