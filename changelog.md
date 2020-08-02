@@ -1,3 +1,6 @@
+- Introduced multiprobe L2 LSH. It's a small change. Search for `probes` in the API docs.
+- Bug fix for an edge case in approximate queries.
+---
 - Changed to GPLv3 license. See: https://github.com/alexklibisz/elastiknn/blob/master/LICENSE.txt.
 ---
 - Added Permutation Lsh model and query, based on paper _Large Scale Image Retrieval with Elasticsearch_ by Amato, et. al.
