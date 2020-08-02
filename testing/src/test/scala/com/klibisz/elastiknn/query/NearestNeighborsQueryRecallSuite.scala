@@ -138,7 +138,11 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
         NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.15,
         NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.25,
-        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44
+        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.44,
+        // Adding probes should improve recall, but since k = 1, probing > 2 times should have no effect.
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 1) -> 0.47,
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 2) -> 0.51,
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 10) -> 0.51
       )
     ),
     // Permutation Lsh

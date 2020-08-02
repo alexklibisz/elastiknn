@@ -67,11 +67,13 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    // It should be at least 1, otherwise you will match _all_ of the candidates and get very slow, very correct queries.
-                    int minCandidateCount = Math.max(1, ArrayUtils.kthGreatest(counts, candidates));
+                    int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
 
-                    // DocIdSetIterator that iterates over the doc ids but only emits the ids >= the min candidate count.
-                    return new DocIdSetIterator() {
+                    // If that lower bound is 0, none of the documents in this segment have matched, so return an empty iterator.
+                    if (minCandidateCount == 0) return DocIdSetIterator.empty();
+
+                    // Otherwise return an iterator over the doc ids >= the min candidate count.
+                    else return new DocIdSetIterator() {
 
                         // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.
                         private int doc = -1;
@@ -131,6 +133,9 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
+                        if (docID() >= counts.length) {
+                            System.out.println(docID());
+                        }
                         return (float) scoreFunction.score(docID(), counts[docID()]);
                     }
 
