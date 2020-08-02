@@ -52,7 +52,7 @@ object ContinuousBenchmark extends App {
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
       )
     )
-  ).drop(1).take(1)
+  )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Client = S3Utils.minioClient()
