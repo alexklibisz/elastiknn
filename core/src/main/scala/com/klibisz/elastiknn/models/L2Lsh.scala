@@ -1,14 +1,11 @@
 package com.klibisz.elastiknn.models
 
-import java.util
-
-import com.google.common.collect.{MinMaxPriorityQueue, Sets}
+import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage.StoredVec
-import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
+import com.klibisz.elastiknn.storage.UnsafeSerialization.{numBytesInInt, writeInt}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
 import scala.util.Random
 
 /**
@@ -26,100 +23,119 @@ import scala.util.Random
   */
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
-  private def cfor(i: Int)(pred: Int => Boolean, inc: Int => Int)(f: Int => Unit): Unit = {
-    var i_ = i
-    while (pred(i_)) {
-      f(i_)
-      i_ = inc(i_)
-    }
-  }
-
   import mapping._
-  private implicit val rng: Random = new Random(0)
-  private val hashVecs: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
-  private val biases: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
+  import L2Lsh.Multiprobe._
 
-  // Pre-compute the 3^k perturbations. ({-1, 0, 1}, {-1, 0, 1}, ... {-1, 0, 1}) k times.
-  private val perturbations: Array[Array[Int]] = {
-    val deltas: util.Set[Int] = Set(-1, 0, 1).asJava
-    Sets
-      .cartesianProduct((0 until k).map(_ => deltas): _*)
-      .asScala
-      .toArray
-      .map(_.asScala.toArray)
-      .sortBy(_.mkString(","))
-  }
+  // Instantiate a and b parameters for L * k hash functions.
+  private implicit val rng: Random = new Random(0)
+  private val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+  private val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
+
+  private val numPerturbations: Int = math.pow(2, k).toInt
 
   override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = hashWithProbes(v, 0)
 
-  private def scorePerturbation(projections: Array[Float], hashes: Array[Int], perturbation: Array[Int]): Float = {
-    var score = 0f
-    cfor(0)(_ < k, _ + 1) { ixK =>
-      val xi =
-        if (perturbation(ixK) == 0) 0
-        else {
-          val neg = projections(ixK) - hashes(ixK) * r
-          if (perturbation(ixK) == -1) neg
-          else r - neg
-        }
-      score += xi * xi
-    }
-    score
-  }
-
   def hashWithProbes(v: Vec.DenseFloat, probes: Int): Array[HashAndFreq] = {
-    val probesAdjusted = perturbations.length.min(probes + 1)
-    val allHashes = new Array[HashAndFreq](L * probesAdjusted)
+    val probesAdjusted = numPerturbations.min(probes)
+    val allHashes = new Array[HashAndFreq](L * (probesAdjusted + 1))
 
     cfor(0)(_ < L, _ + 1) { ixL =>
       // Each hash generated for this table is prefixed with these bytes.
       val lBarr = writeInt(ixL)
 
-      // Project and hash the vector onto the next k random vectors.
-      // Need both projections and hashes to compute perturbation scores.
-      val (projections, hashes): (Array[Float], Array[Int]) = {
-        val parr = new Array[Float](k)
-        val harr = new Array[Int](k)
-        cfor(0)(_ < k, _ + 1) { ixK =>
-          val p = hashVecs(ixL * k + ixK).dot(v) + biases(ixL * k + ixK)
-          parr.update(ixK, p)
-          harr.update(ixK, math.floor(p / r).toInt)
-        }
-        (parr, harr)
-      }
-
+      // If you don't need probing, e.g. when indexing, just compute the hashes.
       if (probesAdjusted == 0) {
-        val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
+        val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * numBytesInInt)
         hashBuf.appendAll(lBarr)
-        hashes.foreach(h => hashBuf.appendAll(writeInt(h)))
-        allHashes.update(ixL, HashAndFreq.once(hashBuf.toArray))
-      } else {
-        // Sort the perturbations by their score. Lower score is better.
-        val perturbationHeap = MinMaxPriorityQueue
-          .orderedBy((p1: Array[Int], p2: Array[Int]) => {
-            Ordering.Float.compare(
-              scorePerturbation(projections, hashes, p1),
-              scorePerturbation(projections, hashes, p2)
-            )
-          })
-          .maximumSize(probesAdjusted)
-          .create[Array[Int]]()
-        perturbations.foreach(perturbationHeap.add)
-
-        // Generate hashes from the top perturbations.
-        cfor(0)(_ < probesAdjusted && !perturbationHeap.isEmpty, _ + 1) { ixP =>
-          val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * 4)
-          hashBuf.appendAll(lBarr)
-          val perturbation = perturbationHeap.removeFirst()
-          cfor(0)(_ < k, _ + 1) { ixK =>
-            hashBuf.appendAll(writeInt(hashes(ixK) + perturbation(ixK)))
-          }
-          allHashes.update(ixL * probesAdjusted + ixP, HashAndFreq.once(hashBuf.toArray))
+        cfor(0)(_ < k, _ + 1) { ixK =>
+          val a = A(ixL * k + ixK)
+          val b = B(ixL * k + ixK)
+          val h = math.floor(math.floor((a.dot(v) + b) / r)).toInt
+          hashBuf.appendAll(writeInt(h))
         }
+        allHashes.update(ixL, HashAndFreq.once(hashBuf.toArray))
+      }
+      // Otherwise there is some more work to generate probed hashes.
+      else {
+        // Project and hash the vector onto the next k random vectors.
+        // Populate and sort 2 * k non-zero perturbations.
+        val (hashes, perturbations): (Array[Int], Array[Perturbation]) = {
+          val hashes = new Array[Int](k)
+          val perturbations = new Array[Perturbation](2 * k)
+          cfor(0)(_ < k, _ + 1) { ixK =>
+            val p = A(ixL * k + ixK).dot(v) + B(ixL * k + ixK)
+            val h = math.floor(p / r).toInt
+            hashes.update(ixK, h)
+            perturbations.update(ixK * 2, Perturbation(ixK, pos=false, p, h, r))
+            perturbations.update(ixK * 2 + 1, Perturbation(ixK, pos=true, p, h, r))
+          }
+          perturbations.sortBy(_.x)
+          (hashes, perturbations)
+        }
+
+        println(perturbations.length)
+
+        // Create and select the best perturbation sets using Algorithm 1 from Qin et. al.
+        val bestPsets: Array[PerturbationSet] = {
+          val heap: MinMaxPriorityQueue[PerturbationSet] = MinMaxPriorityQueue
+            .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => if (o1.score() < o2.score()) -1 else 1)
+            .maximumSize(probesAdjusted)
+            .create[PerturbationSet]()
+          val best = new Array[PerturbationSet](probesAdjusted)
+          heap.add(PerturbationSet(perturbations.head))
+          cfor(0)(_ < probesAdjusted, _ + 1) { ixBestPsets =>
+            do {
+              val Ai = heap.removeFirst()
+              heap.add(Ai.shift(perturbations))
+              heap.add(Ai.expand(perturbations))
+            } while (!heap.peekFirst().valid())
+            best.update(ixBestPsets, heap.removeFirst())
+          }
+          best
+        }
+
+        // Generate, append hashes for the empty pset (i.e. no probing) and each of the best psets.
+        ???
       }
     }
 
     allHashes
+  }
+
+}
+
+object L2Lsh {
+
+  private object Multiprobe {
+
+    case class Perturbation(i: Int, pos: Boolean, projection: Float, hash: Int, r: Int) {
+      // $x_i(\delta = -1) = f_i(q) - h_i(q) * r$, $x_i(\delta = 1) = r - x_i(-1)$.
+      val x: Float = if (pos) r - (projection - hash * r) else projection - hash * r
+    }
+
+    class PerturbationSet private (state: Map[Int, Perturbation], maxIndex: Int) {
+      def add(p: Perturbation): PerturbationSet = ???
+      def score(): Float = {
+        ???
+      }
+      def valid(): Boolean = {
+        ???
+      }
+      def shift(all: Array[Perturbation]): PerturbationSet = {
+        ???
+      }
+      def expand(all: Array[Perturbation]): PerturbationSet = {
+        ???
+      }
+    }
+
+    object PerturbationSet {
+      def apply(k: Int): PerturbationSet =
+        new PerturbationSet(new Array[Perturbation](k), new Array[Perturbation](k))
+      def apply(p: Perturbation): PerturbationSet = if ()
+
+    }
+
   }
 
 }
