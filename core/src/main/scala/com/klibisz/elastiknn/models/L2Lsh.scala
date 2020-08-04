@@ -1,10 +1,14 @@
 package com.klibisz.elastiknn.models
 
+import java.util
+import java.util.Comparator
+
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage.StoredVec
-import com.klibisz.elastiknn.storage.UnsafeSerialization.{numBytesInInt, writeInt}
+import com.klibisz.elastiknn.storage.UnsafeSerialization.{numBytesInFloat, numBytesInInt, writeInt}
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
@@ -24,118 +28,150 @@ import scala.util.Random
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
   import mapping._
-  import L2Lsh.Multiprobe._
+  import L2Lsh._
 
   // Instantiate a and b parameters for L * k hash functions.
   private implicit val rng: Random = new Random(0)
   private val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
   private val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
-  private val numPerturbations: Int = math.pow(2, k).toInt
+  // Each hash value is prefixed by the index of its table to virtually eliminate false positive collisions.
+  private val byteArrayPrefixes: Array[Array[Byte]] = (0 until L).map(writeInt).toArray
+
+  // 3^k possible perturbations (per table), because each of the k indices can be perturbed by { -1, 0, 1 }.
+  private val numPossiblePerturbations: Int = math.pow(3, k).toInt
 
   override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = hashWithProbes(v, 0)
 
   def hashWithProbes(v: Vec.DenseFloat, probes: Int): Array[HashAndFreq] = {
-    val probesAdjusted = numPerturbations.min(probes)
-    val allHashes = new Array[HashAndFreq](L * (probesAdjusted + 1))
+    val probesAdjusted = math.max(math.min(numPossiblePerturbations, probes + 1), 1)
+    val allHashes = new Array[HashAndFreq](L * probesAdjusted)
 
-    cfor(0)(_ < L, _ + 1) { ixL =>
-      // Each hash generated for this table is prefixed with these bytes.
-      val lBarr = writeInt(ixL)
-
-      // If you don't need probing, e.g. when indexing, just compute the hashes.
-      if (probesAdjusted == 0) {
-        val hashBuf = new ArrayBuffer[Byte](lBarr.length + k * numBytesInInt)
-        hashBuf.appendAll(lBarr)
-        cfor(0)(_ < k, _ + 1) { ixK =>
-          val a = A(ixL * k + ixK)
-          val b = B(ixL * k + ixK)
-          val h = math.floor(math.floor((a.dot(v) + b) / r)).toInt
-          hashBuf.appendAll(writeInt(h))
+    // If you don't need probing, (when indexing or probes = 0), just compute the hashes.
+    if (allHashes.length == L) {
+      cfor(0)(_ < L, _ + 1) { ixL =>
+        val p = byteArrayPrefixes(ixL)
+        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
+        buf.appendAll(p)
+        cfor(0)(_ < k, _ + 1) { ixk =>
+          val a = A(ixL * k + ixk)
+          val b = B(ixL * k + ixk)
+          val h = math.floor((a.dot(v) + b) / r).toInt
+          buf.appendAll(writeInt(h))
         }
-        allHashes.update(ixL, HashAndFreq.once(hashBuf.toArray))
+        allHashes.update(ixL, HashAndFreq.once(buf.toArray))
       }
-      // Otherwise there is some more work to generate probed hashes.
-      else {
-        // Project and hash the vector onto the next k random vectors.
-        // Populate and sort 2 * k non-zero perturbations.
-        val (hashes, perturbations): (Array[Int], Array[Perturbation]) = {
-          val hashes = new Array[Int](k)
-          val perturbations = new Array[Perturbation](2 * k)
-          cfor(0)(_ < k, _ + 1) { ixK =>
-            val p = A(ixL * k + ixK).dot(v) + B(ixL * k + ixK)
-            val h = math.floor(p / r).toInt
-            hashes.update(ixK, h)
-            perturbations.update(ixK * 2, Perturbation(ixK, pos=false, p, h, r))
-            perturbations.update(ixK * 2 + 1, Perturbation(ixK, pos=true, p, h, r))
-          }
-          perturbations.sortBy(_.x)
-          (hashes, perturbations)
-        }
-
-        println(perturbations.length)
-
-        // Create and select the best perturbation sets using Algorithm 1 from Qin et. al.
-        val bestPsets: Array[PerturbationSet] = {
-          val heap: MinMaxPriorityQueue[PerturbationSet] = MinMaxPriorityQueue
-            .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => if (o1.score() < o2.score()) -1 else 1)
-            .maximumSize(probesAdjusted)
-            .create[PerturbationSet]()
-          val best = new Array[PerturbationSet](probesAdjusted)
-          heap.add(PerturbationSet(perturbations.head))
-          cfor(0)(_ < probesAdjusted, _ + 1) { ixBestPsets =>
-            do {
-              val Ai = heap.removeFirst()
-              heap.add(Ai.shift(perturbations))
-              heap.add(Ai.expand(perturbations))
-            } while (!heap.peekFirst().valid())
-            best.update(ixBestPsets, heap.removeFirst())
-          }
-          best
-        }
-
-        // Generate, append hashes for the empty pset (i.e. no probing) and each of the best psets.
-        ???
-      }
+      allHashes
     }
 
-    allHashes
+    // Otherwise, pick the perturbation sets most likely to find near misses.
+    else {
+
+      // Add the non-perturbed hashes and compute all possible single-hash perturbations.
+      // L * k * 2 possible perturbations because each hash in each table can be perturbed with -1 or +1.
+      val sortedPerturbations = new Array[Perturbation](L * k * 2)
+      val zeroPerturbations = new Array[Perturbation](L * k)
+      cfor(0)(_ < L, _ + 1) { ixL =>
+        val p = byteArrayPrefixes(ixL)
+        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
+        buf.appendAll(p)
+        cfor(0)(_ < k, _ + 1) { ixk =>
+          val a = A(ixL * k + ixk)
+          val b = B(ixL * k + ixk)
+          val f = a.dot(v) + b
+          val h = math.floor(f / r).toInt
+          val dneg = f - h * r
+          val ixPerts = ixL * (k * 2) + ixk * 2
+          sortedPerturbations.update(ixPerts + 0, Perturbation(ixL, ixk, -1, f, h, math.abs(dneg)))
+          sortedPerturbations.update(ixPerts + 2, Perturbation(ixL, ixk, 1, f, h, math.abs(r - dneg)))
+          zeroPerturbations.update(ixL * k + ixk, Perturbation(ixL, ixk, 0, f, h, 0))
+          buf.appendAll(writeInt(h))
+        }
+        allHashes.update(ixL, HashAndFreq.once(buf.toArray))
+      }
+
+      // Sort the perturbations in ascending order by their distance value.
+      util.Arrays.sort(sortedPerturbations, (o1: Perturbation, o2: Perturbation) => if (o1.absDistance < o2.absDistance) -1 else 1)
+
+      // Use algorithm 1 from Qin et. al. to pick the top perturbation sets.
+      val heap = MinMaxPriorityQueue
+        .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => if (o1.absDistsSum < o2.absDistsSum) -1 else 1)
+        .create[PerturbationSet]()
+
+      heap.add(PerturbationSet.zero(sortedPerturbations.head))
+
+      // Start at L because the first L non-perturbed hashes were added above.
+      cfor(L)(_ < allHashes.length, _ + 1) { ixAllHashes =>
+        // Extract the top perturbation set and add the shifted/expanded versions.
+        // This implementation assumes that shift/expand can only return valid perturbation sets, hence the options.
+        val Ai = heap.removeFirst()
+        shift(sortedPerturbations, Ai).foreach(heap.add)
+        expand(sortedPerturbations, Ai).foreach(heap.add)
+
+        // Generate the hash value for Ai. If ixk is unperturbed, access the zeroPerturbations from above.
+        val p = byteArrayPrefixes(Ai.ixL)
+        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
+        cfor(0)(_ < k, _ + 1) { ixk =>
+          val pert = Ai.members.getOrElse(ixk, zeroPerturbations(Ai.ixL * k + ixk))
+          buf.appendAll(writeInt(pert.hash + pert.delta))
+        }
+        allHashes.update(ixAllHashes, HashAndFreq.once(buf.toArray))
+      }
+
+      allHashes
+    }
   }
 
 }
 
 object L2Lsh {
 
-  private object Multiprobe {
+  private case class Perturbation(ixL: Int, ixk: Int, delta: Int, projection: Float, hash: Int, absDistance: Float)
 
-    case class Perturbation(i: Int, pos: Boolean, projection: Float, hash: Int, r: Int) {
-      // $x_i(\delta = -1) = f_i(q) - h_i(q) * r$, $x_i(\delta = 1) = r - x_i(-1)$.
-      val x: Float = if (pos) r - (projection - hash * r) else projection - hash * r
+  private case class PerturbationSet(ixL: Int, members: Map[Int, Perturbation], maxPointer: Int, absDistsSum: Float)
+
+  private object PerturbationSet {
+    def zero(perturbation: Perturbation): PerturbationSet = {
+      PerturbationSet(perturbation.ixL, Map(0 -> perturbation), 0, perturbation.absDistance)
     }
-
-    class PerturbationSet private (state: Map[Int, Perturbation], maxIndex: Int) {
-      def add(p: Perturbation): PerturbationSet = ???
-      def score(): Float = {
-        ???
-      }
-      def valid(): Boolean = {
-        ???
-      }
-      def shift(all: Array[Perturbation]): PerturbationSet = {
-        ???
-      }
-      def expand(all: Array[Perturbation]): PerturbationSet = {
-        ???
-      }
-    }
-
-    object PerturbationSet {
-      def apply(k: Int): PerturbationSet =
-        new PerturbationSet(new Array[Perturbation](k), new Array[Perturbation](k))
-      def apply(p: Perturbation): PerturbationSet = if ()
-
-    }
-
   }
+
+  @tailrec
+  private[this] def next(sortedPerturbations: Array[Perturbation], start: Int, ixL: Int): Option[Int] =
+    if (start == sortedPerturbations.length) None
+    else if (sortedPerturbations(start).ixL == ixL) Some(start)
+    else next(sortedPerturbations, start + 1, ixL)
+
+  private def shift(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
+    for {
+      nextMaxPointer <- next(sortedPerturbations, pset.maxPointer, pset.ixL)
+      nextMax = sortedPerturbations(nextMaxPointer)
+      currMax = sortedPerturbations(pset.maxPointer)
+      shifted <- {
+        if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) None
+        else
+          Some(
+            pset.copy(
+              members = pset.members - currMax.ixk + (nextMax.ixk -> nextMax),
+              absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance
+            ))
+      }
+    } yield shifted
+
+  private def expand(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
+    for {
+      nextMaxPointer <- next(sortedPerturbations, pset.maxPointer, pset.ixL)
+      nextMax = sortedPerturbations(nextMaxPointer)
+      expanded <- {
+        if (pset.members.contains(nextMax.ixk)) None
+        else
+          Some(
+            pset.copy(
+              members = pset.members + (nextMax.ixk -> nextMax),
+              absDistsSum = pset.absDistsSum + nextMax.absDistance
+            )
+          )
+      }
+    } yield expanded
 
 }
