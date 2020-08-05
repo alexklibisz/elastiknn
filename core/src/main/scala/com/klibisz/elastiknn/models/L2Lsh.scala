@@ -1,12 +1,11 @@
 package com.klibisz.elastiknn.models
 
 import java.util
-import java.util.Comparator
 
 import com.google.common.collect.MinMaxPriorityQueue
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.storage.StoredVec
-import com.klibisz.elastiknn.storage.UnsafeSerialization.{numBytesInFloat, numBytesInInt, writeInt}
+import com.klibisz.elastiknn.storage.UnsafeSerialization._
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -16,36 +15,23 @@ import scala.util.Random
   * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3.
   * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
   * Multi-probe is based on 2007 paper by Qin, et. al. and uses the naive method for choosing perturbation vectors.
-  *
-  * @param mapping L2Lsh Mapping. The members are used as follows:
-  *                bands: number of bands, each containing `rows` hash functions. Generally, more bands yield higher recall.
-  *                       Note that this often referred to as `L`, or the number of hash tables.
-  *                rows: number of rows per band. Generally, more rows yield higher precision.
-  *                      Note that this is often called `k`, or the number of functions per hash table.
-  *                width: width of the interval that determines two floating-point hashed values are equivalent.
-  *
   */
-final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+final class L2Lsh(override val mapping: Mapping.L2Lsh, A: Array[Vec.DenseFloat], B: Array[Float])
+    extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
-  import mapping._
   import L2Lsh._
-
-  // Instantiate a and b parameters for L * k hash functions.
-  private implicit val rng: Random = new Random(0)
-  private val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
-  private val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
+  import mapping._
 
   // Each hash value is prefixed by the index of its table to virtually eliminate false positive collisions.
   private val byteArrayPrefixes: Array[Array[Byte]] = (0 until L).map(writeInt).toArray
 
-  // 3^k possible perturbations (per table), because each of the k indices can be perturbed by { -1, 0, 1 }.
-  private val numPossiblePerturbations: Int = math.pow(3, k).toInt
+  // 3 possible perturbations for each of k hashes. Subtract one for the all-zeros case.
+  private val maxProbesPerTable: Int = math.pow(3, k).toInt - 1
 
   override def apply(v: Vec.DenseFloat): Array[HashAndFreq] = hashWithProbes(v, 0)
 
-  def hashWithProbes(v: Vec.DenseFloat, probes: Int): Array[HashAndFreq] = {
-    val probesAdjusted = math.max(math.min(numPossiblePerturbations, probes + 1), 1)
-    val allHashes = new Array[HashAndFreq](L * probesAdjusted)
+  def hashWithProbes(v: Vec.DenseFloat, probesPerTable: Int): Array[HashAndFreq] = {
+    val allHashes = new Array[HashAndFreq](L * (1 + probesPerTable.min(maxProbesPerTable).max(0)))
 
     // If you don't need probing, (when indexing or probes = 0), just compute the hashes.
     if (allHashes.length == L) {
@@ -83,7 +69,7 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
           val dneg = f - h * r
           val ixPerts = ixL * (k * 2) + ixk * 2
           sortedPerturbations.update(ixPerts + 0, Perturbation(ixL, ixk, -1, f, h, math.abs(dneg)))
-          sortedPerturbations.update(ixPerts + 2, Perturbation(ixL, ixk, 1, f, h, math.abs(r - dneg)))
+          sortedPerturbations.update(ixPerts + 1, Perturbation(ixL, ixk, 1, f, h, math.abs(r - dneg)))
           zeroPerturbations.update(ixL * k + ixk, Perturbation(ixL, ixk, 0, f, h, 0))
           buf.appendAll(writeInt(h))
         }
@@ -91,11 +77,11 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
       }
 
       // Sort the perturbations in ascending order by their distance value.
-      util.Arrays.sort(sortedPerturbations, (o1: Perturbation, o2: Perturbation) => if (o1.absDistance < o2.absDistance) -1 else 1)
+      util.Arrays.sort(sortedPerturbations, (o1: Perturbation, o2: Perturbation) => Ordering.Float.compare(o1.absDistance, o2.absDistance))
 
       // Use algorithm 1 from Qin et. al. to pick the top perturbation sets.
       val heap = MinMaxPriorityQueue
-        .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => if (o1.absDistsSum < o2.absDistsSum) -1 else 1)
+        .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => Ordering.Float.compare(o1.absDistsSum, o2.absDistsSum))
         .create[PerturbationSet]()
 
       heap.add(PerturbationSet.zero(sortedPerturbations.head))
@@ -126,14 +112,21 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
 
 object L2Lsh {
 
+  def apply(mapping: Mapping.L2Lsh): L2Lsh = {
+    import mapping._
+    implicit val rng: Random = new Random(0)
+    val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+    val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
+    new L2Lsh(mapping, A, B)
+  }
+
   private case class Perturbation(ixL: Int, ixk: Int, delta: Int, projection: Float, hash: Int, absDistance: Float)
 
   private case class PerturbationSet(ixL: Int, members: Map[Int, Perturbation], maxPointer: Int, absDistsSum: Float)
 
   private object PerturbationSet {
-    def zero(perturbation: Perturbation): PerturbationSet = {
+    def zero(perturbation: Perturbation): PerturbationSet =
       PerturbationSet(perturbation.ixL, Map(0 -> perturbation), 0, perturbation.absDistance)
-    }
   }
 
   @tailrec

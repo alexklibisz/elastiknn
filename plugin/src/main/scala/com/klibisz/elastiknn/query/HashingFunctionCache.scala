@@ -27,7 +27,7 @@ object HashingFunctionCache {
     def load(m: Mapping.AngularLsh): AngularLsh = new AngularLsh(m)
   }
   implicit object L2 extends HashingFunctionCache[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat, L2Lsh] {
-    def load(m: Mapping.L2Lsh): L2Lsh = new L2Lsh(m)
+    def load(m: Mapping.L2Lsh): L2Lsh = L2Lsh(m)
   }
   implicit object Permutation extends HashingFunctionCache[Mapping.PermutationLsh, Vec.DenseFloat, StoredVec.DenseFloat, PermutationLsh] {
     def load(m: Mapping.PermutationLsh): PermutationLsh = new PermutationLsh(m)
