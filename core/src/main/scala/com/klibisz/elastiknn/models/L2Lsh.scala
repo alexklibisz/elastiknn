@@ -16,11 +16,14 @@ import scala.util.Random
   * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
   * Multi-probe is based on 2007 paper by Qin, et. al. and uses the naive method for choosing perturbation vectors.
   */
-final class L2Lsh(override val mapping: Mapping.L2Lsh, A: Array[Vec.DenseFloat], B: Array[Float])
-    extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
+final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
   import L2Lsh._
   import mapping._
+
+  implicit val rng: Random = new Random(0)
+  val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
+  val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
   // Each hash value is prefixed by the index of its table to virtually eliminate false positive collisions.
   private val byteArrayPrefixes: Array[Array[Byte]] = (0 until L).map(writeInt).toArray
@@ -84,6 +87,7 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh, A: Array[Vec.DenseFloat],
       cfor(0)(_ < L, _ + 1) { ixL =>
         util.Arrays.sort(sortedPerturbations(ixL),
                          (o1: Perturbation, o2: Perturbation) => Ordering.Float.compare(o1.absDistance, o2.absDistance))
+        sortedPerturbations(ixL).foreach(println)
         heap.add(PerturbationSet(sortedPerturbations(ixL).head))
       }
 
@@ -96,6 +100,10 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh, A: Array[Vec.DenseFloat],
         val Ae = expand(sortedPerturbations(Ai.ixL), Ai)
         As.foreach(heap.add)
         Ae.foreach(heap.add)
+        println(Ai)
+        println(As)
+        println(Ae)
+        println("---")
 
         // Generate the hash value for Ai. If ixk is unperturbed, access the zeroPerturbations from above.
         val p = byteArrayPrefixes(Ai.ixL)
@@ -116,16 +124,9 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh, A: Array[Vec.DenseFloat],
 
 object L2Lsh {
 
-  def apply(mapping: Mapping.L2Lsh): L2Lsh = {
-    import mapping._
-    implicit val rng: Random = new Random(0)
-    val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
-    val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
-    new L2Lsh(mapping, A, B)
-  }
-
   private case class Perturbation(ixL: Int, ixk: Int, delta: Int, projection: Float, hash: Int, absDistance: Float)
 
+  // TODO: members can probably just be a Set[Int] or Array[Int] of length 2k.
   private case class PerturbationSet(ixL: Int, members: Map[Int, Perturbation], ixMax: Int, absDistsSum: Float)
 
   private object PerturbationSet {
@@ -133,55 +134,37 @@ object L2Lsh {
       PerturbationSet(perturbation.ixL, Map(perturbation.ixk -> perturbation), 0, perturbation.absDistance)
   }
 
-  // TODO: this should only return None if pset.ixMax + 1 == sortedPerturbations.length.
-  // Otherwise it should compute the _next valid_ shifted perturbation set.
-  private def shift(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] = {
+  @tailrec
+  private def shift(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
+    // Hit the end of the perturbation list, can't add more.
+    if (pset.ixMax + 1 == sortedPerturbations.length) None
+    else {
+      val currMax = sortedPerturbations(pset.ixMax)
+      val nextMax = sortedPerturbations(pset.ixMax + 1)
+      val nextPset = pset.copy(
+        members = pset.members - currMax.ixk + (nextMax.ixk -> nextMax),
+        absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance,
+        ixMax = pset.ixMax + 1
+      )
+      // In some cases shifting will create an invalid pset, meaning there are two perturbations on the same index.
+      // In that case, call shift recursively to get rid of the invalid pair of perturbations.
+      if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) shift(sortedPerturbations, nextPset)
+      else Some(nextPset)
+    }
 
-    @tailrec
-    def rec(ixMax: Int): Option =
-      if (ixMax + 1 == sortedPerturbations.length) None
-      else {
-        val nextMax = sortedPerturbations(ixMax + 1)
-        val currMax = sortedPerturbations(ixMax)
-        // If the pset already contains a perturbation at this index and the current max doesn't belong to
-        if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) rec(ixMax + 1)
-        else
-          Some(
-            pset.copy(
-              members = pset.members - currMax.ixk + (nextMax.ixk -> nextMax),
-              absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance,
-              ixMax = pset.ixMax + 1
-            ))
-      }
-
+  private def expand(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] = {
     if (pset.ixMax + 1 == sortedPerturbations.length) None
     else {
       val nextMax = sortedPerturbations(pset.ixMax + 1)
-      val currMax = sortedPerturbations(pset.ixMax)
-      if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) None
-      else
-        Some(
-          pset.copy(
-            members = pset.members - currMax.ixk + (nextMax.ixk -> nextMax),
-            absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance,
-            ixMax = pset.ixMax + 1
-          ))
+      val nextPset = pset.copy(
+        members = pset.members + (nextMax.ixk -> nextMax),
+        absDistsSum = pset.absDistsSum + nextMax.absDistance,
+        ixMax = pset.ixMax + 1
+      )
+      // Sometimes expanding creates an invalid pset. Then you shift to clean it up.
+      if (pset.members.contains(nextMax.ixk)) shift(sortedPerturbations, nextPset)
+      else Some(nextPset)
     }
   }
-
-  private def expand(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
-    if (pset.ixMax + 1 == sortedPerturbations.length) None
-    else {
-      val nextMax = sortedPerturbations(pset.ixMax + 1)
-      if (pset.members.contains(nextMax.ixk)) None
-      else
-        Some(
-          pset.copy(
-            members = pset.members + (nextMax.ixk -> nextMax),
-            absDistsSum = pset.absDistsSum + nextMax.absDistance,
-            ixMax = pset.ixMax + 1
-          )
-        )
-    }
 
 }
