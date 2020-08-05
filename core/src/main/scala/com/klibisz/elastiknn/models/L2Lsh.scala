@@ -11,6 +11,10 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
+// TODO: this is slightly slower than the naive version in this commit:
+// https://github.com/alexklibisz/elastiknn/commit/6fe9301dfeeeda630388f373711c3d51dcf3051c
+// Use the MatchHashesAndScoreQueryPerformanceSuite to micro-benchmark it and figure out the bottlenecks.
+
 /**
   * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3 and Qin, et. al. 2007.
   * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
