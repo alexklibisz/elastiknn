@@ -141,7 +141,7 @@ object L2Lsh {
         absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance,
         ixMax = pset.ixMax + 1
       )
-      // In some cases shifting will create an invalid pset, meaning there are two perturbations on the same index.
+      // In some cases shifting can create an invalid pset, meaning there are two perturbations on the same index.
       // In that case, call shift recursively to get rid of the invalid pair of perturbations.
       if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) shift(sortedPerturbations, nextPset)
       else Some(nextPset)
@@ -156,7 +156,7 @@ object L2Lsh {
         absDistsSum = pset.absDistsSum + nextMax.absDistance,
         ixMax = pset.ixMax + 1
       )
-      // Sometimes expanding creates an invalid pset. Then you shift to clean it up.
+      // Sometimes expanding creates an invalid pset. Shifting cleans it up.
       if (pset.members.contains(nextMax.ixk)) shift(sortedPerturbations, nextPset)
       else Some(nextPset)
     }
