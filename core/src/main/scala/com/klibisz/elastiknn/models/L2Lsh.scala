@@ -12,9 +12,9 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 /**
-  * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3.
+  * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3 and Qin, et. al. 2007.
   * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
-  * Multi-probe is based on 2007 paper by Qin, et. al. and uses the naive method for choosing perturbation vectors.
+  * Multi-probe is basically the same as Qin et. al, but doesn't use the score estimation described in section 4.5.
   */
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
@@ -87,7 +87,6 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
       cfor(0)(_ < L, _ + 1) { ixL =>
         util.Arrays.sort(sortedPerturbations(ixL),
                          (o1: Perturbation, o2: Perturbation) => Ordering.Float.compare(o1.absDistance, o2.absDistance))
-        sortedPerturbations(ixL).foreach(println)
         heap.add(PerturbationSet(sortedPerturbations(ixL).head))
       }
 
@@ -100,10 +99,6 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         val Ae = expand(sortedPerturbations(Ai.ixL), Ai)
         As.foreach(heap.add)
         Ae.foreach(heap.add)
-        println(Ai)
-        println(As)
-        println(Ae)
-        println("---")
 
         // Generate the hash value for Ai. If ixk is unperturbed, access the zeroPerturbations from above.
         val p = byteArrayPrefixes(Ai.ixL)
