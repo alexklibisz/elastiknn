@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import org.scalatest.{FunSuite, Inspectors, Matchers}
+import org.scalatest.{Assertions, FunSuite, Inspectors, Matchers}
 
 import scala.util.Random
 
@@ -32,10 +32,11 @@ class L2LshSuite extends FunSuite with Matchers {
     }
   }
 
-//  test("example by hand") {
-//    val lsh = L2Lsh(Mapping.L2Lsh(dims = 4, L = 1, k = 3, r = 1))
-//    val vec = Vec.DenseFloat(1.1f, 2.2f, 3.3f, 4.4f)
-//    lsh
-//  }
+  test("example by hand") {
+    val lsh = L2Lsh(Mapping.L2Lsh(dims = 4, L = 2, k = 3, r = 1))
+    val vec = Vec.DenseFloat(1.1f, 2.2f, 3.3f, 4.4f)
+    lsh.hashWithProbes(vec, 4)
+    Assertions.succeed
+  }
 
 }
