@@ -133,7 +133,27 @@ object L2Lsh {
       PerturbationSet(perturbation.ixL, Map(perturbation.ixk -> perturbation), 0, perturbation.absDistance)
   }
 
-  private def shift(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
+  // TODO: this should only return None if pset.ixMax + 1 == sortedPerturbations.length.
+  // Otherwise it should compute the _next valid_ shifted perturbation set.
+  private def shift(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] = {
+
+    @tailrec
+    def rec(ixMax: Int): Option =
+      if (ixMax + 1 == sortedPerturbations.length) None
+      else {
+        val nextMax = sortedPerturbations(ixMax + 1)
+        val currMax = sortedPerturbations(ixMax)
+        // If the pset already contains a perturbation at this index and the current max doesn't belong to
+        if (pset.members.contains(nextMax.ixk) && currMax.ixk != nextMax.ixk) rec(ixMax + 1)
+        else
+          Some(
+            pset.copy(
+              members = pset.members - currMax.ixk + (nextMax.ixk -> nextMax),
+              absDistsSum = pset.absDistsSum - currMax.absDistance + nextMax.absDistance,
+              ixMax = pset.ixMax + 1
+            ))
+      }
+
     if (pset.ixMax + 1 == sortedPerturbations.length) None
     else {
       val nextMax = sortedPerturbations(pset.ixMax + 1)
@@ -147,6 +167,7 @@ object L2Lsh {
             ixMax = pset.ixMax + 1
           ))
     }
+  }
 
   private def expand(sortedPerturbations: Array[Perturbation], pset: PerturbationSet): Option[PerturbationSet] =
     if (pset.ixMax + 1 == sortedPerturbations.length) None
