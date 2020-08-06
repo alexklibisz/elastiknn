@@ -11,9 +11,16 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 /**
-  * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3 and Qin, et. al. 2007.
+  * Locality sensitive hashing with multiprobe hashing for L2 similarity based on MMDS Chapter 3 and Qin, et. al. 2007.
   * Also drew some inspiration from this closed pull request: https://github.com/elastic/elasticsearch/pull/44374
-  * Multi-probe is basically the same as Qin et. al, but doesn't use the score estimation described in section 4.5.
+  *
+  * The multiprobe implementation is the same as Qin, et. al, with some subtle differences:
+  * - Doesn't use the score estimation described in section 4.5. This doesn't seem necessary as generating perturbation
+  *   sets is not even showing up in the profiler.
+  * - Keeps a single heap of perturbation sets across all tables. They actually mention this as an option, but it's not
+  *   clear if they implement it.
+  * - The shift and expand methods are smart enough to always generate valid perturbation sets, so you'll never append
+  *   an invalid one to the heap. This simplifies the logic for Algorithm 1.
   */
 final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat] {
 
