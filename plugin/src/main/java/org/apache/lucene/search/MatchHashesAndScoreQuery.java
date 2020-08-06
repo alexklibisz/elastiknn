@@ -7,6 +7,7 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -30,7 +31,8 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
-        ArrayUtil.timSort(hashAndFrequencies);
+        // java's sort seems to be faster than lucene's ArrayUtil.
+        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
