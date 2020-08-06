@@ -4,24 +4,10 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2Lsh}
 import com.klibisz.elastiknn.testing.LuceneSupport
-import org.apache.lucene.codecs.lucene50.Lucene50StoredFieldsFormat
-import org.apache.lucene.codecs.lucene60.Lucene60FieldInfosFormat
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
-import org.apache.lucene.codecs.{
-  Codec,
-  CompoundFormat,
-  DocValuesFormat,
-  FieldInfosFormat,
-  LiveDocsFormat,
-  NormsFormat,
-  PointsFormat,
-  PostingsFormat,
-  SegmentInfoFormat,
-  StoredFieldsFormat,
-  TermVectorsFormat
-}
-import org.apache.lucene.document.Document
 import org.apache.lucene.codecs.memory._
+import org.apache.lucene.codecs.{DocValuesFormat, PostingsFormat}
+import org.apache.lucene.document.Document
 import org.scalatest._
 
 import scala.util.Random
