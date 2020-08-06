@@ -73,14 +73,13 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
 
       // Use algorithm 1 from Qin et. al. to pick the top perturbation sets.
       val heap = MinMaxPriorityQueue
-        .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => Ordering.Float.compare(o1.absDistsSum, o2.absDistsSum))
+        .orderedBy((o1: PerturbationSet, o2: PerturbationSet) => if (o1.absDistsSum < o2.absDistsSum) -1 else 1)
         .create[PerturbationSet]()
 
       // Sort the perturbations in ascending order by their distance value.
       // Add the head of each sorted array to the heap.
       cfor(0)(_ < L, _ + 1) { ixL =>
-        util.Arrays.sort(sortedPerturbations(ixL),
-                         (o1: Perturbation, o2: Perturbation) => Ordering.Float.compare(o1.absDistance, o2.absDistance))
+        util.Arrays.sort(sortedPerturbations(ixL), (o1: Perturbation, o2: Perturbation) => if (o1.absDistance < o2.absDistance) -1 else 1)
         heap.add(PerturbationSet(sortedPerturbations(ixL).head))
       }
 
@@ -114,7 +113,6 @@ object L2Lsh {
 
   private case class Perturbation(ixL: Int, ixk: Int, delta: Int, projection: Float, hash: Int, absDistance: Float)
 
-  // TODO: members can probably just be a Set[Int] or Array[Int] of length 2k.
   private case class PerturbationSet(ixL: Int, members: Map[Int, Perturbation], ixMax: Int, absDistsSum: Float)
 
   private object PerturbationSet {
