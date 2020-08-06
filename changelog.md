@@ -1,3 +1,9 @@
+- Switched to less-naive implementation of multiprobe L2 LSH. Specifically, uses algorithm 1 from Qin, et. al. to generate
+  perturbation sets lazily at query time instead of generating them exhaustively. This does not use the estimated 
+  scoring optimization from that paper.
+- Performance optimizations for approximate queries. Specifically using a faster sorting method to sort the hashes before
+  retrieving matching docs from the shard.
+---
 - Introduced multiprobe L2 LSH. It's a small change. Search for `probes` in the API docs.
 - Bug fix for an edge case in approximate queries.
 ---
