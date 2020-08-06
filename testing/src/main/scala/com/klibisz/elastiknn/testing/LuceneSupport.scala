@@ -22,6 +22,7 @@ trait LuceneSupport {
       val ires = index(indexWriter)
       indexWriter.commit()
       indexWriter.forceMerge(1)
+      indexWriter.close()
       val indexReader = DirectoryReader.open(indexDir)
       val sres = try search(indexReader, new IndexSearcher(indexReader))
       finally indexReader.close()

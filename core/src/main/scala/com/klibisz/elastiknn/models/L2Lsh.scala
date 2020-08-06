@@ -8,12 +8,7 @@ import com.klibisz.elastiknn.storage.StoredVec
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-
-// TODO: this is slightly slower than the naive version in this commit:
-// https://github.com/alexklibisz/elastiknn/commit/6fe9301dfeeeda630388f373711c3d51dcf3051c
-// Use the MatchHashesAndScoreQueryPerformanceSuite to micro-benchmark it and figure out the bottlenecks.
 
 /**
   * Locality sensitive hashing for L2 similarity based on MMDS Chapter 3 and Qin, et. al. 2007.
@@ -29,9 +24,6 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
   val A: Array[Vec.DenseFloat] = (0 until (L * k)).map(_ => Vec.DenseFloat.random(dims)).toArray
   val B: Array[Float] = (0 until (L * k)).map(_ => rng.nextFloat() * r).toArray
 
-  // Each hash value is prefixed by the index of its table to virtually eliminate false positive collisions.
-  private val byteArrayPrefixes: Array[Array[Byte]] = (0 until L).map(writeInt).toArray
-
   // 3 possible perturbations for each of k hashes. Subtract one for the all-zeros case.
   private val maxProbesPerTable: Int = math.pow(3, k).toInt - 1
 
@@ -43,16 +35,15 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
     // If you don't need probing, (when indexing or probes = 0), just compute the hashes.
     if (allHashes.length == L) {
       cfor(0)(_ < L, _ + 1) { ixL =>
-        val p = byteArrayPrefixes(ixL)
-        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
-        buf.appendAll(p)
+        val hashInts = new Array[Int](1 + k)
+        hashInts.update(0, ixL)
         cfor(0)(_ < k, _ + 1) { ixk =>
           val a = A(ixL * k + ixk)
           val b = B(ixL * k + ixk)
           val h = math.floor((a.dot(v) + b) / r).toInt
-          buf.appendAll(writeInt(h))
+          hashInts.update(ixk + 1, h)
         }
-        allHashes.update(ixL, HashAndFreq.once(buf.toArray))
+        allHashes.update(ixL, HashAndFreq.once(writeInts(hashInts)))
       }
       allHashes
     }
@@ -64,9 +55,8 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
       val sortedPerturbations = Array.fill(L)(new Array[Perturbation](k * 2))
       val zeroPerturbations = new Array[Perturbation](L * k)
       cfor(0)(_ < L, _ + 1) { ixL =>
-        val p = byteArrayPrefixes(ixL)
-        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
-        buf.appendAll(p)
+        val hashInts = new Array[Int](1 + k)
+        hashInts.update(0, ixL)
         cfor(0)(_ < k, _ + 1) { ixk =>
           val a = A(ixL * k + ixk)
           val b = B(ixL * k + ixk)
@@ -76,9 +66,9 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
           sortedPerturbations(ixL).update(ixk * 2 + 0, Perturbation(ixL, ixk, -1, f, h, math.abs(dneg)))
           sortedPerturbations(ixL).update(ixk * 2 + 1, Perturbation(ixL, ixk, 1, f, h, math.abs(r - dneg)))
           zeroPerturbations.update(ixL * k + ixk, Perturbation(ixL, ixk, 0, f, h, 0))
-          buf.appendAll(writeInt(h))
+          hashInts.update(ixk + 1, h)
         }
-        allHashes.update(ixL, HashAndFreq.once(buf.toArray))
+        allHashes.update(ixL, HashAndFreq.once(writeInts(hashInts)))
       }
 
       // Use algorithm 1 from Qin et. al. to pick the top perturbation sets.
@@ -105,14 +95,13 @@ final class L2Lsh(override val mapping: Mapping.L2Lsh) extends HashingFunction[M
         Ae.foreach(heap.add)
 
         // Generate the hash value for Ai. If ixk is unperturbed, access the zeroPerturbations from above.
-        val p = byteArrayPrefixes(Ai.ixL)
-        val buf = new ArrayBuffer[Byte](p.length + k * numBytesInInt)
-        buf.appendAll(p)
+        val hashInts = new Array[Int](1 + k)
+        hashInts.update(0, Ai.ixL)
         cfor(0)(_ < k, _ + 1) { ixk =>
           val pert = Ai.members.getOrElse(ixk, zeroPerturbations(Ai.ixL * k + ixk))
-          buf.appendAll(writeInt(pert.hash + pert.delta))
+          hashInts.update(ixk + 1, pert.hash + pert.delta)
         }
-        allHashes.update(ixAllHashes, HashAndFreq.once(buf.toArray))
+        allHashes.update(ixAllHashes, HashAndFreq.once(writeInts(hashInts)))
       }
 
       allHashes
