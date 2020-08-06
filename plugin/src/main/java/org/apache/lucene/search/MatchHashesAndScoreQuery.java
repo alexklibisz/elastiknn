@@ -3,11 +3,9 @@ package org.apache.lucene.search;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
-import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
