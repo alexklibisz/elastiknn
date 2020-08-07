@@ -1,8 +1,3 @@
-// TODO: split this project into core and api.
-// api should just contain the api objects and codecs.
-// elastic4s-client and core should both depend on api.
-// No reason for the client to have access to the LSH models, etc.
-
 buildscript {
     repositories {
         mavenLocal()
@@ -19,14 +14,7 @@ plugins {
 
 dependencies {
     implementation project(':utils')
-    implementation project(':lucene')
-    runtime "org.scala-lang:scala-library:${scalaVersion}"
-    implementation "org.scala-lang:scala-library:${scalaVersion}"
-    compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-    compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
-    compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-    implementation "com.google.guava:guava:28.1-jre"
-    runtime "com.google.guava:guava:28.1-jre"
+    implementation 'org.apache.lucene:lucene-codecs:8.4.0'
 }
 
 task sourceJar(type: Jar) {
@@ -48,7 +36,7 @@ publishing {
             artifact tasks.javadocJar
             pom {
                 name = "${rootProject.group}:${artifactId}"
-                description = 'Schema objects and algorithms for the ElastiKnn Elasticsearch plugin'
+                description = 'Serialization utilities used in the Elastinn Elasticsearch plugin'
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
                     license {

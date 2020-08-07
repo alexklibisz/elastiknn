@@ -4,5 +4,6 @@ include 'plugin'
 include 'testing'
 include 'client-elastic4s'
 include 'benchmarks'
-include 'serialization'
+include 'lucene'
+include 'utils'
 
