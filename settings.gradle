@@ -2,7 +2,6 @@ rootProject.name = 'elastiknn'
 include 'core'
 include 'plugin'
 include 'testing'
-include 'reference'
 include 'client-elastic4s'
 include 'benchmarks'
 
