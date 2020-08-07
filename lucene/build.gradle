@@ -14,7 +14,7 @@ plugins {
 
 dependencies {
     implementation project(':utils')
-    implementation 'org.apache.lucene:lucene-codecs:8.4.0'
+    implementation 'org.apache.lucene:lucene-core:8.4.0'
 }
 
 task sourceJar(type: Jar) {
