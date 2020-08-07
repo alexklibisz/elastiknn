@@ -36,7 +36,7 @@ publishing {
             artifact tasks.javadocJar
             pom {
                 name = "${rootProject.group}:${artifactId}"
-                description = 'Serialization utilities used in the Elastinn Elasticsearch plugin'
+                description = 'Lucene queries and constructs used in the Elastinn Elasticsearch plugin'
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
                     license {
