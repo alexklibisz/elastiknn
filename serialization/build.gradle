@@ -1,12 +1,18 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+}
+
 plugins {
+    id 'java-library'
     id 'maven-publish'
     id 'signing'
 }
 
-dependencies {
-    compile project(':core')
-    compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
-}
+dependencies {}
 
 task sourceJar(type: Jar) {
     classifier 'sources'
@@ -26,8 +32,8 @@ publishing {
             artifact tasks.sourceJar
             artifact tasks.javadocJar
             pom {
-                name = 'ElastiKnn Elastic4s Client'
-                description = 'Client for ElastiKnn Elasticsearch plugin, based on the elastic4s library'
+                name = "${rootProject.group}:${artifactId}"
+                description = 'Serialization utilities used in the Elastinn Elasticsearch plugin'
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
                     license {
@@ -48,6 +54,7 @@ publishing {
                     url = 'https://github.com/alexklibisz/elastiknn'
                 }
             }
+
         }
     }
 
@@ -60,6 +67,7 @@ publishing {
             }
         }
     }
+
 }
 
 signing {

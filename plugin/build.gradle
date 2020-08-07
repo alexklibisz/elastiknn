@@ -29,8 +29,8 @@ configurations {
 }
 
 dependencies {
-    runtime project(':core')
     implementation project(':core')
+    implementation project(':serialization')
     runtime "org.scala-lang:scala-library:${scalaVersion}"
     implementation "org.scala-lang:scala-library:${scalaVersion}"
     implementation "com.google.guava:guava:28.1-jre"
