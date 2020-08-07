@@ -3,7 +3,6 @@ package org.apache.lucene.search;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
-import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
@@ -30,7 +29,8 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
-        ArrayUtil.timSort(hashAndFrequencies);
+        // java's sort seems to be faster than lucene's ArrayUtil.
+        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
