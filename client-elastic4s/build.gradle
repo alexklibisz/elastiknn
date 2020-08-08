@@ -31,8 +31,8 @@ publishing {
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
                     license {
-                        name = 'The Apache License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        name = 'GPL 3.0'
+                        url = 'https://choosealicense.com/licenses/gpl-3.0/'
                     }
                 }
                 developers {

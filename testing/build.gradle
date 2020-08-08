@@ -34,6 +34,8 @@ dependencies {
     implementation project(':core')
     implementation project(':client-elastic4s')
     implementation project(':plugin')
+    implementation project(':utils')
+    implementation project(':lucene')
     implementation "org.scala-lang:scala-library:$scalaVersion"
     implementation 'com.typesafe:config:1.4.0'
     implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
