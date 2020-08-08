@@ -9,15 +9,6 @@ allprojects {
             url "https://oss.sonatype.org/content/repositories/snapshots"
         }
     }
-
-    // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
-    ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
-
-    // Sonatype settings.
-    ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
-    ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : ""
-    ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
-
 }
 
 // Make sub-projects easy to reference.
@@ -28,7 +19,6 @@ Project lucene = subprojects.find { it.name == "lucene" }
 Project utils = subprojects.find { it.name == "utils" }
 Project plugin = subprojects.find { it.name == "plugin" }
 Project testing = subprojects.find { it.name == "testing" }
-
 
 // Apply multiple configuration closures to a single project.
 def configure(Project p, List<Closure> configClosures) {
@@ -67,8 +57,18 @@ def javaProjectConfig = {
     }
 }
 
-def publishConfig(boolean isScala = false) {
+def publishConfig(String description, boolean isScala = false) {
+    String theDescription = description
     return {
+
+        // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
+        ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
+
+        // Sonatype settings.
+        ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
+        ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : "wrong"
+        ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : "wrong"
+
         apply plugin: 'maven-publish'
         apply plugin: 'signing'
         task sourceJar(type: Jar) {
@@ -87,7 +87,7 @@ def publishConfig(boolean isScala = false) {
                     artifact tasks.javadocJar
                     pom {
                         name = "${rootProject.group}:${artifactId}"
-                        description = project.getDescription()
+                        description = theDescription
                         url = 'https://github.com/alexklibisz/elastiknn'
                         licenses {
                             license {
@@ -151,33 +151,43 @@ configure(benchmarks, List.of(scalaProjectConfig, {
     }
 }))
 
-configure(clientElastic4s, List.of(scalaProjectConfig, publishConfig(true), {
-    dependencies {
-        compile project(core.path)
-        compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
-    }
-}))
+configure(clientElastic4s, List.of(
+        scalaProjectConfig,
+        publishConfig("Scala client for Elastiknn, based on elastic4s", true),
+        {
+            dependencies {
+                compile project(core.path)
+                compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
+            }
+        }))
 
-configure(core, List.of(scalaProjectConfig, javaProjectConfig, publishConfig(false), {
-    dependencies {
-        implementation project(utils.path)
-        implementation project(lucene.path)
-        runtime "org.scala-lang:scala-library:${scalaVersion}"
-        implementation "org.scala-lang:scala-library:${scalaVersion}"
-        compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-        compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
-        compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-        implementation "com.google.guava:guava:28.1-jre"
-        runtime "com.google.guava:guava:28.1-jre"
-    }
-}))
+configure(core, List.of(
+        scalaProjectConfig,
+        javaProjectConfig,
+        publishConfig("Exact and approximate similarity models used in Elastiknn", false),
+        {
+            dependencies {
+                implementation project(utils.path)
+                implementation project(lucene.path)
+                runtime "org.scala-lang:scala-library:${scalaVersion}"
+                implementation "org.scala-lang:scala-library:${scalaVersion}"
+                compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+                compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+                compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+                implementation "com.google.guava:guava:28.1-jre"
+                runtime "com.google.guava:guava:28.1-jre"
+            }
+        }))
 
-configure(lucene, List.of(javaProjectConfig, publishConfig(), {
-    dependencies {
-        implementation project(utils.path)
-        implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-    }
-}))
+configure(lucene, List.of(
+        javaProjectConfig,
+        publishConfig("Custom Lucene queries used in Elastiknn"),
+        {
+            dependencies {
+                implementation project(utils.path)
+                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+            }
+        }))
 
 configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     dependencies {
@@ -195,9 +205,7 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     }
 }))
 
-configure(utils, List.of(javaProjectConfig, publishConfig(), {
-    description = "Foo bar"
-}))
+configure(utils, List.of(javaProjectConfig, publishConfig("Shared utilities used in Elastiknn")))
 
 configure(testing, List.of(scalaProjectConfig, {
     dependencies {
