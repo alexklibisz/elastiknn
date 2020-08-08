@@ -1,6 +1,15 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+    }
+}
+
 allprojects {
     version = rootProject.file('version').getText().strip()
-
     repositories {
         jcenter()
         mavenCentral()
@@ -12,15 +21,16 @@ allprojects {
 }
 
 // Make sub-projects easy to reference.
-Project benchmarks = subprojects.find { it.name == "benchmarks" }
-Project clientElastic4s = subprojects.find { it.name == "client-elastic4s" }
-Project core = subprojects.find { it.name == "core" }
-Project lucene = subprojects.find { it.name == "lucene" }
-Project utils = subprojects.find { it.name == "utils" }
-Project plugin = subprojects.find { it.name == "plugin" }
-Project testing = subprojects.find { it.name == "testing" }
+Project benchmarks = project(':benchmarks')
+Project clientElastic4s = project(':client-elastic4s')
+Project core = project(':core')
+Project lucene = project(':lucene')
+Project utils = project(':utils')
+Project plugin = project(':plugin')
+Project testing = project(':testing')
 
 // Apply multiple configuration closures to a single project.
+// TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
 def configure(Project p, List<Closure> configClosures) {
     configClosures.forEach { configure(p, it) }
 }
@@ -128,29 +138,38 @@ def publishConfig(String description, boolean isScala = false) {
     }
 }
 
-configure(benchmarks, List.of(scalaProjectConfig, {
-    dependencies {
-        implementation project(core.path)
-        implementation project(clientElastic4s.path)
-        runtime "org.scala-lang:scala-library:${scalaVersion}"
-        implementation "org.scala-lang:scala-library:${scalaVersion}"
-        implementation 'org.apache.commons:commons-math3:3.6.1'
-        implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC21-2"
-        implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC21-2"
-        implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.3.0"
-        implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
-        implementation "ch.qos.logback:logback-classic:1.2.3"
-        implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-        implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
-        implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
-        implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
-        implementation "com.nrinaudo:kantan.csv_${scalaVersion}:0.6.1"
-        implementation "com.nrinaudo:kantan.csv-generic_${scalaVersion}:0.6.1"
-        // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
-        // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
-        implementation 'javax.xml:jaxb-api:2.1'
-    }
-}))
+configure(benchmarks, List.of(
+        scalaProjectConfig,
+        {
+            apply plugin: 'application'
+            apply plugin: 'com.github.johnrengelman.shadow'
+
+            application {
+                mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
+            }
+
+            dependencies {
+                implementation project(core.path)
+                implementation project(clientElastic4s.path)
+                runtime "org.scala-lang:scala-library:${scalaVersion}"
+                implementation "org.scala-lang:scala-library:${scalaVersion}"
+                implementation 'org.apache.commons:commons-math3:3.6.1'
+                implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.3.0"
+                implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
+                implementation "ch.qos.logback:logback-classic:1.2.3"
+                implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+                implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+                implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+                implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
+                implementation "com.nrinaudo:kantan.csv_${scalaVersion}:0.6.1"
+                implementation "com.nrinaudo:kantan.csv-generic_${scalaVersion}:0.6.1"
+                // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
+                // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+                implementation 'javax.xml:jaxb-api:2.1'
+            }
+        }))
 
 configure(clientElastic4s, List.of(
         scalaProjectConfig,
@@ -191,6 +210,30 @@ configure(lucene, List.of(
         }))
 
 configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
+
+    version = "${version}_es${esVersion}"
+
+    apply plugin: 'elasticsearch.esplugin'
+
+    dependencyLicenses.enabled = false
+    thirdPartyAudit.enabled = false
+    licenseHeaders.enabled = false
+    testingConventions.enabled = false
+
+    configurations {
+        all {
+            resolutionStrategy.preferProjectModules()
+        }
+    }
+
+    esplugin {
+        name 'elastiknn'
+        description 'Elasticsearch plugin for exact and approximate nearest neighbors search on sparse and dense vectors.'
+        classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
+        licenseFile rootProject.file('LICENSE.txt')
+        noticeFile rootProject.file('NOTICE.txt')
+    }
+
     dependencies {
         // TODO: are the runtime and implementation all necessary?
         runtime project(core.path)
