@@ -1,9 +1,11 @@
 buildscript {
     repositories {
         jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.26'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
 }
@@ -28,6 +30,7 @@ Project lucene = project(':lucene')
 Project utils = project(':utils')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
+
 
 // Apply multiple configuration closures to a single project.
 // TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
@@ -149,8 +152,8 @@ configure(benchmarks, List.of(
             }
 
             dependencies {
-                implementation project(core.path)
-                implementation project(clientElastic4s.path)
+                implementation core
+                implementation clientElastic4s
                 runtime "org.scala-lang:scala-library:${scalaVersion}"
                 implementation "org.scala-lang:scala-library:${scalaVersion}"
                 implementation 'org.apache.commons:commons-math3:3.6.1'
@@ -176,7 +179,7 @@ configure(clientElastic4s, List.of(
         publishConfig("Scala client for Elastiknn, based on elastic4s", true),
         {
             dependencies {
-                compile project(core.path)
+                compile core
                 compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
             }
         }))
@@ -187,8 +190,8 @@ configure(core, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
             dependencies {
-                implementation project(utils.path)
-                implementation project(lucene.path)
+                implementation utils
+                implementation lucene
                 runtime "org.scala-lang:scala-library:${scalaVersion}"
                 implementation "org.scala-lang:scala-library:${scalaVersion}"
                 compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
@@ -204,7 +207,7 @@ configure(lucene, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
-                implementation project(utils.path)
+                implementation utils
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
             }
         }))
@@ -236,12 +239,12 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
 
     dependencies {
         // TODO: are the runtime and implementation all necessary?
-        runtime project(core.path)
-        implementation project(core.path)
-        runtime project(utils.path)
-        implementation project(utils.path)
-        runtime project(lucene.path)
-        implementation project(lucene.path)
+        runtime core
+        implementation core
+        runtime utils
+        implementation utils
+        runtime lucene
+        implementation lucene
         runtime "org.scala-lang:scala-library:${scalaVersion}"
         implementation "org.scala-lang:scala-library:${scalaVersion}"
         implementation "com.google.guava:guava:28.1-jre"
@@ -249,15 +252,42 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     }
 }))
 
-configure(utils, List.of(javaProjectConfig, publishConfig("Shared utilities used in Elastiknn")))
+configure(utils, List.of(
+        javaProjectConfig,
+        publishConfig("Shared utilities used in Elastiknn"),
+        {
+            apply plugin: 'com.github.maiflai.scalatest'
+            test {
+                outputs.upToDateWhen { false }
+                testLogging {
+                    showStandardStreams = true
+                    exceptionFormat = 'full'
+                    events "standardOut", "started", "passed", "skipped", "failed"
+                }
+                maxParallelForks = 1
+            }
+        }))
 
 configure(testing, List.of(scalaProjectConfig, {
+
+    apply plugin: 'com.github.maiflai.scalatest'
+
+    test {
+        outputs.upToDateWhen { false }
+        testLogging {
+            showStandardStreams = true
+            exceptionFormat = 'full'
+            events "standardOut", "started", "passed", "skipped", "failed"
+        }
+        maxParallelForks = 1
+    }
+
     dependencies {
-        implementation project(core.path)
-        implementation project(clientElastic4s.path)
-        implementation project(plugin.path)
-        implementation project(utils.path)
-        implementation project(lucene.path)
+        implementation core
+        implementation clientElastic4s
+        implementation plugin
+        implementation utils
+        implementation lucene
         implementation "org.scala-lang:scala-library:$scalaVersion"
         implementation 'com.typesafe:config:1.4.0'
         implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
