@@ -104,12 +104,13 @@ configure(lucene, List.of(javaProjectConfig, {
 
 configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     dependencies {
-        runtime project(':core')
-        implementation project(':core')
-        runtime project(':utils')
-        implementation project(':utils')
-        runtime project(':lucene')
-        implementation project(':lucene')
+        // TODO: are the runtime and implementation all necessary?
+        runtime project(core.path)
+        implementation project(core.path)
+        runtime project(utils.path)
+        implementation project(utils.path)
+        runtime project(lucene.path)
+        implementation project(lucene.path)
         runtime "org.scala-lang:scala-library:${scalaVersion}"
         implementation "org.scala-lang:scala-library:${scalaVersion}"
         implementation "com.google.guava:guava:28.1-jre"
