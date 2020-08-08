@@ -83,6 +83,7 @@ def publishConfig(String description, boolean isScala = false) {
             publications {
                 maven(MavenPublication) {
                     artifactId = isScala ? "${project.name}_${scalaVersion}" : project.name
+                    from components.java
                     artifact tasks.sourceJar
                     artifact tasks.javadocJar
                     pom {
@@ -164,7 +165,7 @@ configure(clientElastic4s, List.of(
 configure(core, List.of(
         scalaProjectConfig,
         javaProjectConfig,
-        publishConfig("Exact and approximate similarity models used in Elastiknn", false),
+        publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
             dependencies {
                 implementation project(utils.path)

@@ -64,7 +64,7 @@ clean:
 	touch $@
 
 .mk/example-scala-sbt-client-usage: .mk/gradle-publish-local
-	cd examples/scala-sbt-client-usage && sbt run
+	cd examples/scala-sbt-client-usage && sbt ";clean;run"
 	touch $@
 
 .mk/example-demo-sbt-docker-stage: .mk/gradle-publish-local $(src_all)
