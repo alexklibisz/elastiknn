@@ -28,19 +28,6 @@ configurations {
     }
 }
 
-dependencies {
-    runtime project(':core')
-    implementation project(':core')
-    runtime project(':utils')
-    implementation project(':utils')
-    runtime project(':lucene')
-    implementation project(':lucene')
-    runtime "org.scala-lang:scala-library:${scalaVersion}"
-    implementation "org.scala-lang:scala-library:${scalaVersion}"
-    implementation "com.google.guava:guava:28.1-jre"
-    runtime "com.google.guava:guava:28.1-jre"
-}
-
 esplugin {
     name 'elastiknn'
     description 'Ingest processor and queries for exact and approximate nearest neighbors search'

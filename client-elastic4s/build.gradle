@@ -1,4 +1,1 @@
-dependencies {
-    compile project(':core')
-    compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
-}
+// Intentionally left empty.

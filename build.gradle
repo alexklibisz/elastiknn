@@ -5,6 +5,9 @@ allprojects {
         jcenter()
         mavenCentral()
         mavenLocal()
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
     }
 
     // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
@@ -24,6 +27,7 @@ Project core = subprojects.find { it.name == "core" }
 Project lucene = subprojects.find { it.name == "lucene" }
 Project utils = subprojects.find { it.name == "utils" }
 Project plugin = subprojects.find { it.name == "plugin" }
+Project testing = subprojects.find { it.name == "testing" }
 
 
 // Apply multiple configuration closures to a single project.
@@ -46,12 +50,100 @@ def javaProjectConfig = {
     }
 }
 
-configure(benchmarks, List.of(scalaProjectConfig))
-configure(clientElastic4s, List.of(scalaProjectConfig))
-configure(core, List.of(scalaProjectConfig, javaProjectConfig))
-configure(lucene, List.of(javaProjectConfig))
-configure(plugin, List.of(scalaProjectConfig, javaProjectConfig))
-configure(utils, List.of(javaProjectConfig))
+configure(benchmarks, List.of(scalaProjectConfig, {
+    dependencies {
+        implementation project(core.path)
+        implementation project(clientElastic4s.path)
+        runtime "org.scala-lang:scala-library:${scalaVersion}"
+        implementation "org.scala-lang:scala-library:${scalaVersion}"
+        implementation 'org.apache.commons:commons-math3:3.6.1'
+        implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC21-2"
+        implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC21-2"
+        implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.3.0"
+        implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
+        implementation "ch.qos.logback:logback-classic:1.2.3"
+        implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+        implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+        implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+        implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
+        implementation "com.nrinaudo:kantan.csv_${scalaVersion}:0.6.1"
+        implementation "com.nrinaudo:kantan.csv-generic_${scalaVersion}:0.6.1"
+        // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
+        // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+        implementation 'javax.xml:jaxb-api:2.1'
+    }
+}))
+
+configure(clientElastic4s, List.of(scalaProjectConfig, {
+    dependencies {
+        compile project(core.path)
+        compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
+    }
+}))
+
+configure(core, List.of(scalaProjectConfig, javaProjectConfig, {
+    dependencies {
+        implementation project(utils.path)
+        implementation project(lucene.path)
+        runtime "org.scala-lang:scala-library:${scalaVersion}"
+        implementation "org.scala-lang:scala-library:${scalaVersion}"
+        compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+        compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
+        compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+        implementation "com.google.guava:guava:28.1-jre"
+        runtime "com.google.guava:guava:28.1-jre"
+    }
+}))
+
+configure(lucene, List.of(javaProjectConfig, {
+    dependencies {
+        implementation project(utils.path)
+        implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+    }
+}))
+
+configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
+    dependencies {
+        runtime project(':core')
+        implementation project(':core')
+        runtime project(':utils')
+        implementation project(':utils')
+        runtime project(':lucene')
+        implementation project(':lucene')
+        runtime "org.scala-lang:scala-library:${scalaVersion}"
+        implementation "org.scala-lang:scala-library:${scalaVersion}"
+        implementation "com.google.guava:guava:28.1-jre"
+        runtime "com.google.guava:guava:28.1-jre"
+    }
+}))
+
+configure(utils, List.of(javaProjectConfig, {
+    description = "Foo bar"
+}))
+
+configure(testing, List.of(scalaProjectConfig, {
+    dependencies {
+        implementation project(core.path)
+        implementation project(clientElastic4s.path)
+        implementation project(plugin.path)
+        implementation project(utils.path)
+        implementation project(lucene.path)
+        implementation "org.scala-lang:scala-library:$scalaVersion"
+        implementation 'com.typesafe:config:1.4.0'
+        implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
+        implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
+        implementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
+        implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
+        implementation "ch.qos.logback:logback-classic:1.2.3"
+        implementation 'org.apache.commons:commons-math3:3.6.1'
+        implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+        implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+        implementation "org.elasticsearch:elasticsearch:${esVersion}"
+        implementation "com.storm-enroute:scalameter_${scalaVersion}:0.19"
+        implementation "org.scalanlp:breeze_${scalaVersion}:1.0"
+        testRuntime 'org.pegdown:pegdown:1.4.2'
+    }
+}))
 
 
 //def publishedProjects = ["client-elastic4s", "core", "lucene", "utils"]
