@@ -24,16 +24,17 @@ task javadocJar(type: Jar) {
     from javadoc.destinationDir
 }
 
+
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "${project.name}_${scalaVersion}"
+            artifactId = project.name
             from components.java
             artifact tasks.sourceJar
             artifact tasks.javadocJar
             pom {
                 name = "${rootProject.group}:${artifactId}"
-                description = 'Utilities used in the Elastinn Elasticsearch plugin'
+                description = 'Lucene queries and constructs used in the Elastinn Elasticsearch plugin'
                 url = 'https://github.com/alexklibisz/elastiknn'
                 licenses {
                     license {
@@ -57,7 +58,6 @@ publishing {
 
         }
     }
-
     repositories {
         maven {
             url sonatypeUrl
@@ -67,7 +67,6 @@ publishing {
             }
         }
     }
-
 }
 
 signing {

@@ -30,7 +30,7 @@ task javadocJar(type: Jar) {
 publishing {
     publications {
         maven(MavenPublication) {
-            artifactId = "${project.name}_${scalaVersion}"
+            artifactId = project.name
             from components.java
             artifact tasks.sourceJar
             artifact tasks.javadocJar
@@ -60,7 +60,6 @@ publishing {
 
         }
     }
-
     repositories {
         maven {
             url sonatypeUrl
@@ -70,7 +69,6 @@ publishing {
             }
         }
     }
-
 }
 
 signing {
