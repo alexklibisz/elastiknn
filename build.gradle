@@ -1,4 +1,10 @@
 buildscript {
+    ext {
+        scalaVersion = '2.12'
+        esVersion = '7.6.2'
+        luceneVersion = '8.4.0'
+        circeVersion= '0.13.0'
+    }
     repositories {
         jcenter()
         maven { url "https://plugins.gradle.org/m2/" }
@@ -11,7 +17,10 @@ buildscript {
 }
 
 allprojects {
-    version = rootProject.file('version').getText().strip()
+
+    setGroup('com.klibisz.elastiknn')
+    setVersion(rootProject.file('version').getText().strip())
+
     repositories {
         jcenter()
         mavenCentral()
@@ -31,8 +40,7 @@ Project utils = project(':utils')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
 
-
-// Apply multiple configuration closures to a single project.
+// Utility to apply multiple configuration closures to a single project.
 // TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
 def configure(Project p, List<Closure> configClosures) {
     configClosures.forEach { configure(p, it) }
@@ -100,7 +108,7 @@ def publishConfig(String description, boolean isScala = false) {
                     artifact tasks.sourceJar
                     artifact tasks.javadocJar
                     pom {
-                        name = "${rootProject.group}:${artifactId}"
+                        name = "${rootProject.group}:$artifactId"
                         description = theDescription
                         url = 'https://github.com/alexklibisz/elastiknn'
                         licenses {
