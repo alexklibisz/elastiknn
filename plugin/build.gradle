@@ -13,9 +13,9 @@ buildscript {
 version = "${version}_es${esVersion}"
 
 apply plugin: 'elasticsearch.esplugin'
-
-licenseFile = rootProject.file("LICENSE.txt")
-noticeFile = rootProject.file("NOTICE.txt")
+//
+//licenseFile = rootProject.file("LICENSE.txt")
+//noticeFile = rootProject.file("NOTICE.txt")
 
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
@@ -30,7 +30,7 @@ configurations {
 
 esplugin {
     name 'elastiknn'
-    description 'Ingest processor and queries for exact and approximate nearest neighbors search'
+    description 'Elasticsearch plugin for exact and approximate nearest neighbors search on sparse and dense vectors.'
     classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
