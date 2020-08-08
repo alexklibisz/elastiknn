@@ -1,13 +1,6 @@
 allprojects {
     version = rootProject.file('version').getText().strip()
 
-    apply plugin: 'java'
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
     repositories {
         jcenter()
         mavenCentral()
@@ -24,86 +17,112 @@ allprojects {
 
 }
 
-def scalaJavaProjects = ["client-elastic4s", "core", "plugin"]
-def publishedProjects = ["client-elastic4s", "core", "lucene", "utils"]
+// Make sub-projects easy to reference.
+Project benchmarks = subprojects.find { it.name == "benchmarks" }
+Project clientElastic4s = subprojects.find { it.name == "client-elastic4s" }
+Project core = subprojects.find { it.name == "core" }
+Project lucene = subprojects.find { it.name == "lucene" }
+Project utils = subprojects.find { it.name == "utils" }
+Project plugin = subprojects.find { it.name == "plugin" }
 
-configure(subprojects.findAll {scalaJavaProjects.contains(it.name) }) {
 
+// Apply multiple configuration closures to a single project.
+def configure(Project p, List<Closure> configClosures) {
+    configClosures.forEach { configure(p, it) }
+}
+
+def scalaProjectConfig = {
     apply plugin: 'scala'
-
     tasks.withType(ScalaCompile) {
         scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
     }
-
 }
 
-configure(subprojects.findAll { publishedProjects.contains(it.name) }) {
-
-    apply plugin: 'java-library'
-    apply plugin: 'maven-publish'
-    apply plugin: 'signing'
-
-    task sourceJar(type: Jar) {
-        classifier 'sources'
-        from sourceSets.main.allSource
-    }
-
-    task javadocJar(type: Jar) {
-        classifier 'javadoc'
-        from javadoc.destinationDir
-    }
-
-    publishing {
-        publications {
-            maven(MavenPublication) {
-                artifactId = "${project.name}_${scalaVersion}"
-                from components.java
-                artifact tasks.sourceJar
-                artifact tasks.javadocJar
-                pom {
-                    name = "${rootProject.group}:${artifactId}"
-                    description = project.getDescription()
-                    url = 'https://github.com/alexklibisz/elastiknn'
-                    licenses {
-                        license {
-                            name = 'GPLv3'
-                            url = 'https://choosealicense.com/licenses/gpl-3.0/'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id = 'alexklibisz'
-                            name = 'Alex Klibisz'
-                            email = 'aklibisz@gmail.com'
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
-                        developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
-                        url = 'https://github.com/alexklibisz/elastiknn'
-                    }
-                }
-
-            }
-        }
-        repositories {
-            maven {
-                url sonatypeUrl
-                credentials {
-                    username sonatypeUsername
-                    password sonatypePassword
-                }
-            }
-        }
-    }
-    signing {
-        sign publishing.publications
+def javaProjectConfig = {
+    apply plugin: 'java'
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 
-configure(subprojects.find { it.name == 'core' }) {
+configure(benchmarks, List.of(scalaProjectConfig))
+configure(clientElastic4s, List.of(scalaProjectConfig))
+configure(core, List.of(scalaProjectConfig, javaProjectConfig))
+configure(lucene, List.of(javaProjectConfig))
+configure(plugin, List.of(scalaProjectConfig, javaProjectConfig))
+configure(utils, List.of(javaProjectConfig))
 
-}
+
+//def publishedProjects = ["client-elastic4s", "core", "lucene", "utils"]
+//
+//configure(subprojects.findAll { publishedProjects.contains(it.name) }) {
+//
+//    apply plugin: 'java-library'
+//    apply plugin: 'maven-publish'
+//    apply plugin: 'signing'
+//
+//    task sourceJar(type: Jar) {
+//        classifier 'sources'
+//        from sourceSets.main.allSource
+//    }
+//
+//    task javadocJar(type: Jar) {
+//        classifier 'javadoc'
+//        from javadoc.destinationDir
+//    }
+//
+//    publishing {
+//        publications {
+//            maven(MavenPublication) {
+//                artifactId = "${project.name}_${scalaVersion}"
+//                from components.java
+//                artifact tasks.sourceJar
+//                artifact tasks.javadocJar
+//                pom {
+//                    name = "${rootProject.group}:${artifactId}"
+//                    description = project.getDescription()
+//                    url = 'https://github.com/alexklibisz/elastiknn'
+//                    licenses {
+//                        license {
+//                            name = 'GPLv3'
+//                            url = 'https://choosealicense.com/licenses/gpl-3.0/'
+//                        }
+//                    }
+//                    developers {
+//                        developer {
+//                            id = 'alexklibisz'
+//                            name = 'Alex Klibisz'
+//                            email = 'aklibisz@gmail.com'
+//                        }
+//                    }
+//                    scm {
+//                        connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
+//                        developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
+//                        url = 'https://github.com/alexklibisz/elastiknn'
+//                    }
+//                }
+//
+//            }
+//        }
+//        repositories {
+//            maven {
+//                url sonatypeUrl
+//                credentials {
+//                    username sonatypeUsername
+//                    password sonatypePassword
+//                }
+//            }
+//        }
+//    }
+//    signing {
+//        sign publishing.publications
+//    }
+//}
+//
+//configure(subprojects.find { it.name == 'core' }) {
+//
+//}
 
 
 //task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
