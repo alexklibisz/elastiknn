@@ -8,6 +8,8 @@ buildscript {
 
 plugins {
     id 'java-library'
+    id 'maven-publish'
+    id 'signing'
 }
 
 dependencies {
@@ -23,4 +25,54 @@ task sourceJar(type: Jar) {
 task javadocJar(type: Jar) {
     classifier 'javadoc'
     from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "${project.name}_${scalaVersion}"
+            from components.java
+            artifact tasks.sourceJar
+            artifact tasks.javadocJar
+            pom {
+                name = "${rootProject.group}:${artifactId}"
+                description = 'Lucene queries and constructs used in the Elastinn Elasticsearch plugin'
+                url = 'https://github.com/alexklibisz/elastiknn'
+                licenses {
+                    license {
+                        name = 'GPL 3.0'
+                        url = 'https://choosealicense.com/licenses/gpl-3.0/'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'alexklibisz'
+                        name = 'Alex Klibisz'
+                        email = 'aklibisz@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
+                    developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
+                    url = 'https://github.com/alexklibisz/elastiknn'
+                }
+            }
+
+        }
+    }
+
+    repositories {
+        maven {
+            url sonatypeUrl
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+
+}
+
+signing {
+    sign publishing.publications
 }
