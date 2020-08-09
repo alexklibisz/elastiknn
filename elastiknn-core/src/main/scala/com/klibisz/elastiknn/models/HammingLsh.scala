@@ -30,10 +30,13 @@ final class HammingLsh(override val mapping: Mapping.HammingLsh)
   private val sampledPositions: Array[Position] = {
     case class Pair(vecIndex: Int, hashIndex: Int)
     @tailrec
-    def sampleIndicesWithoutReplacement(n: Int, acc: Set[Int] = Set.empty, i: Int = rng.nextInt(dims)): Array[Int] =
-      if (acc.size == n.min(dims)) acc.toArray
-      else if (acc(i)) sampleIndicesWithoutReplacement(n, acc, rng.nextInt(dims))
-      else sampleIndicesWithoutReplacement(n, acc + i, rng.nextInt(dims))
+    def sampleIndicesWithoutReplacement(n: Int,
+                                        acc: Array[Int] = Array.empty,
+                                        seen: Set[Int] = Set.empty,
+                                        i: Int = rng.nextInt(dims)): Array[Int] =
+      if (seen.size == n.min(dims)) acc
+      else if (seen(i)) sampleIndicesWithoutReplacement(n, acc, seen, rng.nextInt(dims))
+      else sampleIndicesWithoutReplacement(n, acc :+ i, seen + i, rng.nextInt(dims))
 
     // If L * k <= dims, just sample vec indices once, guaranteeing no repetition.
     val pairs: Array[Pair] = if ((L * k) <= dims) {
