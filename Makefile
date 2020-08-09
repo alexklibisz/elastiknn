@@ -42,7 +42,7 @@ clean:
 	touch $@
 
 .mk/gradle-compile: $(src_all)
-	$(gradle) compileScala compileJava compileTestScala compileTestJava
+	$(gradle) --console=plain compileScala compileJava compileTestScala compileTestJava
 	touch $@
 
 .mk/gradle-publish-local: version $(src_all)
