@@ -70,7 +70,7 @@ jobs:
         if: ${{ always() }}
         run: |
           df -h
-          cd testing && docker-compose logs
+          cd elastiknn-testing && docker-compose logs
       - name: Print Results
         run: |
           python3 -m pip install csv2md

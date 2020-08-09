@@ -87,7 +87,7 @@ object KnnQueryBuilder {
         HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)
 
       case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), ESF.Hamming, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming, indexReader)
 
       case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
         HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)

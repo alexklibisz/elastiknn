@@ -13,6 +13,17 @@ public class JaccardLshModel implements HashingModel.SparseBool {
     private final int[] B;
     private final HashAndFreq[] empty;
 
+    /**
+     * Locality sensitive hashing model for Jaccard similarity.
+     * Uses the well-known minhash method described in, among others, Mining Massive Datasets chapter 3.
+     * Other resources used to implement this model:
+     * - The Spark MinHashLsh implementation: https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance
+     * - The tdebatty/java-LSH project on Github: https://github.com/tdebatty/java-LSH
+     * - The "Minhash for dummies" blog post: http://matthewcasperson.blogspot.com/2013/11/minhash-for-dummies.html
+     * @param L number of hash tables
+     * @param k number of hash functions concatenated to form a hash for each table
+     * @param rng random number generator used to instantiate model parameters
+     */
     JaccardLshModel(int L, int k, Random rng) {
         this.L = L;
         this.k = k;
