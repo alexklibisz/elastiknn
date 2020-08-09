@@ -33,6 +33,7 @@ allprojects {
 }
 
 // Make sub-projects easy to reference.
+Project api4s = project(':api4s')
 Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
 Project core = project(':core')
@@ -151,6 +152,16 @@ def publishConfig(String description, boolean isScala = false) {
     }
 }
 
+configure(api4s, List.of(
+        scalaProjectConfig,
+        {
+            api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
+            api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+            api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+            api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
+        }
+))
+
 configure(benchmarks, List.of(
         scalaProjectConfig,
         {
@@ -185,7 +196,7 @@ configure(clientElastic4s, List.of(
         publishConfig("Scala client for Elastiknn, based on elastic4s", true),
         {
             dependencies {
-                api core
+                api api4s
                 api 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
@@ -199,10 +210,7 @@ configure(core, List.of(
             dependencies {
                 implementation utils
                 implementation lucene
-                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
+                implementation api4s
                 implementation "com.google.guava:guava:28.1-jre"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }

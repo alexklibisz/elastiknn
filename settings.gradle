@@ -1,6 +1,15 @@
 rootProject.name = 'elastiknn'
 
-List<String> subprojectNames = List.of('benchmarks', 'client-elastic4s', 'core', 'lucene', 'plugin', 'testing', 'utils')
+List<String> subprojectNames = List.of(
+    'api4s',
+    'benchmarks',
+    'client-elastic4s',
+    'core',
+    'lucene',
+    'plugin',
+    'testing',
+    'utils'
+)
 
 subprojectNames.forEach {
     String fullName ="elastiknn-$it"
