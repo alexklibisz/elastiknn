@@ -32,6 +32,15 @@ allprojects {
     }
 }
 
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
 // Make sub-projects easy to reference.
 Project api4s = project(':api4s')
 Project benchmarks = project(':benchmarks')
@@ -49,7 +58,6 @@ def configure(Project p, List<Closure> configClosures) {
 }
 
 def scalaProjectConfig = {
-    apply plugin: 'java-library'
     apply plugin: 'scala'
     tasks.withType(ScalaCompile) {
         scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
@@ -73,13 +81,7 @@ def scalaProjectConfig = {
     }
 }
 
-def javaProjectConfig = {
-    apply plugin: 'java'
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-}
+def javaProjectConfig = {}
 
 def publishConfig(String description, boolean isScala = false) {
     String theDescription = description
@@ -154,11 +156,14 @@ def publishConfig(String description, boolean isScala = false) {
 
 configure(api4s, List.of(
         scalaProjectConfig,
+        publishConfig("Scala case classes and circe codecs for the Elastiknn JSON API", true),
         {
-            api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
-            api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-            api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
-            api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
+            dependencies {
+                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
+            }
         }
 ))
 
@@ -208,9 +213,9 @@ configure(core, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
             dependencies {
+                implementation api4s
                 implementation utils
                 implementation lucene
-                implementation api4s
                 implementation "com.google.guava:guava:28.1-jre"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
@@ -253,11 +258,12 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     }
 
     dependencies {
-        // TODO: for some reason it can't resolve scala classes without a runtime _and_ implementation dependency on core?
+        // TODO: it can't resolve scala classes without a runtime _and_ implementation dependency on core?
         runtime core
         implementation core
         implementation utils
         implementation lucene
+        implementation api4s
         implementation "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
