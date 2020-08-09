@@ -15,7 +15,9 @@ object Cache {
       })
 
   private val angular = cache((m: Mapping.AngularLsh) => new AngularLshModel(m.dims, m.L, m.k, new Random(0)))
+  private val jaccard = cache((m: Mapping.JaccardLsh) => new JaccardLshModel(m.L, m.k, new Random(0)))
 
   def apply(m: Mapping.AngularLsh): AngularLshModel = angular.get(m)
+  def apply(m: Mapping.JaccardLsh): JaccardLshModel = jaccard.get(m)
 
 }

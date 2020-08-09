@@ -84,7 +84,7 @@ object KnnQueryBuilder {
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, indexReader)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Jaccard(m), ESF.Jaccard, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)
 
       case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), ESF.Hamming, indexReader)

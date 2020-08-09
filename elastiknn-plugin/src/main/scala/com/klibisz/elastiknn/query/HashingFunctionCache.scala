@@ -17,9 +17,6 @@ sealed trait HashingFunctionCache[M <: Mapping, V <: Vec, S <: StoredVec, F <: H
 }
 
 object HashingFunctionCache {
-  implicit object Jaccard extends HashingFunctionCache[Mapping.JaccardLsh, Vec.SparseBool, StoredVec.SparseBool, JaccardLsh] {
-    def load(m: Mapping.JaccardLsh): JaccardLsh = new JaccardLsh(m)
-  }
   implicit object Hamming extends HashingFunctionCache[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool, HammingLsh] {
     def load(m: Mapping.HammingLsh): HammingLsh = new HammingLsh(m)
   }

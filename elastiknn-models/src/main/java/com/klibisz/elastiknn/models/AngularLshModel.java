@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.models;
 
-import com.google.common.cache.LoadingCache;
 import com.klibisz.elastiknn.storage.BitBuffer;
 import com.klibisz.elastiknn.storage.UnsafeSerialization;
 
@@ -12,6 +11,14 @@ public class AngularLshModel implements HashingModel.DenseFloat {
     private final int k;
     private final float[][] planes;
 
+    /**
+     * Locality sensitive hashing model for Angular similarity.
+     * Uses the random hyperplans method described in Mining Massive Datasets Chapter 3.
+     * @param dims length of the vectors hashed by this model
+     * @param L number of hash tables
+     * @param k number of hash functions concatenated to form a hash for each table
+     * @param rng random number generator used to instantiate model parameters
+     */
     public AngularLshModel(int dims, int L, int k, Random rng) {
         this.L = L;
         this.k = k;

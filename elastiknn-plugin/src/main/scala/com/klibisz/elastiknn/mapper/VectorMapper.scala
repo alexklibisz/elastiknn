@@ -34,9 +34,10 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
-            case m: Mapping.JaccardLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Jaccard(m)(vec)))
-            case m: Mapping.HammingLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Hamming(m)(vec)))
-            case _                        => Failure(incompatible(mapping, vec))
+            case m: Mapping.JaccardLsh =>
+              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+            case m: Mapping.HammingLsh => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Hamming(m)(vec)))
+            case _                     => Failure(incompatible(mapping, vec))
           }
         }
     }
