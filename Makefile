@@ -19,7 +19,7 @@ ecr_benchmarks_prefix = $(ecr_prefix)/elastiknn-benchmarks-cluster
 
 clean:
 	./gradlew clean
-	cd testing && $(dc) down
+	cd elastiknn-testing && $(dc) down
 	rm -rf .mk/*
 
 .mk/python3-installed:
@@ -57,7 +57,7 @@ clean:
 	sudo sysctl -w vm.max_map_count=262144
 
 .mk/run-cluster: .mk/python3-installed .mk/docker-compose-installed .mk/gradle-publish-local .mk/vm-max-map-count
-	cd testing \
+	cd elastiknn-testing \
 	&& $(dc) down \
 	&& $(dc) up --detach --build --force-recreate --scale elasticsearch_data=1 \
 	&& python3 cluster_ready.py
@@ -78,11 +78,11 @@ compile: compile/gradle
 run/cluster: .mk/run-cluster
 
 run/gradle:
-	cd testing && $(dc) down
+	cd elastiknn-testing && $(dc) down
 	$(gradle) :plugin:run $(shell cat .esopts | xargs)
 
 run/debug:
-	cd testing && $(dc) down
+	cd elastiknn-testing && $(dc) down
 	$(gradle) :plugin:run $(shell cat .esopts | xargs) --debug-jvm
 
 run/kibana:
