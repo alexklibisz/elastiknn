@@ -16,4 +16,3 @@ subprojectNames.forEach {
     include fullName
     project(":$fullName").setName(it)
 }
-
