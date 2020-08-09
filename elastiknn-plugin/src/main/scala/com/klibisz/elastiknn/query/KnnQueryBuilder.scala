@@ -9,6 +9,7 @@ import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import io.circe.Json
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
@@ -32,7 +33,7 @@ object KnnQueryBuilder {
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       val map = parser.map()
-      val json: Json = ??? // javaMapEncoder(map)
+      val json: Json = javaMapEncoder(map)
       val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
       new KnnQueryBuilder(query)
     }
@@ -147,7 +148,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             .sourceAsMap()
             .get(query.field.split('.').last) // For nested fields e.g. "foo.bar.vec" -> "vec"
           val mappingJsonMap = mappingMap.asInstanceOf[JavaJsonMap]
-          val mappingJson: Json = ??? // javaMapEncoder(mappingJsonMap)
+          val mappingJson: Json = javaMapEncoder(mappingJsonMap)
           ElasticsearchCodec.decodeJsonGet[Mapping](mappingJson)
         }
       )
@@ -176,7 +177,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
           override def onResponse(response: GetResponse): Unit =
             try {
               val srcMap = response.getSourceAsMap.get(ixv.field).asInstanceOf[JavaJsonMap]
-              val srcJson: Json = ??? // javaMapEncoder(srcMap)
+              val srcJson: Json = javaMapEncoder(srcMap)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.withVec(vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)
