@@ -12,8 +12,7 @@ List<String> subprojectNames = List.of(
 )
 
 subprojectNames.forEach {
-    String fullName ="elastiknn-$it"
+    String fullName ="${rootProject.name}-$it"
     include fullName
     project(":$fullName").setName(it)
 }
-
