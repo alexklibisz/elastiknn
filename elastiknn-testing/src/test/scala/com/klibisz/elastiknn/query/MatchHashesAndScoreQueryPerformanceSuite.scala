@@ -41,7 +41,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       for {
         v <- corpusVecs
         d = new Document
-        fields = HashingQuery.index(field, fieldType, v, lshFunc)
+        fields = HashingQuery.index(field, fieldType, v, lshFunc(v))
         _ = fields.foreach(d.add)
         _ = w.addDocument(d)
       } yield ()

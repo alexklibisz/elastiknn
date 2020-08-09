@@ -7,7 +7,7 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.SparseIndexedSimilarityFunction
+import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import io.circe.Json
@@ -51,7 +51,7 @@ object KnnQueryBuilder {
   private val mappingCache: Cache[(String, String), Mapping] =
     CacheBuilder.newBuilder.expireAfterWrite(Duration.ofMinutes(1)).build()
 
-  def router(query: NearestNeighborsQuery, mapping: Mapping, indexReader: IndexReader): Query = {
+  def apply(query: NearestNeighborsQuery, mapping: Mapping, indexReader: IndexReader): Query = {
     import NearestNeighborsQuery._
     import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF}
 
@@ -90,7 +90,7 @@ object KnnQueryBuilder {
         HashingQuery(f, v, candidates, HashingFunctionCache.Hamming(m), ESF.Hamming, indexReader)
 
       case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Angular(m), ESF.Angular, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
 
       case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
         HashingQuery(f, v, candidates, HashingFunctionCache.L2(m).hashWithProbes(v, probes), ESF.L2, indexReader)
@@ -128,7 +128,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     case _                => this
   }
 
-  override def doToQuery(context: QueryShardContext): Query = KnnQueryBuilder.router(query, getMapping(context), context.getIndexReader)
+  override def doToQuery(context: QueryShardContext): Query = KnnQueryBuilder(query, getMapping(context), context.getIndexReader)
 
   private def getMapping(context: QueryShardContext): Mapping = {
     import KnnQueryBuilder.mappingCache

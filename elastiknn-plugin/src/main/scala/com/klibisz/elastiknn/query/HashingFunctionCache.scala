@@ -23,9 +23,6 @@ object HashingFunctionCache {
   implicit object Hamming extends HashingFunctionCache[Mapping.HammingLsh, Vec.SparseBool, StoredVec.SparseBool, HammingLsh] {
     def load(m: Mapping.HammingLsh): HammingLsh = new HammingLsh(m)
   }
-  implicit object Angular extends HashingFunctionCache[Mapping.AngularLsh, Vec.DenseFloat, StoredVec.DenseFloat, AngularLsh] {
-    def load(m: Mapping.AngularLsh): AngularLsh = new AngularLsh(m)
-  }
   implicit object L2 extends HashingFunctionCache[Mapping.L2Lsh, Vec.DenseFloat, StoredVec.DenseFloat, L2Lsh] {
     def load(m: Mapping.L2Lsh): L2Lsh = new L2Lsh(m)
   }

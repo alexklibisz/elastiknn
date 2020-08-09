@@ -104,7 +104,7 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
       val (_, queryResults) = indexAndSearch() { w =>
         corpusVecs.foreach { v =>
           val d = new Document()
-          HashingQuery.index("vec", ft, v, lsh).foreach(d.add)
+          HashingQuery.index("vec", ft, v, lsh(v)).foreach(d.add)
           w.addDocument(d)
         }
       } {

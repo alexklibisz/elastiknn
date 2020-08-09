@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.models;
 
+import com.google.common.cache.LoadingCache;
 import com.klibisz.elastiknn.storage.BitBuffer;
 import com.klibisz.elastiknn.storage.UnsafeSerialization;
 
@@ -7,17 +8,13 @@ import java.util.Random;
 
 public class AngularLshModel implements HashingModel.DenseFloat {
 
-    final int dims;
-    final int L;
-    final int k;
-    final float[][] planes;
+    private final int L;
+    private final int k;
+    private final float[][] planes;
 
-    public AngularLshModel(int dims, int L, int k) {
-        this.dims = dims;
+    public AngularLshModel(int dims, int L, int k, Random rng) {
         this.L = L;
         this.k = k;
-
-        Random rng = new Random(0);
         this.planes = new float[L * k][dims];
         for (int i = 0; i < this.planes.length; i++) {
             for (int j = 0; j < dims; j++) {
@@ -40,4 +37,5 @@ public class AngularLshModel implements HashingModel.DenseFloat {
         }
         return hashes;
     }
+
 }
