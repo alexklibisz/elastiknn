@@ -1,47 +1,307 @@
-allprojects {
-    version = rootProject.file('version').getText().strip()
-
-    apply plugin: 'scala'
-    apply plugin: 'java'
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+buildscript {
+    ext {
+        esVersion = '7.6.2'
+        luceneVersion = '8.4.0'
+        circeVersion= '0.13.0'
+        scalaShortVersion = '2.12'
+        scalaFullVersion = '2.12.10'
     }
+    repositories {
+        jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.26'
+        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+    }
+}
+
+allprojects {
+
+    setGroup('com.klibisz.elastiknn')
+    setVersion(rootProject.file('version').getText().strip())
 
     repositories {
         jcenter()
         mavenCentral()
         mavenLocal()
-    }
-
-    // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
-    ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
-
-    // Sonatype settings.
-    ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
-    ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : ""
-    ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : ""
-
-    tasks.withType(ScalaCompile) {
-        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
     }
 }
 
-task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
-    Set docProjects = ["core", "client-elastic4s"]
-    destinationDir = file("$buildDir/docs/scaladoc")
-    title = "$project.name $version"
-    scalaDocOptions = new ScalaDocOptions()
-    subprojects.each { proj ->
-        if (docProjects.contains(proj.name)) {
-            proj.tasks.withType(ScalaDoc).each {
-                source += proj.sourceSets.main.allJava
-                source += proj.sourceSets.main.allScala
-                classpath += proj.sourceSets.main.compileClasspath
-                excludes += scaladoc.excludes
-                includes += scaladoc.includes
+// Make sub-projects easy to reference.
+Project benchmarks = project(':benchmarks')
+Project clientElastic4s = project(':client-elastic4s')
+Project core = project(':core')
+Project lucene = project(':lucene')
+Project utils = project(':utils')
+Project plugin = project(':plugin')
+Project testing = project(':testing')
+
+// Utility to apply multiple configuration closures to a single project.
+// TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
+def configure(Project p, List<Closure> configClosures) {
+    configClosures.forEach { configure(p, it) }
+}
+
+def scalaProjectConfig = {
+    apply plugin: 'java-library'
+    apply plugin: 'scala'
+    tasks.withType(ScalaCompile) {
+        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
+    }
+    task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
+        Set docProjects = subprojects.findAll { it.plugins.hasPlugin('scala') }
+        destinationDir = file("${rootProject.buildDir}/docs/scaladoc")
+        title = "$project.name $version"
+        scalaDocOptions = new ScalaDocOptions()
+        subprojects.each { proj ->
+            if (docProjects.contains(proj.name)) {
+                proj.tasks.withType(ScalaDoc).each {
+                    source += proj.sourceSets.main.allJava
+                    source += proj.sourceSets.main.allScala
+                    classpath += proj.sourceSets.main.compileClasspath
+                    excludes += scaladoc.excludes
+                    includes += scaladoc.includes
+                }
             }
         }
     }
 }
+
+def javaProjectConfig = {
+    apply plugin: 'java'
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+def publishConfig(String description, boolean isScala = false) {
+    String theDescription = description
+    return {
+
+        // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
+        ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
+
+        // Sonatype settings.
+        ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
+        ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : "wrong"
+        ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : "wrong"
+
+        apply plugin: 'maven-publish'
+        apply plugin: 'signing'
+        task sourceJar(type: Jar) {
+            classifier 'sources'
+            from sourceSets.main.allSource
+        }
+        task javadocJar(type: Jar) {
+            classifier 'javadoc'
+            from javadoc.destinationDir
+        }
+        publishing {
+            publications {
+                maven(MavenPublication) {
+                    artifactId = isScala ? "${project.name}_${scalaShortVersion}" : project.name
+                    from components.java
+                    artifact tasks.sourceJar
+                    artifact tasks.javadocJar
+                    pom {
+                        name = "${rootProject.group}:$artifactId"
+                        description = theDescription
+                        url = 'https://github.com/alexklibisz/elastiknn'
+                        licenses {
+                            license {
+                                name = 'GPLv3'
+                                url = 'https://choosealicense.com/licenses/gpl-3.0/'
+                            }
+                        }
+                        developers {
+                            developer {
+                                id = 'alexklibisz'
+                                name = 'Alex Klibisz'
+                                email = 'aklibisz@gmail.com'
+                            }
+                        }
+                        scm {
+                            connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
+                            developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
+                            url = 'https://github.com/alexklibisz/elastiknn'
+                        }
+                    }
+
+                }
+            }
+            repositories {
+                maven {
+                    url sonatypeUrl
+                    credentials {
+                        username sonatypeUsername
+                        password sonatypePassword
+                    }
+                }
+            }
+        }
+        signing {
+            sign publishing.publications
+        }
+    }
+}
+
+configure(benchmarks, List.of(
+        scalaProjectConfig,
+        {
+            apply plugin: 'application'
+            apply plugin: 'com.github.johnrengelman.shadow'
+
+            application {
+                mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
+            }
+
+            dependencies {
+                implementation core
+                implementation clientElastic4s
+                implementation 'org.apache.commons:commons-math3:3.6.1'
+                implementation "dev.zio:zio_${scalaShortVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-streams_${scalaShortVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.3.0"
+                implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
+                implementation "ch.qos.logback:logback-classic:1.2.3"
+                implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
+                implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
+                implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
+                // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
+                // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
+                implementation 'javax.xml:jaxb-api:2.1'
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+            }
+        }))
+
+configure(clientElastic4s, List.of(
+        scalaProjectConfig,
+        publishConfig("Scala client for Elastiknn, based on elastic4s", true),
+        {
+            dependencies {
+                api core
+                api 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+            }
+        }))
+
+configure(core, List.of(
+        scalaProjectConfig,
+        javaProjectConfig,
+        publishConfig("Exact and approximate similarity models used in Elastiknn", true),
+        {
+            dependencies {
+                implementation utils
+                implementation lucene
+                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
+                implementation "com.google.guava:guava:28.1-jre"
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+            }
+        }))
+
+configure(lucene, List.of(
+        javaProjectConfig,
+        publishConfig("Custom Lucene queries used in Elastiknn"),
+        {
+            dependencies {
+                implementation utils
+                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+            }
+        }))
+
+configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
+
+    version = "${version}_es${esVersion}"
+
+    apply plugin: 'elasticsearch.esplugin'
+
+    dependencyLicenses.enabled = false
+    thirdPartyAudit.enabled = false
+    licenseHeaders.enabled = false
+    testingConventions.enabled = false
+
+    configurations {
+        all {
+            // Needed to resolve scala minor version conflicts.
+            resolutionStrategy.preferProjectModules()
+        }
+    }
+
+    esplugin {
+        name 'elastiknn'
+        description 'Elasticsearch plugin for exact and approximate nearest neighbors search on sparse and dense vectors.'
+        classname 'com.klibisz.elastiknn.ElastiKnnPlugin'
+        licenseFile rootProject.file('LICENSE.txt')
+        noticeFile rootProject.file('NOTICE.txt')
+    }
+
+    dependencies {
+        // TODO: for some reason it can't resolve scala classes without a runtime _and_ implementation dependency on core?
+        runtime core
+        implementation core
+        implementation utils
+        implementation lucene
+        implementation "com.google.guava:guava:28.1-jre"
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+    }
+}))
+
+configure(utils, List.of(
+        javaProjectConfig,
+        publishConfig("Shared utilities used in Elastiknn"),
+        {
+            apply plugin: 'com.github.maiflai.scalatest'
+            test {
+                outputs.upToDateWhen { false }
+                testLogging {
+                    showStandardStreams = true
+                    exceptionFormat = 'full'
+                    events "standardOut", "started", "passed", "skipped", "failed"
+                }
+                maxParallelForks = 1
+            }
+        }))
+
+configure(testing, List.of(scalaProjectConfig, {
+
+    apply plugin: 'com.github.maiflai.scalatest'
+
+    test {
+        outputs.upToDateWhen { false }
+        testLogging {
+            showStandardStreams = true
+            exceptionFormat = 'full'
+            events "standardOut", "started", "passed", "skipped", "failed"
+        }
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        implementation core
+        implementation clientElastic4s
+        implementation plugin
+        implementation utils
+        implementation lucene
+        implementation 'com.typesafe:config:1.4.0'
+        implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
+        implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
+        implementation "ch.qos.logback:logback-classic:1.2.3"
+        implementation 'org.apache.commons:commons-math3:3.6.1'
+        implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+        implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+        implementation "org.elasticsearch:elasticsearch:${esVersion}"
+        implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
+        implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
+        testRuntime 'org.pegdown:pegdown:1.4.2'
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+    }
+}))

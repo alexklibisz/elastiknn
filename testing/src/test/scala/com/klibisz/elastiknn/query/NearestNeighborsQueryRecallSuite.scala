@@ -191,11 +191,11 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
           _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
           _ <- eknn.execute(createIndex(queriesIndex).shards(shards).replicas(0))
           _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
-          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(400)) { batch =>
+          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(100)) { batch =>
             val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
             eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
           }
-          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(400)) { batch =>
+          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(100)) { batch =>
             val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
             eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
           }
