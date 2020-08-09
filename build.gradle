@@ -1,9 +1,10 @@
 buildscript {
     ext {
-        scalaVersion = '2.12'
         esVersion = '7.6.2'
         luceneVersion = '8.4.0'
         circeVersion= '0.13.0'
+        scalaShortVersion = '2.12'
+        scalaFullVersion = '2.12.10'
     }
     repositories {
         jcenter()
@@ -47,6 +48,7 @@ def configure(Project p, List<Closure> configClosures) {
 }
 
 def scalaProjectConfig = {
+    apply plugin: 'java-library'
     apply plugin: 'scala'
     tasks.withType(ScalaCompile) {
         scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings"))
@@ -103,7 +105,7 @@ def publishConfig(String description, boolean isScala = false) {
         publishing {
             publications {
                 maven(MavenPublication) {
-                    artifactId = isScala ? "${project.name}_${scalaVersion}" : project.name
+                    artifactId = isScala ? "${project.name}_${scalaShortVersion}" : project.name
                     from components.java
                     artifact tasks.sourceJar
                     artifact tasks.javadocJar
@@ -162,20 +164,19 @@ configure(benchmarks, List.of(
             dependencies {
                 implementation core
                 implementation clientElastic4s
-                runtime "org.scala-lang:scala-library:${scalaVersion}"
-                implementation "org.scala-lang:scala-library:${scalaVersion}"
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
                 implementation 'org.apache.commons:commons-math3:3.6.1'
-                implementation "dev.zio:zio_${scalaVersion}:1.0.0-RC21-2"
-                implementation "dev.zio:zio-streams_${scalaVersion}:1.0.0-RC21-2"
-                implementation "dev.zio:zio-logging-slf4j_${scalaVersion}:0.3.0"
-                implementation "com.github.scopt:scopt_${scalaVersion}:4.0.0-RC2"
+                implementation "dev.zio:zio_${scalaShortVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-streams_${scalaShortVersion}:1.0.0-RC21-2"
+                implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.3.0"
+                implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"
-                implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-                implementation "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
-                implementation "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+                implementation "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+                implementation "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+                implementation "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
-                implementation "com.nrinaudo:kantan.csv_${scalaVersion}:0.6.1"
-                implementation "com.nrinaudo:kantan.csv-generic_${scalaVersion}:0.6.1"
+                implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
+                implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
                 implementation 'javax.xml:jaxb-api:2.1'
@@ -187,8 +188,9 @@ configure(clientElastic4s, List.of(
         publishConfig("Scala client for Elastiknn, based on elastic4s", true),
         {
             dependencies {
-                compile core
-                compile 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
+                implementation core
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+                implementation 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
             }
         }))
 
@@ -200,13 +202,12 @@ configure(core, List.of(
             dependencies {
                 implementation utils
                 implementation lucene
-                runtime "org.scala-lang:scala-library:${scalaVersion}"
-                implementation "org.scala-lang:scala-library:${scalaVersion}"
-                compile "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-                compile "io.circe:circe-parser_${scalaVersion}:${circeVersion}"
-                compile "io.circe:circe-generic-extras_${scalaVersion}:${circeVersion}"
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+                api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
                 implementation "com.google.guava:guava:28.1-jre"
-                runtime "com.google.guava:guava:28.1-jre"
             }
         }))
 
@@ -246,18 +247,13 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
     }
 
     dependencies {
-        // TODO: are the runtime and implementation all necessary?
-        runtime core
         implementation core
-        runtime utils
         implementation utils
-        runtime lucene
         implementation lucene
-        runtime "org.scala-lang:scala-library:${scalaVersion}"
-        implementation "org.scala-lang:scala-library:${scalaVersion}"
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
         implementation "com.google.guava:guava:28.1-jre"
-        runtime "com.google.guava:guava:28.1-jre"
     }
+
 }))
 
 configure(utils, List.of(
@@ -296,19 +292,19 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation plugin
         implementation utils
         implementation lucene
-        implementation "org.scala-lang:scala-library:$scalaVersion"
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
         implementation 'com.typesafe:config:1.4.0'
-        implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaVersion}:7.6.0"
-        implementation "io.circe:circe-generic_${scalaVersion}:${circeVersion}"
-        implementation "org.scalatest:scalatest_${scalaVersion}:3.0.8"
-        implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.2"
+        implementation "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.6.0"
+        implementation "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
+        implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
+        implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
         implementation "ch.qos.logback:logback-classic:1.2.3"
         implementation 'org.apache.commons:commons-math3:3.6.1'
         implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
         implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
         implementation "org.elasticsearch:elasticsearch:${esVersion}"
-        implementation "com.storm-enroute:scalameter_${scalaVersion}:0.19"
-        implementation "org.scalanlp:breeze_${scalaVersion}:1.0"
+        implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
+        implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
         testRuntime 'org.pegdown:pegdown:1.4.2'
     }
 }))
