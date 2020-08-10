@@ -34,7 +34,12 @@ object KnnQueryBuilder {
       val map = parser.map()
       val json: Json = javaMapEncoder(map)
       val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
-      new KnnQueryBuilder(query)
+      // Account for sparse bool vecs which need to be sorted.
+      val sortedVec = query.vec match {
+        case v: Vec.SparseBool if !v.isSorted => v.sorted()
+        case _                                => query.vec
+      }
+      new KnnQueryBuilder(query.withVec(sortedVec))
     }
   }
 
@@ -61,7 +66,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
   override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.vec match {
-    case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
+    case ixv: Vec.Indexed => rewriteGetVector(context, ixv) // If it's an indexed vector, fetch it.
     case _                => this
   }
 
