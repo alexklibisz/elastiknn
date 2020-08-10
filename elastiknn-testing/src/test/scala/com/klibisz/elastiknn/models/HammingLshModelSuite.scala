@@ -13,10 +13,6 @@ class HammingLshModelSuite extends FunSuite with Matchers {
     val model = new HammingLshModel(vec.dims, 10, 3, new Random(0))
     val hashes = model.hash(vec.trueIndices, vec.totalIndices)
     hashes should have length 10
-
-    val m2 = new HammingLsh(Mapping.HammingLsh(vec.dims, 10, 3))
-    val h2 = m2(vec)
-    h2 should have length 10
   }
 
   test("correct number of hashes when L * k >= dims") {

@@ -87,14 +87,16 @@ public class HammingLshModel implements HashingModel.SparseBool{
             hashBuffers[ixL] = new BitBuffer.IntBuffer(UnsafeSerialization.writeInt(ixL));
         }
         int ixsp = 0;
-        for (int ixti = 0; ixti < trueIndices.length && ixsp < sampledPositions.length; ixti++) {
+        int ixti = 0;
+        while (ixti < trueIndices.length && ixsp < sampledPositions.length) {
             int trueIndex = trueIndices[ixti];
-            SampledPosition sp = sampledPositions[ixsp];
-            if (sp.vecIndex < trueIndex) {
-                for (int hi : sp.hashIndexes) hashBuffers[hi].putZero();
+            SampledPosition spos = sampledPositions[ixsp];
+            if (spos.vecIndex > trueIndex) ixti += 1;
+            else if (spos.vecIndex < trueIndex) {
+                for (int hi : spos.hashIndexes) hashBuffers[hi].putZero();
                 ixsp += 1;
-            } else if (sp.vecIndex == trueIndex) {
-                for (int hi : sp.hashIndexes) hashBuffers[hi].putOne();
+            } else {
+                for (int hi : spos.hashIndexes) hashBuffers[hi].putOne();
                 ixsp += 1;
             }
         }
