@@ -1,3 +1,5 @@
+- Support sparse bool query vectors with unsorted true indices.
+---
 - Added new submodules which can be used without Elasticsearch:
   - `com.klibisz.elastiknn:models` contains exact and approximate similarity models, all in Java with minimal dependencies.
   - `com.klibisz.elastiknn:lucene` contains the custom Lucene queries and some Lucene-related utilities used by Elastiknn.
