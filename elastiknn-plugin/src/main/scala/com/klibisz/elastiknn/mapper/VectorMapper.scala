@@ -4,8 +4,9 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactQuery, HashingFunctionCache, HashingQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
+import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
@@ -33,9 +34,11 @@ object VectorMapper {
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
             case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
-            case m: Mapping.JaccardLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Jaccard(m)))
-            case m: Mapping.HammingLsh    => Try(HashingQuery.index(field, fieldType, sorted, HashingFunctionCache.Hamming(m)))
-            case _                        => Failure(incompatible(mapping, vec))
+            case m: Mapping.JaccardLsh =>
+              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+            case m: Mapping.HammingLsh =>
+              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+            case _ => Failure(incompatible(mapping, vec))
           }
         }
     }
@@ -48,9 +51,9 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Angular(m)))
-            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)))
-            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Permutation(m)))
+            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
           }
     }

@@ -1,26 +1,27 @@
-package com.klibisz.elastiknn.utils
+package com.klibisz.elastiknn.search
 
+import org.apache.lucene.search.KthGreatest
 import org.scalatest._
 
 import scala.util.Random
 
-class ArrayUtilsSuite extends FunSuite with Matchers {
+class KthGreatestSuite extends FunSuite with Matchers {
 
   test("kthGreatest example") {
     val counts: Array[Short] = Array(2, 2, 8, 7, 4, 4)
-    val res = ArrayUtils.kthGreatest(counts, 3)
+    val res = KthGreatest.kthGreatest(counts, 3)
     res shouldBe 4
   }
 
   test("kthGreatest bad args") {
     an[IllegalArgumentException] shouldBe thrownBy {
-      ArrayUtils.kthGreatest(Array.empty, 3)
+      KthGreatest.kthGreatest(Array.empty, 3)
     }
     an[IllegalArgumentException] shouldBe thrownBy {
-      ArrayUtils.kthGreatest(Array(1, 2, 3), -1)
+      KthGreatest.kthGreatest(Array(1, 2, 3), -1)
     }
     an[IllegalArgumentException] shouldBe thrownBy {
-      ArrayUtils.kthGreatest(Array(1, 2, 3), 4)
+      KthGreatest.kthGreatest(Array(1, 2, 3), 4)
     }
   }
 
@@ -31,7 +32,7 @@ class ArrayUtilsSuite extends FunSuite with Matchers {
     for (_ <- 0 until 999) {
       val counts = (0 until (rng.nextInt(10000) + 1)).map(_ => rng.nextInt(Short.MaxValue).toShort).toArray
       val k = rng.nextInt(counts.length)
-      val res = ArrayUtils.kthGreatest(counts, k)
+      val res = KthGreatest.kthGreatest(counts, k)
       res shouldBe counts.sorted.reverse(k)
     }
   }

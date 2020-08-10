@@ -45,9 +45,8 @@ subprojects {
 Project api4s = project(':api4s')
 Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
-Project core = project(':core')
 Project lucene = project(':lucene')
-Project utils = project(':utils')
+Project models = project(':models')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
 
@@ -80,8 +79,6 @@ def scalaProjectConfig = {
         }
     }
 }
-
-def javaProjectConfig = {}
 
 def publishConfig(String description, boolean isScala = false) {
     String theDescription = description
@@ -178,7 +175,7 @@ configure(benchmarks, List.of(
             }
 
             dependencies {
-                implementation core
+                implementation models
                 implementation clientElastic4s
                 implementation 'org.apache.commons:commons-math3:3.6.1'
                 implementation "dev.zio:zio_${scalaShortVersion}:1.0.0-RC21-2"
@@ -207,31 +204,25 @@ configure(clientElastic4s, List.of(
             }
         }))
 
-configure(core, List.of(
-        scalaProjectConfig,
-        javaProjectConfig,
+configure(models, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
             dependencies {
                 implementation api4s
-                implementation utils
                 implementation lucene
                 implementation "com.google.guava:guava:28.1-jre"
-                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
 
 configure(lucene, List.of(
-        javaProjectConfig,
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
-                implementation utils
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
             }
         }))
 
-configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
+configure(plugin, List.of(scalaProjectConfig, {
 
     version = "${version}_es${esVersion}"
 
@@ -259,31 +250,14 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
 
     dependencies {
         // TODO: it can't resolve scala classes without a runtime _and_ implementation dependency on core?
-        runtime core
-        implementation core
-        implementation utils
+        runtime models
+        implementation models
         implementation lucene
         implementation api4s
         implementation "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
-
-configure(utils, List.of(
-        javaProjectConfig,
-        publishConfig("Shared utilities used in Elastiknn"),
-        {
-            apply plugin: 'com.github.maiflai.scalatest'
-            test {
-                outputs.upToDateWhen { false }
-                testLogging {
-                    showStandardStreams = true
-                    exceptionFormat = 'full'
-                    events "standardOut", "started", "passed", "skipped", "failed"
-                }
-                maxParallelForks = 1
-            }
-        }))
 
 configure(testing, List.of(scalaProjectConfig, {
 
@@ -300,10 +274,9 @@ configure(testing, List.of(scalaProjectConfig, {
     }
 
     dependencies {
-        implementation core
+        implementation models
         implementation clientElastic4s
         implementation plugin
-        implementation utils
         implementation lucene
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
