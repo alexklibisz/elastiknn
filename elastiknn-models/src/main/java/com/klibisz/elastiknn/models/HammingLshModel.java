@@ -16,37 +16,18 @@ public class HammingLshModel implements HashingModel.SparseBool{
     // you'll append a 1 to hashes 1, 3, and 12. Otherwise you'll append a 0 to those hashes.
     private final SampledPosition[] sampledPositions;
 
-    private static class SampledPosition {
-        final int vecIndex;
-        final int[] hashIndexes;
-        SampledPosition(int vecIndex, int[] hashIndexes) {
-            this.vecIndex = vecIndex;
-            this.hashIndexes = hashIndexes;
-        }
-    }
-
-    private static class IndexPair {
-        final int vecIndex;
-        final int hashIndex;
-        IndexPair(int vecIndex, int hashIndex) {
-            this.vecIndex = vecIndex;
-            this.hashIndex = hashIndex;
-        }
-    }
-
-    private static int[] sampleNoReplacement(Random rng, int n, int max) {
-        Set<Integer> seen = new HashSet<>(n);
-        int[] sample = new int[n];
-        while (seen.size() < Math.min(n, max)) {
-            int next = rng.nextInt(max);
-            if (!seen.contains(next)) {
-                sample[seen.size()] = next;
-                seen.add(next);
-            }
-        }
-        return sample;
-    }
-
+    /**
+     * Locality sensitive hashing model for Hamming similarity.
+     * Based on the index sampling technique described in, among others, Mining Massive Datasets chapter 3.
+     * Includes one modification to the traditional method. Specifically, there are L hash tables, and each table's
+     * hash function is a concatenation of k randomly sampled bits from the vector. The original method would just
+     * a series of single bits and use each one as a distinct hash value.
+     *
+     * @param dims length of the vectors hashed by this model
+     * @param L number of hash tables
+     * @param k number of hash functions concatenated to form a hash for each table
+     * @param rng random number generator used to instantiate model parameters
+     */
     HammingLshModel(int dims, int L, int k, Random rng) {
         this.L = L;
         this.k = k;
@@ -78,6 +59,37 @@ public class HammingLshModel implements HashingModel.SparseBool{
             )
             .sorted(Comparator.comparing(o -> o.vecIndex))
             .toArray(SampledPosition[]::new);
+    }
+
+    private static class SampledPosition {
+        final int vecIndex;
+        final int[] hashIndexes;
+        SampledPosition(int vecIndex, int[] hashIndexes) {
+            this.vecIndex = vecIndex;
+            this.hashIndexes = hashIndexes;
+        }
+    }
+
+    private static class IndexPair {
+        final int vecIndex;
+        final int hashIndex;
+        IndexPair(int vecIndex, int hashIndex) {
+            this.vecIndex = vecIndex;
+            this.hashIndex = hashIndex;
+        }
+    }
+
+    private static int[] sampleNoReplacement(Random rng, int n, int max) {
+        Set<Integer> seen = new HashSet<>(n);
+        int[] sample = new int[n];
+        while (seen.size() < Math.min(n, max)) {
+            int next = rng.nextInt(max);
+            if (!seen.contains(next)) {
+                sample[seen.size()] = next;
+                seen.add(next);
+            }
+        }
+        return sample;
     }
 
     @Override
