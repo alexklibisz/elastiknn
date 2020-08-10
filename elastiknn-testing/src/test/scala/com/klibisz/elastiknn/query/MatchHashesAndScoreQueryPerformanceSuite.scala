@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2Lsh}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
 import org.apache.lucene.codecs.memory._
@@ -32,7 +32,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
     implicit val rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 10000, unit = true)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 1000, unit = true)
-    val lshFunc = new L2Lsh(Mapping.L2Lsh(128, 100, 2, 1))
+    val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0))
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)
@@ -41,7 +41,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       for {
         v <- corpusVecs
         d = new Document
-        fields = HashingQuery.index(field, fieldType, v, lshFunc(v))
+        fields = HashingQuery.index(field, fieldType, v, model.hash(v.values))
         _ = fields.foreach(d.add)
         _ = w.addDocument(d)
       } yield ()
@@ -50,7 +50,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       case (r, s) =>
         val t0 = System.currentTimeMillis()
         queryVecs.foreach { vec =>
-          val q = HashingQuery(field, vec, 100, lshFunc.hashWithProbes(vec, 9), exactFunc, r)
+          val q = HashingQuery(field, vec, 100, model.hash(vec.values, 9), exactFunc, r)
           val dd = s.search(q, 100)
           dd.scoreDocs should have length 100
         }

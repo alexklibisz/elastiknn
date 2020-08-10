@@ -24,7 +24,7 @@ public class JaccardLshModel implements HashingModel.SparseBool {
      * @param k number of hash functions concatenated to form a hash for each table
      * @param rng random number generator used to instantiate model parameters
      */
-    JaccardLshModel(int L, int k, Random rng) {
+    public JaccardLshModel(int L, int k, Random rng) {
         this.L = L;
         this.k = k;
 

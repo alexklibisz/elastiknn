@@ -93,7 +93,7 @@ object KnnQueryBuilder {
         HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
 
       case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.L2(m).hashWithProbes(v, probes), ESF.L2, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values, probes), ESF.L2, indexReader)
 
       case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
         HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)

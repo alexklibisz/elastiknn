@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactQuery, HashingFunctionCache, HashingQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
@@ -52,7 +52,7 @@ object VectorMapper {
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
             case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)(vec)))
+            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
           }

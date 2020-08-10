@@ -13,7 +13,7 @@ public class AngularLshModel implements HashingModel.DenseFloat {
 
     /**
      * Locality sensitive hashing model for Angular similarity.
-     * Uses the random hyperplans method described in Mining Massive Datasets chapter 3.
+     * Uses the random hyperplanes method described in Mining Massive Datasets chapter 3.
      * @param dims length of the vectors hashed by this model
      * @param L number of hash tables
      * @param k number of hash functions concatenated to form a hash for each table
