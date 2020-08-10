@@ -1,15 +1,15 @@
 package com.klibisz.elastiknn.models;
 
 import com.klibisz.elastiknn.storage.BitBuffer;
-import com.klibisz.elastiknn.storage.UnsafeSerialization;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
+
 public class HammingLshModel implements HashingModel.SparseBool{
 
     private final int L;
-    private final int k;
 
     // Represents an index in the vector that should be checked, and the hash indices which should be updated based on
     // the value at that vector index. e.g. (99, (1, 3, 12)) means to check if 99 is present in the vector. If it is,
@@ -30,7 +30,6 @@ public class HammingLshModel implements HashingModel.SparseBool{
      */
     public HammingLshModel(int dims, int L, int k, Random rng) {
         this.L = L;
-        this.k = k;
 
         // Build (vector index, hash index) pairs.
         IndexPair[] indexPairs = new IndexPair[L * k];
@@ -94,22 +93,28 @@ public class HammingLshModel implements HashingModel.SparseBool{
 
     @Override
     public HashAndFreq[] hash(int[] trueIndices, int totalIndices) {
+        // Create a bit buffer for each hash, prefixed by the hash index.
         BitBuffer.IntBuffer[] hashBuffers = new BitBuffer.IntBuffer[L];
         for (int ixL = 0; ixL < L; ixL++) {
-            hashBuffers[ixL] = new BitBuffer.IntBuffer(UnsafeSerialization.writeInt(ixL));
+            hashBuffers[ixL] = new BitBuffer.IntBuffer(writeInt(ixL));
         }
         int ixsp = 0;
         int ixti = 0;
         while (ixti < trueIndices.length && ixsp < sampledPositions.length) {
             int trueIndex = trueIndices[ixti];
             SampledPosition spos = sampledPositions[ixsp];
+            // The true index was not sampled, move on to next true index.
             if (spos.vecIndex > trueIndex) ixti += 1;
+            // The sampled index was not true, append a zero to the hashes that sampled it, move on to next sampled.
             else if (spos.vecIndex < trueIndex) {
                 for (int hi : spos.hashIndexes) hashBuffers[hi].putZero();
                 ixsp += 1;
-            } else {
+            }
+            // The true index was sampled, append a one to the hashes that sampled it, move both forward.
+            else {
                 for (int hi : spos.hashIndexes) hashBuffers[hi].putOne();
                 ixsp += 1;
+                ixti += 1;
             }
         }
         while (ixsp < sampledPositions.length) {
