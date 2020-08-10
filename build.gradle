@@ -205,7 +205,7 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(models, List.of(
-        publishConfig("Exact and approximate similarity models used in Elastiknn", true),
+        publishConfig("Exact and approximate similarity models used in Elastiknn", false),
         {
             dependencies {
                 implementation api4s

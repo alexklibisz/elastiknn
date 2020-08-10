@@ -1,3 +1,9 @@
+- Added new submodules which can be used without Elasticsearch:
+  - `com.klibisz.elastiknn:models` contains exact and approximate similarity models, all in Java with minimal dependencies.
+  - `com.klibisz.elastiknn:lucene` contains the custom Lucene queries and some Lucene-related utilities used by Elastiknn.
+  - `com.klibisz.elastiknn:api4s_2.12` contains Scala case classes and codecs representing the Elastiknn JSON API.
+  - `com.klibisz.elastiknn:client-elastic4s_2.12` contains the Elastiknn Scala client. 
+---
 - Switched to less-naive implementation of multiprobe L2 LSH. Specifically, uses algorithm 1 from Qin, et. al. to generate
   perturbation sets lazily at query time instead of generating them exhaustively. This does not use the estimated 
   scoring optimization from that paper.
