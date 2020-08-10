@@ -96,13 +96,13 @@ object KnnQueryBuilder {
         HashingQuery(f, v, candidates, HashingFunctionCache.L2(m).hashWithProbes(v, probes), ESF.L2, indexReader)
 
       case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ESF.Angular, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
 
       case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ESF.L2, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.L2, indexReader)
 
       case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, HashingFunctionCache.Permutation(m), ESF.L1, indexReader)
+        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.L1, indexReader)
 
       case _ => throw incompatible(mapping, query)
     }

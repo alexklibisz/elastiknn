@@ -53,7 +53,7 @@ object VectorMapper {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
             case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.L2(m)(vec)))
-            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, HashingFunctionCache.Permutation(m)(vec)))
+            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
           }
     }
