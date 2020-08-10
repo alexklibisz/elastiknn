@@ -5,6 +5,7 @@ import com.google.common.collect.MinMaxPriorityQueue;
 import javax.annotation.Nullable;
 import java.util.*;
 
+import static com.klibisz.elastiknn.models.Utils.dot;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
@@ -77,7 +78,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 for (int ixk = 0; ixk < k; ixk++) {
                     float[] a = A[ixL * k + ixk];
                     float b = B[ixL * k + ixk];
-                    ints[ixk + 1] = (int) Math.floor((HashingModel.DenseFloat.dot(a, values) + b) / r);
+                    ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / r);
                 }
                 hashes[ixL] = HashAndFreq.once(writeInts(ints));
             }
@@ -92,7 +93,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 for (int ixk = 0; ixk < k; ixk++) {
                     float[] a = A[ixL * k + ixk];
                     float b = B[ixL * k + ixk];
-                    float proj = HashingModel.DenseFloat.dot(a, values) + b;
+                    float proj = dot(a, values) + b;
                     int hash = (int) Math.floor(proj / r);
                     float dneg = proj - hash * r;
                     sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));

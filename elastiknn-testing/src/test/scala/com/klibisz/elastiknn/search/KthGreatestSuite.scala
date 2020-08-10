@@ -1,11 +1,11 @@
-package com.klibisz.elastiknn.utils
+package com.klibisz.elastiknn.search
 
-import com.klibisz.elastiknn.models.KthGreatest
+import org.apache.lucene.search.KthGreatest
 import org.scalatest._
 
 import scala.util.Random
 
-class ArrayUtilsSuite extends FunSuite with Matchers {
+class KthGreatestSuite extends FunSuite with Matchers {
 
   test("kthGreatest example") {
     val counts: Array[Short] = Array(2, 2, 8, 7, 4, 4)

@@ -1,7 +1,6 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
-import com.klibisz.elastiknn.models.KthGreatest;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 

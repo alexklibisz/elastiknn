@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.models;
+package org.apache.lucene.search;
 
 public class KthGreatest {
     /**

@@ -1,6 +1,8 @@
 package com.klibisz.elastiknn.models;
 
 import com.klibisz.elastiknn.storage.BitBuffer;
+
+import static com.klibisz.elastiknn.models.Utils.dot;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
 
 import java.util.Random;
@@ -36,7 +38,7 @@ public class AngularLshModel implements HashingModel.DenseFloat {
         for (int ixL = 0; ixL < L; ixL++) {
             BitBuffer.IntBuffer buf = new BitBuffer.IntBuffer(writeInt(ixL));
             for (int ixk = 0; ixk < k; ixk++) {
-                float dot = HashingModel.DenseFloat.dot(planes[ixL * k + ixk], values);
+                float dot = dot(planes[ixL * k + ixk], values);
                 if (dot > 0) buf.putOne();
                 else buf.putZero();
             }
