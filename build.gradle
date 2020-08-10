@@ -80,8 +80,7 @@ def scalaProjectConfig = {
     }
 }
 
-def publishConfig(String description, boolean isScala = false) {
-    String theDescription = description
+def publishConfig(String projectDescription, boolean isScala = false) {
     return {
 
         // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
@@ -111,7 +110,7 @@ def publishConfig(String description, boolean isScala = false) {
                     artifact tasks.javadocJar
                     pom {
                         name = "${rootProject.group}:$artifactId"
-                        description = theDescription
+                        description = projectDescription
                         url = 'https://github.com/alexklibisz/elastiknn'
                         licenses {
                             license {
