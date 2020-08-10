@@ -7,8 +7,7 @@ List<String> subprojectNames = List.of(
     'lucene',
     'models',
     'plugin',
-    'testing',
-    'utils'
+    'testing'
 )
 
 subprojectNames.forEach {

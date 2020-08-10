@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.models;
 
-import com.klibisz.elastiknn.utils.ArrayUtils;
-
 import java.util.Arrays;
 
 public class ExactModel {
@@ -16,10 +14,38 @@ public class ExactModel {
         double similarity(int[] v1, int[] v2, int totalIndices);
     }
 
+    /**
+     * Compute the number of intersecting (i.e. identical) elements between two int arrays.
+     * IMPORTANT: Assumes the given arrays are already sorted in ascending order and _does not_ check if this is true.
+     * If the given arrays are not sorted, the answer will be wrong.
+     * This is implemented in Java because for some reason Scala will Box the ints in some cases which is unnecessary
+     * and far slower.
+     * @param xs
+     * @param ys
+     * @return The number of identical elements in the two arrays. For example {1,2,3}, {2,3,4} would return 2.
+     */
+    public static int sortedIntersectionCount(final int [] xs, final int [] ys) {
+        int n = 0;
+        int xi = 0;
+        int yi = 0;
+        while (xi < xs.length && yi < ys.length) {
+            int x = xs[xi];
+            int y = ys[yi];
+            if (x < y) xi += 1;
+            else if (x > y) yi += 1;
+            else {
+                n += 1;
+                xi += 1;
+                yi += 1;
+            }
+        }
+        return n;
+    }
+
     public static class Jaccard implements SparseBool {
         @Override
         public double similarity(int[] v1, int[] v2, int totalIndices) {
-            int isec = ArrayUtils.sortedIntersectionCount(v1, v2);
+            int isec = sortedIntersectionCount(v1, v2);
             int denom = v1.length + v2.length - isec;
             if (isec == 0 && denom == 0) return 1;
             else if (denom > 0) return isec * 1.0 / denom;
@@ -31,7 +57,7 @@ public class ExactModel {
 
         @Override
         public double similarity(int[] v1, int[] v2, int totalIndices) {
-            int eqTrueCount = ArrayUtils.sortedIntersectionCount(v1, v2);
+            int eqTrueCount = sortedIntersectionCount(v1, v2);
             int neqTrueCount = Math.max(v1.length - eqTrueCount, 0) + Math.max(v2.length - eqTrueCount, 0);
             return (totalIndices - neqTrueCount) * 1d / totalIndices;
         }

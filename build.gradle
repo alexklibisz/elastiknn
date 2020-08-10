@@ -47,7 +47,6 @@ Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
-Project utils = project(':utils')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
 
@@ -213,7 +212,6 @@ configure(models, List.of(
         {
             dependencies {
                 implementation api4s
-                implementation utils
                 implementation lucene
                 implementation "com.google.guava:guava:28.1-jre"
             }
@@ -224,7 +222,6 @@ configure(lucene, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
-                implementation utils
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
             }
         }))
@@ -259,29 +256,12 @@ configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
         // TODO: it can't resolve scala classes without a runtime _and_ implementation dependency on core?
         runtime models
         implementation models
-        implementation utils
         implementation lucene
         implementation api4s
         implementation "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
-
-configure(utils, List.of(
-        javaProjectConfig,
-        publishConfig("Shared utilities used in Elastiknn"),
-        {
-            apply plugin: 'com.github.maiflai.scalatest'
-            test {
-                outputs.upToDateWhen { false }
-                testLogging {
-                    showStandardStreams = true
-                    exceptionFormat = 'full'
-                    events "standardOut", "started", "passed", "skipped", "failed"
-                }
-                maxParallelForks = 1
-            }
-        }))
 
 configure(testing, List.of(scalaProjectConfig, {
 
@@ -301,7 +281,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation models
         implementation clientElastic4s
         implementation plugin
-        implementation utils
         implementation lucene
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
