@@ -66,11 +66,11 @@ jobs:
           aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift .minio/elastiknn-benchmarks/data/processed/annbsift
       - name: Run Benchmark
         run: make benchmarks/continuous/run
-      - name: logs
+      - name: Logs
         if: ${{ always() }}
         run: |
           df -h
-          cd testing && docker-compose logs
+          cd elastiknn-testing && docker-compose logs
       - name: Print Results
         run: |
           python3 -m pip install csv2md
