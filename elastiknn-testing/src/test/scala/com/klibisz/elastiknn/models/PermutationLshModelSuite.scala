@@ -12,31 +12,31 @@ import org.scalatest._
 
 import scala.util.Random
 
-class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
+class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport {
 
   val ft = new mapper.VectorMapper.FieldType("elastiknn_dense_float_vector")
 
   test("example from paper") {
     val mapping = Mapping.PermutationLsh(6, 4, true)
-    val mlsh = new PermutationLsh(mapping)
+    val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
-    val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
+    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.getHash), h.getFreq))
     hashes shouldBe Array((-3, 4), (-2, 3), (5, 2), (1, 1))
   }
 
   test("example from paper without repetition") {
     val mapping = Mapping.PermutationLsh(6, 4, false)
-    val mlsh = new PermutationLsh(mapping)
+    val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
-    val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
+    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.getHash), h.getFreq))
     hashes shouldBe Array((-3, 1), (-2, 1), (5, 1), (1, 1))
   }
 
   test("another example") {
     val mapping = Mapping.PermutationLsh(10, 4, true)
-    val mlsh = new PermutationLsh(mapping)
+    val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(10f, -2f, 0f, 99f, 0.1f, -8f, 42f, -13f, 6f, 0.1f)
-    val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
+    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.getHash), h.getFreq))
     // Get the top 4 indices by absolute value:   (4, 7, 8, 1)
     // Negate the ones with negative values:      (4, 7, -8, 1)
     // Repeat each one proportional to its rank:  (4, 4, 4, 4, 7, 7, 7, -8, -8, 1)
@@ -45,19 +45,19 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
 
   test("ties") {
     // Since index 1 and 2 are tied, index 5 should have freq = 2 instead of 3.
-    val mlsh = new PermutationLsh(Mapping.PermutationLsh(6, 4, true))
+    val mlsh = new PermutationLshModel(4, true)
     val vec = Vec.DenseFloat(2f, 2f, 0f, 0f, 1f, 4f)
-    val hashes = mlsh(vec).map(h => (readInt(h.getHash), h.getFreq))
+    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.getHash), h.getFreq))
     hashes.sorted shouldBe Array((6, 4), (1, 3), (2, 3), (5, 1)).sorted
   }
 
   test("deterministic hashing") {
     implicit val rng: Random = new Random(0)
     val dims = 1024
-    val mlsh = new PermutationLsh(Mapping.PermutationLsh(dims, 128, true))
+    val mlsh = new PermutationLshModel(128, true)
     (0 until 100).foreach { _ =>
       val vec = Vec.DenseFloat.random(dims)
-      val hashes = (0 until 100).map(_ => mlsh(vec).map(h => (readInt(h.getHash), h.getFreq)).mkString(","))
+      val hashes = (0 until 100).map(_ => mlsh.hash(vec.values).map(h => (readInt(h.getHash), h.getFreq)).mkString(","))
       hashes.distinct.length shouldBe 1
     }
   }
@@ -97,20 +97,20 @@ class PermutationLshSuite extends FunSuite with Matchers with LuceneSupport {
     implicit val rng: Random = new Random(0)
     val corpusVecs = Vec.DenseFloat.randoms(1024, 1000, unit = true)
     val queryVecs = Vec.DenseFloat.randoms(1024, 100, unit = true)
-    val lsh = new PermutationLsh(Mapping.PermutationLsh(1024, 128, true))
+    val lsh = new PermutationLshModel(128, true)
 
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
       val (_, queryResults) = indexAndSearch() { w =>
         corpusVecs.foreach { v =>
           val d = new Document()
-          HashingQuery.index("vec", ft, v, lsh).foreach(d.add)
+          HashingQuery.index("vec", ft, v, lsh.hash(v.values)).foreach(d.add)
           w.addDocument(d)
         }
       } {
         case (r, s) =>
           queryVecs.map { v =>
-            val q = HashingQuery("vec", v, 200, lsh, ExactSimilarityFunction.Angular, r)
+            val q = HashingQuery("vec", v, 200, lsh.hash(v.values), ExactSimilarityFunction.Angular, r)
             s.search(q, 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
           }
       }

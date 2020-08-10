@@ -89,7 +89,7 @@ jobs:
       run: make test/python
     - name: Docker logs (on failure)
       if: ${{ failure() }}
-      run: cd testing && docker-compose logs
+      run: cd elastiknn-testing && docker-compose logs
 
       # Site and Docs
     - name: Compile Site and Docs

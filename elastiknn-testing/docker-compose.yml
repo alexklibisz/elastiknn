@@ -22,7 +22,7 @@ services:
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
-      - ES_JAVA_OPTS=-Xms500m -Xmx500m
+      - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ports:
       - "9200:9200"
     ulimits:

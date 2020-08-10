@@ -1,7 +1,6 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
-import com.klibisz.elastiknn.utils.ArrayUtils;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -67,7 +66,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    int minCandidateCount = ArrayUtils.kthGreatest(counts, candidates);
+                    int minCandidateCount = KthGreatest.kthGreatest(counts, candidates);
 
                     // If that lower bound is 0, none of the documents in this segment have matched, so return an empty iterator.
                     if (minCandidateCount == 0) return DocIdSetIterator.empty();

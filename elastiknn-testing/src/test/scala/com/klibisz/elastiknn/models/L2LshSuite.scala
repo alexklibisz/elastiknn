@@ -11,9 +11,9 @@ class L2LshSuite extends FunSuite with Matchers {
 
   test("produces exactly L hashes with probes = 0") {
     val vec = Vec.DenseFloat.random(10)
-    val lsh = new L2Lsh(Mapping.L2Lsh(vec.dims, 11, 2, 1))
-    lsh(vec) should have length 11
-    lsh.hashWithProbes(vec, 0) should have length 11
+    val lsh = new L2LshModel(vec.dims, 11, 2, 1, new java.util.Random(0))
+    lsh.hash(vec.values) should have length 11
+    lsh.hash(vec.values, 0) should have length 11
   }
 
   test("produces exactly L * (probes + 1) hashes") {
@@ -22,20 +22,29 @@ class L2LshSuite extends FunSuite with Matchers {
     for {
       l <- 1 to 10
       k <- 1 to 5
-      lsh = new L2Lsh(Mapping.L2Lsh(vec.dims, l, k, 1))
+      lsh = new L2LshModel(vec.dims, l, k, 1, new java.util.Random(0))
       maxForK = maxProbesForK(k)
       p <- 0 to maxForK + 3
     } withClue(s"L = $l, k = $k, p = $p") {
-      val hashes = lsh.hashWithProbes(vec, p)
+      val hashes = lsh.hash(vec.values, p)
       hashes should have length (l * (1 + p.min(maxForK)))
       hashes.foreach(_ should not be null)
     }
   }
 
+  test("first L hashes are the same with and without probing") {
+    val vec = Vec.DenseFloat.random(100)
+    val model = new L2LshModel(vec.dims, 10, 3, 1, new java.util.Random(0))
+    val hashesNoProbes = model.hash(vec.values)
+    val hashesWithProbes = model.hash(vec.values, 3)
+    hashesNoProbes should have length 10
+    hashesWithProbes.toVector.take(10) shouldBe hashesNoProbes.toVector
+  }
+
   test("example for debugging") {
-    val lsh = new L2Lsh(Mapping.L2Lsh(dims = 4, L = 2, k = 3, r = 1))
+    val lsh = new L2LshModel(4, 2, 3, 1, new java.util.Random(0))
     val vec = Vec.DenseFloat(1.1f, 2.2f, 3.3f, 4.4f)
-    lsh.hashWithProbes(vec, 4)
+    lsh.hash(vec.values, 4)
     Assertions.succeed
   }
 
