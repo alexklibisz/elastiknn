@@ -8,19 +8,17 @@ import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
 
 public class PermutationLshModel implements HashingModel.DenseFloat {
 
-    private final int dims;
     private final int k;
     private final boolean repeating;
 
     /**
-     * Based on paper Large Scal Image Retrieval with Elasticsearch: https://dl.acm.org/doi/pdf/10.1145/3209978.3210089
+     * Based on paper Large Scale Image Retrieval with Elasticsearch: https://dl.acm.org/doi/pdf/10.1145/3209978.3210089
      * Represents vectors by the indices of the largest absolute values, repeated proportionally to their rank in the vector.
      *
      * @param k number of highest absolute value indices to include as hashes of the vector
      * @param repeating whether or not to repeat the indices, which was enabled by default in the paper, but has shown mixed results
      */
-    PermutationLshModel(int dims, int k, boolean repeating) {
-        this.dims = dims;
+    PermutationLshModel(int k, boolean repeating) {
         this.k = k;
         this.repeating = repeating;
     }
