@@ -2,8 +2,6 @@ package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Similarity, Vec}
 
-import scala.util.Try
-
 sealed trait SparseIndexedSimilarityFunction extends ((Vec.SparseBool, Int, Int) => Double) {
   def similarity: Similarity
   override def apply(queryVec: Vec.SparseBool, intersection: Int, numTrue: Int): Double

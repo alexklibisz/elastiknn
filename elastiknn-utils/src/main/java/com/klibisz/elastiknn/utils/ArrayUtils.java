@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.utils;
 
-import java.util.Arrays;
-
 /**
  * Java implementations of some hot spots.
  */

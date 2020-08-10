@@ -208,7 +208,6 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(models, List.of(
-        scalaProjectConfig,
         javaProjectConfig,
         publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
@@ -217,7 +216,6 @@ configure(models, List.of(
                 implementation utils
                 implementation lucene
                 implementation "com.google.guava:guava:28.1-jre"
-                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
 
