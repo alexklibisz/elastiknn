@@ -80,8 +80,6 @@ def scalaProjectConfig = {
     }
 }
 
-def javaProjectConfig = {}
-
 def publishConfig(String description, boolean isScala = false) {
     String theDescription = description
     return {
@@ -207,7 +205,6 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(models, List.of(
-        javaProjectConfig,
         publishConfig("Exact and approximate similarity models used in Elastiknn", true),
         {
             dependencies {
@@ -218,7 +215,6 @@ configure(models, List.of(
         }))
 
 configure(lucene, List.of(
-        javaProjectConfig,
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
@@ -226,7 +222,7 @@ configure(lucene, List.of(
             }
         }))
 
-configure(plugin, List.of(scalaProjectConfig, javaProjectConfig, {
+configure(plugin, List.of(scalaProjectConfig, {
 
     version = "${version}_es${esVersion}"
 
