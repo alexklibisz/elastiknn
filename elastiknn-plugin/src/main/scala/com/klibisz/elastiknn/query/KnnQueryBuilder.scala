@@ -35,7 +35,12 @@ object KnnQueryBuilder {
       val map = parser.map()
       val json: Json = javaMapEncoder(map)
       val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
-      new KnnQueryBuilder(query)
+      // Account for sparse bool vecs which need to be sorted.
+      val sortedVec = query.vec match {
+        case v: Vec.SparseBool if !v.isSorted => v.sorted()
+        case _                                => query.vec
+      }
+      new KnnQueryBuilder(query.withVec(sortedVec))
     }
   }
 
