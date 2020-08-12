@@ -35,55 +35,64 @@ trait SearchClient {
 
 object SearchClient {
 
-  def elasticsearch(uri: URI, strictFailure: Boolean, timeoutMillis: Int): ZLayer[Has[Logger[String]], Throwable, Has[SearchClient]] = {
+  def elasticsearch(uri: URI,
+                    strictFailure: Boolean,
+                    timeoutMillis: Int): ZLayer[Has[Logger[String]] with Has[Clock.Service], Throwable, Has[SearchClient]] = {
 
-    ZLayer.fromServiceM[Logger[String], Any, Throwable, SearchClient] { log =>
-      ZIO.fromFuture { implicit ec =>
-        Future {
-          new SearchClient {
+    ZLayer.fromServicesM[Logger[String], Clock.Service, Any, Throwable, SearchClient] {
+      case (log, clock) =>
+        ZIO.fromFuture { implicit ec =>
+          Future {
+            new SearchClient {
 
-            private val client = ElastiknnClient.futureClient(uri.getHost, uri.getPort, strictFailure, timeoutMillis)
+              private val clockLayer = ZLayer.succeed(clock)
 
-            private def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Task[Response[U]] =
-              Task.fromFuture(_ => client.execute(t))
+              private val client = ElastiknnClient.futureClient(uri.getHost, uri.getPort, strictFailure, timeoutMillis)
 
-            override def blockUntilReady(): Task[Unit] = {
-              val check = clusterHealth.waitForStatus(HealthStatus.Yellow).timeout("90s")
-              val sched = Schedule.recurs(10) && Schedule.spaced(Duration(10, TimeUnit.SECONDS))
-              execute(check).retry(sched).map(_ => ()).provideLayer(Clock.live)
-            }
+              private def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Task[Response[U]] =
+                Task.fromFuture(_ => client.execute(t))
 
-            override def indexExists(index: String): Task[Boolean] =
-              execute(ElasticDsl.indexExists(index)).map(_.result.exists).catchSome {
-                case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
+              override def blockUntilReady(): Task[Unit] = {
+                val check = clusterHealth.waitForStatus(HealthStatus.Yellow).timeout("90s")
+                val sched = Schedule.recurs(10) && Schedule.spaced(Duration(10, TimeUnit.SECONDS))
+                execute(check).retry(sched).map(_ => ()).provideLayer(clockLayer)
               }
 
-            override def buildIndex(index: String,
-                                    field: String,
-                                    mapping: Mapping,
-                                    shards: Int,
-                                    vectors: Stream[Throwable, Vec]): Task[Unit] = {
-              for {
-                _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
-                _ <- execute(createIndex(index).replicas(0).shards(shards).indexSetting("refresh_interval", "-1"))
-                _ <- execute(ElastiknnRequests.putMapping(index, field, "id", mapping))
-                _ <- vectors.grouped(200).zipWithIndex.foreach {
-                  case (vecs, batchIndex) =>
-                    val ids = vecs.indices.map(i => s"$batchIndex-$i")
-                    ???
-
+              override def indexExists(index: String): Task[Boolean] =
+                execute(ElasticDsl.indexExists(index)).map(_.result.exists).catchSome {
+                  case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
                 }
-              } yield ()
 
-              ???
+              override def buildIndex(index: String,
+                                      field: String,
+                                      mapping: Mapping,
+                                      shards: Int,
+                                      vectors: Stream[Throwable, Vec]): Task[Unit] =
+                for {
+                  _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
+                  _ <- execute(createIndex(index).replicas(0).shards(shards).indexSetting("refresh_interval", "-1"))
+                  _ <- execute(ElastiknnRequests.putMapping(index, field, "id", mapping))
+                  _ <- vectors
+                    .grouped(200)
+                    .zipWithIndex
+                    .foreach {
+                      case (vecs, batchIndex) =>
+                        val ids = vecs.indices.map(i => s"$batchIndex-$i")
+                        for {
+                          (dur, _) <- Task.fromFuture(_ => client.index(index, field, vecs, "id", ids)).timed.provideLayer(clockLayer)
+                          _ <- log.info(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
+                        } yield ()
+                    }
+                  _ <- execute(refreshIndex(index))
+                  _ <- execute(forceMerge(index).maxSegments(1))
+                } yield ()
+
+              override def search(queries: Stream[Throwable, NearestNeighborsQuery], parallelism: Int): Stream[Throwable, QueryResult] = ???
+
+              override def close(): Task[Unit] = ???
             }
-
-            override def search(queries: Stream[Throwable, NearestNeighborsQuery], parallelism: Int): Stream[Throwable, QueryResult] = ???
-
-            override def close(): Task[Unit] = ???
           }
         }
-      }
     }
 
   }
