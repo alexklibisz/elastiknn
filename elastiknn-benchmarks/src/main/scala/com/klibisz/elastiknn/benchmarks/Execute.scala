@@ -199,7 +199,6 @@ object Execute extends App {
     import experiment._
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
-      searchBackend <- ZIO.access[Has[SearchClient]](_.get)
       testEffects = experiment.testQueries.map {
         case Query(testQuery, k) =>
           for {
@@ -244,9 +243,9 @@ object Execute extends App {
 
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
 
-    val searchClientLayer: Layer[Throwable, Has[SearchClient]] = esUrl match {
+    val searchClientLayer = esUrl match {
       case Some(url) =>
-        (loggingLayer ++ Clock.live) >>> SearchClient.elasticsearch(URI.create(url), true, 99999)
+        (Clock.live ++ loggingLayer) >>> SearchClient.elasticsearch(URI.create(url), true, 99999)
       case None =>
         SearchClient.luceneInMemory()
     }
