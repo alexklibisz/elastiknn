@@ -55,32 +55,33 @@ object ContinuousBenchmark extends App {
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
-    val s3Client = S3Utils.minioClient()
-    val experimentEffects = experiments.map { exp =>
-      for {
-        _ <- ZIO(s3Client.putObject(bucket, s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces))
-        params = Execute.Params(
-          experimentHash = exp.md5sum,
-          experimentsBucket = bucket,
-          experimentsPrefix = "experiments",
-          datasetsBucket = bucket,
-          datasetsPrefix = "data/processed",
-          resultsBucket = bucket,
-          resultsPrefix = "results",
-          parallelism = 2,
-          s3Minio = true,
-          recompute = false
-        )
-        _ <- Execute(params)
-      } yield ()
-    }
-    val pipeline = for {
-      bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
-      _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
-      _ <- ZIO.collectAll(experimentEffects)
-      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate/aggregate.csv", s3Minio = true))
-    } yield ()
-    pipeline.exitCode
+//    val s3Client = S3Utils.minioClient()
+//    val experimentEffects = experiments.map { exp =>
+//      for {
+//        _ <- ZIO(s3Client.putObject(bucket, s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces))
+//        params = Execute.Params(
+//          experimentHash = exp.md5sum,
+//          experimentsBucket = bucket,
+//          experimentsPrefix = "experiments",
+//          datasetsBucket = bucket,
+//          datasetsPrefix = "data/processed",
+//          resultsBucket = bucket,
+//          resultsPrefix = "results",
+//          parallelism = 2,
+//          s3Minio = true,
+//          recompute = false
+//        )
+//        _ <- Execute(params)
+//      } yield ()
+//    }
+//    val pipeline = for {
+//      bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
+//      _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
+//      _ <- ZIO.collectAll(experimentEffects)
+//      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate/aggregate.csv", s3Minio = true))
+//    } yield ()
+//    pipeline.exitCode
+    ???
   }
 
 }

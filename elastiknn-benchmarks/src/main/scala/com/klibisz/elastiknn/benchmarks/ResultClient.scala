@@ -13,15 +13,15 @@ import zio.stream._
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
+trait ResultClient {
+  def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[BenchmarkResult]]
+  def save(result: BenchmarkResult): IO[Throwable, Unit]
+  def all(): Stream[Throwable, BenchmarkResult]
+}
+
 object ResultClient {
 
-  trait Service {
-    def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[BenchmarkResult]]
-    def save(result: BenchmarkResult): IO[Throwable, Unit]
-    def all(): Stream[Throwable, BenchmarkResult]
-  }
-
-  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, ResultClient] = {
+  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, Has[ResultClient]] = {
 
     def validChars(s: String): String = s.map { c =>
       if (c.isLetter && c <= 'z' || c.isDigit || c == '.') c
@@ -34,9 +34,9 @@ object ResultClient {
       else suffix
     }
 
-    ZLayer.fromServices[AmazonS3, Blocking.Service, Service] {
+    ZLayer.fromServices[AmazonS3, Blocking.Service, ResultClient] {
       case (client, blocking) =>
-        new Service {
+        new ResultClient {
           override def find(dataset: Dataset,
                             mapping: Mapping,
                             query: NearestNeighborsQuery,

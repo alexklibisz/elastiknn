@@ -15,25 +15,29 @@ object Enqueue extends App {
 
   /**
     * Parameters for running the Enqueue App.
-    * @param experimentsPrefix Prefix for each generated experiment key.
-    * @param keysKey Key of the JSON file containing generated experiment keys.
-    * @param bucket Bucket where all benchmarking data is stored.
-    * @param s3Url URL for the s3 client to access. Lets you define a custom client, e.g. for minio at http://localhost:9000.
+    * See parser for descriptions of each parameter.
     */
-  case class Params(
-      experimentsPrefix: String = "",
-      keysKey: String = "",
-      bucket: String = "",
-      s3Url: Option[String] = None
-  )
+  case class Params(experimentsPrefix: String = "", keysKey: String = "", bucket: String = "", s3Url: Option[String] = None)
 
   private val parser = new scopt.OptionParser[Params]("Generate a list of benchmark experiments") {
     override def showUsageOnError: Option[Boolean] = Some(true)
     help("help")
-    opt[String]("experimentsPrefix").action((s, c) => c.copy(experimentsPrefix = s))
-    opt[String]("keysKey").action((s, c) => c.copy(keysKey = s))
-    opt[String]("bucket").action((s, c) => c.copy(bucket = s))
-    opt[String]("s3Url").optional().action((s, c) => c.copy(s3Url = Some(s)))
+    opt[String]("experimentsPrefix")
+      .text("s3 prefix where experiments are stored")
+      .action((s, c) => c.copy(experimentsPrefix = s))
+      .required()
+    opt[String]("keysKey")
+      .text("s3 key where JSON file containing generated experiment keys is stored")
+      .action((s, c) => c.copy(keysKey = s))
+      .required()
+    opt[String]("bucket")
+      .text("bucket for all s3 data")
+      .action((s, c) => c.copy(bucket = s))
+      .required()
+    opt[String]("s3Url")
+      .text("URL accessed by the s3 client")
+      .action((s, c) => c.copy(s3Url = Some(s)))
+      .optional()
   }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {

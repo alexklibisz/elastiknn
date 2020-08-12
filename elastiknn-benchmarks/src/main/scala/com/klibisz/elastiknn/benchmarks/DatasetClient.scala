@@ -13,21 +13,16 @@ import scala.io.Source
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
+trait DatasetClient {
+  def streamTrain(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
+  def streamTest(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
+}
+
 object DatasetClient {
 
-  trait Service {
-    def streamTrain(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
-    def streamTest(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
-  }
-
-  /**
-    * Implementation of [[DatasetClient.Service]] that reads from an s3 bucket.
-    * Special case for random datasets.
-    * @return
-    */
-  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, DatasetClient] = ZLayer.fromService[AmazonS3, Service] {
-    client =>
-      new Service {
+  def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3], Throwable, Has[DatasetClient]] =
+    ZLayer.fromService[AmazonS3, DatasetClient] { client =>
+      new DatasetClient {
 
         private def stream(dataset: Dataset, name: String, limit: Option[Int]): Stream[Throwable, Vec] = dataset match {
           case S3Pointer(_, _, _) => ???
@@ -49,6 +44,6 @@ object DatasetClient {
         override def streamTest(dataset: Dataset, limit: Option[Int]): Stream[Throwable, Vec] =
           stream(dataset, "test", limit)
       }
-  }
+    }
 
 }

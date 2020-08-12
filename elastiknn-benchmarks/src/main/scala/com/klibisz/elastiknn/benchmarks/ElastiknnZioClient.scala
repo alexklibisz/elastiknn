@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
-import com.klibisz.elastiknn.client.{ElastiknnClient, ElastiknnFutureClient}
+import com.klibisz.elastiknn.client.ElastiknnClient
 import com.sksamuel.elastic4s.{ElasticClient, Handler, Response}
 import zio._
 

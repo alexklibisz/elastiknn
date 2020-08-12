@@ -41,34 +41,35 @@ object Aggregate extends App {
           ResultClient.s3(params.resultsBucket, params.resultsPrefix) ++
           Blocking.live
 
-    val logic = for {
-      // Stream results from S3.
-      resultClient <- ZIO.access[ResultClient](_.get)
-      results = resultClient.all()
-
-      // Transform them to rows.
-      aggStream = results
-        .mapMPar(10) { res =>
-          val agg = AggregateResult(res)
-          log.info(agg.toString).map(_ => agg)
-        }
-
-      rows <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
-
-      // Write the rows to a temporary file
-      csvFile = File.createTempFile("tmp", ".csv")
-      writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
-      _ = rows.foreach(writer.write)
-      _ <- log.info(s"Wrote ${rows.length} rows to csv file.")
-      _ = writer.close()
-
-      // Upload the file.
-      blocking <- ZIO.access[Blocking](_.get)
-      _ <- blocking.effectBlocking(s3Client.putObject(params.aggregateBucket, params.aggregateKey, csvFile))
-
-    } yield ()
-
-    logic.provideLayer(layer)
+//    val logic = for {
+//      // Stream results from S3.
+//      resultClient <- ZIO.access[ResultClient](_.get)
+//      results = resultClient.all()
+//
+//      // Transform them to rows.
+//      aggStream = results
+//        .mapMPar(10) { res =>
+//          val agg = AggregateResult(res)
+//          log.info(agg.toString).map(_ => agg)
+//        }
+//
+//      rows <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
+//
+//      // Write the rows to a temporary file
+//      csvFile = File.createTempFile("tmp", ".csv")
+//      writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
+//      _ = rows.foreach(writer.write)
+//      _ <- log.info(s"Wrote ${rows.length} rows to csv file.")
+//      _ = writer.close()
+//
+//      // Upload the file.
+//      blocking <- ZIO.access[Blocking](_.get)
+//      _ <- blocking.effectBlocking(s3Client.putObject(params.aggregateBucket, params.aggregateKey, csvFile))
+//
+//    } yield ()
+//
+//    logic.provideLayer(layer)
+    ???
   }
 
   override def run(args: List[String]): URIO[Any with Console, ExitCode] = parser.parse(args, Params()) match {

@@ -12,10 +12,6 @@ import scala.language.implicitConversions
 
 package object benchmarks {
 
-  type DatasetClient = Has[DatasetClient.Service]
-  type ResultClient = Has[ResultClient.Service]
-  type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
-
   sealed abstract class Dataset(val dims: Int) {
     def name: String = this.getClass.getSimpleName.replace("$", "")
   }
