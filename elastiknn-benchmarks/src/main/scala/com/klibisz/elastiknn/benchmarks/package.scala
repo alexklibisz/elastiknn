@@ -34,13 +34,7 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
-    case class RandomDenseFloat(override val dims: Int = 1024, train: Int = 50000, test: Int = 1000) extends Dataset(dims) {
-      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
-    }
-    case class RandomSparseBool(override val dims: Int = 4096, train: Int = 50000, test: Int = 1000, bias: Double = 0.25)
-        extends Dataset(dims) {
-      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
-    }
+    case class S3Pointer(bucket: String, prefix: String, override val dims: Int) extends Dataset(dims)
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
@@ -127,23 +121,24 @@ package object benchmarks {
     import Dataset._
 
     private val vecName: String = "vec"
-    val defaultKs: Seq[Int] = Seq(10, 100)
+    val defaultKs: Seq[Int] = Seq(100)
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 100 to 350 by 50
-        r <- 1 to 3
+        _L <- 100 to 350 by 50
+        m <- 1 to 3
         w <- 1 to 3
       } yield
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
           NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-          Mapping.L2Lsh(dataset.dims, b, r, w),
+          Mapping.L2Lsh(dataset.dims, _L, m, w),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k), k)
+            m <- Seq(5, 10, 20, 30)
+            p <- 0 to math.pow(m, 3).toInt by 3
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k, p), k)
         )
       lsh
     }
