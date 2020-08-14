@@ -113,7 +113,7 @@ object Execute extends App {
         for {
           _ <- log.info(s"Creating index [$trainIndex] with mapping [$eknnMapping] and [$shards] shards")
           (dur, n) <- searchClient.buildIndex(trainIndex, eknnMapping, shards, datasetClient.streamTrain(dataset)).timed
-          _ <- log.info(s"Indexed [$n] vectors in [${dur.asJava.getSeconds}] seconds")
+          _ <- log.info(s"Indexed [$n] vectors in [${dur.getSeconds}] seconds")
         } yield ()
 
       // Run searches on the test vectors.
