@@ -64,6 +64,8 @@ jobs:
           aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbglove25 .minio/elastiknn-benchmarks/data/processed/annbglove25
           aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift .minio/elastiknn-benchmarks/data/processed/annbsift
       - name: Run Benchmark
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: make benchmarks/continuous/run
       - name: Logs
         if: ${{ always() }}
