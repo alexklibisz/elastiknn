@@ -235,6 +235,7 @@ package object benchmarks {
     implicit val experimentCodec: Codec[Experiment] = deriveCodec
     implicit val singleResultCodec: Codec[QueryResult] = deriveCodec
     implicit val resultCodec: Codec[BenchmarkResult] = deriveCodec
+    implicit val aggregateResultCodec: Codec[AggregateResult] = deriveCodec
   }
 
 }

@@ -85,7 +85,7 @@ def buildConfigConfig = {
     buildConfig {
         buildConfigField "String", "GIT_HASH", gitHash()
         buildConfigField "String", "GIT_BRANCH", gitBranch()
-        buildConfigField "String", "HOST_NAME", InetAddress.getLocalHost().getHostName()
+        buildConfigField "String", "HOST_NAME", "${InetAddress.getLocalHost().getHostName()} ${System.properties.getProperty("user.name")}"
     }
 }
 
@@ -226,6 +226,7 @@ configure(benchmarks, List.of(
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+                implementation "org.scalaj:scalaj-http_${scalaShortVersion}:2.4.2"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
                 implementation 'javax.xml:jaxb-api:2.1'

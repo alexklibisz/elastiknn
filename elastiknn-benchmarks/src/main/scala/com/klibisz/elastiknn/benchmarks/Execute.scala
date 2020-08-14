@@ -112,12 +112,12 @@ object Execute extends App {
       else
         for {
           _ <- log.info(s"Creating index [$trainIndex] with mapping [$eknnMapping] and [$shards] shards")
-          (dur, n) <- searchClient.buildIndex(trainIndex, eknnMapping, shards, datasetClient.streamTrain(dataset, Some(10000))).timed
+          (dur, n) <- searchClient.buildIndex(trainIndex, eknnMapping, shards, datasetClient.streamTrain(dataset)).timed
           _ <- log.info(s"Indexed [$n] vectors in [${dur.asJava.getSeconds}] seconds")
         } yield ()
 
       // Run searches on the test vectors.
-      vecStream = datasetClient.streamTest(dataset, Some(50))
+      vecStream = datasetClient.streamTest(dataset)
       queryStream = vecStream.map(eknnQuery.withVec)
       resultsStream = searchClient.search(trainIndex, queryStream, k, parallelQueries)
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed

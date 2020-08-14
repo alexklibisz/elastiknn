@@ -66,8 +66,7 @@ object ContinuousBenchmark extends App {
           datasetsPrefix = "data/processed",
           resultsPrefix = "results",
           bucket = bucket,
-          s3Url = Some(s3Url),
-          recompute = true
+          s3Url = Some(s3Url)
         )
         _ <- Execute(params)
       } yield ()
@@ -76,7 +75,15 @@ object ContinuousBenchmark extends App {
       bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
       _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
       _ <- ZIO.collectAll(experimentEffects)
-      _ <- Aggregate(Aggregate.Params("results", "results/aggregate/aggregate.csv", bucket, Some(s3Url)))
+      _ <- Aggregate(
+        Aggregate.Params(
+          "results",
+          "results/aggregate/aggregate.csv",
+          bucket,
+          Some(s3Url),
+          Some("https://api.airtable.com/v0/appmy9gAptPsjo4M7/Results"),
+          sys.env.get("AIRTABLE_API_KEY")
+        ))
     } yield ()
     pipeline.exitCode
   }
