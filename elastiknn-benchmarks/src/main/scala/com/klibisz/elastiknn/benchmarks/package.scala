@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import java.time.LocalDate
+
 import com.klibisz.elastiknn.api.Mapping._
 import com.klibisz.elastiknn.api._
 import io.circe.Codec
@@ -56,60 +58,66 @@ package object benchmarks {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
   }
 
-  final case class AggregateResult(dataset: String,
+  final case class AggregateResult(date: LocalDate,
+                                   hash: String,
+                                   branch: String,
+                                   host: String,
+                                   dataset: String,
                                    similarity: String,
                                    algorithm: String,
                                    k: Int,
-                                   recallP10: Float,
-                                   durationP10: Float,
-                                   recallP50: Float,
-                                   durationP50: Float,
-                                   recallP90: Float,
-                                   durationP90: Float,
-                                   mappingJson: String,
-                                   queryJson: String)
+                                   mapping: Mapping,
+                                   shards: Int,
+                                   query: NearestNeighborsQuery,
+                                   parallelQueries: Int,
+                                   recall: Float,
+                                   queriesPerSecond: Float)
+
   object AggregateResult {
 
     val header = Seq(
+      "date",
+      "hash",
+      "branch",
+      "host",
       "dataset",
       "similarity",
       "algorithm",
       "k",
-      "recallP10",
-      "durationP10",
-      "recallP50",
-      "durationP50",
-      "recallP90",
-      "durationP90",
       "mapping",
-      "query"
+      "shards",
+      "query",
+      "parallelQueries",
+      "recall",
+      "queriesPerSecond"
     )
 
-    private def algorithmName(m: Mapping, q: NearestNeighborsQuery): String = m match {
-      case _: SparseBool                                            => s"Exact"
-      case _: DenseFloat                                            => "Exact"
-      case _: SparseIndexed                                         => "Sparse indexed"
-      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "LSH"
-      case _: PermutationLsh                                        => "Permutation LSH"
+    private def algorithmName(q: NearestNeighborsQuery): String = {
+      import NearestNeighborsQuery._
+      q match {
+        case _: Exact                                                 => "Exact"
+        case _: SparseIndexed                                         => "Sparse Indexed"
+        case _: HammingLsh | _: JaccardLsh | _: AngularLsh | _: L2Lsh => "LSH"
+        case _: PermutationLsh                                        => "Permutation LSH"
+      }
     }
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
-      val ptile = new Percentile()
-      val recalls = benchmarkResult.queryResults.map(_.recall).toArray
-      val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
       new AggregateResult(
-        benchmarkResult.dataset.name,
-        benchmarkResult.query.similarity.toString,
-        algorithmName(benchmarkResult.mapping, benchmarkResult.query),
-        benchmarkResult.k,
-        ptile.evaluate(recalls, 0.1).toFloat,
-        ptile.evaluate(durations, 0.1).toFloat,
-        ptile.evaluate(recalls, 0.5).toFloat,
-        ptile.evaluate(durations, 0.5).toFloat,
-        ptile.evaluate(recalls, 0.9).toFloat,
-        ptile.evaluate(durations, 0.9).toFloat,
-        ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
-        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
+        date = LocalDate.now(),
+        hash = BuildConfig.GIT_HASH,
+        branch = BuildConfig.GIT_BRANCH,
+        host = BuildConfig.HOST_NAME,
+        dataset = benchmarkResult.dataset.name,
+        similarity = benchmarkResult.query.similarity.toString,
+        algorithm = algorithmName(benchmarkResult.query),
+        k = benchmarkResult.k,
+        mapping = benchmarkResult.mapping,
+        shards = benchmarkResult.shards,
+        query = benchmarkResult.query.withVec(Vec.Empty()),
+        parallelQueries = benchmarkResult.parallelQueries,
+        recall = (benchmarkResult.queryResults.map(_.recall).sum / benchmarkResult.queryResults.length).toFloat,
+        queriesPerSecond = benchmarkResult.queryResults.length * 1f / benchmarkResult.durationMillis * 1000L
       )
     }
   }

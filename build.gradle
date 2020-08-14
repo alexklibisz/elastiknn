@@ -1,3 +1,5 @@
+import javax.swing.table.DefaultTableCellRenderer
+
 buildscript {
     ext {
         esVersion = '7.6.2'
@@ -8,12 +10,15 @@ buildscript {
     }
     repositories {
         jcenter()
-        maven { url "https://plugins.gradle.org/m2/" }
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
         classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.26'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+        classpath 'gradle.plugin.de.fuerstenau:BuildConfigPlugin:1.1.8'
     }
 }
 
@@ -54,6 +59,34 @@ Project testing = project(':testing')
 // TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
 def configure(Project p, List<Closure> configClosures) {
     configClosures.forEach { configure(p, it) }
+}
+
+def buildConfigConfig = {
+    apply plugin: 'de.fuerstenau.buildconfig'
+
+    def gitHash = {
+        OutputStream stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-parse', '--short', 'HEAD'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    }
+
+    def gitBranch = {
+        OutputStream stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'branch', '--show-current'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim()
+    }
+
+    buildConfig {
+        buildConfigField "String", "GIT_HASH", gitHash()
+        buildConfigField "String", "GIT_BRANCH", gitBranch()
+        buildConfigField "String", "HOST_NAME", InetAddress.getLocalHost().getHostName()
+    }
 }
 
 def scalaProjectConfig = {
@@ -165,6 +198,7 @@ configure(api4s, List.of(
 
 configure(benchmarks, List.of(
         scalaProjectConfig,
+        buildConfigConfig,
         {
             apply plugin: 'application'
             apply plugin: 'com.github.johnrengelman.shadow'
@@ -187,6 +221,7 @@ configure(benchmarks, List.of(
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
                 implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
+                implementation "com.nrinaudo:kantan.csv-java8_${scalaShortVersion}:0.6.1"
                 implementation "org.elasticsearch:elasticsearch:${esVersion}"
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
