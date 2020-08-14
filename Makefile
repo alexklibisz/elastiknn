@@ -202,7 +202,11 @@ benchmarks/docker/build: .mk/benchmarks-docker-build
 benchmarks/docker/push: .mk/benchmarks-docker-push
 
 benchmarks/minio:
-	docker run -p 9000:9000 --env MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID} --env MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY} -v $(pwd)/.minio:/data minio/minio server /data
+	docker run -p 9000:9000 \
+		--env MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID} \
+		--env MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY} \
+		-v $(pwd)/elastiknn-benchmarks/.minio:/data minio/minio \
+		server /data
 
 benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
