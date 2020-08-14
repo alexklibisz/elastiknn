@@ -82,7 +82,7 @@ object Execute extends App {
     for {
       blocking <- ZIO.access[Blocking](_.get)
       s3Client <- ZIO.access[Has[AmazonS3]](_.get)
-      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, s"$prefix/$key.json"))
+      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, s"$prefix/$key"))
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
@@ -97,76 +97,7 @@ object Execute extends App {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
     val trainIndex = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
-    val storedIdField = "id"
-    val vecField = "vec"
 
-    def buildIndex(chunkSize: Int = 500) = {
-      for {
-        searchBackend <- ZIO.access[Has[SearchClient]](_.get)
-        datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
-        _ <- log.info(s"Creating index [$trainIndex] with mapping [$eknnMapping] and [$shards] shards")
-        _ <- searchBackend.buildIndex(trainIndex, vecField, eknnMapping, shards, datasetClient.streamTrain(dataset))
-
-//        _ <- eknnClient.execute(createIndex(trainIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
-//        _ <- eknnClient.putMapping(trainIndex, eknnQuery.field, storedIdField, eknnMapping)
-//        _ <- eknnClient.execute(createIndex(testIndex).replicas(0).shards(parallelism).indexSetting("refresh_interval", "-1"))
-//        _ <- eknnClient.putMapping(testIndex, eknnQuery.field, storedIdField, eknnMapping)
-//        datasets <- ZIO.access[DatasetClient](_.get)
-//        _ <- log.info(s"Indexing vectors for dataset $dataset")
-//        _ <- datasets.streamTrain(dataset).grouped(chunkSize).zipWithIndex.foreach {
-//          case (vecs, batchIndex) =>
-//            val ids = vecs.indices.map(i => s"$batchIndex-$i")
-//            for {
-//              (dur, _) <- eknnClient.index(trainIndex, eknnQuery.field, vecs, storedIdField, ids).timed
-//              _ <- log.debug(s"Indexed batch $batchIndex to $trainIndex in ${dur.toMillis} ms")
-//            } yield ()
-//        }
-//        _ <- datasets.streamTest(dataset).grouped(chunkSize).zipWithIndex.foreach {
-//          case (vecs, batchIndex) =>
-//            val ids = vecs.indices.map(i => s"$batchIndex-$i")
-//            for {
-//              (dur, _) <- eknnClient.index(testIndex, eknnQuery.field, vecs, storedIdField, ids).timed
-//              _ <- log.debug(s"Indexed batch $batchIndex to $testIndex in ${dur.toMillis} ms")
-//            } yield ()
-//        }
-//        _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
-//        _ <- eknnClient.execute(forceMerge(trainIndex).maxSegments(1))
-//        _ <- eknnClient.execute(forceMerge(testIndex).maxSegments(1))
-//        _ <- eknnClient.execute(refreshIndex(trainIndex, testIndex))
-//        _ <- ZIO.sleep(Duration(10, TimeUnit.SECONDS))
-      } yield ()
-    }
-
-//    def streamFromIndex(index: String, chunkSize: Int = 200) = {
-//      implicit val vecReader: HitReader[Vec] = (hit: Hit) =>
-//        for {
-//          json <- io.circe.parser.parse(hit.sourceAsString).toTry
-//          inner <- Try((json \\ eknnQuery.field).head)
-//          vec <- ElasticsearchCodec.decode[Vec](inner.hcursor).toTry
-//        } yield vec
-//      implicit val timeout: concurrent.duration.Duration = concurrent.duration.Duration("30 seconds")
-//      for {
-//        eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-//        _ <- log.info(s"Streaming vectors from $index")
-//        query = ElasticDsl.search(index).scroll("5m").size(chunkSize).matchAllQuery()
-//        searchIter = SearchIterator.iterate[Vec](eknnClient.elasticClient, query)
-//      } yield Stream.fromIterator(searchIter).chunkN(chunkSize)
-//    }
-//
-//    def search(testVecs: Stream[Throwable, Vec]) = {
-//      for {
-//        eknnClient <- ZIO.access[ElastiknnZioClient](_.get)
-//        requests = testVecs.zipWithIndex.mapMPar(parallelism) {
-//          case (vec, i) =>
-//            for {
-//              (dur, res) <- eknnClient.nearestNeighbors(trainIndex, eknnQuery.withVec(vec), k, storedIdField).timed
-//              _ <- if (i % 100 == 0) log.debug(s"Completed query $i in $trainIndex in ${dur.toMillis} ms") else ZIO.succeed(())
-//            } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
-//        }
-//        (dur, responses) <- requests.run(ZSink.collectAll).timed
-//      } yield (responses, dur.toMillis)
-//    }
-//
     for {
 
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
@@ -177,15 +108,22 @@ object Execute extends App {
       trainExists <- searchClient.indexExists(trainIndex)
 
       // Create the index if doesn't exist.
-      _ <- if (trainExists) log.info(s"Found index [$trainIndex]") else buildIndex()
+      _ <- if (trainExists) log.info(s"Found index [$trainIndex]")
+      else
+        for {
+          _ <- log.info(s"Creating index [$trainIndex] with mapping [$eknnMapping] and [$shards] shards")
+          (dur, n) <- searchClient.buildIndex(trainIndex, eknnMapping, shards, datasetClient.streamTrain(dataset).take(100000)).timed
+          _ <- log.info(s"Indexed [$n] vectors in [${dur.asJava.getSeconds}] seconds")
+        } yield ()
 
       // Run searches on the test vectors.
-      queryStream = datasetClient.streamTest(dataset).map(eknnQuery.withVec)
-      resultsStream = searchClient.search(queryStream, parallelQueries)
+      vecStream = datasetClient.streamTest(dataset).take(200)
+      queryStream = vecStream.map(eknnQuery.withVec)
+      resultsStream = searchClient.search(trainIndex, queryStream, k, parallelQueries)
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
-    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, ???, dur.toMillis, results)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toVector)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {

@@ -175,6 +175,8 @@ configure(benchmarks, List.of(
 
             dependencies {
                 implementation models
+                implementation lucene
+                implementation plugin
                 implementation clientElastic4s
                 implementation 'org.apache.commons:commons-math3:3.6.1'
                 implementation "dev.zio:zio_${scalaShortVersion}:1.0.0-RC21-2"
@@ -185,8 +187,10 @@ configure(benchmarks, List.of(
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
                 implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
+                implementation "org.elasticsearch:elasticsearch:${esVersion}"
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
                 implementation 'javax.xml:jaxb-api:2.1'

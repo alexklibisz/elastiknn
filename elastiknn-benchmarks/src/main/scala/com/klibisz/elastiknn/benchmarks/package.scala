@@ -49,10 +49,11 @@ package object benchmarks {
                                    mapping: Mapping,
                                    query: NearestNeighborsQuery,
                                    k: Int,
-                                   parallelism: Int,
+                                   shards: Int,
+                                   parallelQueries: Int,
                                    durationMillis: Long = 0,
-                                   queryResults: Seq[QueryResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, $parallelism, $durationMillis, ...)"
+                                   queryResults: Vector[QueryResult]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
   }
 
   final case class AggregateResult(dataset: String,
