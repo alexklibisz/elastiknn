@@ -114,10 +114,10 @@ object SearchClient {
   def luceneInMemory(): Layer[Throwable, Has[SearchClient]] =
     ZLayer.succeed {
 
-//      class InMemoryCodec extends Lucene84Codec {
-//        override def getDocValuesFormatForField(field: String): DocValuesFormat = new DirectDocValuesFormat
-//        override def getPostingsFormatForField(field: String): PostingsFormat = new DirectPostingsFormat()
-//      }
+      class InMemoryCodec extends Lucene84Codec {
+        override def getDocValuesFormatForField(field: String): DocValuesFormat = new DirectDocValuesFormat
+        override def getPostingsFormatForField(field: String): PostingsFormat = new DirectPostingsFormat()
+      }
 
       new SearchClient {
 
@@ -129,7 +129,7 @@ object SearchClient {
         def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]): Task[Long] = {
           val tmpDir = Files.createTempDirectory("elastiknn-").toFile
           val indexDir = new MMapDirectory(tmpDir.toPath)
-          val indexWriterCfg = new IndexWriterConfig(new KeywordAnalyzer()).setCodec(new Lucene84Codec)
+          val indexWriterCfg = new IndexWriterConfig(new KeywordAnalyzer()).setCodec(new InMemoryCodec)
           val indexWriter = new IndexWriter(indexDir, indexWriterCfg)
           for {
             n <- vectors.zipWithIndex.foldM(0L) {
