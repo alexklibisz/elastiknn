@@ -130,20 +130,20 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        _L <- 100 to 350 by 50
-        m <- 1 to 3
-        w <- 1 to 3
+        tables <- 50 to 400 by 50
+        hashesPerTable <- 1 to 3
+        width <- 1 to 3
       } yield
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
           NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-          Mapping.L2Lsh(dataset.dims, _L, m, w),
+          Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, r = width),
           for {
             k <- ks
-            m <- Seq(5, 10, 20, 30)
-            p <- 0 to math.pow(m, 3).toInt by 3
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k, p), k)
+            candidateMultiple <- Seq(10, 20, 50)
+            probes <- 0 to math.pow(hashesPerTable, 3).toInt by 3
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidateMultiple * k, probes), k)
         )
       lsh
     }
@@ -212,17 +212,19 @@ package object benchmarks {
 
     // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
     val defaults: Seq[Experiment] = Seq(
-      l2(AmazonHome),
-      angular(AmazonHomeUnit),
-      angular(AmazonMixedUnit),
-      angular(AnnbDeep1b),
-      l2(AnnbFashionMnist),
-      l2(AnnbGist),
-      angular(AnnbGlove100),
-      jaccard(AnnbKosarak),
-      l2(AnnbMnist),
-      angular(AnnbNyt),
-      l2(AnnbSift)
+      l2(AnnbSift),
+//      angular(AnnbGlove100)
+//      l2(AmazonHome),
+//      angular(AmazonHomeUnit),
+//      angular(AmazonMixedUnit),
+//      angular(AnnbDeep1b),
+//      l2(AnnbFashionMnist),
+//      l2(AnnbGist),
+//      angular(AnnbGlove100),
+//      jaccard(AnnbKosarak),
+//      l2(AnnbMnist),
+//      angular(AnnbNyt),
+//      l2(AnnbSift)
     ).flatten
 
   }

@@ -207,6 +207,11 @@ configure(benchmarks, List.of(
                 mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
             }
 
+            shadowJar {
+                // This is needed to preserve the META-INF directory from lucene-core.
+                mergeServiceFiles()
+            }
+
             dependencies {
                 implementation models
                 implementation lucene
@@ -215,7 +220,7 @@ configure(benchmarks, List.of(
                 implementation 'org.apache.commons:commons-math3:3.6.1'
                 implementation "dev.zio:zio_${scalaShortVersion}:1.0.0"
                 implementation "dev.zio:zio-streams_${scalaShortVersion}:1.0.0"
-                implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.3.0"
+                implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.4.0"
                 implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"

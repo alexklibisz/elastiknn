@@ -58,7 +58,7 @@ object Generate extends App {
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
             (keys :+ key, effects :+ effect)
         }
-        _ <- ZIO.collectAll(effects)
+        _ <- ZIO.collectAllParN(16)(effects)
         // Shuffle the keys so that you don't get several pods running exact search for the same dataset simultaneously.
         keysShuffled = new Random(0).shuffle(keys)
         _ <- blocking.effectBlocking(s3Client.putObject(bucket, keysKey, keysShuffled.asJson.noSpaces))

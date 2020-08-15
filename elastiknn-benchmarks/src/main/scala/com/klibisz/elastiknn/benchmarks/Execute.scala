@@ -91,7 +91,8 @@ object Execute extends App {
       eknnQuery: NearestNeighborsQuery,
       k: Int,
       shards: Int,
-      parallelQueries: Int
+      parallelQueries: Int,
+      delete: Boolean = false
   ) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
@@ -122,6 +123,8 @@ object Execute extends App {
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
+      _ <- if (delete) searchClient.deleteIndex(trainIndex) else Task.succeed(())
+
     } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toVector)
   }
 
@@ -148,24 +151,26 @@ object Execute extends App {
               case None =>
                 for {
                   _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                  exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries)
+                  exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, true)
                   _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $exact")
                   _ <- resultsClient.save(setRecalls(exact, exact))
                 } yield exact
             }
 
             testOpt <- resultsClient.find(dataset, testMapping, testQuery, k)
-            _ <- testOpt match {
-              case Some(_) if !recompute =>
-                log.info(s"Found existing test result for mapping [$testMapping], query [$testQuery]")
-              case _ =>
-                for {
-                  test <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries).map(setRecalls(exactRes, _))
-                  _ <- log.info(s"Saving test result for mapping [$testMapping], query [$testQuery]: $test")
-                  _ <- resultsClient.save(test)
-                  aggregate = AggregateResult(test)
-                  _ <- log.info(s"Aggregate test result for mapping [$testMapping], query [$testQuery]: $aggregate")
-                } yield ()
+            _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
+              testOpt match {
+                case Some(_) if !recompute =>
+                  log.info(s"Found existing test result for mapping [$testMapping], query [$testQuery]")
+                case _ =>
+                  for {
+                    test <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries).map(setRecalls(exactRes, _))
+                    _ <- log.info(s"Saving test result for mapping [$testMapping], query [$testQuery]: $test")
+                    _ <- resultsClient.save(test)
+                    aggregate = AggregateResult(test)
+                    _ <- log.info(s"Aggregate test result for mapping [$testMapping], query [$testQuery]: $aggregate")
+                  } yield ()
+              }
             }
           } yield ()
       }
@@ -181,10 +186,8 @@ object Execute extends App {
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
 
     val searchClientLayer = esUrl match {
-      case Some(url) =>
-        (Clock.live ++ loggingLayer) >>> SearchClient.elasticsearch(URI.create(url), true, 99999)
-      case None =>
-        SearchClient.luceneInMemory()
+      case Some(url) => SearchClient.elasticsearch(URI.create(url), true, 99999)
+      case None      => SearchClient.luceneInMemory()
     }
 
     val layer =

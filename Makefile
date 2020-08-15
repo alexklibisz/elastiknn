@@ -203,9 +203,10 @@ benchmarks/docker/push: .mk/benchmarks-docker-push
 benchmarks/minio:
 	cd elastiknn-testing && docker-compose up -d minio
 
-benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
+benchmarks/argo/submit/lucene: .mk/benchmarks-docker-push
 	cd elastiknn-benchmarks/deploy \
-	&& envsubst < benchmark-workflow.yaml | argo submit -
+	&& envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml \
+	&& argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml
 
 benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
 	cd elastiknn-benchmarks/deploy \

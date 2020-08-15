@@ -167,28 +167,28 @@ module "eks" {
                 }
             ]
         },
-        {
-            name = "c5.4xlarge"
-            instance_type = "c5.4xlarge"
-            asg_min_size = 1
-            asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
-            spot_price = "0.68" # Max price set to on-demand price.
-            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
-            suspended_processes = ["AZRebalance"]
-            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
-            tags = [
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                },
-                {
-                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-                    "propagate_at_launch" = "false"
-                    "value"               = "true"
-                }
-            ]
-        }
+//        {
+//            name = "c5.4xlarge"
+//            instance_type = "c5.4xlarge"
+//            asg_min_size = 1
+//            asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
+//            spot_price = "0.68" # Max price set to on-demand price.
+//            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
+//            suspended_processes = ["AZRebalance"]
+//            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
+//            tags = [
+//                {
+//                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
+//                    "propagate_at_launch" = "false"
+//                    "value"               = "true"
+//                },
+//                {
+//                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+//                    "propagate_at_launch" = "false"
+//                    "value"               = "true"
+//                }
+//            ]
+//        }
     ]
 }
 
@@ -337,6 +337,11 @@ resource "aws_ecr_repository" "datasets" {
     name = "${local.cluster_name}.datasets"
     image_tag_mutability = "MUTABLE"
 }
+
+/*
+ * TODO: IAM user for containers to read/write S3 bucket.
+ */
+
 
 /*
  * Outputs from setup.

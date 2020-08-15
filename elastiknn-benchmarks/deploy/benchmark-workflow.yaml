@@ -6,9 +6,19 @@ metadata:
   generateName: elastiknn-benchmark-
 spec:
   entrypoint: main
+  arguments:
+    parameters:
+      - name: driverImage
+      - name: elastiknnImage
+      - name: awsAccessKeyId
+      - name: awsSecretAccessKey
+      - name: bucket
+        value: elastiknn-benchmarks
+      - name: searchBackend
+        value: "lucene"
   templates:
     - name: main
-      parallelism: 5 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 40 # EKS seems to choke somewhere around 50 nodes.
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -16,8 +26,17 @@ spec:
             template: enqueue-experiments
         - - name: apply-configmap
             template: apply-configmap
-        - - name: execute-experiment
-            template: execute-experiment
+        - - name: execute-lucene
+            when: "{{workflow.parameters.searchBackend}} == lucene"
+            template: execute-lucene
+            arguments:
+              parameters:
+                - name: experiment
+                  value: "{{item}}"
+            withParam: "{{steps.enqueue-experiments.outputs.parameters.experiments}}"
+        - - name: execute-elasticsearch
+            when: "{{workflow.parameters.searchBackend}} == elasticsearch"
+            template: execute-elasticsearch
             arguments:
               parameters:
                 - name: experiment
@@ -29,32 +48,32 @@ spec:
     # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
     - name: generate-experiments
       container:
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
         args:
           - com.klibisz.elastiknn.benchmarks.Generate
           - --experimentsPrefix
           - experiments
           - --bucket
-          - elastiknn-benchmarks
+          - "{{workflow.parameters.bucket}}"
           - --keysKey
           - experiments/latest.json
         env:
           - name: AWS_ACCESS_KEY_ID
-            value: ${AWS_ACCESS_KEY_ID}
+            value: "{{workflow.parameters.awsAccessKeyId}}"
           - name: AWS_SECRET_ACCESS_KEY
-            value: ${AWS_SECRET_ACCESS_KEY}
+            value: "{{workflow.parameters.awsSecretAccessKey}}"
 
     # Cli app copies experiments to disk so argo can generate a pod for each of the experiments.
     - name: enqueue-experiments
       container:
         image: amazon/aws-cli
-        args: ["s3", "cp", "s3://elastiknn-benchmarks/experiments/latest.json", "/tmp/latest.json"]
+        args: ["s3", "cp", "--quiet", "s3://elastiknn-benchmarks/experiments/latest.json", "/tmp/latest.json"]
         env:
           - name: AWS_ACCESS_KEY_ID
-            value: ${AWS_ACCESS_KEY_ID}
+            value: "{{workflow.parameters.awsAccessKeyId}}"
           - name: AWS_SECRET_ACCESS_KEY
-            value: ${AWS_SECRET_ACCESS_KEY}
+            value: "{{workflow.parameters.awsSecretAccessKey}}"
       outputs:
         parameters:
           - name: experiments
@@ -75,7 +94,47 @@ spec:
               cluster.name: "no-cluster"
               network.host: 0.0.0.0
 
-    - name: execute-experiment
+    # Execute experiments using Lucene backend.
+    - name: execute-lucene
+      inputs:
+        parameters:
+          - name: experiment
+      retryStrategy:
+        limit: 1
+        retryPolicy: "Always"
+      nodeSelector:
+        beta.kubernetes.io/instance-type: c5.xlarge
+      container:
+        image: "{{workflow.parameters.driverImage}}"
+        imagePullPolicy: "Always"
+        args:
+          - com.klibisz.elastiknn.benchmarks.Execute
+          - --experimentKey
+          - "{{inputs.parameters.experiment}}"
+          - --datasetsPrefix
+          - data/processed
+          - --resultsPrefix
+          - results/raw
+          - --bucket
+          - "{{workflow.parameters.bucket}}"
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: "{{workflow.parameters.awsAccessKeyId}}"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "{{workflow.parameters.awsSecretAccessKey}}"
+          - name: JAVA_OPTS
+            value: >-
+              -XX:MinRAMPercentage=10
+              -XX:MaxRAMPercentage=90
+        resources:
+          requests:
+            cpu: 2
+            memory: 6G
+          limits:
+            cpu: 2
+            memory: 6G
+
+    - name: execute-elasticsearch
       inputs:
         parameters:
           - name: experiment
@@ -85,8 +144,8 @@ spec:
       steps:
         - - name: create-pvc
             template: create-pvc
-        - - name: execute-driver
-            template: execute-driver
+        - - name: execute-elasticsearch-driver
+            template: execute-elasticsearch-driver
             continueOn:
               failed: true
             arguments:
@@ -106,17 +165,17 @@ spec:
             arguments:
               parameters:
                 - name: code
-                  value: "{{steps.execute-driver.exitCode}}"
+                  value: "{{steps.execute-elasticsearch-driver.exitCode}}"
 
     - name: aggregate-results
       container:
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
         env:
           - name: AWS_ACCESS_KEY_ID
-            value: ${AWS_ACCESS_KEY_ID}
+            value: "{{workflow.parameters.awsAccessKeyId}}"
           - name: AWS_SECRET_ACCESS_KEY
-            value: ${AWS_SECRET_ACCESS_KEY}
+            value: "{{workflow.parameters.awsSecretAccessKey}}"
         args:
           - com.klibisz.elastiknn.benchmarks.Aggregate
           - --resultsBucket
@@ -176,7 +235,7 @@ spec:
         command: [sh, -c]
         args: ["exit {{inputs.parameters.code}}"]
 
-    - name: execute-driver
+    - name: execute-elasticsearch-driver
       inputs:
         parameters:
           - name: experiment
@@ -191,7 +250,7 @@ spec:
       securityContext:
         fsGroup: 1000 # Sets the correct permissions for mounted volume.
       container:
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
         args:
           - com.klibisz.elastiknn.benchmarks.Execute
@@ -202,7 +261,7 @@ spec:
           - --resultsPrefix
           - "results/raw"
           - --bucket
-          - elastiknn-benchmarks
+          - "{{workflow.parameters.bucket}}"
           - --esUrl
           - http://localhost:9200
           - --shards
@@ -211,9 +270,9 @@ spec:
           - "1"
         env:
           - name: AWS_ACCESS_KEY_ID
-            value: ${AWS_ACCESS_KEY_ID}
+            value: "{{workflow.parameters.awsAccessKeyId}}"
           - name: AWS_SECRET_ACCESS_KEY
-            value: ${AWS_SECRET_ACCESS_KEY}
+            value: "{{workflow.parameters.awsSecretAccessKey}}"
           - name: JAVA_OPTS
             value: >-
               -XX:MinRAMPercentage=10
@@ -227,7 +286,7 @@ spec:
             memory: 2G
       sidecars:
         - name: elastiknn
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+          image: "{{workflow.parameters.elastiknnImage}}"
           imagePullPolicy: "Always"
           env:
             - name: discovery.type
