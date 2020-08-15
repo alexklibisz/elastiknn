@@ -1,3 +1,0 @@
-# Minio data for benchmarks.
-.minio/**
-!.minio/.keep

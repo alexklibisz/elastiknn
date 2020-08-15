@@ -103,7 +103,7 @@ object SearchClient {
                     } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
                 }
 
-              def close(): Task[Unit] = ???
+              def close(): Task[Unit] = Task.succeed(client.close())
             }
           }
         }
@@ -178,7 +178,7 @@ object SearchClient {
               }
           }
 
-        def close(): Task[Unit] = ???
+        def close(): Task[Unit] = Task.succeed(())
       }
     }
 
