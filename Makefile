@@ -202,7 +202,7 @@ benchmarks/docker/build: .mk/benchmarks-docker-build
 benchmarks/docker/push: .mk/benchmarks-docker-push
 
 benchmarks/minio:
-	docker run -p 9000:9000 -v $(pwd)/.minio:/data minio/minio server /data
+	cd elastiknn-testing && docker-compose up -d minio
 
 benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
