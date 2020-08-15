@@ -31,7 +31,6 @@ import scala.util.hashing.MurmurHash3
 object Execute extends App {
 
   final case class Params(experimentKey: String = "",
-                          experimentsPrefix: String = "",
                           datasetsPrefix: String = "",
                           resultsPrefix: String = "",
                           recompute: Boolean = false,
@@ -66,7 +65,7 @@ object Execute extends App {
       .optional()
     opt[String]("esUrl")
       .text("elasticsearch URL, e.g. http://localhost:9200")
-      .action((s, c) => c.copy(s3Url = Some(s)))
+      .action((s, c) => c.copy(esUrl = Some(s)))
       .optional()
     opt[Int]("shards")
       .text("number of shards in the elasticsearch index")
@@ -78,11 +77,11 @@ object Execute extends App {
       .optional()
   }
 
-  private def readExperiment(bucket: String, prefix: String, key: String) =
+  private def readExperiment(bucket: String, key: String) =
     for {
       blocking <- ZIO.access[Blocking](_.get)
       s3Client <- ZIO.access[Has[AmazonS3]](_.get)
-      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, s"$prefix/$key"))
+      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, key))
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
@@ -201,7 +200,7 @@ object Execute extends App {
 
       // Load the experiment.
       _ <- log.info(params.toString)
-      experiment <- readExperiment(bucket, experimentsPrefix, experimentKey)
+      experiment <- readExperiment(bucket, experimentKey)
       _ <- log.info(s"Running experiment: $experiment")
 
       // Wait for cluster ready.

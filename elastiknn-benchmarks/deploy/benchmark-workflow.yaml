@@ -8,36 +8,48 @@ spec:
   entrypoint: main
   templates:
     - name: main
-      parallelism: 30 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 5 # EKS seems to choke somewhere around 50 nodes.
       steps:
+        - - name: generate-experiments
+            template: generate-experiments
         - - name: enqueue-experiments
             template: enqueue-experiments
-          - name: apply-configmap
+        - - name: apply-configmap
             template: apply-configmap
         - - name: execute-experiment
             template: execute-experiment
             arguments:
               parameters:
-                - name: hash
+                - name: experiment
                   value: "{{item}}"
-            withParam: "{{steps.enqueue-experiments.outputs.parameters.hashes}}"
-        - - name: aggregate-results
-            template: aggregate-results
+            withParam: "{{steps.enqueue-experiments.outputs.parameters.experiments}}"
+#        - - name: aggregate-results
+#            template: aggregate-results
 
-    - name: enqueue-experiments
+    # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
+    - name: generate-experiments
       container:
         image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         imagePullPolicy: "Always"
         args:
-          - com.klibisz.elastiknn.benchmarks.Enqueue
-          - --datasetsFilter
-          - "AnnbGlove100"
-          - --experimentsBucket
-          - elastiknn-benchmarks
+          - com.klibisz.elastiknn.benchmarks.Generate
           - --experimentsPrefix
           - experiments
-          - --file
-          - /tmp/hashes.txt
+          - --bucket
+          - elastiknn-benchmarks
+          - --keysKey
+          - experiments/latest.json
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+
+    # Cli app copies experiments to disk so argo can generate a pod for each of the experiments.
+    - name: enqueue-experiments
+      container:
+        image: amazon/aws-cli
+        args: ["s3", "cp", "s3://elastiknn-benchmarks/experiments/latest.json", "/tmp/latest.json"]
         env:
           - name: AWS_ACCESS_KEY_ID
             value: ${AWS_ACCESS_KEY_ID}
@@ -45,10 +57,11 @@ spec:
             value: ${AWS_SECRET_ACCESS_KEY}
       outputs:
         parameters:
-          - name: hashes
+          - name: experiments
             valueFrom:
-              path: /tmp/hashes.txt
+              path: /tmp/latest.json
 
+    # Create a configmap mounted by the Elasticsearch sidecar containers.
     - name: apply-configmap
       resource:
         action: apply
@@ -65,7 +78,7 @@ spec:
     - name: execute-experiment
       inputs:
         parameters:
-          - name: hash
+          - name: experiment
       retryStrategy:
         limit: 1
         retryPolicy: "Always"
@@ -78,8 +91,8 @@ spec:
               failed: true
             arguments:
               parameters:
-                - name: hash
-                  value: "{{inputs.parameters.hash}}"
+                - name: experiment
+                  value: "{{inputs.parameters.experiment}}"
                 - name: pvc-name
                   value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
         - - name: delete-pvc
@@ -153,6 +166,7 @@ spec:
             kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
             EOSCRIPT
 
+    # Propagates an exit code. Used as last step so WF can continue on failed steps, do some cleanup, and _then_ fail.
     - name: exit
       inputs:
         parameters:
@@ -165,7 +179,7 @@ spec:
     - name: execute-driver
       inputs:
         parameters:
-          - name: hash
+          - name: experiment
           - name: pvc-name
       volumes:
         - name: esdata
@@ -181,22 +195,20 @@ spec:
         imagePullPolicy: "Always"
         args:
           - com.klibisz.elastiknn.benchmarks.Execute
-          - --experimentHash
-          - "{{inputs.parameters.hash}}"
-          - --experimentsBucket
-          - elastiknn-benchmarks
-          - --experimentsPrefix
-          - "experiments"
-          - --datasetsBucket
-          - elastiknn-benchmarks
+          - --experimentKey
+          - "{{inputs.parameters.experiment}}"
           - --datasetsPrefix
           - "data/processed"
-          - --resultsBucket
-          - "elastiknn-benchmarks"
           - --resultsPrefix
           - "results/raw"
-          - --parallelism
-          - "14"
+          - --bucket
+          - elastiknn-benchmarks
+          - --esUrl
+          - http://localhost:9200
+          - --shards
+          - "4"
+          - --parallelQueries
+          - "1"
         env:
           - name: AWS_ACCESS_KEY_ID
             value: ${AWS_ACCESS_KEY_ID}
