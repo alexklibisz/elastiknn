@@ -61,10 +61,9 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Download Data
         run: |
-          aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbglove25 elastiknn-benchmarks/.minio/elastiknn-benchmarks/data/processed/annbglove25
-          aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift elastiknn-benchmarks/.minio/elastiknn-benchmarks/data/processed/annbsift
-      - name: Start Minio
-        run: cd elastiknn-testing && docker compose up -d minio
+          export PREFIX=elastiknn-benchmarks/data/processed
+          aws s3 sync --quiet s3://$PREFIX/annbglove25 elastiknn-testing/.minio/$PREFIX/annbglove25
+          aws s3 sync --quiet s3://$PREFIX/annbsift elastiknn-testing/.minio/$PREFIX/annbsift
       - name: Run Benchmark
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

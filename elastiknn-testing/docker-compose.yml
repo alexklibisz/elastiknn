@@ -63,4 +63,4 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - "../elastiknn-benchmarks/.minio:/data"
+      - ".minio:/data"
