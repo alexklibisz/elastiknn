@@ -192,7 +192,8 @@ benchmarks/continuous/trigger:
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
 benchmarks/continuous/run: benchmarks/minio
-	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
+	mv .minio elastiknn-benchmarks/.minio || true \
+		&& $(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
 	$$(aws ecr get-login --no-include-email)
