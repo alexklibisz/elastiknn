@@ -65,8 +65,6 @@ jobs:
           aws s3 sync --quiet s3://elastiknn-benchmarks/data/processed/annbsift .minio/elastiknn-benchmarks/data/processed/annbsift
       - name: Run Benchmark
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: make benchmarks/continuous/run
       - name: Logs
