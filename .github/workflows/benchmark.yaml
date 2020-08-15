@@ -67,6 +67,8 @@ jobs:
         run: cd elastiknn-testing && docker compose up -d minio
       - name: Run Benchmark
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
         run: make benchmarks/continuous/run
       - name: Logs
