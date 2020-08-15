@@ -125,11 +125,11 @@ publish/release/plugin: .mk/gradle-publish-local
 
 publish/snapshot/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r pypi --verbose dist/*
+		&& $(vpy) -m twine upload -r pypi --verbose dist/*
 
 publish/release/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r pypi --verbose dist/*
+		&& $(vpy) -m twine upload -r pypi --verbose dist/*
 
 .mk/gradle-docs: $(src_all)
 	$(gradle) unifiedScaladocs
@@ -137,8 +137,8 @@ publish/release/python: .mk/client-python-publish-local
 
 .mk/client-python-docs: $(src_all) .mk/client-python-install
 	cd client-python \
-	&& rm -rf pdoc \
-	&& venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
+		&& rm -rf pdoc \
+		&& venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
 	touch $@
 
 .mk/jekyll-site-build: docs/**/*
@@ -173,9 +173,9 @@ publish/site: .mk/jekyll-site-build
 	cd plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
 	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
 	cd benchmarks/python \
-	&& (ls venv || python3 -m virtualenv venv) \
-	&& venv/bin/pip install -r requirements.txt \
-	&& docker build -t $(ecr_benchmarks_prefix).datasets .
+		&& (ls venv || python3 -m virtualenv venv) \
+		&& venv/bin/pip install -r requirements.txt \
+		&& docker build -t $(ecr_benchmarks_prefix).datasets .
 	touch $@
 
 .mk/benchmarks-docker-push: benchmarks/docker/login benchmarks/docker/build
@@ -191,7 +191,7 @@ benchmarks/continuous/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/continuous/run:
+benchmarks/continuous/run: benchmarks/minio
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
@@ -202,11 +202,7 @@ benchmarks/docker/build: .mk/benchmarks-docker-build
 benchmarks/docker/push: .mk/benchmarks-docker-push
 
 benchmarks/minio:
-	docker run -p 9000:9000 \
-		--env MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID} \
-		--env MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY} \
-		-v $(pwd)/elastiknn-benchmarks/.minio:/data minio/minio \
-		server /data
+	cd elastiknn-testing && docker-compose up -d minio
 
 benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
 	cd benchmarks/deploy \
