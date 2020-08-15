@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn
 
+import java.time.LocalDate
+
 import com.klibisz.elastiknn.api.Mapping._
 import com.klibisz.elastiknn.api._
 import io.circe.Codec
@@ -11,10 +13,6 @@ import zio.Has
 import scala.language.implicitConversions
 
 package object benchmarks {
-
-  type DatasetClient = Has[DatasetClient.Service]
-  type ResultClient = Has[ResultClient.Service]
-  type ElastiknnZioClient = Has[ElastiknnZioClient.Service]
 
   sealed abstract class Dataset(val dims: Int) {
     def name: String = this.getClass.getSimpleName.replace("$", "")
@@ -34,13 +32,7 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
-    case class RandomDenseFloat(override val dims: Int = 1024, train: Int = 50000, test: Int = 1000) extends Dataset(dims) {
-      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
-    }
-    case class RandomSparseBool(override val dims: Int = 4096, train: Int = 50000, test: Int = 1000, bias: Double = 0.25)
-        extends Dataset(dims) {
-      override def name: String = s"Random${dims}d${train / 1000}K${test / 1000}K"
-    }
+    case class S3Pointer(bucket: String, prefix: String, override val dims: Int) extends Dataset(dims)
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
@@ -59,66 +51,73 @@ package object benchmarks {
                                    mapping: Mapping,
                                    query: NearestNeighborsQuery,
                                    k: Int,
-                                   parallelism: Int,
+                                   shards: Int,
+                                   parallelQueries: Int,
                                    durationMillis: Long = 0,
-                                   queryResults: Seq[QueryResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, $parallelism, $durationMillis, ...)"
+                                   queryResults: Vector[QueryResult]) {
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
   }
 
-  final case class AggregateResult(dataset: String,
+  final case class AggregateResult(date: LocalDate,
+                                   hash: String,
+                                   branch: String,
+                                   host: String,
+                                   dataset: String,
                                    similarity: String,
                                    algorithm: String,
                                    k: Int,
-                                   recallP10: Float,
-                                   durationP10: Float,
-                                   recallP50: Float,
-                                   durationP50: Float,
-                                   recallP90: Float,
-                                   durationP90: Float,
-                                   mappingJson: String,
-                                   queryJson: String)
+                                   mapping: Mapping,
+                                   shards: Int,
+                                   query: NearestNeighborsQuery,
+                                   parallelQueries: Int,
+                                   recall: Float,
+                                   queriesPerSecond: Float)
+
   object AggregateResult {
 
     val header = Seq(
+      "date",
+      "hash",
+      "branch",
+      "host",
       "dataset",
       "similarity",
       "algorithm",
       "k",
-      "recallP10",
-      "durationP10",
-      "recallP50",
-      "durationP50",
-      "recallP90",
-      "durationP90",
       "mapping",
-      "query"
+      "shards",
+      "query",
+      "parallelQueries",
+      "recall",
+      "queriesPerSecond"
     )
 
-    private def algorithmName(m: Mapping, q: NearestNeighborsQuery): String = m match {
-      case _: SparseBool                                            => s"Exact"
-      case _: DenseFloat                                            => "Exact"
-      case _: SparseIndexed                                         => "Sparse indexed"
-      case _: JaccardLsh | _: HammingLsh | _: AngularLsh | _: L2Lsh => "LSH"
-      case _: PermutationLsh                                        => "Permutation LSH"
+    private def algorithmName(q: NearestNeighborsQuery): String = {
+      import NearestNeighborsQuery._
+      q match {
+        case _: Exact                                                 => "Exact"
+        case _: SparseIndexed                                         => "Sparse Indexed"
+        case _: HammingLsh | _: JaccardLsh | _: AngularLsh | _: L2Lsh => "LSH"
+        case _: PermutationLsh                                        => "Permutation LSH"
+      }
     }
 
     def apply(benchmarkResult: BenchmarkResult): AggregateResult = {
-      val ptile = new Percentile()
-      val recalls = benchmarkResult.queryResults.map(_.recall).toArray
-      val durations = benchmarkResult.queryResults.map(_.duration.toDouble).toArray
       new AggregateResult(
-        benchmarkResult.dataset.name,
-        benchmarkResult.query.similarity.toString,
-        algorithmName(benchmarkResult.mapping, benchmarkResult.query),
-        benchmarkResult.k,
-        ptile.evaluate(recalls, 0.1).toFloat,
-        ptile.evaluate(durations, 0.1).toFloat,
-        ptile.evaluate(recalls, 0.5).toFloat,
-        ptile.evaluate(durations, 0.5).toFloat,
-        ptile.evaluate(recalls, 0.9).toFloat,
-        ptile.evaluate(durations, 0.9).toFloat,
-        ElasticsearchCodec.encode(benchmarkResult.mapping).noSpaces,
-        ElasticsearchCodec.encode(benchmarkResult.query).noSpaces
+        date = LocalDate.now(),
+        hash = BuildConfig.GIT_HASH,
+        branch = BuildConfig.GIT_BRANCH,
+        host = BuildConfig.HOST_NAME,
+        dataset = benchmarkResult.dataset.name,
+        similarity = benchmarkResult.query.similarity.toString,
+        algorithm = algorithmName(benchmarkResult.query),
+        k = benchmarkResult.k,
+        mapping = benchmarkResult.mapping,
+        shards = benchmarkResult.shards,
+        query = benchmarkResult.query.withVec(Vec.Empty()),
+        parallelQueries = benchmarkResult.parallelQueries,
+        recall = (benchmarkResult.queryResults.map(_.recall).sum / benchmarkResult.queryResults.length).toFloat,
+        queriesPerSecond = benchmarkResult.queryResults.length * 1f / benchmarkResult.durationMillis * 1000L
       )
     }
   }
@@ -127,23 +126,24 @@ package object benchmarks {
     import Dataset._
 
     private val vecName: String = "vec"
-    val defaultKs: Seq[Int] = Seq(10, 100)
+    val defaultKs: Seq[Int] = Seq(100)
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        b <- 100 to 350 by 50
-        r <- 1 to 3
+        _L <- 100 to 350 by 50
+        m <- 1 to 3
         w <- 1 to 3
       } yield
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
           NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-          Mapping.L2Lsh(dataset.dims, b, r, w),
+          Mapping.L2Lsh(dataset.dims, _L, m, w),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k), k)
+            m <- Seq(5, 10, 20, 30)
+            p <- 0 to math.pow(m, 3).toInt by 3
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k, p), k)
         )
       lsh
     }
@@ -235,6 +235,7 @@ package object benchmarks {
     implicit val experimentCodec: Codec[Experiment] = deriveCodec
     implicit val singleResultCodec: Codec[QueryResult] = deriveCodec
     implicit val resultCodec: Codec[BenchmarkResult] = deriveCodec
+    implicit val aggregateResultCodec: Codec[AggregateResult] = deriveCodec
   }
 
 }

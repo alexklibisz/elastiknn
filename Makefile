@@ -125,7 +125,7 @@ publish/release/plugin: .mk/gradle-publish-local
 
 publish/snapshot/python: .mk/client-python-publish-local
 	cd client-python \
-	&& $(vpy) -m twine upload -r pypi --verbose dist/*
+		&& $(vpy) -m twine upload -r pypi --verbose dist/*
 
 publish/release/python: .mk/client-python-publish-local
 	cd client-python \
@@ -191,7 +191,7 @@ benchmarks/continuous/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/continuous/run: .mk/run-cluster
+benchmarks/continuous/run: benchmarks/minio
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
