@@ -132,9 +132,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        if (docID() >= counts.length) {
-                            System.out.println(docID());
-                        }
                         return (float) scoreFunction.score(docID(), counts[docID()]);
                     }
 

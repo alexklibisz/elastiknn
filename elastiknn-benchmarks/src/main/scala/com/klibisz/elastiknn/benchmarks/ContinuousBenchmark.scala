@@ -14,25 +14,6 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // L2
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
-      )
-    ),
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
-      )
-    ),
     // Angular
     Experiment(
       Dataset.AnnbGlove25,
@@ -51,25 +32,41 @@ object ContinuousBenchmark extends App {
       Seq(
         Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
       )
+    ),
+    // L2
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+      )
+    ),
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
+      )
     )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
-    val s3Client = S3Utils.minioClient()
+    val s3Url = "http://localhost:9000"
+    val s3Client = S3Utils.client(Some(s3Url))
     val experimentEffects = experiments.map { exp =>
       for {
-        _ <- ZIO(s3Client.putObject(bucket, s"experiments/${exp.md5sum}.json", codecs.experimentCodec(exp).noSpaces))
+        _ <- ZIO(s3Client.putObject(bucket, s"experiments/${exp.md5sum}", codecs.experimentCodec(exp).noSpaces))
         params = Execute.Params(
-          experimentHash = exp.md5sum,
-          experimentsBucket = bucket,
+          experimentKey = exp.md5sum,
           experimentsPrefix = "experiments",
-          datasetsBucket = bucket,
           datasetsPrefix = "data/processed",
-          resultsBucket = bucket,
           resultsPrefix = "results",
-          parallelism = 2,
-          s3Minio = true,
-          recompute = false
+          bucket = bucket,
+          s3Url = Some(s3Url)
         )
         _ <- Execute(params)
       } yield ()
@@ -78,7 +75,15 @@ object ContinuousBenchmark extends App {
       bucketExists <- ZIO(s3Client.doesBucketExistV2(bucket))
       _ <- if (!bucketExists) ZIO(s3Client.createBucket(bucket)) else ZIO.succeed(())
       _ <- ZIO.collectAll(experimentEffects)
-      _ <- Aggregate(Aggregate.Params(bucket, "results", bucket, "results/aggregate/aggregate.csv", s3Minio = true))
+      _ <- Aggregate(
+        Aggregate.Params(
+          "results",
+          "results/aggregate/aggregate.csv",
+          bucket,
+          Some(s3Url),
+          Some("https://api.airtable.com/v0/appmy9gAptPsjo4M7/Results"),
+          sys.env.get("AIRTABLE_API_KEY")
+        ))
     } yield ()
     pipeline.exitCode
   }

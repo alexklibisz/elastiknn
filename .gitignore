@@ -6,10 +6,6 @@ target
 release.md
 *.csv
 
-# Minio data for benchmarks.
-.minio/**
-!.minio/.keep
-
 # Ignore Gradle GUI config
 gradle-app.setting
 
