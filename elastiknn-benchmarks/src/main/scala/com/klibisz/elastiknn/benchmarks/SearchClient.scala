@@ -168,11 +168,10 @@ object SearchClient {
               queries.zipWithIndex.mapMPar(par) {
                 case (query, i) =>
                   for {
-                    (dur, ids) <- Task {
+                    (dur, ids) <- Task.succeed {
                       val luceneQuery = KnnQueryBuilder(query, mapping, searcher.getIndexReader)
-                      searcher.search(luceneQuery, k).scoreDocs.map { d =>
-                        searcher.doc(d.doc, Set("id").asJava).get("id")
-                      }
+                      val hits = searcher.search(luceneQuery, k)
+                      hits.scoreDocs.map(d => searcher.doc(d.doc, Set("id").asJava).get("id"))
                     }.timed
                     _ <- if (i % 100 == 0) log.debug(s"Completed query [$i] in [${dur.toMillis}] ms") else ZIO.succeed(())
                   } yield QueryResult(ids, dur.toMillis)

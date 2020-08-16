@@ -124,8 +124,9 @@ spec:
             value: "{{workflow.parameters.awsSecretAccessKey}}"
           - name: JAVA_OPTS
             value: >-
-              -XX:MinRAMPercentage=10
-              -XX:MaxRAMPercentage=90
+              -XX:MinRAMPercentage=80
+              -XX:MaxRAMPercentage=80
+              -XX:+HeapDumpOnOutOfMemoryError
         resources:
           requests:
             cpu: 2
