@@ -146,11 +146,11 @@ module "eks" {
     enable_irsa = true
     worker_groups = [
         {
-            name = "m5.large"
-            instance_type = "m5.large"
+            name = "m5.4xlarge"
+            instance_type = "m5.4xlarge"
             asg_min_size = 1
-            asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
-            spot_price = "0.096" # Max price set to on-demand price.
+            asg_max_size = 30   # Max number of nodes at any given time. Different from asg_max_capacity.
+            spot_price = "0.77" # Max price set to on-demand price.
             kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
             suspended_processes = ["AZRebalance"]
             addition_security_group_ids = [aws_security_group.worker_mgmt.id]

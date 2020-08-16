@@ -327,6 +327,7 @@ configure(server, List.of(
                 implementation plugin
                 implementation "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.8"
                 implementation "com.typesafe.akka:akka-http_${scalaShortVersion}:10.2.0"
+                implementation "de.heikoseeberger:akka-http-circe_${scalaShortVersion}:1.31.0"
                 implementation "org.elasticsearch:elasticsearch:${esVersion}"
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"

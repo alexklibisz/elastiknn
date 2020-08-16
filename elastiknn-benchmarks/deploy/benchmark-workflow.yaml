@@ -18,7 +18,7 @@ spec:
         value: "lucene"
   templates:
     - name: main
-      parallelism: 10 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 40 # EKS seems to choke somewhere around 50 nodes.
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -103,7 +103,7 @@ spec:
         limit: 1
         retryPolicy: "Always"
       nodeSelector:
-        beta.kubernetes.io/instance-type: m5.large
+        beta.kubernetes.io/instance-type: m5.4xlarge
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
