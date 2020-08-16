@@ -18,7 +18,7 @@ spec:
         value: "lucene"
   templates:
     - name: main
-      parallelism: 40 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 50 # EKS seems to choke somewhere around 50 nodes.
       steps:
         - - name: generate-experiments
             template: generate-experiments
