@@ -103,7 +103,7 @@ spec:
         limit: 1
         retryPolicy: "Always"
       nodeSelector:
-        beta.kubernetes.io/instance-type: c5.large
+        beta.kubernetes.io/instance-type: m5.large
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
@@ -140,11 +140,11 @@ spec:
             protocol: TCP
         resources:
           requests:
-            cpu: 1
-            memory: 2.4Gi
+            cpu: 1.2
+            memory: 6Gi
           limits:
-            cpu: 1
-            memory: 2.4Gi
+            cpu: 1.2
+            memory: 6Gi
 
     - name: execute-elasticsearch
       inputs:
