@@ -17,6 +17,7 @@ import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console._
 import zio.duration.Duration
+import zio.internal.Platform
 import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
 import zio.stream._
@@ -28,7 +29,7 @@ import scala.util.hashing.MurmurHash3
 /**
   * Executes a single experiment containing one exact mapping, one test mapping, and many test queries.
   */
-object Execute extends App {
+object Execute {
 
   final case class Params(experimentKey: String = "",
                           datasetsPrefix: String = "",
@@ -182,14 +183,11 @@ object Execute extends App {
     import params._
     val s3Client = S3Utils.client(s3Url)
     val blockingWithS3 = Blocking.live ++ ZLayer.succeed(s3Client)
-
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
-
     val searchClientLayer = esUrl match {
       case Some(url) => SearchClient.elasticsearch(URI.create(url), true, 99999)
       case None      => SearchClient.luceneInMemory()
     }
-
     val layer =
       Console.live ++
         Clock.live ++
@@ -219,9 +217,11 @@ object Execute extends App {
     steps.provideLayer(layer)
   }
 
-  override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
-    case Some(params) => apply(params).exitCode
-    case None         => sys.exit(1)
+  def main(args: Array[String]): Unit = parser.parse(args, Params()) match {
+    case Some(params) =>
+      val runtime = Runtime((), Platform.benchmark)
+      runtime.unsafeRun(apply(params))
+    case None => sys.exit(1)
   }
 
 }

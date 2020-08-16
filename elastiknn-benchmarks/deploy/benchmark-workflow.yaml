@@ -18,7 +18,7 @@ spec:
         value: "lucene"
   templates:
     - name: main
-      parallelism: 40 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 10 # EKS seems to choke somewhere around 50 nodes.
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -127,6 +127,7 @@ spec:
               -XX:MinRAMPercentage=5
               -XX:MaxRAMPercentage=80
               -XX:+HeapDumpOnOutOfMemoryError
+              -XX:+ExitOnOutOfMemoryError
               -Dcom.sun.management.jmxremote.ssl=false
               -Dcom.sun.management.jmxremote.authenticate=false
               -Dcom.sun.management.jmxremote.local.only=false
@@ -140,10 +141,10 @@ spec:
         resources:
           requests:
             cpu: 1
-            memory: 2Gi
+            memory: 2.4Gi
           limits:
             cpu: 1
-            memory: 2Gi
+            memory: 2.4Gi
 
     - name: execute-elasticsearch
       inputs:

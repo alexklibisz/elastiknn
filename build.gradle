@@ -53,6 +53,7 @@ Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
 Project plugin = project(':plugin')
+Project server = project(':server')
 Project testing = project(':testing')
 
 // Utility to apply multiple configuration closures to a single project.
@@ -217,7 +218,6 @@ configure(benchmarks, List.of(
                 implementation lucene
                 implementation plugin
                 implementation clientElastic4s
-                implementation 'org.apache.commons:commons-math3:3.6.1'
                 implementation "dev.zio:zio_${scalaShortVersion}:1.0.0"
                 implementation "dev.zio:zio-streams_${scalaShortVersion}:1.0.0"
                 implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.4.0"
@@ -304,6 +304,35 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
+
+configure(server, List.of(
+        scalaProjectConfig,
+        {
+            apply plugin: 'application'
+            apply plugin: 'com.github.johnrengelman.shadow'
+
+            application {
+                mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
+            }
+
+            shadowJar {
+                // This is needed to preserve the META-INF directory from lucene-core.
+                mergeServiceFiles()
+            }
+
+            dependencies {
+                implementation api4s
+                implementation models
+                implementation lucene
+                implementation plugin
+                implementation "org.elasticsearch:elasticsearch:${esVersion}"
+                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+            }
+        }))
+
 
 configure(testing, List.of(scalaProjectConfig, {
 
