@@ -103,7 +103,7 @@ spec:
         limit: 1
         retryPolicy: "Always"
       nodeSelector:
-        beta.kubernetes.io/instance-type: c5.xlarge
+        beta.kubernetes.io/instance-type: c5.large
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
@@ -124,16 +124,26 @@ spec:
             value: "{{workflow.parameters.awsSecretAccessKey}}"
           - name: JAVA_OPTS
             value: >-
-              -XX:MinRAMPercentage=80
+              -XX:MinRAMPercentage=5
               -XX:MaxRAMPercentage=80
               -XX:+HeapDumpOnOutOfMemoryError
+              -Dcom.sun.management.jmxremote.ssl=false
+              -Dcom.sun.management.jmxremote.authenticate=false
+              -Dcom.sun.management.jmxremote.local.only=false
+              -Dcom.sun.management.jmxremote.port=8097
+              -Dcom.sun.management.jmxremote.rmi.port=8097
+              -Djava.rmi.server.hostname=localhost
+        ports:
+          - name: jmx
+            containerPort: 8097
+            protocol: TCP
         resources:
           requests:
-            cpu: 2
-            memory: 6G
+            cpu: 1
+            memory: 2Gi
           limits:
-            cpu: 2
-            memory: 6G
+            cpu: 1
+            memory: 2Gi
 
     - name: execute-elasticsearch
       inputs:

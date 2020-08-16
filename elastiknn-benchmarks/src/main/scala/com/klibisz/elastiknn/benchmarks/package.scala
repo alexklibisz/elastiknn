@@ -130,7 +130,7 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        tables <- 50 to 300 by 50
+        tables <- Seq(50, 75) ++ (100 to 300 by 50)
         hashesPerTable <- 1 to 3
         width <- 1 to 3
       } yield
