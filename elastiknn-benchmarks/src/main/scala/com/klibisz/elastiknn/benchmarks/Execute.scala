@@ -29,7 +29,7 @@ import scala.util.hashing.MurmurHash3
 /**
   * Executes a single experiment containing one exact mapping, one test mapping, and many test queries.
   */
-object Execute {
+object Execute extends App {
 
   final case class Params(experimentKey: String = "",
                           datasetsPrefix: String = "",
@@ -217,11 +217,9 @@ object Execute {
     steps.provideLayer(layer)
   }
 
-  def main(args: Array[String]): Unit = parser.parse(args, Params()) match {
-    case Some(params) =>
-      val runtime = Runtime((), Platform.benchmark)
-      runtime.unsafeRun(apply(params))
-    case None => sys.exit(1)
+  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = parser.parse(args, Params()) match {
+    case Some(params) => apply(params).exitCode
+    case None         => sys.exit(1)
   }
 
 }

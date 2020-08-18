@@ -2,13 +2,10 @@ package com.klibisz.elastiknn
 
 import java.time.LocalDate
 
-import com.klibisz.elastiknn.api.Mapping._
 import com.klibisz.elastiknn.api._
 import io.circe.Codec
 import io.circe.generic.semiauto._
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.math3.stat.descriptive.rank.Percentile
-import zio.Has
 
 import scala.language.implicitConversions
 
@@ -130,7 +127,7 @@ package object benchmarks {
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {
-        tables <- Seq(50, 75) ++ (100 to 300 by 50)
+        tables <- Seq(50, 75, 100, 200, 250)
         hashesPerTable <- 1 to 3
         width <- 1 to 3
       } yield

@@ -182,8 +182,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
-      corpusExists <- client.execute(indexExists(corpusIndex)).map(_.result.exists)
-      queryExists <- client.execute(indexExists(queriesIndex)).map(_.result.exists)
+      corpusExists <- eknn.execute(indexExists(corpusIndex)).map(_.result.exists)
+      queryExists <- eknn.execute(indexExists(queriesIndex)).map(_.result.exists)
       _ <- if (corpusExists && queryExists) Future.successful(())
       else
         for {

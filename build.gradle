@@ -325,9 +325,9 @@ configure(server, List.of(
                 implementation models
                 implementation lucene
                 implementation plugin
-                implementation "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.8"
-                implementation "com.typesafe.akka:akka-http_${scalaShortVersion}:10.2.0"
-                implementation "de.heikoseeberger:akka-http-circe_${scalaShortVersion}:1.31.0"
+                api "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.8"
+                api "com.typesafe.akka:akka-http_${scalaShortVersion}:10.2.0"
+                api "de.heikoseeberger:akka-http-circe_${scalaShortVersion}:1.31.0"
                 implementation "org.elasticsearch:elasticsearch:${esVersion}"
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
@@ -356,6 +356,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation clientElastic4s
         implementation plugin
         implementation lucene
+        implementation server
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
