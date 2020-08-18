@@ -7,15 +7,31 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.directives.DebuggingDirectives.logRequestResult
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, FromRequestUnmarshaller}
+import akka.stream.Materializer
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Json
 
 import scala.collection.immutable
+import scala.concurrent.{ExecutionContext, Future}
+import scala.language.implicitConversions
 import scala.util.Failure
 
-object Server extends FailFastCirceSupport {
+object Server {
+
+  private object CirceMarshaling extends FailFastCirceSupport {
+    override def mediaTypes: immutable.Seq[MediaType.WithFixedCharset] = List(
+      MediaType.applicationWithFixedCharset("json; charset=UTF-8", HttpCharsets.`UTF-8`),
+      MediaTypes.`application/json`
+    )
+  }
+
+  private implicit def entityToRequestUnmarshaller[T](feu: FromEntityUnmarshaller[T]): FromRequestUnmarshaller[T] =
+    new FromRequestUnmarshaller[T] {
+      override def apply(r: HttpRequest)(implicit ec: ExecutionContext, materializer: Materializer): Future[T] = feu(r.entity)
+    }
 
   private val exceptionHandler: ExceptionHandler = ExceptionHandler {
     case ex: Exception =>
@@ -45,12 +61,8 @@ object Server extends FailFastCirceSupport {
       |}
       |""".stripMargin).toTry.get
 
-  override def mediaTypes: immutable.Seq[MediaType.WithFixedCharset] = List(
-    MediaType.applicationWithFixedCharset("json; charset=UTF-8", HttpCharsets.`UTF-8`),
-    MediaTypes.`application/json`
-  )
-
-  def elasticRoutes(es: FakeElasticsearch, logLevel: Logging.LogLevel): Route =
+  def elasticRoutes(es: FakeElasticsearch, logLevel: Logging.LogLevel): Route = {
+    import CirceMarshaling._
     logRequestResult("elastiknn-server", logLevel) {
       handleExceptions(exceptionHandler) {
         concat(
@@ -58,7 +70,12 @@ object Server extends FailFastCirceSupport {
             complete(healthJson(es))
           },
           (path("_bulk") & post) {
-            complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(s"POST _bulk")))
+            extractLog { log =>
+              entity(new BulkIndexUnmarshaller(log)) { indexRequests =>
+//                es.bulkIndex(indexRequests).map(_ => )
+                complete(HttpResponse(StatusCodes.OK, entity = HttpEntity(s"POST _bulk")))
+              }
+            }
           },
           (path("_all") & delete) {
             complete(es.deleteAll().map(_ => Acknowledged(true)))
@@ -99,6 +116,7 @@ object Server extends FailFastCirceSupport {
         )
       }
     }
+  }
 
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = ActorSystem("elastiknn-server")

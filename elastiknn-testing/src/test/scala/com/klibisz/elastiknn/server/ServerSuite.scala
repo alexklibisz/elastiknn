@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.Http
 import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.storage.StoredVec.DenseFloat
 import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.HealthStatus
@@ -49,13 +50,20 @@ class ServerSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       _ <- eknn.execute(createIndex("bar"))
       _ <- eknn.execute(deleteAll)
 
-      // Creates index, puts mapping, fails to put mapping after it already exists.
+      // Creates index, puts mapping, fails to put mapping after it already exists and if it doesn't use "vec" field.
       _ <- eknn.execute(createIndex("foo"))
       _ <- eknn.putMapping("foo", "vec", "id", Mapping.DenseFloat(10))
       _ <- recoverToExceptionIf[RuntimeException](eknn.putMapping("foo", "vec", "id", Mapping.SparseBool(99)))
+      _ <- eknn.execute(createIndex("bar"))
+      _ <- recoverToExceptionIf[RuntimeException](eknn.putMapping("bar", "notvec", "id", Mapping.DenseFloat(10)))
       _ <- eknn.execute(deleteAll)
 
       // Index and search vectors.
+      _ <- eknn.execute(createIndex("foo"))
+      _ <- eknn.putMapping("foo", "vec", "id", Mapping.DenseFloat(10))
+      corpus = Vec.DenseFloat.randoms(10, 1000)
+      ids = corpus.indices.map(i => s"v$i")
+      _ <- eknn.index("foo", "vec", corpus, "id", ids)
 
     } yield Assertions.succeed
   }

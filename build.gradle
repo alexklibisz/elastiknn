@@ -332,6 +332,7 @@ configure(server, List.of(
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
                 implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+                implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
