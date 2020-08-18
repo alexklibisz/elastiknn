@@ -10,6 +10,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
+import scala.language.implicitConversions
 
 final class FakeElasticsearch {
 
@@ -35,7 +36,7 @@ final class FakeElasticsearch {
 
   def putMapping(index: String, mapping: Mapping): Try[Unit] = {
     state.get(index) match {
-      case Some(Empty(name))               => Success(state.put(index, Open(name, mapping)))
+      case Some(Empty(name))               => Success(state.put(index, Open(name, mapping, ???)))
       case Some(_: Open) | Some(_: Closed) => Failure(new IllegalStateException(s"Index [$index] already has a mapping"))
       case None                            => Failure(noSuchIndex(index))
     }

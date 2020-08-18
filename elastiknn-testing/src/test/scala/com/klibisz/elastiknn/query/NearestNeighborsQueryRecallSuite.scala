@@ -182,14 +182,18 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
-      corpusExists <- eknn.execute(indexExists(corpusIndex)).map(_.result.exists)
-      queryExists <- eknn.execute(indexExists(queriesIndex)).map(_.result.exists)
+      corpusExists <- eknn.execute(indexExists(corpusIndex)).map(_.result.exists).recoverWith {
+        case _ => Future.successful(false)
+      }
+      queryExists <- eknn.execute(indexExists(queriesIndex)).map(_.result.exists).recoverWith {
+        case _ => Future.successful(false)
+      }
       _ <- if (corpusExists && queryExists) Future.successful(())
       else
         for {
-          _ <- eknn.execute(createIndex(corpusIndex).shards(shards).replicas(0))
+          _ <- eknn.execute(createIndex(corpusIndex).shards(shards).replicas(0).indexSetting("elastiknn_in_memory", true))
           _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
-          _ <- eknn.execute(createIndex(queriesIndex).shards(shards).replicas(0))
+          _ <- eknn.execute(createIndex(queriesIndex).shards(shards).replicas(0).indexSetting("elastiknn_in_memory", true))
           _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
           _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(100)) { batch =>
             val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
