@@ -65,14 +65,23 @@ object SearchClient {
             def indexExists(index: String): Task[Boolean] =
               execute(ElasticDsl.indexExists(index)).map(_.result.exists).catchSome {
                 case _: ElastiknnClient.StrictFailureException => ZIO.succeed(false)
+                case _: RuntimeException                       => ZIO.succeed(false)
               }
 
-            def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]) = {
+            def buildIndex(index: String,
+                           mapping: Mapping,
+                           shards: Int,
+                           vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long] = {
               {
                 for {
                   _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
                   _ <- indexExists(index)
-                  _ <- execute(createIndex(index).replicas(0).shards(shards).indexSetting("refresh_interval", "-1"))
+                  _ <- execute(
+                    createIndex(index)
+                      .replicas(0)
+                      .shards(shards)
+                      .indexSetting("refresh_interval", "-1")
+                      .indexSetting("elastiknn_in_memory", false))
                   _ <- execute(ElastiknnRequests.putMapping(index, "vec", "id", mapping))
                   n <- vectors
                     .grouped(200)
@@ -92,11 +101,14 @@ object SearchClient {
               }
             }
 
-            def search(index: String, queries: Stream[Throwable, NearestNeighborsQuery], k: Int, par: Int) = {
+            def search(index: String,
+                       queries: Stream[Throwable, NearestNeighborsQuery],
+                       k: Int,
+                       par: Int): ZStream[Logging with Clock, Throwable, QueryResult] = {
               queries.zipWithIndex.mapMPar(par) {
                 case (query, i) =>
                   for {
-                    (dur, res) <- execute(ElastiknnRequests.nearestNeighbors(index, query, k, "id")).timed
+                    (dur, res) <- ZIO.fromFuture(_ => client.nearestNeighbors(index, query, k, "id")).timed
                     _ <- if (i % 100 == 0) log.debug(s"Completed query [$i] in [$index] in [${dur.toMillis}] ms") else ZIO.succeed(())
                   } yield QueryResult(res.result.hits.hits.map(_.id), res.result.took)
               }

@@ -66,7 +66,8 @@ object ContinuousBenchmark extends App {
           datasetsPrefix = "data/processed",
           resultsPrefix = "results",
           bucket = bucket,
-          s3Url = Some(s3Url)
+          s3Url = Some(s3Url),
+          esUrl = Some("http://localhost:9200")
         )
         _ <- Execute(params)
       } yield ()

@@ -125,8 +125,7 @@ object Execute extends App {
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
       _ <- if (delete) searchClient.deleteIndex(trainIndex) else Task.succeed(())
-
-    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toVector)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toArray)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
@@ -152,7 +151,7 @@ object Execute extends App {
               case None =>
                 for {
                   _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                  exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, true)
+                  exact: BenchmarkResult <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, true)
                   _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $exact")
                   _ <- resultsClient.save(setRecalls(exact, exact))
                 } yield exact
@@ -161,15 +160,14 @@ object Execute extends App {
             testOpt <- resultsClient.find(dataset, testMapping, testQuery, k)
             _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
               testOpt match {
-                case Some(_) if !recompute =>
-                  log.info(s"Found existing test result for mapping [$testMapping], query [$testQuery]")
+                case Some(_) if !recompute => log.info(s"Found existing test result")
                 case _ =>
                   for {
                     test <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries).map(setRecalls(exactRes, _))
-                    _ <- log.info(s"Saving test result for mapping [$testMapping], query [$testQuery]: $test")
+                    _ <- log.info(s"Saving test result [$test]")
                     _ <- resultsClient.save(test)
                     aggregate = AggregateResult(test)
-                    _ <- log.info(s"Aggregate test result for mapping [$testMapping], query [$testQuery]: $aggregate")
+                    _ <- log.info(s"Aggregate test result: $aggregate")
                   } yield ()
               }
             }

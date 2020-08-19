@@ -1,2 +1,2 @@
--Dtests.heap.size=4G
+-Dtests.heap.size=8G
 -Dtests.es.indices.query.bool.max_clause_count=4096

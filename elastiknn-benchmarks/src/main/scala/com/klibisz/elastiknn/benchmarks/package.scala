@@ -51,7 +51,7 @@ package object benchmarks {
                                    shards: Int,
                                    parallelQueries: Int,
                                    durationMillis: Long = 0,
-                                   queryResults: Vector[QueryResult]) {
+                                   queryResults: Array[QueryResult]) {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
   }
 
