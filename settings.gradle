@@ -7,7 +7,6 @@ List<String> subprojectNames = List.of(
     'lucene',
     'models',
     'plugin',
-    'server',
     'testing'
 )
 

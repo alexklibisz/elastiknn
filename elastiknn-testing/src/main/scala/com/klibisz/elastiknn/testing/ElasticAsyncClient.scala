@@ -24,4 +24,6 @@ trait ElasticAsyncClient {
 
   protected lazy val eknn: ElastiknnClient[Future] = ElastiknnClient.futureClient(httpHost.getHostName, httpHost.getPort)
 
+  protected lazy val client: ElasticClient = eknn.elasticClient
+
 }

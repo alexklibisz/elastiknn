@@ -8,7 +8,7 @@ class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers wit
 
   test("returns green health") {
     for {
-      healthRes <- eknn.execute(catHealth())
+      healthRes <- client.execute(catHealth())
     } yield {
       healthRes.shouldBeSuccess
       healthRes.result.status shouldBe "green"
@@ -17,7 +17,7 @@ class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers wit
 
   test("installed the plugin") {
     for {
-      catPluginsRes <- eknn.execute(catPlugins())
+      catPluginsRes <- client.execute(catPlugins())
     } yield {
       catPluginsRes.shouldBeSuccess
       catPluginsRes.result should not be empty
@@ -27,7 +27,7 @@ class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers wit
 
   test("started four nodes") {
     for {
-      catNodesRes <- eknn.execute(catNodes())
+      catNodesRes <- client.execute(catNodes())
     } yield {
       catNodesRes.shouldBeSuccess
       catNodesRes.result should have length 2

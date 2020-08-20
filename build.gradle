@@ -53,7 +53,6 @@ Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
 Project plugin = project(':plugin')
-Project server = project(':server')
 Project testing = project(':testing')
 
 // Utility to apply multiple configuration closures to a single project.
@@ -307,39 +306,6 @@ configure(plugin, List.of(scalaProjectConfig, {
     }
 }))
 
-configure(server, List.of(
-        scalaProjectConfig,
-        {
-            apply plugin: 'application'
-            apply plugin: 'com.github.johnrengelman.shadow'
-
-            application {
-                mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
-            }
-
-            shadowJar {
-                // This is needed to preserve the META-INF directory from lucene-core.
-                mergeServiceFiles()
-            }
-
-            dependencies {
-                implementation api4s
-                implementation models
-                implementation lucene
-                implementation plugin
-                api "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.8"
-                api "com.typesafe.akka:akka-http_${scalaShortVersion}:10.2.0"
-                api "de.heikoseeberger:akka-http-circe_${scalaShortVersion}:1.31.0"
-                implementation "org.elasticsearch:elasticsearch:${esVersion}"
-                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
-                implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
-                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
-            }
-        }))
-
-
 configure(testing, List.of(scalaProjectConfig, {
 
     apply plugin: 'com.github.maiflai.scalatest'
@@ -359,7 +325,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation clientElastic4s
         implementation plugin
         implementation lucene
-        implementation server
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
