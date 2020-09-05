@@ -31,7 +31,7 @@ clean:
 	touch $@
 
 .mk/client-python-venv: .mk/python3-installed
-	cd client-python && python3 -m venv venv
+	cd client-python && python3 -m pip install virtualenv && python3 -m virtualenv venv
 	touch $@
 
 .mk/client-python-install: .mk/client-python-venv client-python/requirements*.txt
