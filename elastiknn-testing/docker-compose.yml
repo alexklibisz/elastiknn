@@ -2,7 +2,7 @@
 # Github's virtual environments have 2 CPUs, 7GB memory, 14GB SSD.
 # Important to run in cluster mode because some parts of the plugin
 # deal with communication/serialization between nodes.
-version: "3"
+version: "3.8"
 
 services:
   # Single master node.
@@ -25,6 +25,11 @@ services:
       - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ports:
       - "9200:9200"
+    volumes:
+      - type: tmpfs
+        target: /usr/share/elasticsearch/data
+        tmpfs:
+          size: 1000000000 # 1Gb
     ulimits:
       nofile:
         soft: 65536
@@ -33,7 +38,6 @@ services:
         soft: -1
         hard: -1
 
-  # 1 or more data nodes (--scale elasticsearch_data=n)
   elasticsearch_data:
     build:
       context: ${ES_CONTEXT:-../elastiknn-plugin}
@@ -45,6 +49,11 @@ services:
       - node.master=false
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms4G -Xmx4G
+    volumes:
+      - type: tmpfs
+        target: /usr/share/elasticsearch/data
+        tmpfs:
+          size: 10000000000 # 10Gb
     ulimits:
       nofile:
         soft: 65536
@@ -58,8 +67,8 @@ services:
     image: minio/minio
     command: server /data
     environment:
-      - MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID:-}
-      - MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID:-elastiknn}
+      - MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY:-elastiknn}
     ports:
       - "9000:9000"
     volumes:
