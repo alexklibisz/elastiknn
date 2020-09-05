@@ -78,11 +78,15 @@ object SearchClient {
                         val ids = vecs.indices.map(i => s"$batchIndex-$i")
                         for {
                           (dur, _) <- Task.fromFuture(_ => client.index(index, "vec", vecs, "id", ids)).timed
-                          _ <- log.info(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
+                          _ <- if (n % 100 == 0)
+                            log.debug(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
+                          else ZIO.succeed(())
                         } yield n + vecs.length
                     }
                   _ <- execute(refreshIndex(index))
-                  _ <- execute(forceMerge(index).maxSegments(1))
+                  _ <- log.info(s"Merging index [$index] into 1 segment")
+                  (dur, _) <- execute(forceMerge(index).maxSegments(1)).timed
+                  _ <- log.info(s"Merged index [$index] in [${dur.toSeconds}] seconds")
                   _ <- execute(refreshIndex(index))
                 } yield n
               }
