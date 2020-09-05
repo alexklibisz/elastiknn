@@ -31,16 +31,16 @@ def cleanup_mapping(s: str) -> str:
 
 
 def main():
-    df = pd.read_csv('/home/alex/tmp/results/aggregate/aggregate.csv')
+    df = pd.read_csv('/home/alex/Desktop/results-1597606608/aggregate.csv')
     output_file("results.html", title="Elastiknn Benchmark Results")
     colors = itertools.cycle(palette)
     tooltips = [("mapping", "@mapping"), ("query", "@query")]
-    xcol = "averageRecall"
-    ycol = "queriesPerSecondPerShard"
+    xcol = "recall"
+    ycol = "queriesPerSecond"
     figures = []
     for (dataset, g1) in df.groupby('dataset'):
         print(dataset)
-        p = figure(plot_width=800, plot_height=400, title=dataset, tooltips=tooltips,
+        p = figure(plot_width=1600, plot_height=800, title=dataset, tooltips=tooltips,
                    x_axis_label="Average Recall", y_axis_label="Queries / Second / Shard",
                    toolbar_location="above")
         legend_items = []
@@ -52,14 +52,14 @@ def main():
             source_full = ColumnDataSource(data=dict(
                 x=g2[xcol],
                 y=g2[ycol].values,
-                mapping=list(map(cleanup_mapping, g2['mappingJson'])),
-                query=list(map(cleanup_query, g2['queryJson']))
+                mapping=list(map(cleanup_mapping, g2['mapping'])),
+                query=list(map(cleanup_query, g2['query']))
             ))
             source_pareto = ColumnDataSource(data=dict(
                 x=pareto[xcol],
                 y=pareto[ycol].values,
-                mapping=list(map(cleanup_mapping, pareto['mappingJson'])),
-                query=list(map(cleanup_query, pareto['queryJson']))
+                mapping=list(map(cleanup_mapping, pareto['mapping'])),
+                query=list(map(cleanup_query, pareto['query']))
             ))
             legend_items += [(
                 legend_label,
