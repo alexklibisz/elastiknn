@@ -1,29 +1,19 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.net.URI
-import java.util.concurrent.TimeUnit
 
 import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
-import com.klibisz.elastiknn.client.ElastiknnClient
-import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
-import com.sksamuel.elastic4s.requests.common.HealthStatus
-import com.sksamuel.elastic4s.requests.searches.SearchIterator
-import com.sksamuel.elastic4s.{ElasticDsl, Hit, HitReader}
 import io.circe.parser._
 import zio._
 import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console._
-import zio.duration.Duration
-import zio.internal.Platform
 import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
 import zio.stream._
 
-import scala.util.Try
-import scala.concurrent.duration._
 import scala.util.hashing.MurmurHash3
 
 /**
@@ -135,7 +125,9 @@ object Execute extends App {
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
     val withRecalls = exact.queryResults.zip(test.queryResults).map {
-      case (ex, ts) => ts.copy(recall = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length)
+      case (ex, ts) =>
+        val r = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length
+        ts.copy(recall = r)
     }
     test.copy(queryResults = withRecalls)
   }

@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.models
 import org.scalatest.{FunSuite, Matchers}
 import java.util.Random
 
-import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.api._
 
 class HammingLshModelSuite extends FunSuite with Matchers {
 

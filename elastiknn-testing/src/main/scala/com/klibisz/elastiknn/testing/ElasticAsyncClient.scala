@@ -1,11 +1,9 @@
 package com.klibisz.elastiknn.testing
 
 import com.klibisz.elastiknn.client.ElastiknnClient
-import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.{ElasticClient, Executor}
+import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.http.HttpHost
-import org.elasticsearch.client.RestClient
 import org.scalatest.AsyncTestSuite
 
 import scala.concurrent.Future

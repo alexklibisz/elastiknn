@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.models
 
-import com.klibisz.elastiknn.api.{Mapping, Vec}
-import org.scalatest.{Assertions, FunSuite, Inspectors, Matchers}
+import com.klibisz.elastiknn.api._
+import org.scalatest.{Assertions, FunSuite, Matchers}
 
 import scala.util.Random
 

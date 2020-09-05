@@ -4,11 +4,9 @@ import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
-import org.apache.lucene.codecs.lucene84.Lucene84Codec
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
-import org.apache.lucene.util.BytesRef
 import org.scalatest._
 
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {

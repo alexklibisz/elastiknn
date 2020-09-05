@@ -7,7 +7,7 @@ import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
-import org.apache.lucene.search.{MatchHashesAndScoreQuery, TopDocs}
+import org.apache.lucene.search.{MatchHashesAndScoreQuery}
 import org.scalatest._
 
 import scala.util.Random

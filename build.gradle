@@ -93,7 +93,7 @@ def buildConfigConfig = {
 def scalaProjectConfig = {
     apply plugin: 'scala'
     tasks.withType(ScalaCompile) {
-        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings", "-feature"))
+        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings", "-Ywarn-unused:imports", "-feature"))
     }
     task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
         Set docProjects = subprojects.findAll { it.plugins.hasPlugin('scala') }

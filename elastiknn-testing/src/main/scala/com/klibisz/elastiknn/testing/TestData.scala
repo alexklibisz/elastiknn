@@ -10,7 +10,7 @@ import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 
-import scala.util.{Random, Try}
+import scala.util.Random
 
 case class Result(similarity: Similarity, values: Vector[Double])
 object Result {

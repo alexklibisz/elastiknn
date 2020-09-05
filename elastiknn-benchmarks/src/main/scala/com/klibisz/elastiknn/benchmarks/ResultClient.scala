@@ -1,12 +1,12 @@
 package com.klibisz.elastiknn.benchmarks
 
 import com.amazonaws.services.s3.AmazonS3
+import com.amazonaws.services.s3.model.ListObjectsV2Request
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery}
+import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.parser.decode
 import io.circe.syntax._
 import zio._
-import codecs._
-import com.amazonaws.services.s3.model.{ListObjectsV2Request, ListObjectsV2Result}
 import zio.blocking._
 import zio.stream._
 

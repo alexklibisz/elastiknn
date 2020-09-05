@@ -3,11 +3,11 @@ package com.klibisz.elastiknn.query
 import java.util.UUID
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, SilentMatchers, TestData}
+import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import org.scalatest.{AsyncFunSuite, Inspectors, Matchers}
+import org.scalatest.{AsyncFunSuite, Matchers}
 
 import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash

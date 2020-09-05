@@ -7,8 +7,6 @@ import io.circe.Codec
 import io.circe.generic.semiauto._
 import org.apache.commons.codec.digest.DigestUtils
 
-import scala.language.implicitConversions
-
 package object benchmarks {
 
   sealed abstract class Dataset(val dims: Int) {

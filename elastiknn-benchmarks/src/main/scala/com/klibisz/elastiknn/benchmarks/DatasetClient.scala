@@ -10,8 +10,6 @@ import zio._
 import zio.stream._
 
 import scala.io.Source
-import scala.util.Random
-import scala.util.hashing.MurmurHash3
 
 trait DatasetClient {
   def streamTrain(dataset: Dataset, limit: Option[Int] = None): Stream[Throwable, Vec]
@@ -30,6 +28,8 @@ object DatasetClient {
             val key = s"$keyPrefix/${dataset.name}/$name.json.gz".toLowerCase
             val obj = client.getObject(bucket, key)
             val iterManaged = Managed.makeEffect(Source.fromInputStream(new GZIPInputStream(obj.getObjectContent)))(_.close())
+            // TODO: Fix S3 API warning when using .take to limit number of vectors.
+            // WARNING: Not all bytes were read from the S3ObjectInputStream, aborting HTTP connection. ...
             val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines.take(n)).getOrElse(src.getLines())))
             val rawJson = lines.map(_.dropWhile(_ != '{'))
             rawJson.mapM(s => ZIO.fromEither(parseDecode(s)))
