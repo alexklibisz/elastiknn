@@ -257,6 +257,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
             val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
             eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
         })
+        _ <- eknn.execute(deleteIndex(corpusIndex))
+        _ <- eknn.execute(deleteIndex(queriesIndex))
       } yield {
 
         // First compute recall.
