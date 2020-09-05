@@ -37,9 +37,10 @@ object Execute extends App {
                           recompute: Boolean = false,
                           bucket: String = "",
                           s3Url: Option[String] = None,
-                          esUrl: Option[String] = None,
+                          esUrl: String = "http://localhost:9200",
                           shards: Int = 1,
-                          parallelQueries: Int = 1)
+                          parallelQueries: Int = 1,
+                          maxQueries: Int = 10000)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -66,7 +67,7 @@ object Execute extends App {
       .optional()
     opt[String]("esUrl")
       .text("elasticsearch URL, e.g. http://localhost:9200")
-      .action((s, c) => c.copy(esUrl = Some(s)))
+      .action((s, c) => c.copy(esUrl = s))
       .optional()
     opt[Int]("shards")
       .text("number of shards in the elasticsearch index")
@@ -75,6 +76,10 @@ object Execute extends App {
     opt[Int]("parallelQueries")
       .text("number of queries to execute in parallel")
       .action((i, c) => c.copy(shards = i))
+      .optional()
+    opt[Int]("maxQueries")
+      .text("maximum number of queries to execute")
+      .action((i, c) => c.copy(maxQueries = i))
       .optional()
   }
 
@@ -93,7 +98,7 @@ object Execute extends App {
       k: Int,
       shards: Int,
       parallelQueries: Int,
-      delete: Boolean = false
+      maxQueries: Int
   ) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
@@ -118,13 +123,13 @@ object Execute extends App {
         } yield ()
 
       // Run searches on the test vectors.
-      vecStream = datasetClient.streamTest(dataset)
+      vecStream = datasetClient.streamTest(dataset, Some(maxQueries))
       queryStream = vecStream.map(eknnQuery.withVec)
       resultsStream = searchClient.search(trainIndex, queryStream, k, parallelQueries)
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
-      _ <- if (delete) searchClient.deleteIndex(trainIndex) else Task.succeed(())
+      _ <- searchClient.deleteIndex(trainIndex)
     } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toArray)
   }
 
@@ -135,7 +140,7 @@ object Execute extends App {
     test.copy(queryResults = withRecalls)
   }
 
-  private def run(experiment: Experiment, shards: Int, parallelQueries: Int, recompute: Boolean) = {
+  private def run(experiment: Experiment, shards: Int, parallelQueries: Int, maxQueries: Int, recompute: Boolean) = {
     import experiment._
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
@@ -143,31 +148,30 @@ object Execute extends App {
         case Query(testQuery, k) =>
           for {
             exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k)
-            exactRes <- exactOpt match {
-              case Some(res) =>
-                log
-                  .info(s"Found exact result for mapping [$exactMapping] query [$exactQuery]")
-                  .map(_ => res)
-              case None =>
-                for {
-                  _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                  exact: BenchmarkResult <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, true)
-                  _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $exact")
-                  _ <- resultsClient.save(setRecalls(exact, exact))
-                } yield exact
+            exactRes <- log.locally(LogAnnotation.Name(List(exactMapping, exactQuery).map(_.toString))) {
+              exactOpt match {
+                case Some(res) => log.info(s"Found exact result").map(_ => res)
+                case None =>
+                  for {
+                    _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
+                    result <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, maxQueries)
+                    withRecalls = setRecalls(result, result)
+                    _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $withRecalls")
+                    _ <- resultsClient.save(withRecalls)
+                  } yield withRecalls
+              }
             }
 
             testOpt <- resultsClient.find(dataset, testMapping, testQuery, k)
             _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
               testOpt match {
-                case Some(_) if !recompute => log.info(s"Found existing test result")
+                case Some(_) if !recompute => log.info(s"Found test result")
                 case _ =>
                   for {
-                    test <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries).map(setRecalls(exactRes, _))
-                    _ <- log.info(s"Saving test result [$test]")
-                    _ <- resultsClient.save(test)
-                    aggregate = AggregateResult(test)
-                    _ <- log.info(s"Aggregate test result: $aggregate")
+                    result <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries, maxQueries)
+                    withRecalls = setRecalls(exactRes, result)
+                    _ <- log.info(s"Saving test result [$withRecalls]")
+                    _ <- resultsClient.save(withRecalls)
                   } yield ()
               }
             }
@@ -182,10 +186,7 @@ object Execute extends App {
     val s3Client = S3Utils.client(s3Url)
     val blockingWithS3 = Blocking.live ++ ZLayer.succeed(s3Client)
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
-    val searchClientLayer = esUrl match {
-      case Some(url) => SearchClient.elasticsearch(URI.create(url), true, 99999)
-      case None      => SearchClient.luceneInMemory()
-    }
+    val searchClientLayer = SearchClient.elasticsearch(URI.create(esUrl), true, 99999)
     val layer =
       Console.live ++
         Clock.live ++
@@ -208,7 +209,7 @@ object Execute extends App {
       _ <- searchBackend.blockUntilReady()
 
       // Run the experiment.
-      _ <- run(experiment, shards, parallelQueries, recompute)
+      _ <- run(experiment, shards, parallelQueries, maxQueries, recompute)
 
     } yield ()
 

@@ -190,7 +190,7 @@ benchmarks/continuous/trigger:
 		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
 		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
 
-benchmarks/continuous/run: benchmarks/minio
+benchmarks/continuous/run:
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:

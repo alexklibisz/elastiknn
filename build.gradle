@@ -7,6 +7,7 @@ buildscript {
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
         scalaFullVersion = '2.12.10'
+        zioVersion = '1.0.1'
     }
     repositories {
         jcenter()
@@ -217,8 +218,8 @@ configure(benchmarks, List.of(
                 implementation lucene
                 implementation plugin
                 implementation clientElastic4s
-                implementation "dev.zio:zio_${scalaShortVersion}:1.0.0"
-                implementation "dev.zio:zio-streams_${scalaShortVersion}:1.0.0"
+                implementation "dev.zio:zio_${scalaShortVersion}:${zioVersion}"
+                implementation "dev.zio:zio-streams_${scalaShortVersion}:${zioVersion}"
                 implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.4.0"
                 implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"

@@ -61,15 +61,15 @@ object ContinuousBenchmark extends App {
       val key = s"experiments/${exp.md5sum}"
       for {
         _ <- ZIO(s3Client.putObject(bucket, key, codecs.experimentCodec(exp).noSpaces))
-        params = Execute.Params(
-          experimentKey = key,
-          datasetsPrefix = "data/processed",
-          resultsPrefix = "results",
-          bucket = bucket,
-          s3Url = Some(s3Url),
-          esUrl = Some("http://localhost:9200")
-        )
-        _ <- Execute(params)
+        _ <- Execute(
+          Execute.Params(
+            experimentKey = key,
+            datasetsPrefix = "data/processed",
+            resultsPrefix = "results",
+            bucket = bucket,
+            s3Url = Some(s3Url),
+            maxQueries = 100
+          ))
       } yield ()
     }
     val pipeline = for {
