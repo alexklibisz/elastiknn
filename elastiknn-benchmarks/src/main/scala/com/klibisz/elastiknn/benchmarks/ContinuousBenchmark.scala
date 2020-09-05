@@ -79,7 +79,7 @@ object ContinuousBenchmark extends App {
       _ <- Aggregate(
         Aggregate.Params(
           "results",
-          "results/aggregate/aggregate.csv",
+          "results/aggregate.csv",
           bucket,
           Some(s3Url),
           Some("https://api.airtable.com/v0/appmy9gAptPsjo4M7/Results"),
