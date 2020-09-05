@@ -78,7 +78,7 @@ object SearchClient {
                         val ids = vecs.indices.map(i => s"$batchIndex-$i")
                         for {
                           (dur, _) <- Task.fromFuture(_ => client.index(index, "vec", vecs, "id", ids)).timed
-                          _ <- if (n % 100 == 0)
+                          _ <- if (batchIndex % 100 == 0)
                             log.debug(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
                           else ZIO.succeed(())
                         } yield n + vecs.length

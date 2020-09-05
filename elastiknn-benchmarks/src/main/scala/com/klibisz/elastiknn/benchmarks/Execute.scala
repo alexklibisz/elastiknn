@@ -178,7 +178,10 @@ object Execute extends App {
     val s3Client = S3Utils.client(s3Url)
     val blockingWithS3 = Blocking.live ++ ZLayer.succeed(s3Client)
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
-    val searchClientLayer = SearchClient.elasticsearch(URI.create(esUrl), true, 99999)
+    val searchClientLayer = {
+      val timeoutMillis = 10 * 60 * 1000 // Set timeout ridiculously high to account for merging segments.
+      SearchClient.elasticsearch(URI.create(esUrl), strictFailure = true, timeoutMillis = timeoutMillis)
+    }
     val layer =
       Console.live ++
         Clock.live ++
