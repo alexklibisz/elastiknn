@@ -11,6 +11,8 @@ import pandas as pd
 import pandasql as ps
 
 
+# def pareto(df: pd.DataFrame, colx: str, coly: str)
+
 def pareto_frontier(df: pd.DataFrame, colx: str, coly: str, round_to: int = 2) -> pd.DataFrame:
     """Return the subset of the given dataframe comprising the pareto frontier."""
     # For some reason this type of aggregation is abysmally difficult with pure pandas.

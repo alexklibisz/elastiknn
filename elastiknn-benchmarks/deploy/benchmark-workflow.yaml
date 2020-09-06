@@ -1,5 +1,3 @@
-# Use envsubst to "render" the file.
-# Seems like the most I can allocate on a c5.4xlarge is 15 CPUs and 26Gi memory.
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -14,11 +12,11 @@ spec:
       - name: awsSecretAccessKey
       - name: bucket
         value: elastiknn-benchmarks
-      - name: searchBackend
-        value: "lucene"
+      - name: shards
+        value: 1
   templates:
     - name: main
-      parallelism: 50 # EKS seems to choke somewhere around 50 nodes.
+      parallelism: 1
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -26,16 +24,7 @@ spec:
             template: enqueue-experiments
         - - name: apply-configmap
             template: apply-configmap
-        - - name: execute-lucene
-            when: "{{workflow.parameters.searchBackend}} == lucene"
-            template: execute-lucene
-            arguments:
-              parameters:
-                - name: experiment
-                  value: "{{item}}"
-            withParam: "{{steps.enqueue-experiments.outputs.parameters.experiments}}"
         - - name: execute-elasticsearch
-            when: "{{workflow.parameters.searchBackend}} == elasticsearch"
             template: execute-elasticsearch
             arguments:
               parameters:
@@ -91,19 +80,39 @@ spec:
             name: esconfig
           data:
             elasticsearch.yml: |
+              discovery.type: single-node
               cluster.name: "no-cluster"
+              node.master: true
+              node.data: true
+              node.ml: false
+              node.ingest: false
+              bootstrap.memory_lock: true
               network.host: 0.0.0.0
+              node.processors: {{workflow.parameters.shards}}
 
-    # Execute experiments using Lucene backend.
-    - name: execute-lucene
+    - name: execute-elasticsearch
       inputs:
         parameters:
           - name: experiment
-      retryStrategy:
-        limit: 1
-        retryPolicy: "Always"
-      nodeSelector:
-        beta.kubernetes.io/instance-type: m5.4xlarge
+      volumes:
+        - name: esdata
+          emptyDir:
+            medium: Memory
+        - name: esconfig
+          configMap:
+            name: esconfig
+      securityContext:
+        fsGroup: 1000 # Sets the correct permissions for mounted volume.
+      # nodeSelector:
+      #   beta.kubernetes.io/instance-type: m5.4xlarge
+      podSpecPatch: |
+        containers:
+          - name: elastiknn
+            resources:
+              requests:
+                cpu: "{{workflow.parameters.shards}}"
+              limits:
+                cpu: "{{workflow.parameters.shards}}"
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
@@ -112,11 +121,15 @@ spec:
           - --experimentKey
           - "{{inputs.parameters.experiment}}"
           - --datasetsPrefix
-          - data/processed
+          - "data/processed"
           - --resultsPrefix
-          - results/raw
+          - "results/raw"
           - --bucket
           - "{{workflow.parameters.bucket}}"
+          - --maxQueries
+          - "1000"
+          - --shards
+          - "{{workflow.parameters.shards}}"
         env:
           - name: AWS_ACCESS_KEY_ID
             value: "{{workflow.parameters.awsAccessKeyId}}"
@@ -124,60 +137,49 @@ spec:
             value: "{{workflow.parameters.awsSecretAccessKey}}"
           - name: JAVA_OPTS
             value: >-
-              -XX:MinRAMPercentage=5
-              -XX:MaxRAMPercentage=80
+              -XX:MinRAMPercentage=10
+              -XX:MaxRAMPercentage=90
               -XX:+HeapDumpOnOutOfMemoryError
               -XX:+ExitOnOutOfMemoryError
-              -Dcom.sun.management.jmxremote.ssl=false
-              -Dcom.sun.management.jmxremote.authenticate=false
-              -Dcom.sun.management.jmxremote.local.only=false
-              -Dcom.sun.management.jmxremote.port=8097
-              -Dcom.sun.management.jmxremote.rmi.port=8097
-              -Djava.rmi.server.hostname=localhost
-        ports:
-          - name: jmx
-            containerPort: 8097
-            protocol: TCP
         resources:
           requests:
-            cpu: 1.2
-            memory: 6Gi
+            cpu: 1
+            memory: 2G
           limits:
-            cpu: 1.2
-            memory: 6Gi
-
-    - name: execute-elasticsearch
-      inputs:
-        parameters:
-          - name: experiment
-      retryStrategy:
-        limit: 1
-        retryPolicy: "Always"
-      steps:
-        - - name: create-pvc
-            template: create-pvc
-        - - name: execute-elasticsearch-driver
-            template: execute-elasticsearch-driver
-            continueOn:
-              failed: true
-            arguments:
-              parameters:
-                - name: experiment
-                  value: "{{inputs.parameters.experiment}}"
-                - name: pvc-name
-                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
-        - - name: delete-pvc
-            template: delete-pvc
-            arguments:
-              parameters:
-                - name: pvc-name
-                  value: "{{steps.create-pvc.outputs.parameters.pvc-name}}"
-        - - name: exit
-            template: exit
-            arguments:
-              parameters:
-                - name: code
-                  value: "{{steps.execute-elasticsearch-driver.exitCode}}"
+            cpu: 1
+            memory: 2G
+      sidecars:
+        - name: elastiknn
+          image: "{{workflow.parameters.elastiknnImage}}"
+          imagePullPolicy: "Always"
+          env:
+            # Setting memory > 4G seems to cause high garbage collection.
+            - name: ES_JAVA_OPTS
+              value: >-
+                -Xms4G -Xmx4G
+                -Dcom.sun.management.jmxremote.ssl=false
+                -Dcom.sun.management.jmxremote.authenticate=false
+                -Dcom.sun.management.jmxremote.local.only=false
+                -Dcom.sun.management.jmxremote.port=8097
+                -Dcom.sun.management.jmxremote.rmi.port=8097
+                -Djava.rmi.server.hostname=localhost
+          ports:
+            - name: jmx
+              containerport: 8097
+              protocol: TCP
+          volumeMounts:
+            - name: esdata
+              mountPath: /usr/share/elasticsearch/data
+              readOnly: false
+            - name: esconfig
+              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+              subPath: elasticsearch.yml
+              readOnly: true
+          resources:
+            requests:
+              memory: 10G
+            limits:
+              memory: 10G
 
     - name: aggregate-results
       container:
@@ -198,127 +200,3 @@ spec:
           - elastiknn-benchmarks
           - --aggregateKey
           - results/aggregate/aggregate.csv
-
-    - name: create-pvc
-      resource:
-        action: create
-        manifest: |
-          apiVersion: v1
-          kind: PersistentVolumeClaim
-          metadata:
-            generateName: "{{workflow.name}}-"
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 50Gi
-            storageClassName: storage-10-iops
-      outputs:
-        parameters:
-          - name: pvc-name
-            valueFrom:
-              jsonPath: '{.metadata.name}'
-
-    # Have to delete and then patch in order to remove the finalizer that prevents deletion.
-    # Otherwise this gets stuck in the `Terminating` state.
-    - name: delete-pvc
-      inputs:
-        parameters:
-          - name: pvc-name
-      container:
-        image: "argoproj/argoexec:v2.8.0"
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            /bin/sh <<'EOSCRIPT'
-            set -e
-            kubectl delete pvc {{inputs.parameters.pvc-name}}
-            kubectl patch --type merge -p  '{"metadata":{"finalizers":null}}' pvc {{inputs.parameters.pvc-name}}
-            EOSCRIPT
-
-    # Propagates an exit code. Used as last step so WF can continue on failed steps, do some cleanup, and _then_ fail.
-    - name: exit
-      inputs:
-        parameters:
-          - name: code
-      container:
-        image: alpine
-        command: [sh, -c]
-        args: ["exit {{inputs.parameters.code}}"]
-
-    - name: execute-elasticsearch-driver
-      inputs:
-        parameters:
-          - name: experiment
-          - name: pvc-name
-      volumes:
-        - name: esdata
-          persistentVolumeClaim:
-            claimName: "{{inputs.parameters.pvc-name}}"
-        - name: esconfig
-          configMap:
-            name: esconfig
-      securityContext:
-        fsGroup: 1000 # Sets the correct permissions for mounted volume.
-      container:
-        image: "{{workflow.parameters.driverImage}}"
-        imagePullPolicy: "Always"
-        args:
-          - com.klibisz.elastiknn.benchmarks.Execute
-          - --experimentKey
-          - "{{inputs.parameters.experiment}}"
-          - --datasetsPrefix
-          - "data/processed"
-          - --resultsPrefix
-          - "results/raw"
-          - --bucket
-          - "{{workflow.parameters.bucket}}"
-          - --esUrl
-          - http://localhost:9200
-          - --shards
-          - "4"
-          - --parallelQueries
-          - "1"
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "{{workflow.parameters.awsAccessKeyId}}"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "{{workflow.parameters.awsSecretAccessKey}}"
-          - name: JAVA_OPTS
-            value: >-
-              -XX:MinRAMPercentage=10
-              -XX:MaxRAMPercentage=90
-        resources:
-          requests:
-            cpu: 1
-            memory: 2G
-          limits:
-            cpu: 1
-            memory: 2G
-      sidecars:
-        - name: elastiknn
-          image: "{{workflow.parameters.elastiknnImage}}"
-          imagePullPolicy: "Always"
-          env:
-            - name: discovery.type
-              value: single-node
-            - name: ES_JAVA_OPTS
-              value: >-
-                -Xms15G
-                -Xmx15G
-          volumeMounts:
-            - name: esdata
-              mountPath: /usr/share/elasticsearch/data
-              readOnly: false
-            - name: esconfig
-              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
-              subPath: elasticsearch.yml
-              readOnly: true
-          resources:
-            requests:
-              cpu: 14
-              memory: 24G
-            limits:
-              cpu: 14
-              memory: 24G

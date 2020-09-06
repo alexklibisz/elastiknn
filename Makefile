@@ -183,14 +183,7 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
-benchmarks/continuous/trigger:
-	curl -H "Accept: application/vnd.github.everest-preview+json" \
-		 -H "Authorization: token ${GITHUB_TOKEN}" \
-		 --request POST \
-		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
-		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
-
-benchmarks/continuous/run: 
+benchmarks/continuous/run:
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
@@ -203,7 +196,7 @@ benchmarks/docker/push: .mk/benchmarks-docker-push
 benchmarks/minio:
 	cd elastiknn-testing && docker-compose up -d minio
 
-benchmarks/argo/submit/lucene: .mk/benchmarks-docker-push
+benchmarks/argo/submit/benchmark: .mk/benchmarks-docker-push
 	cd elastiknn-benchmarks/deploy \
 	&& envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml \
 	&& argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml

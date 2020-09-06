@@ -137,15 +137,15 @@ package object benchmarks {
           for {
             k <- ks
             candidateMultiple <- Seq(10, 20, 50)
-            probes <- 0 to math.pow(hashesPerTable, 3).toInt by 3
+            probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
           } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidateMultiple * k, probes), k)
         )
       lsh
     }
 
     def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
-      val lsh = for {
-        b <- 100 to 350 by 50
+      val classic = for {
+        b <- Seq(50, 75, 100)
         r <- 1 to 3
       } yield
         Experiment(
@@ -155,10 +155,26 @@ package object benchmarks {
           Mapping.AngularLsh(dataset.dims, b, r),
           for {
             k <- ks
-            m <- Seq(1, 2, 10)
+            m <- Seq(10, 20, 50)
           } yield Query(NearestNeighborsQuery.AngularLsh(vecName, m * k), k)
         )
-      lsh
+
+      val permutation = for {
+        m <- Seq(0.1, 0.2, 0.5)
+        r <- Seq(true, false)
+      } yield
+        Experiment(
+          dataset,
+          Mapping.DenseFloat(dataset.dims),
+          NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
+          Mapping.PermutationLsh(dataset.dims, (m * dataset.dims).toInt, r),
+          for {
+            k <- ks
+            m <- Seq(10, 20, 50)
+          } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, m * k), k)
+        )
+
+      classic ++ permutation
     }
 
     def hamming(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
@@ -207,7 +223,7 @@ package object benchmarks {
 
     // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
     val defaults: Seq[Experiment] = Seq(
-      l2(AnnbSift),
+      l2(AnnbSift)
 //      angular(AnnbGlove100)
 //      l2(AmazonHome),
 //      angular(AmazonHomeUnit),
