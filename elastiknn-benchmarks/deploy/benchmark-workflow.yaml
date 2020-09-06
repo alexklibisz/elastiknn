@@ -14,6 +14,10 @@ spec:
         value: elastiknn-benchmarks
       - name: shards
         value: 1
+      - name: esJvmMemory
+        value: 8G
+      - name: esTotalMemory
+        value: 12G
   templates:
     - name: main
       parallelism: 1
@@ -46,7 +50,7 @@ spec:
           - --bucket
           - "{{workflow.parameters.bucket}}"
           - --keysKey
-          - experiments/latest.json
+          - experiments/{{workflow.name}}.json
         env:
           - name: AWS_ACCESS_KEY_ID
             value: "{{workflow.parameters.awsAccessKeyId}}"
@@ -57,7 +61,7 @@ spec:
     - name: enqueue-experiments
       container:
         image: amazon/aws-cli
-        args: ["s3", "cp", "--quiet", "s3://elastiknn-benchmarks/experiments/latest.json", "/tmp/latest.json"]
+        args: ["s3", "cp", "--quiet", "s3://elastiknn-benchmarks/experiments/{{workflow.name}}.json", "/tmp/{{workflow.name}}.json"]
         env:
           - name: AWS_ACCESS_KEY_ID
             value: "{{workflow.parameters.awsAccessKeyId}}"
@@ -67,7 +71,7 @@ spec:
         parameters:
           - name: experiments
             valueFrom:
-              path: /tmp/latest.json
+              path: /tmp/{{workflow.name}}.json
 
     # Create a configmap mounted by the Elasticsearch sidecar containers.
     - name: apply-configmap
@@ -82,13 +86,32 @@ spec:
             elasticsearch.yml: |
               discovery.type: single-node
               cluster.name: "no-cluster"
-              node.master: true
-              node.data: true
-              node.ml: false
-              node.ingest: false
-              bootstrap.memory_lock: true
               network.host: 0.0.0.0
               node.processors: {{workflow.parameters.shards}}
+            jvm.options: |
+              # Memory allocated to JVM.
+              -Xms{{workflow.parameters.esJvmMemory}}
+              -Xmx{{workflow.parameters.esJvmMemory}}
+              # G1GC garbage collection
+              13-:-XX:+UseG1GC
+              13-:-XX:G1ReservePercent=25
+              13-:-XX:InitiatingHeapOccupancyPercent=30
+              # Temp directory
+              -Djava.io.tmpdir=/tmp
+              # Head dump settings
+              -XX:+HeapDumpOnOutOfMemoryError
+              -XX:HeapDumpPath=data
+              # specify an alternative path for JVM fatal error logs
+              -XX:ErrorFile=logs/hs_err_pid%p.log
+              # JDK 9+ GC logging
+              9-:-Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m
+              # VisualVM profiling
+              -Dcom.sun.management.jmxremote.ssl=false
+              -Dcom.sun.management.jmxremote.authenticate=false
+              -Dcom.sun.management.jmxremote.local.only=false
+              -Dcom.sun.management.jmxremote.port=8097
+              -Dcom.sun.management.jmxremote.rmi.port=8097
+              -Djava.rmi.server.hostname=localhost
 
     - name: execute-elasticsearch
       inputs:
@@ -101,18 +124,20 @@ spec:
         - name: esconfig
           configMap:
             name: esconfig
+      # Sets the correct permissions for mounted volume.
       securityContext:
-        fsGroup: 1000 # Sets the correct permissions for mounted volume.
-      # nodeSelector:
-      #   beta.kubernetes.io/instance-type: m5.4xlarge
+        fsGroup: 1000
+      # Needed because you can't use parameters in the resources context for some reason.
       podSpecPatch: |
         containers:
           - name: elastiknn
             resources:
               requests:
                 cpu: "{{workflow.parameters.shards}}"
+                memory: "{{workflow.parameters.esTotalMemory}}"
               limits:
                 cpu: "{{workflow.parameters.shards}}"
+                memory: "{{workflow.parameters.esTotalMemory}}"
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
@@ -152,17 +177,6 @@ spec:
         - name: elastiknn
           image: "{{workflow.parameters.elastiknnImage}}"
           imagePullPolicy: "Always"
-          env:
-            # Setting memory > 4G seems to cause high garbage collection.
-            - name: ES_JAVA_OPTS
-              value: >-
-                -Xms4G -Xmx4G
-                -Dcom.sun.management.jmxremote.ssl=false
-                -Dcom.sun.management.jmxremote.authenticate=false
-                -Dcom.sun.management.jmxremote.local.only=false
-                -Dcom.sun.management.jmxremote.port=8097
-                -Dcom.sun.management.jmxremote.rmi.port=8097
-                -Djava.rmi.server.hostname=localhost
           ports:
             - name: jmx
               containerport: 8097
@@ -175,11 +189,10 @@ spec:
               mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
               subPath: elasticsearch.yml
               readOnly: true
-          resources:
-            requests:
-              memory: 10G
-            limits:
-              memory: 10G
+            - name: esconfig
+              mountPath: /usr/share/elasticsearch/config/jvm.options
+              subPath: jvm.options
+              readOnly: true
 
     - name: aggregate-results
       container:

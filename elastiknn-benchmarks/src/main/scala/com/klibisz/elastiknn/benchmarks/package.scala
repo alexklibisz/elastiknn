@@ -223,8 +223,8 @@ package object benchmarks {
 
     // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
     val defaults: Seq[Experiment] = Seq(
-      l2(AnnbSift)
-//      angular(AnnbGlove100)
+      l2(AnnbSift),
+      angular(AnnbGlove100)
 //      l2(AmazonHome),
 //      angular(AmazonHomeUnit),
 //      angular(AmazonMixedUnit),
