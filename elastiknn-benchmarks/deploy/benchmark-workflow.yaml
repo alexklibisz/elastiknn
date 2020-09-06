@@ -20,7 +20,7 @@ spec:
         value: 12G
   templates:
     - name: main
-      parallelism: 1
+      parallelism: 20
       steps:
         - - name: generate-experiments
             template: generate-experiments
@@ -35,8 +35,8 @@ spec:
                 - name: experiment
                   value: "{{item}}"
             withParam: "{{steps.enqueue-experiments.outputs.parameters.experiments}}"
-#        - - name: aggregate-results
-#            template: aggregate-results
+        - - name: aggregate-results
+            template: aggregate-results
 
     # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
     - name: generate-experiments
@@ -205,11 +205,9 @@ spec:
             value: "{{workflow.parameters.awsSecretAccessKey}}"
         args:
           - com.klibisz.elastiknn.benchmarks.Aggregate
-          - --resultsBucket
+          - --bucket
           - elastiknn-benchmarks
           - --resultsPrefix
           - results/raw
-          - --aggregateBucket
-          - elastiknn-benchmarks
           - --aggregateKey
-          - results/aggregate/aggregate.csv
+          - results/aggregate.csv
