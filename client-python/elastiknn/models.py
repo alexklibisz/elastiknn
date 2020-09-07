@@ -41,7 +41,7 @@ class ElastiknnModel(object):
                 elif metric == 'l2':
                     return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
                 elif metric == 'angular':
-                    return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
+                    return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Angular)
                 elif metric == 'jaccard':
                     return Mapping.SparseBool(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
                 elif metric == 'hamming':
@@ -88,6 +88,8 @@ class ElastiknnModel(object):
         self._logger.info(f"indexing {len(vecs)} vectors into index {self._index}")
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.
         self._eknn.index(self._index, self._vec_field, vecs, self._stored_id_field, ids, refresh=True)
+        self._eknn.es.indices.forcemerge(self._index, params=dict(max_num_segments=1))
+
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
                    n_neighbors: int, return_similarity: bool = False, allow_missing: bool = False, progbar: bool = False):

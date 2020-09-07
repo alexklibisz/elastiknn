@@ -24,7 +24,7 @@ class ElastiknnClient(object):
             Defaults to a client pointing at http://localhost:9200.
         """
         if es is None:
-            self.es = Elasticsearch(["http://localhost:9200"])
+            self.es = Elasticsearch(["http://localhost:9200"], timeout=99)
         else:
             self.es = es
 
@@ -92,7 +92,7 @@ class ElastiknnClient(object):
             for vec, _id in zip(vecs, ids):
                 yield { "_op_type": "index", "_index": index, vec_field: vec.to_dict(), stored_id_field: str(_id), "_id": str(_id) }
 
-        res = bulk(self.es, gen())
+        res = bulk(self.es, gen(), chunk_size=200, max_retries=9)
         if refresh:
             self.es.indices.refresh(index=index)
         return res
@@ -128,7 +128,7 @@ class ElastiknnClient(object):
             return self.es.search(index, body=body, size=k)
         else:
             res = self.es.search(index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
-                                  stored_fields="_none_")
+                                 stored_fields="_none_")
             for i in range(len(res['hits']['hits'])):
                 hit = res['hits']['hits'][i]
                 hit['_id'] = hit['fields'][stored_id_field][0]

@@ -27,7 +27,7 @@ def cleanup_mapping(s: str) -> str:
 
 
 def main():
-    df = pd.read_csv('/home/alex/Desktop/aggregate.csv')
+    df = pd.read_csv('~/Desktop/aggregate.csv')
     output_file("results.html", title="Elastiknn Benchmark Results")
     colors = itertools.cycle(palette)
     tooltips = [("mapping", "@mapping"), ("query", "@query"), ("recall", "@recall"), ("queries", "@queries")]
