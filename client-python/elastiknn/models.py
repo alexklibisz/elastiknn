@@ -13,7 +13,7 @@ from tqdm import tqdm
 from . import ELASTIKNN_NAME
 from .api import Mapping, Vec, NearestNeighborsQuery, Similarity
 from .client import ElastiknnClient
-from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos
+from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, dealias_metric
 
 
 class ElastiknnModel(object):
@@ -27,8 +27,9 @@ class ElastiknnModel(object):
         self._stored_id_field = "id"
         self._index = index
 
+        metric = dealias_metric(metric)
         assert (algorithm, metric) in valid_metrics_algos, \
-            f"algorithm and metric should be one of {valid_metrics_algos}"
+            f"algorithm [{algorithm}] and metric [{metric}] should be one of {valid_metrics_algos}"
 
         field = "vec"
         dummy = Vec.Indexed("", "", "")
@@ -53,14 +54,15 @@ class ElastiknnModel(object):
                     return Mapping.SparseIndexed(dims), NearestNeighborsQuery.SparseIndexed(field, dummy, Similarity.Hamming)
             elif algorithm == 'lsh':
                 if metric == 'l2':
-                    return Mapping.L2Lsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.L2Lsh(field, dummy, Similarity.L2, **query_params)
+                    m, q = Mapping.L2Lsh(dims, **mapping_params), \
+                           NearestNeighborsQuery.L2Lsh(field, dummy, **query_params)
+                    return m, q
                 elif metric == 'angular':
                     return Mapping.AngularLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.AngularLsh(field, dummy, Similarity.Angular, **query_params)
+                           NearestNeighborsQuery.AngularLsh(field, dummy, **query_params)
                 elif metric == 'hamming':
                     return Mapping.AngularLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.HammingLsh(field, dummy, Similarity.Hamming, **query_params)
+                           NearestNeighborsQuery.HammingLsh(field, dummy, **query_params)
                 elif metric == 'jaccard':
                     return Mapping.JaccardLsh(dims, **mapping_params), \
                            NearestNeighborsQuery.JaccardLsh(field, dummy, **query_params)
@@ -94,21 +96,25 @@ class ElastiknnModel(object):
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.
         self._eknn.index(self._index, self._vec_field, vecs, self._stored_id_field, ids, refresh=True)
         self._eknn.es.indices.forcemerge(self._index, params=dict(max_num_segments=1))
+        self._eknn.index(self._index, self._vec_field, [], self._stored_id_field, [], refresh=True)
 
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
                    n_neighbors: int, return_similarity: bool = False, allow_missing: bool = False, progbar: bool = False):
         mapped = self._tpex.map(
             lambda v: self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
-                                                   n_neighbors, False),
+                                                   n_neighbors, fetch_source=False),
             canonical_vectors_to_elastiknn(X))
+
         inds = np.ones((len(X), n_neighbors), dtype=np.int32) * -1
         sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
         for i, res in tqdm(enumerate(mapped), disable=not progbar):
             hits = res['hits']['hits']
+            # print(len(hits))
             assert allow_missing or len(hits) == n_neighbors, f"Expected {n_neighbors} hits for vector {i} but got {len(hits)}"
             for j, hit in enumerate(hits):
-                inds[i][j] = int(hit['_id']) - 1    # Subtract one because 0 is an invalid id in ES.
+                hit['_id'] = hit['fields'][self._stored_id_field][0]    # Access stored ID.
+                inds[i][j] = int(hit['_id']) - 1                        # Subtract one because 0 is an invalid id in ES.
                 sims[i][j] = float(hit['_score'])
 
         if return_similarity:

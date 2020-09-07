@@ -66,10 +66,12 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    int minCandidateCount = KthGreatest.kthGreatest(counts, candidates);
+                    KthGreatest.KthGreatestResult kthGreatestResult = KthGreatest.kthGreatest(counts, candidates);
+                    int minCandidateCount = kthGreatestResult.kthGreatest;
 
-                    // If that lower bound is 0, none of the documents in this segment have matched, so return an empty iterator.
-                    if (minCandidateCount == 0) return DocIdSetIterator.empty();
+                    // If none of the docs in the segment matched, return an empty iterator.
+                    // TODO: should this be more forgiving? Perhaps return first `candidates` docs?
+                    if (kthGreatestResult.max == 0) return DocIdSetIterator.empty();
 
                     // Otherwise return an iterator over the doc ids >= the min candidate count.
                     else return new DocIdSetIterator() {
@@ -115,6 +117,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
+
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 short[] counts = countMatches(context);
                 DocIdSetIterator disi = buildDocIdSetIterator(counts);

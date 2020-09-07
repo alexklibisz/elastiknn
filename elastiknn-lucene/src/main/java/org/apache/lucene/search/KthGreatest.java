@@ -1,6 +1,16 @@
 package org.apache.lucene.search;
 
 public class KthGreatest {
+
+    public static class KthGreatestResult {
+        public final short max;
+        public final short kthGreatest;
+        public KthGreatestResult(short max, short kthGreatest) {
+            this.max = max;
+            this.kthGreatest = kthGreatest;
+        }
+    }
+
     /**
      * Find the kth greatest value in the given array of shorts in O(N) time and space.
      * Works by creating a histogram of the array values and traversing the histogram in reverse order.
@@ -11,7 +21,7 @@ public class KthGreatest {
      * @param k the desired largest value.
      * @return the kth largest value.
      */
-    public static short kthGreatest(short[] arr, int k) {
+    public static KthGreatestResult kthGreatest(short[] arr, int k) {
         if (arr.length == 0) {
             throw new IllegalArgumentException("Array must be non-empty");
         } else if (k < 0 || k >= arr.length) {
@@ -36,14 +46,14 @@ public class KthGreatest {
 
             // Find the kth largest value by iterating from the end of the histogram.
             int geqk = 0;
-            short kthLargest = max;
-            while (kthLargest >= min) {
-                geqk += hist[kthLargest - min];
+            short kthGreatest = max;
+            while (kthGreatest >= min) {
+                geqk += hist[kthGreatest - min];
                 if (geqk > k) break;
-                else kthLargest--;
+                else kthGreatest--;
             }
 
-            return kthLargest;
+            return new KthGreatestResult(max, kthGreatest);
         }
     }
 }

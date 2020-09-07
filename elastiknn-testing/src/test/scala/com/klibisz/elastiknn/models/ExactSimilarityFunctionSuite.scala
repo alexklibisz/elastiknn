@@ -38,6 +38,13 @@ class ExactSimilarityFunctionSuite extends FunSpec with Matchers with LazyLoggin
       ExactSimilarityFunction.L2(v2, v2) shouldBe 1
     }
 
+    it("large values don't overflow") {
+      val v1 = Vec.DenseFloat.random(10, scale = 256)
+      val v2 = Vec.DenseFloat.random(10, scale = 256)
+      val l2 = ExactSimilarityFunction.L2(v1, v2)
+      ???
+    }
+
   }
 
   describe("L1 Similarity") {

@@ -161,8 +161,8 @@ class Mapping:
     @dataclass(frozen=True)
     class L2Lsh(Base):
         dims: int
-        K: int
-        l: int
+        L: int
+        k: int
         r: int
 
         def to_dict(self):
@@ -172,8 +172,8 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "l2",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l,
+                    "L": self.L,
+                    "k": self.k,
                     "r": self.r
                 }
             }
@@ -303,6 +303,7 @@ class NearestNeighborsQuery:
     class L2Lsh(Base):
         field: str
         vec: Vec.Base
+        probes: int = 0
         similarity: Similarity = Similarity.L2
         candidates: int = 1000
 
@@ -311,12 +312,14 @@ class NearestNeighborsQuery:
                 "field": self.field,
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
+                "probes": self.probes,
                 "candidates": self.candidates,
                 "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.L2Lsh(self.field, vec, self.similarity, self.candidates)
+            return NearestNeighborsQuery.L2Lsh(field=self.field, vec=vec, probes=self.probes, similarity=self.similarity,
+                                               candidates=self.candidates)
 
     @dataclass(frozen=True)
     class PermutationLsh(Base):

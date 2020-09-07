@@ -112,7 +112,8 @@ class ElastiknnClient(object):
         k: int
             Number of hits to return.
         fetch_source : bool
-            Whether to return the `_source` of the document. It's generally faster to _not_ return the `_source`.
+            Whether to return the `_source` of the document. If you only need the ID, it's generally much faster to
+            set this to False and instead of accessing the ID in hit['_id'], it will be in hit['fields'][stored_id_field][0].
 
         Returns
         -------
@@ -127,10 +128,5 @@ class ElastiknnClient(object):
         if fetch_source:
             return self.es.search(index, body=body, size=k)
         else:
-            res = self.es.search(index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
-                                 stored_fields="_none_")
-            for i in range(len(res['hits']['hits'])):
-                hit = res['hits']['hits'][i]
-                hit['_id'] = hit['fields'][stored_id_field][0]
-                del hit['fields']
-            return res
+            return self.es.search(index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
+                                  stored_fields="_none_")

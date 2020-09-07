@@ -25,6 +25,16 @@ valid_metrics_algos = [
     ('permutation_lsh', 'l2')
 ]
 
+def dealias_metric(metric: str) -> str:
+    mlower = metric.lower()
+    if mlower == 'euclidean':
+        return 'l2'
+    elif mlower == 'cosine':
+        return 'angular'
+    else:
+        return mlower
+
+
 
 def sparse_bool_vectors_to_csr(sbvs: List[Vec.SparseBool]) -> csr_matrix:
     rows, cols, data = [], [], []

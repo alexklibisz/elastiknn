@@ -7,13 +7,13 @@ import scala.util.Random
 
 class KthGreatestSuite extends FunSuite with Matchers {
 
-  test("kthGreatest example") {
+  test("example") {
     val counts: Array[Short] = Array(2, 2, 8, 7, 4, 4)
     val res = KthGreatest.kthGreatest(counts, 3)
-    res shouldBe 4
+    res.kthGreatest shouldBe 4
   }
 
-  test("kthGreatest bad args") {
+  test("bad args") {
     an[IllegalArgumentException] shouldBe thrownBy {
       KthGreatest.kthGreatest(Array.empty, 3)
     }
@@ -25,7 +25,7 @@ class KthGreatestSuite extends FunSuite with Matchers {
     }
   }
 
-  test("kthGreatest randomized") {
+  test("randomized") {
     val seed = System.currentTimeMillis()
     val rng = new Random(seed)
     info(s"Using seed $seed")
@@ -33,8 +33,13 @@ class KthGreatestSuite extends FunSuite with Matchers {
       val counts = (0 until (rng.nextInt(10000) + 1)).map(_ => rng.nextInt(Short.MaxValue).toShort).toArray
       val k = rng.nextInt(counts.length)
       val res = KthGreatest.kthGreatest(counts, k)
-      res shouldBe counts.sorted.reverse(k)
+      res.kthGreatest shouldBe counts.sorted.reverse(k)
     }
+  }
+
+  test("all zero except one") {
+    val counts = Array[Short](50, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    KthGreatest.kthGreatest(counts, 3)
   }
 
 }
