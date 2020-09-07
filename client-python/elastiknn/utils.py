@@ -16,7 +16,13 @@ valid_metrics_algos = [
     ('exact', 'hamming'),
     ('exact', 'jaccard'),
     ('sparse_indexed', 'jaccard'),
-    ('lsh', 'jaccard')
+    ('sparse_indexed', 'hamming'),
+    ('lsh', 'l2'),
+    ('lsh', 'angular'),
+    ('lsh', 'jaccard'),
+    ('lsh', 'hamming'),
+    ('permutation_lsh', 'angular'),
+    ('permutation_lsh', 'l2')
 ]
 
 
