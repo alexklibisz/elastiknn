@@ -53,8 +53,8 @@ class ElastiknnModel(object):
                     return Mapping.SparseIndexed(dims), NearestNeighborsQuery.SparseIndexed(field, dummy, Similarity.Hamming)
             elif algorithm == 'lsh':
                 if metric == 'l2':
-                    return Mapping.L2LSH(dims, **mapping_params), \
-                           NearestNeighborsQuery.L2LSH(field, dummy, Similarity.L2, **query_params)
+                    return Mapping.L2Lsh(dims, **mapping_params), \
+                           NearestNeighborsQuery.L2Lsh(field, dummy, Similarity.L2, **query_params)
                 elif metric == 'angular':
                     return Mapping.AngularLsh(dims, **mapping_params), \
                            NearestNeighborsQuery.AngularLsh(field, dummy, Similarity.Angular, **query_params)
@@ -64,6 +64,11 @@ class ElastiknnModel(object):
                 elif metric == 'jaccard':
                     return Mapping.JaccardLsh(dims, **mapping_params), \
                            NearestNeighborsQuery.JaccardLsh(field, dummy, **query_params)
+            elif algorithm == 'permutation_lsh':
+                if metric == 'angular':
+                    return Mapping.PermutationLsh(dims, **mapping_params), \
+                           NearestNeighborsQuery.PermutationLsh(field, dummy, Similarity.Angular, **query_params)
+
             raise NameError
 
         self._mk_mapping_query = lambda dims: _mk_mapping_query(dims)

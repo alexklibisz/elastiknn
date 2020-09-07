@@ -159,7 +159,7 @@ class Mapping:
             }
 
     @dataclass(frozen=True)
-    class L2LSH(Base):
+    class L2Lsh(Base):
         dims: int
         K: int
         l: int
@@ -175,6 +175,23 @@ class Mapping:
                     "K": self.K,
                     "l": self.l,
                     "r": self.r
+                }
+            }
+
+    @dataclass(frozen=True)
+    class PermutationLsh(Base):
+        dims: int
+        k: int
+        repeating: bool
+
+        def to_dict(self):
+            return {
+                "type": "elastiknn_dense_float_vector",
+                "elastiknn": {
+                    "model": "permutation_lsh",
+                    "dims": self.dims,
+                    "k": self.k,
+                    "repeating": self.repeating
                 }
             }
 
@@ -283,7 +300,7 @@ class NearestNeighborsQuery:
             return NearestNeighborsQuery.AngularLsh(self.field, vec, self.similarity, self.candidates)
 
     @dataclass(frozen=True)
-    class L2LSH(Base):
+    class L2Lsh(Base):
         field: str
         vec: Vec.Base
         similarity: Similarity = Similarity.L2
@@ -299,5 +316,23 @@ class NearestNeighborsQuery:
             }
 
         def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.L2LSH(self.field, vec, self.similarity, self.candidates)
+            return NearestNeighborsQuery.L2Lsh(self.field, vec, self.similarity, self.candidates)
 
+    @dataclass(frozen=True)
+    class PermutationLsh(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.Angular
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "permutation_lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.PermutationLsh(self.field, vec, self.similarity, self.candidates)
