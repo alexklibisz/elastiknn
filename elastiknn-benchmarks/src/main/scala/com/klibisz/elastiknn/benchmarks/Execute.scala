@@ -126,8 +126,9 @@ object Execute extends App {
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
     val withRecalls = exact.queryResults.zip(test.queryResults).map {
       case (ex, ts) =>
-        val r = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length
-        ts.copy(recall = r)
+        val lowerBound = ex.scores.min
+        val testGreaterCount = ts.scores.count(_ >= lowerBound)
+        ts.copy(recall = testGreaterCount * 1f / ts.scores.length)
     }
     test.copy(queryResults = withRecalls)
   }

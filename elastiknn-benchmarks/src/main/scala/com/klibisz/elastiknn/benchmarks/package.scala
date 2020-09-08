@@ -40,7 +40,7 @@ package object benchmarks {
     def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
   }
 
-  final case class QueryResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
+  final case class QueryResult(scores: Seq[Float], duration: Long, recall: Double = Double.NaN)
 
   final case class BenchmarkResult(dataset: Dataset,
                                    mapping: Mapping,

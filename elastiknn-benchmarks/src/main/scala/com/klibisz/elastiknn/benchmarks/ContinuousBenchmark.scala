@@ -23,35 +23,36 @@ object ContinuousBenchmark extends App {
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
-    ),
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
-      )
-    ),
-    // Angular
-    Experiment(
-      Dataset.AnnbGlove25,
-      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 60, 3),
-      Seq(
-        Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
-      )
-    ),
-    Experiment(
-      Dataset.AnnbGlove25,
-      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
-      Seq(
-        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
-      )
     )
+//    ,
+//    Experiment(
+//      Dataset.AnnbSift,
+//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
+//      )
+//    ),
+//    // Angular
+//    Experiment(
+//      Dataset.AnnbGlove25,
+//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+//      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 60, 3),
+//      Seq(
+//        Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
+//      )
+//    ),
+//    Experiment(
+//      Dataset.AnnbGlove25,
+//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
+//      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
+//      Seq(
+//        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
+//      )
+//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {

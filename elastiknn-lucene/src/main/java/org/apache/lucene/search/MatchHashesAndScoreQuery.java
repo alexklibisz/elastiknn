@@ -70,7 +70,6 @@ public class MatchHashesAndScoreQuery extends Query {
                     int minCandidateCount = kthGreatestResult.kthGreatest;
 
                     // If none of the docs in the segment matched, return an empty iterator.
-                    // TODO: should this be more forgiving? Perhaps return first `candidates` docs?
                     if (kthGreatestResult.max == 0) return DocIdSetIterator.empty();
 
                     // Otherwise return an iterator over the doc ids >= the min candidate count.
@@ -86,9 +85,9 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
-                            // Increment doc until it exceeds the min candidate count.
+                            // Increment doc until it exceeds the min candidate count and is non-zero.
                             do doc++;
-                            while (doc < counts.length && counts[doc] < minCandidateCount);
+                            while (doc < counts.length && (counts[doc] < minCandidateCount || counts[doc] == 0));
                             if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
                             else return docID();
                         }
