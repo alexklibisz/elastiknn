@@ -121,7 +121,29 @@ package object benchmarks {
     import Dataset._
 
     private val vecName: String = "vec"
-    val defaultKs: Seq[Int] = Seq(100)
+    private val defaultKs: Seq[Int] = Seq(100)
+
+    def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
+
+      case Dataset.AnnbSift =>
+        for {
+          tables <- Seq(50, 75)
+          hashesPerTable <- Seq(2, 3)
+          width <- Seq(120, 160, 200)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
+            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, r = width),
+            for {
+              candidates <- Seq(1000, 5000)
+              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
+            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+          )
+
+      case _ => Seq.empty
+    }
 
     def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
       val lsh = for {

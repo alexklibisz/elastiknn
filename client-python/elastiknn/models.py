@@ -100,7 +100,7 @@ class ElastiknnModel(object):
 
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
-                   n_neighbors: int, return_similarity: bool = False, allow_missing: bool = False, progbar: bool = False):
+                   n_neighbors: int, return_similarity: bool = False, progbar: bool = False):
         mapped = self._tpex.map(
             lambda v: self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
                                                    n_neighbors, fetch_source=False),
@@ -110,8 +110,6 @@ class ElastiknnModel(object):
         sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
         for i, res in tqdm(enumerate(mapped), disable=not progbar):
             hits = res['hits']['hits']
-            # print(len(hits))
-            assert allow_missing or len(hits) == n_neighbors, f"Expected {n_neighbors} hits for vector {i} but got {len(hits)}"
             for j, hit in enumerate(hits):
                 hit['_id'] = hit['fields'][self._stored_id_field][0]    # Access stored ID.
                 inds[i][j] = int(hit['_id']) - 1                        # Subtract one because 0 is an invalid id in ES.
