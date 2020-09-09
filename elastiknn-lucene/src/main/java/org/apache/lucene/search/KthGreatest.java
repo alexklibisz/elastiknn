@@ -5,9 +5,11 @@ public class KthGreatest {
     public static class KthGreatestResult {
         public final short max;
         public final short kthGreatest;
-        public KthGreatestResult(short max, short kthGreatest) {
+        public final int numGreaterThanKthGreatest;
+        public KthGreatestResult(short max, short kthGreatest, int numGreaterThanKthGreatest) {
             this.max = max;
             this.kthGreatest = kthGreatest;
+            this.numGreaterThanKthGreatest = numGreaterThanKthGreatest;
         }
     }
 
@@ -45,15 +47,16 @@ public class KthGreatest {
             }
 
             // Find the kth largest value by iterating from the end of the histogram.
-            int geqk = 0;
+            int numGreaterEqual = 0;
             short kthGreatest = max;
             while (kthGreatest >= min) {
-                geqk += hist[kthGreatest - min];
-                if (geqk > k) break;
+                numGreaterEqual += hist[kthGreatest - min];;
+                if (numGreaterEqual > k) break;
                 else kthGreatest--;
             }
+            int numGreater = numGreaterEqual - hist[kthGreatest - min];
 
-            return new KthGreatestResult(max, kthGreatest);
+            return new KthGreatestResult(max, kthGreatest, numGreater);
         }
     }
 }

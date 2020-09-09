@@ -9,6 +9,8 @@ import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
 import org.scalatest._
 
+import scala.collection.mutable.ArrayBuffer
+
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
   val ft = new VectorMapper.FieldType("elastiknn_dense_float_vector")
@@ -102,6 +104,46 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
         val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
+    }
+  }
+
+  test("returns no more than `candidates` doc IDs") {
+    val query = Array(6, 7).map(i => HashAndFreq.once(writeInt(i)))
+    val candidates = 5
+
+    // Three docs with count > 1, three with count = 1, one with count = 0.
+    // This will make the min candidate count be 1. There are 6 docs with count = 1, but the query should only
+    // return 5 candidates.
+
+    indexAndSearch() { w =>
+      Seq(
+        Array(6, 7),
+        Array(1, 7),
+        Array(6, 7),
+        Array(1, 7),
+        Array(6, 7),
+        Array(1, 7),
+        Array(1, 2)
+      ).foreach { arr =>
+        val d = new Document()
+        arr.foreach(i => d.add(new Field("vec", writeInt(i), ft)))
+        w.addDocument(d)
+      }
+    } {
+      case (r, s) =>
+        val counts = ArrayBuffer.empty[Int]
+        val q = new MatchHashesAndScoreQuery("vec",
+                                             query,
+                                             candidates,
+                                             r,
+                                             (_: LeafReaderContext) =>
+                                               (_: Int, c: Int) => {
+                                                 counts.append(c)
+                                                 c.toFloat
+                                             })
+        val dd = s.search(q, 10)
+        dd.scoreDocs.length shouldBe 5
+        counts.toVector shouldBe Vector(2, 1, 2, 1, 2)
     }
   }
 
