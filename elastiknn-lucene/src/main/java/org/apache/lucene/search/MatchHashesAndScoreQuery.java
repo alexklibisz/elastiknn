@@ -72,7 +72,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // If none of the docs in the segment matched, return an empty iterator.
                     if (kgr.max == 0) return DocIdSetIterator.empty();
 
-                    // Otherwise return an iterator over the doc ids >= the min candidate count.
+                        // Otherwise return an iterator over the doc ids >= the min candidate count.
                     else return new DocIdSetIterator() {
 
                         // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.

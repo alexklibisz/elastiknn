@@ -49,4 +49,12 @@ class KthGreatestSuite extends FunSuite with Matchers {
     res.numGreaterThanKthGreatest shouldBe 1
   }
 
+  test("all zero") {
+    val counts = Array[Short](0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    val res = KthGreatest.kthGreatest(counts, 3)
+    res.kthGreatest shouldBe 0
+    res.max shouldBe 0
+    res.numGreaterThanKthGreatest shouldBe 0
+  }
+
 }
