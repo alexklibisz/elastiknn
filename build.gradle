@@ -147,8 +147,8 @@ def publishConfig(String projectDescription, boolean isScala = false) {
                         url = 'https://github.com/alexklibisz/elastiknn'
                         licenses {
                             license {
-                                name = 'GPLv3'
-                                url = 'https://choosealicense.com/licenses/gpl-3.0/'
+                                name = 'Apache 2.0'
+                                url = 'https://choosealicense.com/licenses/apache-2.0/'
                             }
                         }
                         developers {
