@@ -66,7 +66,3 @@ Post an issue, post in the Gitter channel, or contact me directly (contact info 
 [Badge-Elastic4s-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "client-elastic4s_2.12 snapshot"
 [Link-Elastic4s-Release]: https://search.maven.org/artifact/com.klibisz.elastiknn/client-elastic4s_2.12
 [Link-Elastic4s-Snapshot]: https://oss.sonatype.org/#nexus-search;gav~com.klibisz.elastiknn~client-elastic4s_2.12~~~
-
-## License
-
-Elastiknn is licensed under GPLv3. See License.txt. If you have any questions, contact me.
