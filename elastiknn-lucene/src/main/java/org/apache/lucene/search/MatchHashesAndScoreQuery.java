@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
+import javax.print.Doc;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
@@ -66,34 +67,61 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else {
                     // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    int minCandidateCount = KthGreatest.kthGreatest(counts, candidates);
+                    KthGreatest.KthGreatestResult kgr = KthGreatest.kthGreatest(counts, candidates);
 
-                    // If that lower bound is 0, none of the documents in this segment have matched, so return an empty iterator.
-                    if (minCandidateCount == 0) return DocIdSetIterator.empty();
+                    // If none of the docs in the segment matched, return an empty iterator.
+                    if (kgr.max == 0) return DocIdSetIterator.empty();
 
-                    // Otherwise return an iterator over the doc ids >= the min candidate count.
+                        // Otherwise return an iterator over the doc ids >= the min candidate count.
                     else return new DocIdSetIterator() {
 
                         // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.
-                        private int doc = -1;
+                        private int docId = -1;
+
+                        // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
+                        private int numEmitted = 0;
+                        private int numEq = 0;
 
                         @Override
                         public int docID() {
-                            return doc;
+                            return docId;
                         }
 
                         @Override
                         public int nextDoc() {
-                            // Increment doc until it exceeds the min candidate count.
-                            do doc++;
-                            while (doc < counts.length && counts[doc] < minCandidateCount);
-                            if (doc == counts.length) return DocIdSetIterator.NO_MORE_DOCS;
-                            else return docID();
+
+                            // Emits no more than the requested number of candidates.
+                            if (numEmitted == candidates) {
+                                docId = DocIdSetIterator.NO_MORE_DOCS;
+                                return docID();
+                            }
+
+                            // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
+                            // than `candidates` docs with count > kgr.kthGreatest.
+                            while (true) {
+                                if (docId < counts.length) docId++;
+
+                                if (docId == counts.length) {
+                                    docId = DocIdSetIterator.NO_MORE_DOCS;
+                                    return docID();
+                                }
+                                if (counts[docId] > kgr.kthGreatest) {
+                                    numEmitted++;
+                                    return docID();
+                                }
+                                if (counts[docId] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThanKthGreatest) {
+                                    numEq++;
+                                    numEmitted++;
+                                    return docID();
+                                }
+
+                            }
+
                         }
 
                         @Override
                         public int advance(int target) {
-                            while (doc < target) nextDoc();
+                            while (docId < target) nextDoc();
                             return docID();
                         }
 
@@ -110,11 +138,12 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Explanation explain(LeafReaderContext context, int doc) {
-                return Explanation.match( 0, "If someone know what this should return, please submit a PR. :)");
+                return Explanation.match( 0, "If someone knows what this should return, please submit a PR. :)");
             }
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
+
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 short[] counts = countMatches(context);
                 DocIdSetIterator disi = buildDocIdSetIterator(counts);
