@@ -1,3 +1,6 @@
+- Updated `MatchHashesAndScoreQuery` so that approximate queries will emit no more than `candidates` doc IDs.
+  This slightly decreases recall, since the previous implementation could emit > `candidates` IDs. 
+---
 - Support sparse bool query vectors with unsorted true indices.
 ---
 - Added new submodules which can be used without Elasticsearch:
