@@ -10,10 +10,10 @@ import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
 
-    private int L;
-    private int k;
-    private int r;
-    private int maxProbesPerTable;
+    private final int L;
+    private final int k;
+    private final int r;
+    private final int maxProbesPerTable;
     private final float[][] A;
     private final float[] B;
 
@@ -30,7 +30,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
      * - The shift and expand methods are smart enough to always generate valid perturbation sets, so you'll never
      *   append an invalid one to the heap. This simplifies the logic for Algorithm 1.
      *
-     * @param dims lengthof the vectors hashed by this model
+     * @param dims length of the vectors hashed by this model
      * @param L number of hash tables
      * @param k number of hash functions concatenated to form a hash for each table
      * @param r width of each hash bucket
@@ -82,7 +82,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 }
                 hashes[ixL] = HashAndFreq.once(writeInts(ints));
             }
-            return hashes;
         } else {
             // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
             Perturbation[] zeroPerturbations = new Perturbation[L * k];
@@ -134,8 +133,8 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 }
                 hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
             }
-            return hashes;
         }
+        return hashes;
     }
 
     private static class Perturbation {

@@ -19,21 +19,21 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbSift,
       Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 1),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 256),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
       )
+    ),
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 256),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
+      )
     )
 //    ,
-//    Experiment(
-//      Dataset.AnnbSift,
-//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 1),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
-//      )
-//    ),
 //    // Angular
 //    Experiment(
 //      Dataset.AnnbGlove25,
@@ -69,7 +69,7 @@ object ContinuousBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 1000
+            maxQueries = 500
           ))
       } yield ()
     }

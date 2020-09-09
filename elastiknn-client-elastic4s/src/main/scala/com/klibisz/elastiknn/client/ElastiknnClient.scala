@@ -56,6 +56,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
 
+    // TODO: make storedIdField optional and avoid the custom handler if None, since the benchmarks only require the score.
+
     // Handler that reads the id from the stored field and places it in the id field.
     // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
     implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
