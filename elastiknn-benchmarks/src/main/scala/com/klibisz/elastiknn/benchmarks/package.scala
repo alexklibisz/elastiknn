@@ -118,85 +118,84 @@ package object benchmarks {
   }
 
   object Experiment {
-    import Dataset._
 
     private val vecName: String = "vec"
     private val defaultKs: Seq[Int] = Seq(100)
 
+    /**
+      * Alias to gridsearch method for multiple datasets.
+      */
+    def gridsearch(datasets: Dataset*): Seq[Experiment] = datasets.flatMap(gridsearch)
+
+    /**
+      * Returns reasonable Experiments for doing a gridsearch over parameters for the given dataset.
+      */
     def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
 
-      case Dataset.AnnbSift =>
+      case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
         for {
-          tables <- Seq(50, 75)
-          hashesPerTable <- Seq(2, 3)
-          width <- Seq(120, 160, 200)
+          tables <- Seq(50, 75, 100)
+          hashesPerTable <- Seq(2, 3, 4)
+          width <- 1 to 5
         } yield
           Experiment(
             dataset,
             Mapping.DenseFloat(dataset.dims),
             NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, r = width),
+            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
             for {
-              candidates <- Seq(1000, 5000)
+              candidates <- Seq(1000)
+              probes <- Seq(0)
+            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+          )
+
+      case Dataset.AnnbSift =>
+        for {
+          tables <- Seq(50, 75, 100)
+          hashesPerTable <- Seq(2, 3)
+          width <- 1 to 5
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
+            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+            for {
+              candidates <- Seq(1000, 2000, 5000, 10000)
               probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
             } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
           )
 
+      case Dataset.AnnbGlove100 =>
+        val projections = for {
+          tables <- Seq(50, 75, 100)
+          hashesPerTable <- Seq(1, 2, 3)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
+            Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
+            for {
+              candidates <- Seq(1000, 5000)
+            } yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
+          )
+        val permutations = for {
+          m <- Seq(0.2, 0.4, 0.6)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
+            Mapping.PermutationLsh(dataset.dims, (m * dataset.dims).toInt, repeating = false),
+            for {
+              candidates <- Seq(1000, 5000)
+            } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
+          )
+
+        projections ++ permutations
+
       case _ => Seq.empty
-    }
-
-    def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
-      val lsh = for {
-        tables <- Seq(50, 75, 100, 200, 250)
-        hashesPerTable <- 1 to 3
-        width <- 1 to 3
-      } yield
-        Experiment(
-          dataset,
-          Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-          Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, r = width),
-          for {
-            k <- ks
-            candidateMultiple <- Seq(10, 20, 50)
-            probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidateMultiple * k, probes), k)
-        )
-      lsh
-    }
-
-    def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
-      val classic = for {
-        b <- Seq(50, 75, 100)
-        r <- 1 to 3
-      } yield
-        Experiment(
-          dataset,
-          Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
-          Mapping.AngularLsh(dataset.dims, b, r),
-          for {
-            k <- ks
-            m <- Seq(10, 20, 50)
-          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, m * k), k)
-        )
-
-      val permutation = for {
-        m <- Seq(0.1, 0.2, 0.5)
-        r <- Seq(true, false)
-      } yield
-        Experiment(
-          dataset,
-          Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
-          Mapping.PermutationLsh(dataset.dims, (m * dataset.dims).toInt, r),
-          for {
-            k <- ks
-            m <- Seq(10, 20, 50)
-          } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, m * k), k)
-        )
-
-      classic ++ permutation
     }
 
     def hamming(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
@@ -242,23 +241,6 @@ package object benchmarks {
       )
       sparseIndexed
     }
-
-    // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
-    val defaults: Seq[Experiment] = Seq(
-      l2(AnnbSift),
-      angular(AnnbGlove100)
-//      l2(AmazonHome),
-//      angular(AmazonHomeUnit),
-//      angular(AmazonMixedUnit),
-//      angular(AnnbDeep1b),
-//      l2(AnnbFashionMnist),
-//      l2(AnnbGist),
-//      angular(AnnbGlove100),
-//      jaccard(AnnbKosarak),
-//      l2(AnnbMnist),
-//      angular(AnnbNyt),
-//      l2(AnnbSift)
-    ).flatten
 
   }
 

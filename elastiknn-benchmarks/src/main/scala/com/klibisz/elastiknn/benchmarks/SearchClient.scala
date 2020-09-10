@@ -8,9 +8,6 @@ import com.klibisz.elastiknn.client.{ElastiknnClient, ElastiknnRequests}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.common.HealthStatus
 import com.sksamuel.elastic4s.{ElasticDsl, Handler, Response}
-import org.apache.lucene.codecs.lucene84.Lucene84Codec
-import org.apache.lucene.codecs.memory.{DirectDocValuesFormat, DirectPostingsFormat}
-import org.apache.lucene.codecs.{DocValuesFormat, PostingsFormat}
 import zio._
 import zio.clock.Clock
 import zio.duration.Duration
@@ -115,83 +112,5 @@ object SearchClient {
     }
 
   }
-
-  private class InMemoryCodec extends Lucene84Codec {
-    override def getDocValuesFormatForField(field: String): DocValuesFormat = new DirectDocValuesFormat
-    override def getPostingsFormatForField(field: String): PostingsFormat = new DirectPostingsFormat()
-  }
-
-//  def luceneInMemory(): ZLayer[Any, Nothing, Has[SearchClient]] = {
-//    ZLayer.succeed {
-//      new SearchClient {
-//
-//        private val searchers: mutable.Map[String, (Mapping, IndexSearcher)] = mutable.Map.empty
-//        private val tmpDirs: mutable.Set[File] = mutable.Set.empty
-//
-//        def blockUntilReady(): Task[Unit] = Task.succeed(())
-//        def indexExists(index: String): Task[Boolean] = ZIO.succeed(searchers.contains(index))
-//        def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]) = {
-//          val tmpDir = Files.createTempDirectory("elastiknn-").toFile
-//          val indexDir = new MMapDirectory(tmpDir.toPath)
-//          val indexWriterCfg = new IndexWriterConfig(new KeywordAnalyzer()).setCodec(new InMemoryCodec)
-//          val indexWriter = new IndexWriter(indexDir, indexWriterCfg)
-//          for {
-//            n <- vectors.zipWithIndex.foldM(0L) {
-//              case (n, (v, i)) =>
-//                val t = v match {
-//                  case sbv: Vec.SparseBool => VectorMapper.sparseBoolVector.checkAndCreateFields(mapping, "vec", sbv)
-//                  case dfv: Vec.DenseFloat => VectorMapper.denseFloatVector.checkAndCreateFields(mapping, "vec", dfv)
-//                  case _                   => Failure(new IllegalArgumentException("Vector must be either sparse bool or dense float"))
-//                }
-//                for {
-//                  fields <- Task.fromTry(t)
-//                  (dur, _) <- Task {
-//                    val doc = new Document()
-//                    doc.add(new StoredField("id", s"v$i"))
-//                    fields.foreach(doc.add)
-//                    indexWriter.addDocument(doc)
-//                  }.timed
-//                  _ <- if (i % 10000 == 0) log.debug(s"Indexed [$i] in [${dur.toMillis}] ms") else ZIO.succeed(())
-//                } yield n + 1
-//            }
-//          } yield {
-//            indexWriter.commit()
-//            indexWriter.forceMerge(shards)
-//            indexWriter.close()
-//            searchers.put(index, (mapping, new IndexSearcher(DirectoryReader.open(indexDir))))
-//            tmpDirs.add(tmpDir)
-//            n
-//          }
-//        }
-//
-//        def search(index: String, queries: Stream[Throwable, NearestNeighborsQuery], k: Int, par: Int) =
-//          searchers.get(index) match {
-//            case None => Stream.fail(new NoSuchElementException(s"Index [$index] does not exist"))
-//            case Some((mapping, searcher)) =>
-//              queries.zipWithIndex.mapMPar(par) {
-//                case (query, i) =>
-//                  for {
-//                    (dur, ids) <- Task.succeed {
-//                      val luceneQuery = KnnQueryBuilder(query, mapping, searcher.getIndexReader)
-//                      val hits = searcher.search(luceneQuery, k)
-//                      hits.scoreDocs.map(d => searcher.doc(d.doc, Set("id").asJava).get("id"))
-//                    }.timed
-//                    _ <- if (i % 100 == 0) log.debug(s"Completed query [$i] in [${dur.toMillis}] ms") else ZIO.succeed(())
-//                  } yield QueryResult(ids, dur.toMillis)
-//              }
-//          }
-//
-//        def deleteIndex(index: String): Task[Unit] = {
-//          Task.succeed {
-//            synchronized {
-//              searchers.remove(index)
-//            }
-//          }
-//        }
-//
-//        def close(): Task[Unit] = Task.succeed(())
-//      }
-//    }
-//  }
 
 }

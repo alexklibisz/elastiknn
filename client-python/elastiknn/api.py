@@ -95,8 +95,8 @@ class Mapping:
     @dataclass(frozen=True)
     class JaccardLsh(Base):
         dims: int
-        K: int
-        l: int
+        L: int
+        k: int
 
         def to_dict(self):
             return {
@@ -105,8 +105,8 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "jaccard",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l
+                    "L": self.L,
+                    "k": self.k
                 }
             }
 
@@ -143,8 +143,8 @@ class Mapping:
     @dataclass(frozen=True)
     class AngularLsh(Base):
         dims: int
-        K: int
-        l: int
+        L: int
+        k: int
 
         def to_dict(self):
             return {
@@ -153,8 +153,8 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "angular",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l
+                    "L": self.L,
+                    "k": self.k
                 }
             }
 
@@ -163,7 +163,7 @@ class Mapping:
         dims: int
         L: int
         k: int
-        r: int
+        w: int
 
         def to_dict(self):
             return {
@@ -174,7 +174,7 @@ class Mapping:
                     "dims": self.dims,
                     "L": self.L,
                     "k": self.k,
-                    "r": self.r
+                    "w": self.w
                 }
             }
 

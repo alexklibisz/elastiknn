@@ -15,22 +15,31 @@ object ContinuousBenchmark extends App {
 
   private val experiments = Seq(
     // L2
+//    Experiment(
+//      Dataset.AnnbSift,
+//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 256),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+//      )
+//    ),
+//    Experiment(
+//      Dataset.AnnbSift,
+//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 256),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
+//      )
+//    ),
     Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      Dataset.AnnbMnist,
+      Mapping.DenseFloat(Dataset.AnnbMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 256),
+      Mapping.L2Lsh(Dataset.AnnbMnist.dims, 300, 2, 256),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
-      )
-    ),
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 256),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
       )
     )
 //    ,
