@@ -284,7 +284,7 @@ PUT /my-index/_mapping
                 "similarity": "l2",                 # 4
                 "L": 99,                            # 5
                 "k": 1,                             # 6
-                "r": 3                              # 7
+                "w": 3                              # 7
             }
         }
     }
