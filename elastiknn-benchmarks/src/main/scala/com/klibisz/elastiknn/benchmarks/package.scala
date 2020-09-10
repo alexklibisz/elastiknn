@@ -134,9 +134,9 @@ package object benchmarks {
 
       case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
         for {
-          tables <- Seq(50, 75, 100)
+          tables <- Seq(50, 75, 100, 125)
           hashesPerTable <- Seq(2, 3, 4)
-          width <- 1 to 5
+          width <- 1 to 7
         } yield
           Experiment(
             dataset,
