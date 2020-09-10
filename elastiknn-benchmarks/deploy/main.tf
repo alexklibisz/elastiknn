@@ -145,28 +145,28 @@ module "eks" {
     vpc_id = module.vpc.vpc_id
     enable_irsa = true
     worker_groups = [
-//        {
-//            name = "m5.4xlarge"
-//            instance_type = "m5.4xlarge"
-//            asg_min_size = 1
-//            asg_max_size = 30   # Max number of nodes at any given time. Different from asg_max_capacity.
-//            spot_price = "0.77" # Max price set to on-demand price.
-//            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
-//            suspended_processes = ["AZRebalance"]
-//            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
-//            tags = [
-//                {
-//                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
-//                    "propagate_at_launch" = "false"
-//                    "value"               = "true"
-//                },
-//                {
-//                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
-//                    "propagate_at_launch" = "false"
-//                    "value"               = "true"
-//                }
-//            ]
-//        },
+        # Low-end, on-demand nodes for running k8s infra.
+        {
+            name = "t2.large"
+            instance_type = "t2.large"
+            asg_min_size = 1
+            asg_max_size = 4
+            suspended_processes = ["AZRebalance"]
+            addition_security_group_ids = [aws_security_group.worker_mgmt.id]
+            tags = [
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/enabled"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                },
+                {
+                    "key"                 = "k8s.io/cluster-autoscaler/${local.cluster_name}"
+                    "propagate_at_launch" = "false"
+                    "value"               = "true"
+                }
+            ]
+        },
+        # Higher-end, spot nodes for running jobs.
         {
             name = "c5.4xlarge"
             instance_type = "c5.4xlarge"

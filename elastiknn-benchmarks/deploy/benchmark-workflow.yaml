@@ -114,6 +114,9 @@ spec:
               -Djava.rmi.server.hostname=localhost
 
     - name: execute-elasticsearch
+      retryStrategy:
+        limit: 2
+        retryPolicy: "Always"
       inputs:
         parameters:
           - name: experiment

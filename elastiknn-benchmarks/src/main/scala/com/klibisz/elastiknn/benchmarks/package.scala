@@ -144,8 +144,8 @@ package object benchmarks {
             NearestNeighborsQuery.Exact(vecName, Similarity.L2),
             Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
             for {
-              candidates <- Seq(1000)
-              probes <- Seq(0)
+              candidates <- Seq(1000, 5000)
+              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(10)
             } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
           )
 
