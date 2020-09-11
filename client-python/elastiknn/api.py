@@ -215,7 +215,6 @@ class NearestNeighborsQuery:
 
         def to_dict(self):
             return {
-
                 "field": self.field,
                 "model": "exact",
                 "similarity": self.similarity.name.lower(),

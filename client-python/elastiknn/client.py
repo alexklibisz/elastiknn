@@ -128,5 +128,6 @@ class ElastiknnClient(object):
         if fetch_source:
             return self.es.search(index, body=body, size=k)
         else:
+
             return self.es.search(index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
                                   stored_fields="_none_")

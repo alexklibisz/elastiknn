@@ -29,7 +29,7 @@ class TestClient:
         res = eknn.nearest_neighbors(index, query, id_field, 10, False)
         hits = res['hits']['hits']
         assert len(hits) == 10
-        assert hits[0]["_id"] == ids[0]
+        assert hits[0]["fields"]["id"][0] == ids[0]
 
         res = eknn.nearest_neighbors(index, query, id_field, 10, True)
         hits = res['hits']['hits']

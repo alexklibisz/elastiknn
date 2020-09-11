@@ -18,70 +18,27 @@ from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, dealias_
 
 class ElastiknnModel(object):
 
-    def __init__(self, algorithm: str, metric: str, es: Elasticsearch = None, mapping_params: dict = None,
-                 query_params: dict = None, n_jobs=1, index: str = None):
+    def __init__(self, algorithm: str, metric: str, es: Elasticsearch = None, mapping_params: dict = {},
+                 query_params: dict = {}, n_jobs=1, index: str = None):
         self._logger = Logger(self.__class__.__name__)
         self._n_jobs = n_jobs
         self._tpex = ThreadPoolExecutor(self._n_jobs)
         self._vec_field = "vec"
         self._stored_id_field = "id"
         self._index = index
-
-        metric = dealias_metric(metric)
-        assert (algorithm, metric) in valid_metrics_algos, \
-            f"algorithm [{algorithm}] and metric [{metric}] should be one of {valid_metrics_algos}"
-
-        field = "vec"
-        dummy = Vec.Indexed("", "", "")
-
-        # Function combining in-scope variables and a later-provided dims to generate a mapping and query.
-        def _mk_mapping_query(dims: int) -> (Mapping.Base, NearestNeighborsQuery.Base):
-            if algorithm == "exact":
-                if metric == 'l1':
-                    return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L1)
-                elif metric == 'l2':
-                    return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
-                elif metric == 'angular':
-                    return Mapping.DenseFloat(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Angular)
-                elif metric == 'jaccard':
-                    return Mapping.SparseBool(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
-                elif metric == 'hamming':
-                    return Mapping.SparseBool(dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Hamming)
-            elif algorithm == 'sparse_indexed':
-                if metric == 'jaccard':
-                    return Mapping.SparseIndexed(dims), NearestNeighborsQuery.SparseIndexed(field, dummy, Similarity.Jaccard)
-                elif metric == 'hamming':
-                    return Mapping.SparseIndexed(dims), NearestNeighborsQuery.SparseIndexed(field, dummy, Similarity.Hamming)
-            elif algorithm == 'lsh':
-                if metric == 'l2':
-                    m, q = Mapping.L2Lsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.L2Lsh(field, dummy, **query_params)
-                    return m, q
-                elif metric == 'angular':
-                    return Mapping.AngularLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.AngularLsh(field, dummy, **query_params)
-                elif metric == 'hamming':
-                    return Mapping.AngularLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.HammingLsh(field, dummy, **query_params)
-                elif metric == 'jaccard':
-                    return Mapping.JaccardLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.JaccardLsh(field, dummy, **query_params)
-            elif algorithm == 'permutation_lsh':
-                if metric == 'angular':
-                    return Mapping.PermutationLsh(dims, **mapping_params), \
-                           NearestNeighborsQuery.PermutationLsh(field, dummy, Similarity.Angular, **query_params)
-
-            raise NameError
-
-        self._mk_mapping_query = lambda dims: _mk_mapping_query(dims)
-        self._mapping = None
-        self._query = None
+        self._mapping_params = mapping_params
+        self._query_params = query_params
         self._eknn = ElastiknnClient(es)
+        self._algorithm = algorithm
+        assert (self._algorithm, metric) in valid_metrics_algos, \
+            f"algorithm [{algorithm}] and metric [{metric}] should be one of {valid_metrics_algos}"
+        self._metric = dealias_metric(metric)
+        self._dims, self._query = None, None
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         vecs = list(canonical_vectors_to_elastiknn(X))
-        dims = len(vecs[0])
-        (self._mapping, self._query) = self._mk_mapping_query(dims)
+        self._dims = len(vecs[0])
+        mapping, self._query = self._mk_mapping_query(self._query_params)
 
         if self._index is None:
             self._index = f"{ELASTIKNN_NAME}-{int(time())}"
@@ -90,7 +47,7 @@ class ElastiknnModel(object):
         self._eknn.es.indices.delete(self._index, ignore=[400, 404])
         body = dict(settings=dict(number_of_shards=shards, number_of_replicas=0))
         self._eknn.es.indices.create(self._index, body=json.dumps(body))
-        self._eknn.put_mapping(self._index, self._vec_field, self._mapping, self._stored_id_field)
+        self._eknn.put_mapping(self._index, self._vec_field, mapping, self._stored_id_field)
 
         self._logger.info(f"indexing {len(vecs)} vectors into index {self._index}")
         ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.
@@ -100,7 +57,11 @@ class ElastiknnModel(object):
 
 
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
-                   n_neighbors: int, return_similarity: bool = False, progbar: bool = False):
+                   n_neighbors: int, return_similarity: bool = False, progbar: bool = False, query_params: dict = None):
+
+        if query_params is not None:
+            (_, self._query) = self._mk_mapping_query(query_params)
+
         mapped = self._tpex.map(
             lambda v: self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
                                                    n_neighbors, fetch_source=False),
@@ -119,3 +80,45 @@ class ElastiknnModel(object):
             return inds, sims
         else:
             return inds
+
+    def _mk_mapping_query(self, query_params: dict()) -> (Mapping.Base, NearestNeighborsQuery.Base):
+        field = "vec"
+        dummy = Vec.Indexed("", "", "")
+        if self._algorithm == "exact":
+            if self._metric == 'l1':
+                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L1)
+            elif self._metric == 'l2':
+                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
+            elif self._metric == 'angular':
+                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Angular)
+            elif self._metric == 'jaccard':
+                return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
+            elif self._metric == 'hamming':
+                return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Hamming)
+        elif self._algorithm == 'sparse_indexed':
+            if self._metric == 'jaccard':
+                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
+                                                                                        Similarity.Jaccard)
+            elif self._metric == 'hamming':
+                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
+                                                                                        Similarity.Hamming)
+        elif self._algorithm == 'lsh':
+            if self._metric == 'l2':
+                m, q = Mapping.L2Lsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.L2Lsh(field, dummy, **query_params)
+                return m, q
+            elif self._metric == 'angular':
+                return Mapping.AngularLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.AngularLsh(field, dummy, **query_params)
+            elif self._metric == 'hamming':
+                return Mapping.AngularLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.HammingLsh(field, dummy, **query_params)
+            elif self._metric == 'jaccard':
+                return Mapping.JaccardLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.JaccardLsh(field, dummy, **query_params)
+        elif self._algorithm == 'permutation_lsh':
+            if self._metric == 'angular':
+                return Mapping.PermutationLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.PermutationLsh(field, dummy, Similarity.Angular, **query_params)
+
+        raise NameError

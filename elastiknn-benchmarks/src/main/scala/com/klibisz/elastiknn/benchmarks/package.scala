@@ -152,8 +152,8 @@ package object benchmarks {
       case Dataset.AnnbSift =>
         for {
           tables <- Seq(50, 75, 100)
-          hashesPerTable <- Seq(2, 3)
-          width <- 1 to 5
+          hashesPerTable <- Seq(2, 3, 4)
+          width <- Seq(1, 3, 5, 7)
         } yield
           Experiment(
             dataset,
@@ -161,7 +161,7 @@ package object benchmarks {
             NearestNeighborsQuery.Exact(vecName, Similarity.L2),
             Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
             for {
-              candidates <- Seq(1000, 2000, 5000, 10000)
+              candidates <- Seq(1000, 5000, 10000)
               probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
             } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
           )
