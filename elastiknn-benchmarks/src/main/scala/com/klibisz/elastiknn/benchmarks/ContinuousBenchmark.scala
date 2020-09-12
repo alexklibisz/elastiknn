@@ -34,12 +34,12 @@ object ContinuousBenchmark extends App {
 //      )
 //    ),
     Experiment(
-      Dataset.AnnbMnist,
-      Mapping.DenseFloat(Dataset.AnnbMnist.dims),
+      Dataset.AnnbFashionMnist,
+      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbMnist.dims, 300, 2, 256),
+      Mapping.L2Lsh(Dataset.AnnbMnist.dims, 125, 3, 7),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 3), k)
       )
     )
 //    ,
@@ -77,8 +77,7 @@ object ContinuousBenchmark extends App {
             datasetsPrefix = "data/processed",
             resultsPrefix = "results",
             bucket = bucket,
-            s3Url = Some(s3Url),
-            maxQueries = 500
+            s3Url = Some(s3Url)
           ))
       } yield ()
     }
