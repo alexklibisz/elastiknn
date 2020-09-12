@@ -16,9 +16,9 @@ Elastiknn is benchmarked against a subset of the datasets from the popular [ann-
 For each dataset, run a grid-search over mappings and compatible queries.
 Report the pareto frontier for recall and queries/second.
 Present the mapping and query used for each point on the pareto frontier.
-Partition these results by the number of shards in the index, which controls query parallelism in Elasticsearch.
+Partition these results by the number of shards in the index, which controls parallelism at query time.
 
-All runs use a single-node Elasticsearch cluster with an 8GB heap, G1 garbage collection, tmpfs storage, running on C5.4XLarge EC2 instances in an AWS EKS cluster.
+Each run uses a single-node Elasticsearch cluster with an 8GB heap, G1 garbage collection, tmpfs storage, running on C5.4XLarge EC2 instances in an AWS EKS cluster.
 Datasets are indexed with exactly one shard (i.e. no query parallelism), merged into a single segment, with zero replicas.
 
 **Upcoming Work**
