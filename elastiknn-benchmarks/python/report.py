@@ -32,6 +32,10 @@ def cleanup_mapping(s: str) -> str:
     return json.dumps(eknn)
 
 
+def cleanup_dataset(s: str) -> str:
+    return ''.join(map(lambda c: c if c.islower() else f" {c}", s)).strip()
+
+
 def main():
     assert len(argv) == 2, "Usage: <script> path/to/aggregate.csv"
     aggdf = pd.read_csv(argv[1]).dropna()
@@ -40,14 +44,15 @@ def main():
     aggdf["mapping"] = aggdf["mapping"].apply(cleanup_mapping)
     aggdf["recall"] = aggdf["recall"].round(2)
     aggdf["queriesPerSecond"] = aggdf["queriesPerSecond"].round(0)
+    aggdf["dataset"] = aggdf["dataset"].apply(cleanup_dataset)
 
     for (dataset, dsetdf) in aggdf.groupby("dataset"):
 
-        print(f"## {dataset}")
+        print(f"### {dataset}")
 
         for (shards, sharddf) in dsetdf.groupby("shards"):
             shardstr = "Single Shard" if shards == 1 else f"{shards} Shards"
-            print(f"### {shardstr}")
+            print(f"#### {shardstr}")
 
             colors = itertools.cycle(list('bgrcmykw'))
 
