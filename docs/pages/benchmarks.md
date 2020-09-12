@@ -27,6 +27,18 @@ Datasets are indexed with exactly one shard (i.e. no query parallelism), merged 
 2. Results for multiple shards and possibly multiple nodes (i.e. quantify effects of scaling out).
 3. Results for larger datasets, e.g. [Deep1B](http://sites.skoltech.ru/compvision/noimi/) and [Amazon reviews image vectors](http://jmcauley.ucsd.edu/data/amazon/links.html).
 
+**Caveats**
+
+If you only need bulk nearest neighbor search, there are a number of faster methods.
+When comparing Elastiknn performance to these methods, consider the following:
+
+1. Elastiknn executes entirely in the Elasticsearch JVM and is implemented with existing Elasticsearch and Lucene APIs. 
+   Many other methods use C and C++, which are generally faster than the JVM for pure number crunching tasks.
+2. Elastiknn issues an HTTP request for _every_ query, since a KNN query is just a standard Elasticsearch query. 
+   Most other methods operate without network I/O.
+3. Elastiknn stores vectors on disk and uses zero caching beyond the caching that Lucene already implements.
+   Most other methods operate entirely in memory.
+
 --- 
 
 ## Results
