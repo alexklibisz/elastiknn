@@ -9,7 +9,7 @@ permalink: /benchmarks/
 # Benchmarks
 {: .no_toc }
 
-Elastiknn is benchmarked against a subset of datasets from the popular [ann-benchmarks (Annb) project](https://github.com/erikbern/ann-benchmarks).
+Elastiknn is benchmarked against a subset of datasets from the popular [ann-benchmarks project](https://github.com/erikbern/ann-benchmarks).
 
 **Methodology**
 
