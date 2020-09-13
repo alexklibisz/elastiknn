@@ -62,7 +62,7 @@ This library contains a custom Lucene query used by Elastiknn, as well as a hand
 In a Gradle project:
 
 ```groovy
-implementation 'com.klibisz.elastiknn:lucene:0.1.0-PRE30'
+implementation 'com.klibisz.elastiknn:lucene:<version below>'
 ```
 
 **Versions**
