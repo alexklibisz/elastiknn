@@ -9,7 +9,7 @@ permalink: /benchmarks/
 # Benchmarks
 {: .no_toc }
 
-Elastiknn is benchmarked against a subset of the datasets from the popular [ann-benchmarks (Annb) project](https://github.com/erikbern/ann-benchmarks).
+Elastiknn is benchmarked against a subset of datasets from the popular [ann-benchmarks (Annb) project](https://github.com/erikbern/ann-benchmarks).
 
 **Methodology**
 
@@ -18,7 +18,8 @@ Report the pareto frontier for recall and queries/second.
 Present the mapping and query used for each point on the pareto frontier.
 Partition these results by the number of shards in the index, which controls parallelism at query time.
 
-Each run uses a single-node Elasticsearch cluster with an 8GB heap, G1 garbage collection, tmpfs storage, running on C5.4XLarge EC2 instances in an AWS EKS cluster.
+Each run uses a single-node Elasticsearch cluster with an 8GB heap, G1 garbage collection, tmpfs storage (for faster 
+indexing, has minimal effect on queries), running on C5.4XLarge EC2 instances in an AWS EKS cluster.
 Datasets are indexed with exactly one shard (i.e. no query parallelism), merged into a single segment, with zero replicas.
 
 **Upcoming Work**
