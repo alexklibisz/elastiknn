@@ -58,7 +58,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
               docId shouldBe 0
               numMatchingHashes shouldBe 2
               99d
-            }
+          }
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 1
@@ -133,14 +133,14 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
       case (r, s) =>
         val counts = ArrayBuffer.empty[Int]
         val q = new MatchHashesAndScoreQuery("vec",
-          query,
-          candidates,
-          r,
-          (_: LeafReaderContext) =>
-            (_: Int, c: Int) => {
-              counts.append(c)
-              c.toFloat
-            })
+                                             query,
+                                             candidates,
+                                             r,
+                                             (_: LeafReaderContext) =>
+                                               (_: Int, c: Int) => {
+                                                 counts.append(c)
+                                                 c.toFloat
+                                             })
         val dd = s.search(q, 10)
         dd.scoreDocs.length shouldBe 5
         counts.toVector shouldBe Vector(2, 1, 2, 1, 2)

@@ -16,8 +16,24 @@ valid_metrics_algos = [
     ('exact', 'hamming'),
     ('exact', 'jaccard'),
     ('sparse_indexed', 'jaccard'),
-    ('lsh', 'jaccard')
+    ('sparse_indexed', 'hamming'),
+    ('lsh', 'l2'),
+    ('lsh', 'angular'),
+    ('lsh', 'jaccard'),
+    ('lsh', 'hamming'),
+    ('permutation_lsh', 'angular'),
+    ('permutation_lsh', 'l2')
 ]
+
+def dealias_metric(metric: str) -> str:
+    mlower = metric.lower()
+    if mlower == 'euclidean':
+        return 'l2'
+    elif mlower == 'cosine':
+        return 'angular'
+    else:
+        return mlower
+
 
 
 def sparse_bool_vectors_to_csr(sbvs: List[Vec.SparseBool]) -> csr_matrix:

@@ -95,8 +95,8 @@ class Mapping:
     @dataclass(frozen=True)
     class JaccardLsh(Base):
         dims: int
-        K: int
-        l: int
+        L: int
+        k: int
 
         def to_dict(self):
             return {
@@ -105,8 +105,8 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "jaccard",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l
+                    "L": self.L,
+                    "k": self.k
                 }
             }
 
@@ -143,8 +143,8 @@ class Mapping:
     @dataclass(frozen=True)
     class AngularLsh(Base):
         dims: int
-        K: int
-        l: int
+        L: int
+        k: int
 
         def to_dict(self):
             return {
@@ -153,17 +153,17 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "angular",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l
+                    "L": self.L,
+                    "k": self.k
                 }
             }
 
     @dataclass(frozen=True)
-    class L2LSH(Base):
+    class L2Lsh(Base):
         dims: int
-        K: int
-        l: int
-        r: int
+        L: int
+        k: int
+        w: int
 
         def to_dict(self):
             return {
@@ -172,9 +172,26 @@ class Mapping:
                     "model": "lsh",
                     "similarity": "l2",
                     "dims": self.dims,
-                    "K": self.K,
-                    "l": self.l,
-                    "r": self.r
+                    "L": self.L,
+                    "k": self.k,
+                    "w": self.w
+                }
+            }
+
+    @dataclass(frozen=True)
+    class PermutationLsh(Base):
+        dims: int
+        k: int
+        repeating: bool
+
+        def to_dict(self):
+            return {
+                "type": "elastiknn_dense_float_vector",
+                "elastiknn": {
+                    "model": "permutation_lsh",
+                    "dims": self.dims,
+                    "k": self.k,
+                    "repeating": self.repeating
                 }
             }
 
@@ -198,7 +215,6 @@ class NearestNeighborsQuery:
 
         def to_dict(self):
             return {
-
                 "field": self.field,
                 "model": "exact",
                 "similarity": self.similarity.name.lower(),
@@ -283,9 +299,10 @@ class NearestNeighborsQuery:
             return NearestNeighborsQuery.AngularLsh(self.field, vec, self.similarity, self.candidates)
 
     @dataclass(frozen=True)
-    class L2LSH(Base):
+    class L2Lsh(Base):
         field: str
         vec: Vec.Base
+        probes: int = 0
         similarity: Similarity = Similarity.L2
         candidates: int = 1000
 
@@ -294,10 +311,30 @@ class NearestNeighborsQuery:
                 "field": self.field,
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
+                "probes": self.probes,
                 "candidates": self.candidates,
                 "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.L2LSH(self.field, vec, self.similarity, self.candidates)
+            return NearestNeighborsQuery.L2Lsh(field=self.field, vec=vec, probes=self.probes, similarity=self.similarity,
+                                               candidates=self.candidates)
 
+    @dataclass(frozen=True)
+    class PermutationLsh(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.Angular
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "permutation_lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.PermutationLsh(self.field, vec, self.similarity, self.candidates)

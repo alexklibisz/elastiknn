@@ -179,9 +179,9 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.AngularLsh](c)
           case (EKNN_DENSE_FLOAT_VECTOR, Some(LSH), Some(Similarity.L2)) =>
             esc.decode[Mapping.L2Lsh](c)
-          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), None) => esc.decode[Mapping.PermutationLsh](c)
+          case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), _) => esc.decode[Mapping.PermutationLsh](c)
           case _ =>
-            val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [${simOpt.map(esc.encode(_).noSpaces)}]"
+            val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [$simOpt}]"
             fail[Mapping](msg)
         }
       } yield mapping

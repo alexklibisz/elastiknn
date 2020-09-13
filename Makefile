@@ -24,7 +24,6 @@ clean:
 
 .mk/python3-installed:
 	python3 --version > /dev/null
-	python3 -m pip install -q virtualenv
 	touch $@
 
 .mk/docker-compose-installed:
@@ -32,7 +31,7 @@ clean:
 	touch $@
 
 .mk/client-python-venv: .mk/python3-installed
-	cd client-python && python3 -m virtualenv venv
+	cd client-python && python3 -m pip install virtualenv && python3 -m virtualenv venv
 	touch $@
 
 .mk/client-python-install: .mk/client-python-venv client-python/requirements*.txt
@@ -170,11 +169,11 @@ publish/site: .mk/jekyll-site-build
 	touch $@
 
 .mk/benchmarks-docker-build: .mk/benchmarks-assemble .mk/gradle-publish-local
-	cd plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
-	cd benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
-	cd benchmarks/python \
-	&& (ls venv || python3 -m virtualenv venv) \
-	&& venv/bin/pip install -r requirements.txt \
+	cd elastiknn-plugin && docker build -t $(ecr_benchmarks_prefix).elastiknn .
+	cd elastiknn-benchmarks && docker build -t $(ecr_benchmarks_prefix).driver .
+	cd elastiknn-benchmarks/python \
+	&& (ls venv || python3 -m venv venv) \
+	&& ./venv/bin/pip install -r requirements.txt \
 	&& docker build -t $(ecr_benchmarks_prefix).datasets .
 	touch $@
 
@@ -184,14 +183,7 @@ publish/site: .mk/jekyll-site-build
 	docker push $(ecr_benchmarks_prefix).datasets
 	touch $@
 
-benchmarks/continuous/trigger:
-	curl -H "Accept: application/vnd.github.everest-preview+json" \
-		 -H "Authorization: token ${GITHUB_TOKEN}" \
-		 --request POST \
-		 --data '{"event_type": "benchmark", "client_payload": { "branch": "'$(git_branch)'"}}' \
-		 https://api.github.com/repos/alexklibisz/elastiknn/dispatches
-
-benchmarks/continuous/run: benchmarks/minio
+benchmarks/continuous/run:
 	$(gradle) --console=plain -PmainClass=com.klibisz.elastiknn.benchmarks.ContinuousBenchmark :benchmarks:run
 
 benchmarks/docker/login:
@@ -204,14 +196,15 @@ benchmarks/docker/push: .mk/benchmarks-docker-push
 benchmarks/minio:
 	cd elastiknn-testing && docker-compose up -d minio
 
-benchmarks/argo/submit/benchmarks: .mk/benchmarks-docker-push
-	cd benchmarks/deploy \
-	&& envsubst < benchmark-workflow.yaml | argo submit -
+benchmarks/argo/submit/benchmark: .mk/benchmarks-docker-push
+	cd elastiknn-benchmarks/deploy \
+	&& envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml \
+	&& argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml
 
 benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
-	cd benchmarks/deploy \
+	cd elastiknn-benchmarks/deploy \
 	&& envsubst < datasets-workflow.yaml | argo submit -
 
 benchmarks/adhoc:
-	cd benchmarks/deploy \
+	cd elastiknn-benchmarks/deploy \
 	&& envsubst < adhoc-pod.yaml | kubectl apply -f -

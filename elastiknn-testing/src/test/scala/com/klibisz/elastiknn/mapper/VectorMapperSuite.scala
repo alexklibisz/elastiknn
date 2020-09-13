@@ -5,12 +5,11 @@ import java.util.UUID
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, Vec}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{Indexes, Response}
-import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.get.GetResponse
+import com.sksamuel.elastic4s.{Indexes, Response}
+import io.circe.parser.parse
 import io.circe.{Json, JsonObject}
 import org.scalatest._
-import io.circe.parser.parse
 
 import scala.concurrent.Future
 import scala.util.Random

@@ -7,11 +7,13 @@ import zio._
 import zio.blocking.Blocking
 import zio.console._
 
+import scala.util.Random
+
 /**
   * Produce multiple Experiments for downstream processing.
   * Write each experiment to S3 and write the keys to a file, also in s3.
   */
-object Enqueue extends App {
+object Generate extends App {
 
   /**
     * Parameters for running the Enqueue App.
@@ -44,20 +46,22 @@ object Enqueue extends App {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = Experiment.defaults
+      val experiments = Experiment.gridsearch(Dataset.AnnbSift)
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
+        _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
-        (hashes, effects) = experiments.foldLeft((Vector.empty[String], Vector.empty[Task[PutObjectResult]])) {
-          case ((hashes, effects), exp) =>
+        (keys, effects) = experiments.foldLeft((Vector.empty[String], Vector.empty[Task[PutObjectResult]])) {
+          case ((keys, effects), exp) =>
             val body = exp.asJson.noSpaces
             val hash = exp.md5sum.toLowerCase
-            val key = s"${experimentsPrefix}/$hash.json"
+            val key = s"$experimentsPrefix/$hash"
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
-            (hashes :+ hash, effects :+ effect)
+            (keys :+ key, effects :+ effect)
         }
-        _ <- putStrLn(s"Saving ${hashes.length} experiments to S3")
-        _ <- ZIO.collectAll(effects)
-        _ <- blocking.effectBlocking(s3Client.putObject(bucket, keysKey, hashes.asJson.noSpaces))
+        _ <- ZIO.collectAllParN(16)(effects)
+        // Shuffle the keys so that you don't get several pods running exact search for the same dataset simultaneously.
+        keysShuffled = new Random(0).shuffle(keys)
+        _ <- blocking.effectBlocking(s3Client.putObject(bucket, keysKey, keysShuffled.asJson.noSpaces))
       } yield ()
       val layer = Blocking.live ++ Console.live
       logic.provideLayer(layer).exitCode

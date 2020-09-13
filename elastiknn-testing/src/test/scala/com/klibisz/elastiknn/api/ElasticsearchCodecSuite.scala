@@ -4,8 +4,6 @@ import io.circe
 import io.circe.{DecodingFailure, Json}
 import org.scalatest.{Assertion, FunSuite, Matchers}
 
-import scala.language.postfixOps
-
 class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
   implicit class CodecMatcher(s: String) {

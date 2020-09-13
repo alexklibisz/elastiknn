@@ -9,9 +9,7 @@ import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
 import org.apache.http.client.config.RequestConfig
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
-import org.elasticsearch.client.{RestClient, RestClientBuilder}
-import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, RequestConfigCallback}
+import org.elasticsearch.client.RestClient
 
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,6 +55,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     * See [[ElastiknnRequests.nearestNeighbors()]].
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
+
+    // TODO: make storedIdField optional and avoid the custom handler if None, since the benchmarks only require the score.
 
     // Handler that reads the id from the stored field and places it in the id field.
     // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.

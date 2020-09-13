@@ -1,6 +1,6 @@
 # Docker-compose setup for running tests and micro-benchmarks.
 # Github's virtual environments have 2 CPUs, 7GB memory, 14GB SSD.
-# Important to run in cluster mode because some parts of the plugin
+# Important to run > 1 node because some parts of the plugin
 # deal with communication/serialization between nodes.
 version: "3.8"
 
@@ -25,11 +25,6 @@ services:
       - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ports:
       - "9200:9200"
-    volumes:
-      - type: tmpfs
-        target: /usr/share/elasticsearch/data
-        tmpfs:
-          size: 1000000000 # 1Gb
     ulimits:
       nofile:
         soft: 65536
@@ -50,10 +45,10 @@ services:
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms4G -Xmx4G
     volumes:
-      - type: tmpfs
-        target: /usr/share/elasticsearch/data
-        tmpfs:
-          size: 10000000000 # 10Gb
+    - type: tmpfs
+      target: /usr/share/elasticsearch/data
+      tmpfs:
+        size: 10000000000 # 10Gb
     ulimits:
       nofile:
         soft: 65536

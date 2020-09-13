@@ -18,7 +18,7 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 
 ## Mappings
 
-Before indexing vectors you must define a mapping specifying one of two vector datatypes, an indexing model, and the model's parameters. 
+Before indexing vectors, you first define a mapping specifying a vector datatype, an indexing model, and the model's parameters. 
 This determines which queries are supported for the indexed vectors.
 
 ### General Structure
@@ -284,7 +284,7 @@ PUT /my-index/_mapping
                 "similarity": "l2",                 # 4
                 "L": 99,                            # 5
                 "k": 1,                             # 6
-                "r": 3                              # 7
+                "w": 3                              # 7
             }
         }
     }

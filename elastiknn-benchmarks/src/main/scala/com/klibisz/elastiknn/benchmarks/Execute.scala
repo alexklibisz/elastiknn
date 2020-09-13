@@ -1,28 +1,19 @@
 package com.klibisz.elastiknn.benchmarks
 
 import java.net.URI
-import java.util.concurrent.TimeUnit
 
 import com.amazonaws.services.s3.AmazonS3
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.benchmarks.codecs._
-import com.klibisz.elastiknn.client.ElastiknnClient
-import com.sksamuel.elastic4s.ElasticDsl.{clusterHealth, _}
-import com.sksamuel.elastic4s.requests.common.HealthStatus
-import com.sksamuel.elastic4s.requests.searches.SearchIterator
-import com.sksamuel.elastic4s.{ElasticDsl, Hit, HitReader}
 import io.circe.parser._
 import zio._
 import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console._
-import zio.duration.Duration
 import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
 import zio.stream._
 
-import scala.util.Try
-import scala.concurrent.duration._
 import scala.util.hashing.MurmurHash3
 
 /**
@@ -31,15 +22,15 @@ import scala.util.hashing.MurmurHash3
 object Execute extends App {
 
   final case class Params(experimentKey: String = "",
-                          experimentsPrefix: String = "",
                           datasetsPrefix: String = "",
                           resultsPrefix: String = "",
                           recompute: Boolean = false,
                           bucket: String = "",
                           s3Url: Option[String] = None,
-                          esUrl: Option[String] = None,
+                          esUrl: String = "http://localhost:9200",
                           shards: Int = 1,
-                          parallelQueries: Int = 1)
+                          parallelQueries: Int = 1,
+                          maxQueries: Int = 10000)
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -66,7 +57,7 @@ object Execute extends App {
       .optional()
     opt[String]("esUrl")
       .text("elasticsearch URL, e.g. http://localhost:9200")
-      .action((s, c) => c.copy(s3Url = Some(s)))
+      .action((s, c) => c.copy(esUrl = s))
       .optional()
     opt[Int]("shards")
       .text("number of shards in the elasticsearch index")
@@ -76,13 +67,17 @@ object Execute extends App {
       .text("number of queries to execute in parallel")
       .action((i, c) => c.copy(shards = i))
       .optional()
+    opt[Int]("maxQueries")
+      .text("maximum number of queries to execute")
+      .action((i, c) => c.copy(maxQueries = i))
+      .optional()
   }
 
-  private def readExperiment(bucket: String, prefix: String, key: String) =
+  private def readExperiment(bucket: String, key: String) =
     for {
       blocking <- ZIO.access[Blocking](_.get)
       s3Client <- ZIO.access[Has[AmazonS3]](_.get)
-      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, s"$prefix/$key"))
+      body <- blocking.effectBlocking(s3Client.getObjectAsString(bucket, key))
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
@@ -92,7 +87,8 @@ object Execute extends App {
       eknnQuery: NearestNeighborsQuery,
       k: Int,
       shards: Int,
-      parallelQueries: Int
+      parallelQueries: Int,
+      maxQueries: Int
   ) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
@@ -117,23 +113,27 @@ object Execute extends App {
         } yield ()
 
       // Run searches on the test vectors.
-      vecStream = datasetClient.streamTest(dataset)
+      vecStream = datasetClient.streamTest(dataset, Some(maxQueries))
       queryStream = vecStream.map(eknnQuery.withVec)
       resultsStream = searchClient.search(trainIndex, queryStream, k, parallelQueries)
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
-    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toVector)
+      _ <- searchClient.deleteIndex(trainIndex)
+    } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toArray)
   }
 
   private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
     val withRecalls = exact.queryResults.zip(test.queryResults).map {
-      case (ex, ts) => ts.copy(recall = ex.neighbors.intersect(ts.neighbors).length * 1d / ex.neighbors.length)
+      case (ex, ts) =>
+        val lowerBound = ex.scores.min
+        val testGreaterCount = ts.scores.count(_ >= lowerBound)
+        ts.copy(recall = testGreaterCount * 1f / ts.scores.length)
     }
     test.copy(queryResults = withRecalls)
   }
 
-  private def run(experiment: Experiment, shards: Int, parallelQueries: Int, recompute: Boolean) = {
+  private def run(experiment: Experiment, shards: Int, parallelQueries: Int, maxQueries: Int, recompute: Boolean) = {
     import experiment._
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
@@ -141,32 +141,32 @@ object Execute extends App {
         case Query(testQuery, k) =>
           for {
             exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k)
-            exactRes <- exactOpt match {
-              case Some(res) =>
-                log
-                  .info(s"Found exact result for mapping [$exactMapping] query [$exactQuery]")
-                  .map(_ => res)
-              case None =>
-                for {
-                  _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                  exact <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries)
-                  _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $exact")
-                  _ <- resultsClient.save(setRecalls(exact, exact))
-                } yield exact
+            exactRes <- log.locally(LogAnnotation.Name(List(exactMapping, exactQuery).map(_.toString))) {
+              exactOpt match {
+                case Some(res) => log.info(s"Found exact result").map(_ => res)
+                case None =>
+                  for {
+                    _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
+                    result <- indexAndSearch(dataset, exactMapping, exactQuery, k, shards, parallelQueries, maxQueries)
+                    withRecalls = setRecalls(result, result)
+                    _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $withRecalls")
+                    _ <- resultsClient.save(withRecalls)
+                  } yield withRecalls
+              }
             }
 
             testOpt <- resultsClient.find(dataset, testMapping, testQuery, k)
-            _ <- testOpt match {
-              case Some(_) if !recompute =>
-                log.info(s"Found existing test result for mapping [$testMapping], query [$testQuery]")
-              case _ =>
-                for {
-                  test <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries).map(setRecalls(exactRes, _))
-                  _ <- log.info(s"Saving test result for mapping [$testMapping], query [$testQuery]: $test")
-                  _ <- resultsClient.save(test)
-                  aggregate = AggregateResult(test)
-                  _ <- log.info(s"Aggregate test result for mapping [$testMapping], query [$testQuery]: $aggregate")
-                } yield ()
+            _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
+              testOpt match {
+                case Some(_) if !recompute => log.info(s"Found test result")
+                case _ =>
+                  for {
+                    result <- indexAndSearch(dataset, testMapping, testQuery, k, shards, parallelQueries, maxQueries)
+                    withRecalls = setRecalls(exactRes, result)
+                    _ <- log.info(s"Saving test result [$withRecalls]")
+                    _ <- resultsClient.save(withRecalls)
+                  } yield ()
+              }
             }
           } yield ()
       }
@@ -178,16 +178,11 @@ object Execute extends App {
     import params._
     val s3Client = S3Utils.client(s3Url)
     val blockingWithS3 = Blocking.live ++ ZLayer.succeed(s3Client)
-
     val loggingLayer = Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName))
-
-    val searchClientLayer = esUrl match {
-      case Some(url) =>
-        (Clock.live ++ loggingLayer) >>> SearchClient.elasticsearch(URI.create(url), true, 99999)
-      case None =>
-        SearchClient.luceneInMemory()
+    val searchClientLayer = {
+      val timeoutMillis = 10 * 60 * 1000 // Set timeout ridiculously high to account for merging segments.
+      SearchClient.elasticsearch(URI.create(esUrl), strictFailure = true, timeoutMillis = timeoutMillis)
     }
-
     val layer =
       Console.live ++
         Clock.live ++
@@ -201,7 +196,7 @@ object Execute extends App {
 
       // Load the experiment.
       _ <- log.info(params.toString)
-      experiment <- readExperiment(bucket, experimentsPrefix, experimentKey)
+      experiment <- readExperiment(bucket, experimentKey)
       _ <- log.info(s"Running experiment: $experiment")
 
       // Wait for cluster ready.
@@ -210,14 +205,14 @@ object Execute extends App {
       _ <- searchBackend.blockUntilReady()
 
       // Run the experiment.
-      _ <- run(experiment, shards, parallelQueries, recompute)
+      _ <- run(experiment, shards, parallelQueries, maxQueries, recompute)
 
     } yield ()
 
     steps.provideLayer(layer)
   }
 
-  override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
+  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) => apply(params).exitCode
     case None         => sys.exit(1)
   }

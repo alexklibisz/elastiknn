@@ -121,18 +121,18 @@ data "aws_iam_policy_document" "cluster_autoscaler" {
             "autoscaling:TerminateInstanceInAutoScalingGroup",
             "autoscaling:UpdateAutoScalingGroup"
         ]
-    resources = ["*"]
-    condition {
-        test     = "StringEquals"
-        variable = "autoscaling:ResourceTag/kubernetes.io/cluster/${module.eks.cluster_id}"
-        values   = ["owned"]
+        resources = ["*"]
+        condition {
+            test     = "StringEquals"
+            variable = "autoscaling:ResourceTag/kubernetes.io/cluster/${module.eks.cluster_id}"
+            values   = ["owned"]
+        }
+        condition {
+            test     = "StringEquals"
+            variable = "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/enabled"
+            values   = ["true"]
+        }
     }
-    condition {
-        test     = "StringEquals"
-        variable = "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/enabled"
-        values   = ["true"]
-    }
-  }
 }
 
 /*
@@ -145,13 +145,12 @@ module "eks" {
     vpc_id = module.vpc.vpc_id
     enable_irsa = true
     worker_groups = [
+        # Low-end, on-demand nodes for running k8s infra.
         {
-            name = "c5.xlarge"
-            instance_type = "c5.xlarge"
+            name = "t2.large"
+            instance_type = "t2.large"
             asg_min_size = 1
-            asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
-            spot_price = "0.17" # Max price set to on-demand price.
-            kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
+            asg_max_size = 4
             suspended_processes = ["AZRebalance"]
             addition_security_group_ids = [aws_security_group.worker_mgmt.id]
             tags = [
@@ -167,10 +166,11 @@ module "eks" {
                 }
             ]
         },
+        # Higher-end, spot nodes for running jobs.
         {
             name = "c5.4xlarge"
             instance_type = "c5.4xlarge"
-            asg_min_size = 0
+            asg_min_size = 1
             asg_max_size = 50   # Max number of nodes at any given time. Different from asg_max_capacity.
             spot_price = "0.68" # Max price set to on-demand price.
             kubelet_extra_args  = "--node-labels=node.kubernetes.io/lifecycle=spot"
@@ -212,7 +212,7 @@ resource "null_resource" "kubectl_config_provisioner" {
 resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
-    repository = "https://kubernetes-charts.storage.googleapis.com" 
+    repository = "https://kubernetes-charts.storage.googleapis.com"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
@@ -262,7 +262,7 @@ resource "kubernetes_storage_class" "storage-10-iops" {
  * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
 resource "kubernetes_cluster_role" "argo-workflows" {
-  depends_on = [null_resource.kubectl_config_provisioner]
+    depends_on = [null_resource.kubectl_config_provisioner]
     metadata {
         name = "argo-workflows"
     }
@@ -294,7 +294,7 @@ resource "helm_release" "argo-workflows" {
     ]
     // Hacky way to copy the secret needed for using artifacts.
     provisioner "local-exec" {
-      command = <<EOT
+        command = <<EOT
         kubectl -n ${local.k8s_service_account_namespace} wait --for=condition=ready --timeout=60s pod --all
         kubectl -n ${local.k8s_service_account_namespace} get -o yaml --export secret argo-workflows-minio | \
           kubectl apply -n ${local.k8s_default_namespace} -f -
@@ -334,9 +334,14 @@ resource "aws_ecr_repository" "elastiknn" {
 }
 
 resource "aws_ecr_repository" "datasets" {
-  name = "${local.cluster_name}.datasets"
-  image_tag_mutability = "MUTABLE"
+    name = "${local.cluster_name}.datasets"
+    image_tag_mutability = "MUTABLE"
 }
+
+/*
+ * TODO: IAM user for containers to read/write S3 bucket.
+ */
+
 
 /*
  * Outputs from setup.

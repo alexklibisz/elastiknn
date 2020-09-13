@@ -1,0 +1,6 @@
+driverImage: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+elastiknnImage: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+awsAccessKeyId: ${AWS_ACCESS_KEY_ID}
+awsSecretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+bucket: elastiknn-benchmarks
+shards: "1"

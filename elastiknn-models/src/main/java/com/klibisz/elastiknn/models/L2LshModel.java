@@ -10,10 +10,10 @@ import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
 
-    private int L;
-    private int k;
-    private int r;
-    private int maxProbesPerTable;
+    private final int L;
+    private final int k;
+    private final int w;
+    private final int maxProbesPerTable;
     private final float[][] A;
     private final float[] B;
 
@@ -30,16 +30,16 @@ public class L2LshModel implements HashingModel.DenseFloat {
      * - The shift and expand methods are smart enough to always generate valid perturbation sets, so you'll never
      *   append an invalid one to the heap. This simplifies the logic for Algorithm 1.
      *
-     * @param dims lengthof the vectors hashed by this model
+     * @param dims length of the vectors hashed by this model
      * @param L number of hash tables
      * @param k number of hash functions concatenated to form a hash for each table
-     * @param r width of each hash bucket
+     * @param w width of each hash bucket
      * @param rng random number generator used to instantiate model parameters.
      */
-    public L2LshModel(int dims, int L, int k, int r, Random rng) {
+    public L2LshModel(int dims, int L, int k, int w, Random rng) {
         this.L = L;
         this.k = k;
-        this.r = r;
+        this.w = w;
 
         // 3 possible perturbations (-1, 0, 1) for each of k hashes. Subtract one for the all-zeros case.
         this.maxProbesPerTable = (int) Math.pow(3d, k) - 1;
@@ -56,7 +56,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
         this.B = new float[L * k];
         for (int ixL = 0; ixL < L; ixL++) {
             for (int ixk = 0; ixk < k; ixk++) {
-                this.B[ixL * k + ixk] = (float) rng.nextFloat() * r;
+                this.B[ixL * k + ixk] = (float) rng.nextFloat() * w;
             }
         }
     }
@@ -78,11 +78,10 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 for (int ixk = 0; ixk < k; ixk++) {
                     float[] a = A[ixL * k + ixk];
                     float b = B[ixL * k + ixk];
-                    ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / r);
+                    ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
                 }
                 hashes[ixL] = HashAndFreq.once(writeInts(ints));
             }
-            return hashes;
         } else {
             // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
             Perturbation[] zeroPerturbations = new Perturbation[L * k];
@@ -94,10 +93,10 @@ public class L2LshModel implements HashingModel.DenseFloat {
                     float[] a = A[ixL * k + ixk];
                     float b = B[ixL * k + ixk];
                     float proj = dot(a, values) + b;
-                    int hash = (int) Math.floor(proj / r);
-                    float dneg = proj - hash * r;
+                    int hash = (int) Math.floor(proj / w);
+                    float dneg = proj - hash * w;
                     sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
-                    sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(r - dneg));
+                    sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
                     zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
                     ints[ixk + 1] = hash;
                 }
@@ -134,8 +133,8 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 }
                 hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
             }
-            return hashes;
         }
+        return hashes;
     }
 
     private static class Perturbation {

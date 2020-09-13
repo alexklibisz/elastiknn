@@ -2,15 +2,10 @@ package com.klibisz.elastiknn
 
 import java.time.LocalDate
 
-import com.klibisz.elastiknn.api.Mapping._
 import com.klibisz.elastiknn.api._
 import io.circe.Codec
 import io.circe.generic.semiauto._
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.math3.stat.descriptive.rank.Percentile
-import zio.Has
-
-import scala.language.implicitConversions
 
 package object benchmarks {
 
@@ -45,7 +40,7 @@ package object benchmarks {
     def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
   }
 
-  final case class QueryResult(neighbors: Seq[String], duration: Long, recall: Double = Double.NaN)
+  final case class QueryResult(scores: Seq[Float], duration: Long, recall: Double = Double.NaN)
 
   final case class BenchmarkResult(dataset: Dataset,
                                    mapping: Mapping,
@@ -54,7 +49,7 @@ package object benchmarks {
                                    shards: Int,
                                    parallelQueries: Int,
                                    durationMillis: Long = 0,
-                                   queryResults: Vector[QueryResult]) {
+                                   queryResults: Array[QueryResult]) {
     override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
   }
 
@@ -123,47 +118,84 @@ package object benchmarks {
   }
 
   object Experiment {
-    import Dataset._
 
     private val vecName: String = "vec"
-    val defaultKs: Seq[Int] = Seq(100)
+    private val defaultKs: Seq[Int] = Seq(100)
 
-    def l2(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
-      val lsh = for {
-        _L <- 100 to 350 by 50
-        m <- 1 to 3
-        w <- 1 to 3
-      } yield
-        Experiment(
-          dataset,
-          Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-          Mapping.L2Lsh(dataset.dims, _L, m, w),
-          for {
-            k <- ks
-            m <- Seq(5, 10, 20, 30)
-            p <- 0 to math.pow(m, 3).toInt by 3
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, m * k, p), k)
-        )
-      lsh
-    }
+    /**
+      * Alias to gridsearch method for multiple datasets.
+      */
+    def gridsearch(datasets: Dataset*): Seq[Experiment] = datasets.flatMap(gridsearch)
 
-    def angular(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
-      val lsh = for {
-        b <- 100 to 350 by 50
-        r <- 1 to 3
-      } yield
-        Experiment(
-          dataset,
-          Mapping.DenseFloat(dataset.dims),
-          NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
-          Mapping.AngularLsh(dataset.dims, b, r),
-          for {
-            k <- ks
-            m <- Seq(1, 2, 10)
-          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, m * k), k)
-        )
-      lsh
+    /**
+      * Returns reasonable Experiments for doing a gridsearch over parameters for the given dataset.
+      */
+    def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
+
+      case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
+        for {
+          tables <- Seq(50, 75, 100, 125)
+          hashesPerTable <- Seq(2, 3, 4)
+          width <- 1 to 7
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
+            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+            for {
+              candidates <- Seq(1000, 5000)
+              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(10)
+            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+          )
+
+      case Dataset.AnnbSift =>
+        for {
+          tables <- Seq(50, 75, 100)
+          hashesPerTable <- Seq(2, 3, 4)
+          width <- Seq(1, 3, 5, 7)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
+            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+            for {
+              candidates <- Seq(1000, 5000, 10000)
+              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
+            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+          )
+
+      case Dataset.AnnbGlove100 =>
+        val projections = for {
+          tables <- Seq(50, 75, 100)
+          hashesPerTable <- Seq(1, 2, 3)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
+            Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
+            for {
+              candidates <- Seq(1000, 5000)
+            } yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
+          )
+        val permutations = for {
+          m <- Seq(0.2, 0.4, 0.6)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.DenseFloat(dataset.dims),
+            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
+            Mapping.PermutationLsh(dataset.dims, (m * dataset.dims).toInt, repeating = false),
+            for {
+              candidates <- Seq(1000, 5000)
+            } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
+          )
+
+        projections ++ permutations
+
+      case _ => Seq.empty
     }
 
     def hamming(dataset: Dataset, ks: Seq[Int] = defaultKs): Seq[Experiment] = {
@@ -209,21 +241,6 @@ package object benchmarks {
       )
       sparseIndexed
     }
-
-    // TODO: add AmazonMixed, AmazonHomePHash, EnglishWikiLSA
-    val defaults: Seq[Experiment] = Seq(
-      l2(AmazonHome),
-      angular(AmazonHomeUnit),
-      angular(AmazonMixedUnit),
-      angular(AnnbDeep1b),
-      l2(AnnbFashionMnist),
-      l2(AnnbGist),
-      angular(AnnbGlove100),
-      jaccard(AnnbKosarak),
-      l2(AnnbMnist),
-      angular(AnnbNyt),
-      l2(AnnbSift)
-    ).flatten
 
   }
 

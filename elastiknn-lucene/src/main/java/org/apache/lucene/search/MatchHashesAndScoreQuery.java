@@ -4,7 +4,6 @@ import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
-import javax.print.Doc;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
@@ -72,7 +71,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // If none of the docs in the segment matched, return an empty iterator.
                     if (kgr.max == 0) return DocIdSetIterator.empty();
 
-                        // Otherwise return an iterator over the doc ids >= the min candidate count.
+                    // Otherwise return an iterator over the doc ids >= the min candidate count.
                     else return new DocIdSetIterator() {
 
                         // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.

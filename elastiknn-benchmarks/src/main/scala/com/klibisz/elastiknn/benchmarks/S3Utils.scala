@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.benchmarks
 
 import com.amazonaws.ClientConfiguration
-import com.amazonaws.auth.{AWSCredentials, AWSStaticCredentialsProvider}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 

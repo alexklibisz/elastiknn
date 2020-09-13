@@ -13,16 +13,16 @@ import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash
 
 /**
- * Tests for recall regressions for all of the mappings and their queries using random vectors.
- * There are some subtleties:
- * - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could
- *   have the same score relative a query vector.
- * - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_.
- *   Each shard can have a non-specific number of segments but we merge each shard to a specific number.
- * - Repeated query results against the same index should be deterministic. However if you re-index the data and run
- *   the same query, I have seen different results at times. This seems to be an effect at the Elasticsearch level.
- *   I've tested at the Lucene (sans ES) level and that seems to be reliably deterministic.
- */
+  * Tests for recall regressions for all of the mappings and their queries using random vectors.
+  * There are some subtleties:
+  * - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could
+  *   have the same score relative a query vector.
+  * - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_.
+  *   Each shard can have a non-specific number of segments but we merge each shard to a specific number.
+  * - Repeated query results against the same index should be deterministic. However if you re-index the data and run
+  *   the same query, I have seen different results at times. This seems to be an effect at the Elasticsearch level.
+  *   I've tested at the Lucene (sans ES) level and that seems to be reliably deterministic.
+  */
 class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
 
   // Each test case consists of setting up one Mapping and then running several queries against that mapping.
