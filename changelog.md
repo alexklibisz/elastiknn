@@ -1,3 +1,5 @@
+- More memory-efficient implementation of Python ElastiknnModel.fit method. Uses an iterator over the vectors instead of a list of the vectors.
+---
 - Renamed parameter `r` in L2Lsh mapping to `w`, which is more appropriate and common for "width".
 - Updates and fixes in the Python client based on usage for ann-benchmarks. Mainly adding/fixing data classes in `elastiknn.api`.
 ---
