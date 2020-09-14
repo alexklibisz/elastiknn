@@ -2,8 +2,8 @@
 layout: default
 title: Performance
 nav_order: 5
-description: "Elastiknn Performance Benchmarks"
-permalink: /benchmarks/
+description: "Elastiknn Performance"
+permalink: /performance/
 ---
 
 # Performance
