@@ -1,5 +1,6 @@
 package org.apache.lucene.search;
 
+import com.carrotsearch.hppc.IntShortScatterMap;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -48,18 +49,19 @@ public class MatchHashesAndScoreQuery extends Query {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
-                short[] counts = new short[numDocsInSegment];
                 PostingsEnum docs = null;
+                IntShortScatterMap counts = new IntShortScatterMap(candidates * 2);
                 for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
                             int docId = docs.nextDoc();
-                            counts[docId] += Math.min(hac.getFreq(), docs.freq());
+                            short incr = (short) Math.min(hac.getFreq(), docs.freq());
+                            counts.putOrAdd(docId, incr, incr);
                         }
                     }
                 }
-                return counts;
+                return counts.values().toArray();
             }
 
             private DocIdSetIterator buildDocIdSetIterator(short[] counts) {
