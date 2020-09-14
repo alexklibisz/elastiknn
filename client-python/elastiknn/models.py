@@ -1,4 +1,6 @@
 import json
+import itertools
+
 from concurrent.futures import wait
 from concurrent.futures.thread import ThreadPoolExecutor
 from elasticsearch import Elasticsearch
@@ -36,8 +38,9 @@ class ElastiknnModel(object):
         self._dims, self._query = None, None
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
-        vecs = list(canonical_vectors_to_elastiknn(X))
-        self._dims = len(vecs[0])
+        self._dims = len(X[0])
+        vecs = canonical_vectors_to_elastiknn(X)
+
         mapping, self._query = self._mk_mapping_query(self._query_params)
 
         if self._index is None:
@@ -49,8 +52,8 @@ class ElastiknnModel(object):
         self._eknn.es.indices.create(self._index, body=json.dumps(body))
         self._eknn.put_mapping(self._index, self._vec_field, mapping, self._stored_id_field)
 
-        self._logger.info(f"indexing {len(vecs)} vectors into index {self._index}")
-        ids = [str(i + 1) for i in range(len(vecs))]  # Add one because 0 is an invalid id in ES.
+        self._logger.info(f"indexing {len(X)} vectors into index {self._index}")
+        ids = map(lambda i: str(i + 1), range(len(X)))  # Add one because 0 is an invalid id in ES.
         self._eknn.index(self._index, self._vec_field, vecs, self._stored_id_field, ids, refresh=True)
         self._eknn.es.indices.forcemerge(self._index, params=dict(max_num_segments=1))
         self._eknn.index(self._index, self._vec_field, [], self._stored_id_field, [], refresh=True)

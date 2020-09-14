@@ -23,9 +23,25 @@ Plot results for a specific dataset:
 python plot.py --dataset glove-100-angular --recompute --count 100 --y-log -o out.png
 ```
 
-When debugging, it's useful to restrict the size of `X_train` and `X_test` in the `run` method in `runner.py`, e.g.
+When debugging, restrict the size of `X_train` and `X_test` in the `run` method in `runner.py`, e.g.
 
 ```
 X_train = numpy.array(D['train'])
 X_test = numpy.array(D['test'][:500])
 ```
+
+When debugging, use a local copy of the elastiknn client.
+
+```
+# Run in the ann-benchmarks project.
+rsync -av --exclude={'venv','build','target','.minio','.git','.idea','.terraform'} ../elastiknn elastiknn
+``` 
+
+```
+# Add these lines to the dockerfile.
+COPY elastiknn /tmp/
+RUN python3 -m pip install -e /tmp/elastiknn/client-python
+```
+
+Run a script that copies Elasticsearch logs into the local filesystem. Useful for inspecting logs of containers that crashed.
+

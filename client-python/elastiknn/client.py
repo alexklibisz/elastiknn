@@ -59,7 +59,7 @@ class ElastiknnClient(object):
         }
         return self.es.transport.perform_request("PUT", f"/{index}/_mapping", body=body)
 
-    def index(self, index: str, vec_field: str, vecs: Iterable[Vec.Base], stored_id_field: str, ids: List[str], refresh: bool = False) -> Tuple[int, List[Dict]]:
+    def index(self, index: str, vec_field: str, vecs: Iterable[Vec.Base], stored_id_field: str, ids: Iterable[str], refresh: bool = False) -> Tuple[int, List[Dict]]:
         """Index (i.e. store) the given vectors at the given index and field with the optional ids.
 
         Parameters
@@ -70,8 +70,8 @@ class ElastiknnClient(object):
             Field containing the vector in each document.
         vecs : List of `Vec.Base`
             Vectors that should be indexed.
-        ids : List of strings
-            List of ids associated with the given vectors. Must have same length as vecs.
+        ids : Iterable of strings
+            Ids associated with the given vectors. Should have same length as vecs.
         stored_id_field:
             Field containing the document ID. Uses `store: true` setting as an optimization for faster id-only queries.
         refresh : bool
@@ -84,9 +84,6 @@ class ElastiknnClient(object):
         List of Dicts
             Error responses for the vectors that were not indexed.
         """
-
-        assert len(vecs) == len(ids), \
-            f"List of vecs has length [{len(vecs)}], list of ids has length [{len(ids)}]. The two should be equal."
 
         def gen():
             for vec, _id in zip(vecs, ids):
