@@ -1,11 +1,13 @@
 package org.apache.lucene.search;
 
 import com.carrotsearch.hppc.IntShortScatterMap;
+import com.carrotsearch.hppc.cursors.IntShortCursor;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -45,12 +47,15 @@ public class MatchHashesAndScoreQuery extends Query {
 
         return new Weight(this) {
 
-            private short[] countMatches(LeafReaderContext context) throws IOException {
+            /**
+             * Builds and returns a map from doc ID to the number of matching hashes in that doc.
+             */
+            private IntShortScatterMap countMatches(LeafReaderContext context) throws IOException {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PostingsEnum docs = null;
-                IntShortScatterMap counts = new IntShortScatterMap(candidates * 2);
+                IntShortScatterMap counts = new IntShortScatterMap(candidates * 3 / 2);
                 for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
@@ -61,22 +66,21 @@ public class MatchHashesAndScoreQuery extends Query {
                         }
                     }
                 }
-                return counts.values().toArray();
+                return counts;
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(short[] counts) {
+            private DocIdSetIterator buildDocIdSetIterator(IntShortScatterMap counts) {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
+                else if (counts.isEmpty()) return DocIdSetIterator.empty();
                 else {
                     // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    KthGreatest.KthGreatestResult kgr = KthGreatest.kthGreatest(counts, candidates);
+                    KthGreatest.KthGreatestResult kgr = KthGreatest.kthGreatest(counts.values().toArray(), candidates);
 
-                    // If none of the docs in the segment matched, return an empty iterator.
-                    if (kgr.max == 0) return DocIdSetIterator.empty();
+                    // Return an iterator over the doc ids >= the min candidate count.
+                    return new DocIdSetIterator() {
 
-                    // Otherwise return an iterator over the doc ids >= the min candidate count.
-                    else return new DocIdSetIterator() {
+                        private final Iterator<IntShortCursor> countsIter = counts.iterator();
 
-                        // Starting at -1 instead of 0 ensures the 0th document is not emitted unless it's a true candidate.
                         private int docId = -1;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
@@ -91,31 +95,24 @@ public class MatchHashesAndScoreQuery extends Query {
                         @Override
                         public int nextDoc() {
 
-                            // Emits no more than the requested number of candidates.
-                            if (numEmitted == candidates) {
-                                docId = DocIdSetIterator.NO_MORE_DOCS;
-                                return docID();
-                            }
-
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (docId < counts.length) docId++;
-
-                                if (docId == counts.length) {
+                                if (numEmitted == candidates || !countsIter.hasNext()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 }
-                                if (counts[docId] > kgr.kthGreatest) {
+                                IntShortCursor countsCursor = countsIter.next();
+                                if (countsCursor.value > kgr.kthGreatest) {
                                     numEmitted++;
+                                    docId = countsCursor.key;
                                     return docID();
-                                }
-                                if (counts[docId] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThanKthGreatest) {
+                                } else if (countsCursor.value == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThanKthGreatest) {
                                     numEq++;
                                     numEmitted++;
+                                    docId = countsCursor.key;
                                     return docID();
                                 }
-
                             }
 
                         }
@@ -128,7 +125,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public long cost() {
-                            return counts.length;
+                            return counts.size();
                         }
                     };
                 }
@@ -146,7 +143,7 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
 
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
-                short[] counts = countMatches(context);
+                IntShortScatterMap counts = countMatches(context);
                 DocIdSetIterator disi = buildDocIdSetIterator(counts);
 
                 return new Scorer(this) {
@@ -162,7 +159,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), counts[docID()]);
+                        return (float) scoreFunction.score(docID(), counts.get(docID()));
                     }
 
                     @Override

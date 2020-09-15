@@ -14,7 +14,7 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // Expected ~3 Q/S for exact and 0.89 recall with ~35 Q/S for L2 LSH.
+    // Expected ~3 Q/S for exact and 0.85 recall with ~35 Q/S for L2 LSH.
     Experiment(
       Dataset.AnnbSift,
       Mapping.DenseFloat(Dataset.AnnbSift.dims),
