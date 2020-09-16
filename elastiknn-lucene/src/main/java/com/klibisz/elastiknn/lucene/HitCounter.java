@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.lucene;
 
+import org.apache.lucene.search.KthGreatest;
+
 public interface HitCounter {
 
     void increment(int key, short count);
@@ -10,16 +12,7 @@ public interface HitCounter {
 
     int numHits();
 
-    class KthGreatest {
-        public final short kthGreatest;
-        public final int numGreaterThan;
-        public KthGreatest(short kthGreatest, int numGreaterThan) {
-            this.kthGreatest = kthGreatest;
-            this.numGreaterThan = numGreaterThan;
-        }
-    }
-
-    KthGreatest kthGreatest(int k);
+    KthGreatest.Result kthGreatest(int k);
 
     interface Iterator {
         void advance();

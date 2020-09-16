@@ -266,7 +266,6 @@ configure(lucene, List.of(
         {
             dependencies {
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                implementation 'it.unimi.dsi:fastutil:8.4.1'
             }
         }))
 

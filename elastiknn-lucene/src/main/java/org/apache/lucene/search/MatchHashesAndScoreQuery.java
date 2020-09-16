@@ -1,6 +1,6 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.lucene.FastutilHitCounter;
+import com.klibisz.elastiknn.lucene.ArrayHitCounter;
 import com.klibisz.elastiknn.lucene.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
@@ -54,8 +54,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PostingsEnum docs = null;
-                // HitCounter counter = new ArrayHitCounter(numDocsInSegment);
-                HitCounter counter = new FastutilHitCounter(numDocsInSegment / 3);
+                HitCounter counter = new ArrayHitCounter(numDocsInSegment);
                 for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
@@ -72,14 +71,14 @@ public class MatchHashesAndScoreQuery extends Query {
                 else if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
-                    HitCounter.KthGreatest kgr = counter.kthGreatest(candidates);
+                    KthGreatest.Result kgr = counter.kthGreatest(candidates);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
                         private int docId = -1;
 
-                        private HitCounter.Iterator iterator = counter.iterator();
+                        private final HitCounter.Iterator iterator = counter.iterator();
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
