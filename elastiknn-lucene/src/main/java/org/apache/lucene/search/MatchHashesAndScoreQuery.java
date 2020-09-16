@@ -1,7 +1,8 @@
 package org.apache.lucene.search;
 
-import com.carrotsearch.hppc.IntShortScatterMap;
-import com.carrotsearch.hppc.cursors.IntShortCursor;
+import com.carrotsearch.hppcrt.IntShortMap;
+import com.carrotsearch.hppcrt.cursors.IntShortCursor;
+import com.carrotsearch.hppcrt.maps.IntShortHashMap;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -50,12 +51,12 @@ public class MatchHashesAndScoreQuery extends Query {
             /**
              * Builds and returns a map from doc ID to the number of matching hashes in that doc.
              */
-            private IntShortScatterMap countMatches(LeafReaderContext context) throws IOException {
+            private IntShortMap countMatches(LeafReaderContext context) throws IOException {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PostingsEnum docs = null;
-                IntShortScatterMap counts = new IntShortScatterMap(candidates * 3 / 2);
+                IntShortMap counts = new IntShortHashMap(candidates * 3 / 2);
                 for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
@@ -69,7 +70,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 return counts;
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(IntShortScatterMap counts) {
+            private DocIdSetIterator buildDocIdSetIterator(IntShortMap counts) {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
                 else if (counts.isEmpty()) return DocIdSetIterator.empty();
                 else {
@@ -143,7 +144,7 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
 
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
-                IntShortScatterMap counts = countMatches(context);
+                IntShortMap counts = countMatches(context);
                 DocIdSetIterator disi = buildDocIdSetIterator(counts);
 
                 return new Scorer(this) {
