@@ -1,14 +1,12 @@
 package org.apache.lucene.search;
 
 import com.carrotsearch.hppcrt.IntShortMap;
-import com.carrotsearch.hppcrt.cursors.IntShortCursor;
-import com.carrotsearch.hppcrt.maps.IntShortHashMap;
+import com.klibisz.elastiknn.lucene.Counter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -51,38 +49,35 @@ public class MatchHashesAndScoreQuery extends Query {
             /**
              * Builds and returns a map from doc ID to the number of matching hashes in that doc.
              */
-            private IntShortMap countMatches(LeafReaderContext context) throws IOException {
+            private Counter countMatches(LeafReaderContext context) throws IOException {
                 LeafReader reader = context.reader();
                 Terms terms = reader.terms(field);
                 TermsEnum termsEnum = terms.iterator();
                 PostingsEnum docs = null;
-                IntShortMap counts = new IntShortHashMap(candidates * 3 / 2);
+                Counter counter = new Counter(numDocsInSegment);
                 for (HashAndFreq hac : hashAndFrequencies) {
                     if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                         docs = termsEnum.postings(docs, PostingsEnum.NONE);
                         for (int i = 0; i < docs.cost(); i++) {
-                            int docId = docs.nextDoc();
-                            short incr = (short) Math.min(hac.getFreq(), docs.freq());
-                            counts.putOrAdd(docId, incr, incr);
+                            counter.increment(docs.nextDoc(), (short) Math.min(hac.getFreq(), docs.freq()));
                         }
                     }
                 }
-                return counts;
+                return counter;
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(IntShortMap counts) {
+            private DocIdSetIterator buildDocIdSetIterator(Counter counter) {
                 if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
-                else if (counts.isEmpty()) return DocIdSetIterator.empty();
+                else if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
-                    // Compute the kth greatest count to use as a lower bound for picking candidates.
-                    KthGreatest.KthGreatestResult kgr = KthGreatest.kthGreatest(counts.values().toArray(), candidates);
+
+                    Counter.KthGreatest kgr = counter.kthGreatest(candidates);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private final Iterator<IntShortCursor> countsIter = counts.iterator();
-
                         private int docId = -1;
+                        private int hitIndex = -1;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -99,19 +94,20 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || !countsIter.hasNext()) {
+                                if (numEmitted == candidates || hitIndex + 1 == counter.numHits) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 }
-                                IntShortCursor countsCursor = countsIter.next();
-                                if (countsCursor.value > kgr.kthGreatest) {
+
+                                docId = counter.hits[hitIndex++];
+                                short count = counter.counts[docId];
+
+                                if (count > kgr.kthGreatest) {
                                     numEmitted++;
-                                    docId = countsCursor.key;
                                     return docID();
-                                } else if (countsCursor.value == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThanKthGreatest) {
+                                } else if (count == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                     numEq++;
                                     numEmitted++;
-                                    docId = countsCursor.key;
                                     return docID();
                                 }
                             }
@@ -126,7 +122,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public long cost() {
-                            return counts.size();
+                            return counter.numHits;
                         }
                     };
                 }
@@ -144,8 +140,8 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
 
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
-                IntShortMap counts = countMatches(context);
-                DocIdSetIterator disi = buildDocIdSetIterator(counts);
+                Counter counter = countMatches(context);
+                DocIdSetIterator disi = buildDocIdSetIterator(counter);
 
                 return new Scorer(this) {
                     @Override
@@ -160,7 +156,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), counts.get(docID()));
+                        return (float) scoreFunction.score(docID(), counter.counts[docID()]);
                     }
 
                     @Override
