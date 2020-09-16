@@ -1,8 +1,5 @@
 package com.klibisz.elastiknn.models;
 
-import com.google.common.collect.MinMaxPriorityQueue;
-
-import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.klibisz.elastiknn.models.Utils.dot;
@@ -103,10 +100,12 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 hashes[ixL] = HashAndFreq.once(writeInts(ints));
             }
 
-            // Use algorithm 1 from Qin et. al to pick the best perturbation sets.
-            MinMaxPriorityQueue<PerturbationSet> heap = MinMaxPriorityQueue
-                    .orderedBy((Comparator<PerturbationSet>) (o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum))
-                    .create();
+            PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
+
+//            // Use algorithm 1 from Qin et. al to pick the best perturbation sets.
+//            MinMaxPriorityQueue<PerturbationSet> heap = MinMaxPriorityQueue
+//                    .orderedBy((Comparator<PerturbationSet>) (o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum))
+//                    .create();
 
             // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
             for (int ixL = 0; ixL < L; ixL++) {
@@ -118,7 +117,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixhashes = L; ixhashes < hashes.length; ixhashes++) {
                 // Extract top perturbation set and add the shifted/expanded versions.
                 // Different from the paper, assumes shift/expand can only return valid perturbation sets, or return null.
-                PerturbationSet Ai = heap.removeFirst();
+                PerturbationSet Ai = heap.remove();
                 PerturbationSet As = PerturbationSet.shift(sortedPerturbations[Ai.ixL], Ai);
                 PerturbationSet Ae = PerturbationSet.expand(sortedPerturbations[Ai.ixL], Ai);
                 if (As != null) heap.add(As);
@@ -170,7 +169,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
             return new PerturbationSet(p.ixL, new HashMap<Integer, Perturbation>() {{ put(p.ixk, p); }}, 0, p.absDistance);
         }
 
-        @Nullable
         public static PerturbationSet shift(Perturbation[] candidates, PerturbationSet pset) {
             if (pset.ixMax + 1 == candidates.length) return null;
             else {
@@ -192,7 +190,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
             }
         }
 
-        @Nullable
         public static PerturbationSet expand(Perturbation[] candidates, PerturbationSet pset) {
             if (pset.ixMax + 1 == candidates.length) return null;
             else {
