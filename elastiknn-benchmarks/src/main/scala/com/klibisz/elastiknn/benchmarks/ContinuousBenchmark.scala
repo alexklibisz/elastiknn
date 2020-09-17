@@ -14,54 +14,16 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // L2
-//    Experiment(
-//      Dataset.AnnbSift,
-//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 300, 2, 256),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 4000), k)
-//      )
-//    ),
-//    Experiment(
-//      Dataset.AnnbSift,
-//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 2, 256),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 4000, 3), k)
-//      )
-//    ),
+    // Expected ~3 Q/S for exact and 0.85 recall with ~35 Q/S for L2 LSH.
     Experiment(
-      Dataset.AnnbFashionMnist,
-      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbMnist.dims, 125, 3, 7),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 1),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 3), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 10000, 7), k)
       )
     )
-//    ,
-//    // Angular
-//    Experiment(
-//      Dataset.AnnbGlove25,
-//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-//      Mapping.AngularLsh(Dataset.AnnbGlove25.dims, 60, 3),
-//      Seq(
-//        Query(NearestNeighborsQuery.AngularLsh(field, 4000), k)
-//      )
-//    ),
-//    Experiment(
-//      Dataset.AnnbGlove25,
-//      Mapping.DenseFloat(Dataset.AnnbGlove25.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.Angular),
-//      Mapping.PermutationLsh(Dataset.AnnbGlove25.dims, 15, repeating = false),
-//      Seq(
-//        Query(NearestNeighborsQuery.PermutationLsh(field, Similarity.Angular, 5000), k)
-//      )
-//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
@@ -77,7 +39,8 @@ object ContinuousBenchmark extends App {
             datasetsPrefix = "data/processed",
             resultsPrefix = "results",
             bucket = bucket,
-            s3Url = Some(s3Url)
+            s3Url = Some(s3Url),
+            maxQueries = 1000
           ))
       } yield ()
     }

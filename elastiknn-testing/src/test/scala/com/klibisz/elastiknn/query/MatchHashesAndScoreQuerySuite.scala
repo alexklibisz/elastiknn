@@ -143,7 +143,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
                                              })
         val dd = s.search(q, 10)
         dd.scoreDocs.length shouldBe 5
-        counts.toVector shouldBe Vector(2, 1, 2, 1, 2)
+        counts.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)
     }
   }
 

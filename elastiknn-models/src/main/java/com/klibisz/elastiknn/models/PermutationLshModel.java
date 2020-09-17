@@ -1,8 +1,6 @@
 package com.klibisz.elastiknn.models;
 
-import com.google.common.collect.MinMaxPriorityQueue;
-
-import java.util.Comparator;
+import java.util.PriorityQueue;
 
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
 
@@ -26,12 +24,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
     @Override
     public HashAndFreq[] hash(float[] values) {
 
-        // Build a heap of the k highest-absolute-value indices.
-        MinMaxPriorityQueue<Integer> indexHeap = MinMaxPriorityQueue
-                .orderedBy((Comparator<Integer>) (i1, i2) ->
-                        Float.compare(Math.abs(values[i2]), Math.abs(values[i1])))
-                .maximumSize(k)
-                .create();
+        PriorityQueue<Integer> indexHeap = new PriorityQueue<>((i1, i2) -> Float.compare(Math.abs(values[i2]), Math.abs(values[i1])));
 
         for (int i = 0; i < values.length; i++) indexHeap.add(i);
 
@@ -44,7 +37,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
         int currTies = 0;
         float prevAbs = Float.POSITIVE_INFINITY;
         for (int ixHashes = 0; ixHashes < hashes.length && !indexHeap.isEmpty(); ixHashes++) {
-            int ix = indexHeap.removeFirst();
+            int ix = indexHeap.remove();
             float currAbs = Math.abs(values[ix]);
             if (currAbs < prevAbs) {
                 rankComplement += 1 + currTies;

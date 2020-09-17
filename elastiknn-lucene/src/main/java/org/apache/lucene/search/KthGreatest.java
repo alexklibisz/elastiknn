@@ -2,14 +2,14 @@ package org.apache.lucene.search;
 
 public class KthGreatest {
 
-    public static class KthGreatestResult {
-        public final short max;
+    public static class Result {
         public final short kthGreatest;
-        public final int numGreaterThanKthGreatest;
-        public KthGreatestResult(short max, short kthGreatest, int numGreaterThanKthGreatest) {
-            this.max = max;
+        public final int numGreaterThan;
+        public final int numNonZero;
+        public Result(short kthGreatest, int numGreaterThan, int numNonZero) {
             this.kthGreatest = kthGreatest;
-            this.numGreaterThanKthGreatest = numGreaterThanKthGreatest;
+            this.numGreaterThan = numGreaterThan;
+            this.numNonZero = numNonZero;
         }
     }
 
@@ -23,7 +23,7 @@ public class KthGreatest {
      * @param k the desired largest value.
      * @return the kth largest value.
      */
-    public static KthGreatestResult kthGreatest(short[] arr, int k) {
+    public static Result kthGreatest(short[] arr, int k) {
         if (arr.length == 0) {
             throw new IllegalArgumentException("Array must be non-empty");
         } else if (k < 0 || k >= arr.length) {
@@ -42,8 +42,10 @@ public class KthGreatest {
 
             // Build and populate a histogram for non-zero values.
             int[] hist = new int[max - min + 1];
+            int numNonZero = 0;
             for (short a: arr) {
                 hist[a - min] += 1;
+                if (a > 0) numNonZero++;
             }
 
             // Find the kth largest value by iterating from the end of the histogram.
@@ -56,7 +58,7 @@ public class KthGreatest {
             }
             int numGreater = numGreaterEqual - hist[kthGreatest - min];
 
-            return new KthGreatestResult(max, kthGreatest, numGreater);
+            return new KthGreatest.Result(kthGreatest, numGreater, numNonZero);
         }
     }
 }

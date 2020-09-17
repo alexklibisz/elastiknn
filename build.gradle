@@ -256,7 +256,6 @@ configure(models, List.of(
             dependencies {
                 implementation api4s
                 implementation lucene
-                implementation "com.google.guava:guava:28.1-jre"
             }
         }))
 
@@ -301,8 +300,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation lucene
         implementation api4s
         implementation "com.google.guava:guava:28.1-jre"
-        implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-        runtime "org.apache.lucene:lucene-codecs:${luceneVersion}"
+        runtime "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
