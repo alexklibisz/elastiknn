@@ -2,6 +2,11 @@ package com.klibisz.elastiknn.lucene;
 
 import org.apache.lucene.search.KthGreatest;
 
+/**
+ * Use an array of counts to count hits. The index of the array is the doc id.
+ * Hopefully there's a way to do this that doesn't require O(num docs in segment) time and memory,
+ * but so far I haven't found anything on the JVM that's faster than simple arrays of primitives.
+ */
 public class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;

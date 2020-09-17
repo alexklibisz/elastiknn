@@ -24,6 +24,7 @@ class KthGreatestSuite extends FunSuite with Matchers {
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 4
     res.numGreaterThan shouldBe 2
+    res.numNonZero shouldBe 6
   }
 
   test("randomized") {
@@ -36,6 +37,7 @@ class KthGreatestSuite extends FunSuite with Matchers {
       val res = KthGreatest.kthGreatest(counts, k)
       res.kthGreatest shouldBe counts.sorted.reverse(k)
       res.numGreaterThan shouldBe counts.count(_ > res.kthGreatest)
+      res.numNonZero shouldBe counts.count(_ != 0)
     }
   }
 
@@ -44,6 +46,7 @@ class KthGreatestSuite extends FunSuite with Matchers {
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 0
     res.numGreaterThan shouldBe 1
+    res.numNonZero shouldBe 1
   }
 
   test("all zero") {
@@ -51,6 +54,7 @@ class KthGreatestSuite extends FunSuite with Matchers {
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 0
     res.numGreaterThan shouldBe 0
+    res.numNonZero shouldBe 0
   }
 
 }
