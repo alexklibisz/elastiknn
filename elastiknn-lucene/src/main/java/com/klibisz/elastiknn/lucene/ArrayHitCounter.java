@@ -17,10 +17,6 @@ public class ArrayHitCounter implements HitCounter {
         isEmpty = true;
     }
 
-    public static ArrayHitCounter empty() {
-        return new ArrayHitCounter(0);
-    }
-
     @Override
     public void increment(int key, short count) {
         counts[key] += count;

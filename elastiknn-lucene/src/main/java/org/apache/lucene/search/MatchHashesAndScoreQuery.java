@@ -26,7 +26,6 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-    // private final int numDocsInSegment;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
@@ -56,7 +55,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) {
-                    return ArrayHitCounter.empty();
+                    return new ArrayHitCounter(0);
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;

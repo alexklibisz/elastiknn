@@ -23,7 +23,7 @@ public class KthGreatest {
      * @param k the desired largest value.
      * @return the kth largest value.
      */
-    public static Result kthGreatest(short[] arr, int k) throws IllegalArgumentException {
+    public static Result kthGreatest(short[] arr, int k) {
         if (arr.length == 0) {
             throw new IllegalArgumentException("Array must be non-empty");
         } else if (k < 0 || k >= arr.length) {
