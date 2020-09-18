@@ -1,3 +1,5 @@
+- Fixed null pointer exception which was happening when running queries after deleting some vectors.
+---
 - More memory-efficient implementation of Python ElastiknnModel.fit method. Uses an iterator over the vectors instead of a list of the vectors.
 ---
 - Renamed parameter `r` in L2Lsh mapping to `w`, which is more appropriate and common for "width".
@@ -16,6 +18,7 @@
 ---
 - Switched to less-naive implementation of multiprobe L2 LSH. Specifically, uses algorithm 1 from Qin, et. al. to generate
   perturbation sets lazily at query time instead of generating them exhaustively. This does not use the estimated 
+  
   scoring optimization from that paper.
 - Performance optimizations for approximate queries. Specifically using a faster sorting method to sort the hashes before
   retrieving matching docs from the shard.

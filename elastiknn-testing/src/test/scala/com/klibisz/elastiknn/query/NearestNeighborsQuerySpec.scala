@@ -18,7 +18,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
   // https://github.com/alexklibisz/elastiknn/issues/60
   describe("Vectors in nested fields") {
     implicit val rng: Random = new Random(0)
-    val index = "test-queries-nested-fields"
+    val index = "issue-60"
     val vec = Vec.DenseFloat.random(10)
     val mapping = Mapping.DenseFloat(vec.values.length)
     val nestedFields = Seq(
@@ -70,7 +70,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
   // https://github.com/alexklibisz/elastiknn/issues/97
   describe("Query with filter on another field") {
     implicit val rng: Random = new Random(0)
-    val indexPrefix = "test-queries-with-filter"
+    val indexPrefix = "issue-97"
 
     // Generate a corpus of 100 docs. < 10 of the them have color blue, rest have color red.
     val dims = 10
@@ -192,6 +192,58 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       } yield {
         res.result.maxScore shouldBe 1d
         res.result.hits.hits.head.id shouldBe "v0"
+      }
+    }
+  }
+
+  describe("deleting vectors") {
+
+    // https://github.com/alexklibisz/elastiknn/issues/158
+    it("index, search, delete some, search again") {
+
+      implicit val rng: Random = new Random(0)
+      val index = "issue-158"
+      val dims = 100
+      val corpus = Vec.DenseFloat.randoms(dims, 1000)
+      val ids = corpus.indices.map(i => s"v$i")
+      val queryVec = corpus.head
+      val mapping = Mapping.L2Lsh(dims, 40, 4, 2)
+      val query = NearestNeighborsQuery.L2Lsh("vec", 30, 1, queryVec)
+
+      for {
+        _ <- deleteIfExists(index)
+        _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+        _ <- eknn.putMapping(index, "vec", "id", mapping)
+        _ <- eknn.index(index, "vec", corpus, "id", ids)
+        _ <- eknn.execute(refreshIndex(index))
+        _ <- eknn.execute(forceMerge(index).maxSegments(1))
+
+        // Check the count before deleting anything.
+        cnt1 <- eknn.execute(count(index))
+        res1 <- eknn.nearestNeighbors(index, query, 10, "id")
+
+        // Delete the query vector from the index, count, and search again.
+        _ <- eknn.execute(deleteById(index, "v0"))
+        _ <- eknn.execute(refreshIndex(index))
+        cnt2 <- eknn.execute(count(index))
+        res2 <- eknn.nearestNeighbors(index, query, 10, "id")
+
+        // Put the vector back, count, search again.
+        _ <- eknn.index(index, "vec", corpus.take(1), "id", ids.take(1))
+        _ <- eknn.execute(refreshIndex(index))
+        cnt3 <- eknn.execute(count(index))
+        res3 <- eknn.nearestNeighbors(index, query, 10, "id")
+
+      } yield {
+        cnt1.result.count shouldBe 1000L
+        res1.result.maxScore shouldBe 1d
+        res1.result.hits.hits.head.id shouldBe "v0"
+
+        cnt2.result.count shouldBe 999L
+        res2.result.hits.hits.head.id shouldBe res1.result.hits.hits.tail.head.id
+
+        cnt3.result.count shouldBe 1000L
+        res3.result.hits.hits.head.id shouldBe "v0"
       }
     }
   }

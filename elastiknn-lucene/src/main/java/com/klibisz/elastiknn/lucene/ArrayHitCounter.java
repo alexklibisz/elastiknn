@@ -40,7 +40,7 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public KthGreatest.Result kthGreatest(int k) {
-        return KthGreatest.kthGreatest(counts, k);
+        return KthGreatest.kthGreatest(counts, Math.min(k, counts.length - 1));
     }
 
     @Override
