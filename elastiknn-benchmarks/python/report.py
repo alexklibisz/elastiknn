@@ -33,7 +33,7 @@ def cleanup_mapping(s: str) -> str:
 
 
 def cleanup_dataset(s: str) -> str:
-    return ''.join(map(lambda c: c if c.islower() else f" {c}", s)).strip()
+    return ''.join(map(lambda c: c if c.islower() or c.isdigit() else f" {c}", s)).strip()
 
 
 def main():
