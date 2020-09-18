@@ -11,6 +11,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
+ * docs containing the most matching hashes. Largely based on Lucene's TermsInSetQuery.
+ */
 public class MatchHashesAndScoreQuery extends Query {
 
     public interface ScoreFunction {
@@ -22,7 +26,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-    private final int numDocsInSegment;
+    // private final int numDocsInSegment;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
@@ -38,7 +42,6 @@ public class MatchHashesAndScoreQuery extends Query {
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
-        this.numDocsInSegment = indexReader.numDocs();
     }
 
     @Override
@@ -49,26 +52,29 @@ public class MatchHashesAndScoreQuery extends Query {
             /**
              * Builds and returns a map from doc ID to the number of matching hashes in that doc.
              */
-            private HitCounter countHits(LeafReaderContext context) throws IOException {
-                LeafReader reader = context.reader();
+            private HitCounter countHits(LeafReader reader) throws IOException {
                 Terms terms = reader.terms(field);
-                TermsEnum termsEnum = terms.iterator();
-                PostingsEnum docs = null;
-                HitCounter counter = new ArrayHitCounter(numDocsInSegment);
-                for (HashAndFreq hac : hashAndFrequencies) {
-                    if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                        docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                        for (int i = 0; i < docs.cost(); i++) {
-                            counter.increment(docs.nextDoc(), (short) Math.min(hac.getFreq(), docs.freq()));
+                // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
+                if (terms == null) {
+                    return ArrayHitCounter.empty();
+                } else {
+                    TermsEnum termsEnum = terms.iterator();
+                    PostingsEnum docs = null;
+                    HitCounter counter = new ArrayHitCounter(reader.numDocs());
+                    for (HashAndFreq hac : hashAndFrequencies) {
+                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
+                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                            for (int i = 0; i < docs.cost(); i++) {
+                                counter.increment(docs.nextDoc(), (short) Math.min(hac.getFreq(), docs.freq()));
+                            }
                         }
                     }
+                    return counter;
                 }
-                return counter;
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                if (candidates >= numDocsInSegment) return DocIdSetIterator.all(indexReader.maxDoc());
-                else if (counter.isEmpty()) return DocIdSetIterator.empty();
+                if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
                     KthGreatest.Result kgr = counter.kthGreatest(candidates);
@@ -138,9 +144,9 @@ public class MatchHashesAndScoreQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
-                HitCounter counter = countHits(context);
+                LeafReader reader = context.reader();
+                HitCounter counter = countHits(reader);
                 DocIdSetIterator disi = buildDocIdSetIterator(counter);
 
                 return new Scorer(this) {

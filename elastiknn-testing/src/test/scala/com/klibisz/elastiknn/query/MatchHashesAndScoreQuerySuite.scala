@@ -1,5 +1,16 @@
 package com.klibisz.elastiknn.query
 
+//import com.klibisz.elastiknn.mapper.VectorMapper
+//import com.klibisz.elastiknn.models.HashAndFreq
+//import com.klibisz.elastiknn.storage.UnsafeSerialization._
+//import com.klibisz.elastiknn.testing.LuceneSupport
+//import org.apache.lucene.document.{Document, Field, FieldType}
+//import org.apache.lucene.index._
+//import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
+//import org.scalatest._
+//
+//import scala.collection.mutable.ArrayBuffer
+
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
@@ -13,7 +24,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
-  val ft = new VectorMapper.FieldType("elastiknn_dense_float_vector")
+  val ft: VectorMapper.FieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector")
 
   test("empty harness") {
     indexAndSearch() { (_: IndexWriter) =>
@@ -91,7 +102,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     }
   }
 
-  test("documents with 0 hashes are not candidates") {
+  test("documents with 0 matches are not candidates") {
     indexAndSearch() { w =>
       for (_ <- 0 until 10) {
         val d = new Document()

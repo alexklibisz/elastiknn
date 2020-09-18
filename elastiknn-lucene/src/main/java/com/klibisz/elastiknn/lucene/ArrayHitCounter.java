@@ -17,6 +17,10 @@ public class ArrayHitCounter implements HitCounter {
         isEmpty = true;
     }
 
+    public static ArrayHitCounter empty() {
+        return new ArrayHitCounter(0);
+    }
+
     @Override
     public void increment(int key, short count) {
         counts[key] += count;
@@ -40,7 +44,7 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public KthGreatest.Result kthGreatest(int k) {
-        return KthGreatest.kthGreatest(counts, k);
+        return KthGreatest.kthGreatest(counts, Math.min(k, counts.length - 1));
     }
 
     @Override
