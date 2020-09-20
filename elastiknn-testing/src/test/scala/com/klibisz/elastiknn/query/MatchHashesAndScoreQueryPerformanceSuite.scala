@@ -5,8 +5,6 @@ import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
-import org.apache.lucene.codecs.memory._
-import org.apache.lucene.codecs.{DocValuesFormat, PostingsFormat}
 import org.apache.lucene.document.Document
 import org.scalatest._
 
@@ -14,19 +12,16 @@ import scala.util.Random
 
 class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneSupport {
 
-//  // Hacky way to give you some time for setting up the Profiler :)
-//  import java.nio.file.{Files, Path}
-//  private val p = Path.of("/tmp/wait")
-//  if (!Files.exists(p)) Files.createFile(p)
-//  while (Files.exists(p)) {
-//    println(s"Waiting. Please delete ${p.toAbsolutePath.toString} to start.")
-//    Thread.sleep(1000)
-//  }
-
-  class MemCodec extends Lucene84Codec {
-    override def getDocValuesFormatForField(field: String): DocValuesFormat = new DirectDocValuesFormat
-    override def getPostingsFormatForField(field: String): PostingsFormat = new DirectPostingsFormat()
+  // Hacky way to give you some time for setting up the Profiler :)
+  import java.nio.file.{Files, Path}
+  private val p = Path.of("/tmp/wait")
+  if (!Files.exists(p)) Files.createFile(p)
+  while (Files.exists(p)) {
+    println(s"Waiting. Please delete ${p.toAbsolutePath.toString} to start.")
+    Thread.sleep(1000)
   }
+
+  class BenchmarkCodec extends Lucene84Codec
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)
@@ -36,7 +31,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)
-    indexAndSearch(codec = new MemCodec) { w =>
+    indexAndSearch(codec = new BenchmarkCodec) { w =>
       val t0 = System.currentTimeMillis()
       for {
         v <- corpusVecs
