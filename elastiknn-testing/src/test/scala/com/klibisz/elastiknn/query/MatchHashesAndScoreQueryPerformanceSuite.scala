@@ -12,14 +12,14 @@ import scala.util.Random
 
 class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneSupport {
 
-  // Hacky way to give you some time for setting up the Profiler :)
-  import java.nio.file.{Files, Path}
-  private val p = Path.of("/tmp/wait")
-  if (!Files.exists(p)) Files.createFile(p)
-  while (Files.exists(p)) {
-    println(s"Waiting. Please delete ${p.toAbsolutePath.toString} to start.")
-    Thread.sleep(1000)
-  }
+//  // Hacky way to give you some time for setting up the Profiler :)
+//  import java.nio.file.{Files, Path}
+//  private val p = Path.of("/tmp/wait")
+//  if (!Files.exists(p)) Files.createFile(p)
+//  while (Files.exists(p)) {
+//    println(s"Waiting. Please delete ${p.toAbsolutePath.toString} to start.")
+//    Thread.sleep(1000)
+//  }
 
   class BenchmarkCodec extends Lucene84Codec
 
