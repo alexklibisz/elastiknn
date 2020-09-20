@@ -5,8 +5,6 @@ import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
-import org.apache.lucene.codecs.memory._
-import org.apache.lucene.codecs.{DocValuesFormat, PostingsFormat}
 import org.apache.lucene.document.Document
 import org.scalatest._
 
@@ -23,10 +21,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
 //    Thread.sleep(1000)
 //  }
 
-  class MemCodec extends Lucene84Codec {
-    override def getDocValuesFormatForField(field: String): DocValuesFormat = new DirectDocValuesFormat
-    override def getPostingsFormatForField(field: String): PostingsFormat = new DirectPostingsFormat()
-  }
+  class BenchmarkCodec extends Lucene84Codec
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)
@@ -36,7 +31,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
     val fieldType = new VectorMapper.FieldType(field)
-    indexAndSearch(codec = new MemCodec) { w =>
+    indexAndSearch(codec = new BenchmarkCodec) { w =>
       val t0 = System.currentTimeMillis()
       for {
         v <- corpusVecs
