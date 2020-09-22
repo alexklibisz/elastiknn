@@ -31,6 +31,13 @@ Post an issue, post in the Gitter channel, or contact me directly (contact info 
 |Scala case classes and circe codecs for the Elastiknn JSON API                               | [![Api4s Release][Badge-Api4s-Release]][Link-Api4s-Release]        	    | [![Api4s Snapshot][Badge-Api4s-Snapshot]][Link-Api4s-Snapshot]               |
 |Scala HTTP client for Elastiknn, based on [elastic4s](https://github.com/sksamuel/elastic4s) | [![Elastic4s Release][Badge-Elastic4s-Release]][Link-Elastic4s-Release] | [![Elastic4s Snapshot][Badge-Elastic4s-Snapshot]][Link-Elastic4s-Snapshot]   |
 
+## Sponsors
+
+[![Yourkit](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/)
+
+YourKit supports open source projects with innovative and intelligent tools for monitoring and profiling Java and .NET applications.
+YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/profiler/), [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/), and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/).
+
 <!-- Links -->
 
 [Link-Github-CI]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI
