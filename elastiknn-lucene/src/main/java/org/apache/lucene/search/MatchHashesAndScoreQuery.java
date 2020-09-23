@@ -4,7 +4,6 @@ import com.klibisz.elastiknn.lucene.ArrayHitCounter;
 import com.klibisz.elastiknn.lucene.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
