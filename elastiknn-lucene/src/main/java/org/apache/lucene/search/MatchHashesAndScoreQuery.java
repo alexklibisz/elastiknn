@@ -1,6 +1,7 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.lucene.ArrayHitCounter;
+import com.klibisz.elastiknn.lucene.ConstantHitCounter;
 import com.klibisz.elastiknn.lucene.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
@@ -59,7 +60,8 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.numDocs());
+                    // HitCounter counter = new ArrayHitCounter(reader.numDocs());
+                    HitCounter counter = new ConstantHitCounter(reader.numDocs(), (short) 10);
                     for (HashAndFreq hac : hashAndFrequencies) {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
