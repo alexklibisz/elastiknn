@@ -8,7 +8,7 @@ import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
-import org.scalatest.{AsyncFunSpec, Inspectors, Matchers}
+import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
 
 import scala.concurrent.Future
 import scala.util.Random
@@ -199,52 +199,64 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
   describe("deleting vectors") {
 
     // https://github.com/alexklibisz/elastiknn/issues/158
-    it("index, search, delete some, search again") {
+    it("index, search, delete some, search, replace them, search again") {
 
       implicit val rng: Random = new Random(0)
-      val index = "issue-158"
-      val dims = 100
+      val (index, vecField, idField, dims) = ("issue-158", "vec", "id", 100)
       val corpus = Vec.DenseFloat.randoms(dims, 1000)
       val ids = corpus.indices.map(i => s"v$i")
-      val queryVec = corpus.head
       val mapping = Mapping.L2Lsh(dims, 40, 4, 2)
-      val query = NearestNeighborsQuery.L2Lsh("vec", 30, 1, queryVec)
+      val query = NearestNeighborsQuery.L2Lsh(vecField, 30, 1)
+
+      def searchDeleteSearchReplace(): Future[Assertion] = {
+        val randomIdx = rng.nextInt(corpus.length)
+        val (vec, id) = (corpus(randomIdx), ids(randomIdx))
+        for {
+          c1 <- eknn.execute(count(index))
+          _ = c1.result.count shouldBe corpus.length
+
+          // Search for the randomly-picked vector. It should be its own best match.
+          s1 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
+          _ <- s1.result.hits.hits.headOption.map(_.id) shouldBe Some(id)
+
+          // Delete the top five vectors.
+          deletedIdxs = s1.result.hits.hits.take(5).map(_.id.drop(1).toInt).toSeq
+          _ <- Future.traverse(deletedIdxs.map(ids.apply).map(deleteById(index, _)))(eknn.execute(_))
+          _ <- eknn.execute(refreshIndex(index))
+          c2 <- eknn.execute(count(index))
+          _ = c2.result.count shouldBe (corpus.length - deletedIdxs.length)
+
+          // Search again for the original vector. The previous last five results should be the new top five.
+          s2 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
+          _ = s2.result.hits.hits.map(_.id).take(5).toSeq shouldBe s1.result.hits.hits.map(_.id).takeRight(5).toSeq
+
+          // Put the deleted vectors back.
+          _ <- eknn.index(index, vecField, deletedIdxs.map(corpus.apply), idField, deletedIdxs.map(ids.apply))
+          _ <- eknn.execute(refreshIndex(index))
+          c3 <- eknn.execute(count(index))
+          _ = c3.result.count shouldBe corpus.length
+
+          // Search again for the same original vector.
+          s3 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
+          _ = s3.result.hits.hits.map(_.id).toSet shouldBe s1.result.hits.hits.map(_.id).toSet
+
+        } yield Assertions.succeed
+      }
 
       for {
         _ <- deleteIfExists(index)
         _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
-        _ <- eknn.putMapping(index, "vec", "id", mapping)
-        _ <- eknn.index(index, "vec", corpus, "id", ids)
+        _ <- eknn.putMapping(index, vecField, idField, mapping)
+        _ <- eknn.index(index, vecField, corpus, idField, ids)
         _ <- eknn.execute(refreshIndex(index))
-        _ <- eknn.execute(forceMerge(index).maxSegments(1))
 
-        // Check the count before deleting anything.
-        cnt1 <- eknn.execute(count(index))
-        res1 <- eknn.nearestNeighbors(index, query, 10, "id")
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
 
-        // Delete the query vector from the index, count, and search again.
-        _ <- eknn.execute(deleteById(index, "v0"))
-        _ <- eknn.execute(refreshIndex(index))
-        cnt2 <- eknn.execute(count(index))
-        res2 <- eknn.nearestNeighbors(index, query, 10, "id")
-
-        // Put the vector back, count, search again.
-        _ <- eknn.index(index, "vec", corpus.take(1), "id", ids.take(1))
-        _ <- eknn.execute(refreshIndex(index))
-        cnt3 <- eknn.execute(count(index))
-        res3 <- eknn.nearestNeighbors(index, query, 10, "id")
-
-      } yield {
-        cnt1.result.count shouldBe 1000L
-        res1.result.maxScore shouldBe 1d
-        res1.result.hits.hits.head.id shouldBe "v0"
-
-        cnt2.result.count shouldBe 999L
-        res2.result.hits.hits.head.id shouldBe res1.result.hits.hits.tail.head.id
-
-        cnt3.result.count shouldBe 1000L
-        res3.result.hits.hits.head.id shouldBe "v0"
-      }
+      } yield Assertions.succeed
     }
   }
 

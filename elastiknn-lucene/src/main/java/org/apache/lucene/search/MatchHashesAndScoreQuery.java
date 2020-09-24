@@ -59,12 +59,14 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.numDocs());
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
+                    // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hac : hashAndFrequencies) {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            for (int i = 0; i < docs.cost(); i++) {
-                                counter.increment(docs.nextDoc(), (short) Math.min(hac.getFreq(), docs.freq()));
+                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
                             }
                         }
                     }
