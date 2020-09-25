@@ -1,11 +1,16 @@
 package com.klibisz.elastiknn.query
 
+import java.util
+
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
+import org.apache.lucene.codecs.{FieldsConsumer, FieldsProducer, PostingsFormat}
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
 import org.apache.lucene.document.Document
+import org.apache.lucene.index.{ImpactsEnum, PostingsEnum, SegmentReadState, SegmentWriteState, TermState, Terms, TermsEnum}
+import org.apache.lucene.util.{AttributeSource, BytesRef}
 import org.scalatest._
 
 import scala.util.Random
@@ -21,7 +26,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
 //    Thread.sleep(1000)
 //  }
 
-  class BenchmarkCodec extends Lucene84Codec
+  class BenchmarkCodec extends Lucene84Codec {}
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)

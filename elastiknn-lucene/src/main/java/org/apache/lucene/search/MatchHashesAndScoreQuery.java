@@ -1,6 +1,7 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.lucene.ArrayHitCounter;
+import com.klibisz.elastiknn.lucene.ConstantHitCounter;
 import com.klibisz.elastiknn.lucene.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
@@ -59,15 +60,19 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    HitCounter counter = new ConstantHitCounter(reader.maxDoc(), (short) 42);
+                    ArrayHitCounter ahc = new ArrayHitCounter(reader.maxDoc());
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hac : hashAndFrequencies) {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
-                            }
+                            docs = termsEnum.postings(docs, PostingsEnum.FREQS);
+
+
+//                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
+//                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+//                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
+//                            }
                         }
                     }
                     return counter;
