@@ -1,6 +1,4 @@
-package com.klibisz.elastiknn.lucene;
-
-import org.apache.lucene.search.KthGreatest;
+package com.klibisz.elastiknn.search;
 
 /**
  * Use an array of counts to count hits. The index of the array is the doc id.

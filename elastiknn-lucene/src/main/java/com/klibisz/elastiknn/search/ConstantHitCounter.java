@@ -1,6 +1,4 @@
-package com.klibisz.elastiknn.lucene;
-
-import org.apache.lucene.search.KthGreatest;
+package com.klibisz.elastiknn.search;
 
 public class ConstantHitCounter implements HitCounter {
 
@@ -36,7 +34,7 @@ public class ConstantHitCounter implements HitCounter {
 
     @Override
     public KthGreatest.Result kthGreatest(int k) {
-        return new KthGreatest.Result(constScore, 0, maxDocs);
+        return new KthGreatest.Result(constScore, 0, this.maxDocs, 0, maxDocs);
     }
 
     @Override

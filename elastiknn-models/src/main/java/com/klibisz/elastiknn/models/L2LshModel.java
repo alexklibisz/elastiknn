@@ -102,11 +102,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
 
             PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
 
-//            // Use algorithm 1 from Qin et. al to pick the best perturbation sets.
-//            MinMaxPriorityQueue<PerturbationSet> heap = MinMaxPriorityQueue
-//                    .orderedBy((Comparator<PerturbationSet>) (o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum))
-//                    .create();
-
             // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
             for (int ixL = 0; ixL < L; ixL++) {
                 Arrays.sort(sortedPerturbations[ixL], (o1, o2) -> Float.compare(o1.absDistance, o2.absDistance));

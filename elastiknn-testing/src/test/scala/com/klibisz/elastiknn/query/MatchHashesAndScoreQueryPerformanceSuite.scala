@@ -1,16 +1,11 @@
 package com.klibisz.elastiknn.query
 
-import java.util
-
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
-import org.apache.lucene.codecs.{FieldsConsumer, FieldsProducer, PostingsFormat}
 import org.apache.lucene.codecs.lucene84.Lucene84Codec
 import org.apache.lucene.document.Document
-import org.apache.lucene.index.{ImpactsEnum, PostingsEnum, SegmentReadState, SegmentWriteState, TermState, Terms, TermsEnum}
-import org.apache.lucene.util.{AttributeSource, BytesRef}
 import org.scalatest._
 
 import scala.util.Random

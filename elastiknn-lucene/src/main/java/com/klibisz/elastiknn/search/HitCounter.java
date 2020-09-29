@@ -1,6 +1,4 @@
-package com.klibisz.elastiknn.lucene;
-
-import org.apache.lucene.search.KthGreatest;
+package com.klibisz.elastiknn.search;
 
 /**
  * Abstraction for counting hits for a particular query.

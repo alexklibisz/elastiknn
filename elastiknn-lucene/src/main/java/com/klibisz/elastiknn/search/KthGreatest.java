@@ -1,14 +1,18 @@
-package org.apache.lucene.search;
+package com.klibisz.elastiknn.search;
 
 public class KthGreatest {
 
     public static class Result {
         public final short kthGreatest;
         public final int numGreaterThan;
+        public final int numEqualTo;
+        public final int numLessThan;
         public final int numNonZero;
-        public Result(short kthGreatest, int numGreaterThan, int numNonZero) {
+        public Result(short kthGreatest, int numGreaterThan, int numEqualTo, int numLessThan, int numNonZero) {
             this.kthGreatest = kthGreatest;
             this.numGreaterThan = numGreaterThan;
+            this.numEqualTo = numEqualTo;
+            this.numLessThan = numLessThan;
             this.numNonZero = numNonZero;
         }
     }
@@ -56,9 +60,11 @@ public class KthGreatest {
                 if (numGreaterEqual > k) break;
                 else kthGreatest--;
             }
+            int numEqual = hist[kthGreatest - min];
             int numGreater = numGreaterEqual - hist[kthGreatest - min];
+            int numLess = arr.length - numGreaterEqual;
 
-            return new KthGreatest.Result(kthGreatest, numGreater, numNonZero);
+            return new KthGreatest.Result(kthGreatest, numGreater, numEqual, numLess, numNonZero);
         }
     }
 }

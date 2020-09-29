@@ -1,14 +1,15 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.lucene.ArrayHitCounter;
-import com.klibisz.elastiknn.lucene.ConstantHitCounter;
-import com.klibisz.elastiknn.lucene.HitCounter;
+import com.klibisz.elastiknn.search.ArrayHitCounter;
+import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
+import com.klibisz.elastiknn.search.KthGreatest;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -59,22 +60,48 @@ public class MatchHashesAndScoreQuery extends Query {
                     return new ArrayHitCounter(0);
                 } else {
                     TermsEnum termsEnum = terms.iterator();
-                    PostingsEnum docs = null;
-                    HitCounter counter = new ConstantHitCounter(reader.maxDoc(), (short) 42);
-                    ArrayHitCounter ahc = new ArrayHitCounter(reader.maxDoc());
-                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
-                    // Bits liveDocs = reader.getLiveDocs();
+
+                    // Count the sum of docs matching the given terms.
+                    int totalMatches = 0;
                     for (HashAndFreq hac : hashAndFrequencies) {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.FREQS);
-
-
-//                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-//                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-//                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
-//                            }
+                            totalMatches += termsEnum.docFreq();
                         }
                     }
+
+                    // Use a priority queue to track the top `candidates` current counts.
+                    PriorityQueue<Short> topCounts = new PriorityQueue(candidates);
+
+                    // Use an array to track the counts for docs in this segment.
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+
+                    termsEnum = terms.iterator();
+                    PostingsEnum doc = null;
+
+                    for (HashAndFreq hf : hashAndFrequencies) {
+                        if (termsEnum.seekExact(new BytesRef(hf.getHash()))) {
+                            doc = termsEnum.postings(doc, PostingsEnum.FREQS);
+                            while (doc.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                // Maintain counter.
+                                counter.increment(doc.docID(), (short) doc.freq());
+
+                                // Maintain heap of top counts.
+                                if (topCounts.size() < candidates) {
+                                    topCounts.add(counter.get(doc.docID()));
+                                } else if (topCounts.peek() < counter.get(doc.docID())) {
+                                    topCounts.remove();
+                                    topCounts.add(counter.get(doc.docID()));
+                                }
+
+                                // Check early-stopping condition.
+                                totalMatches -= doc.freq();
+                                if (topCounts.peek() > totalMatches) {
+                                    return counter;
+                                }
+                            }
+                        }
+                    }
+
                     return counter;
                 }
             }
