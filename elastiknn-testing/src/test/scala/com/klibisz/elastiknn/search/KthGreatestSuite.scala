@@ -26,6 +26,25 @@ class KthGreatestSuite extends FunSuite with Matchers {
     res.numNonZero shouldBe 6
   }
 
+  test("difference with minheap") {
+    val seed = System.currentTimeMillis()
+    val rng = new Random(seed)
+    info(s"Using seed $seed")
+    for (_ <- 0 until 99) {
+      val counts = (0 until 10).map(_ => rng.nextInt(100).toShort).toArray
+      val k = 5
+      val res = KthGreatest.kthGreatest(counts, k)
+      val h = new ShortMinHeap(k)
+      counts.foreach { c =>
+        if (h.size() < k) h.insert(c) else if (h.peek() < c) h.replace(c)
+      }
+      if (h.peek() != res.kthGreatest) {
+        val sorted = counts.sortBy(_ * -1)
+        println((res.kthGreatest, h.peek()))
+      }
+    }
+  }
+
   test("randomized") {
     val seed = System.currentTimeMillis()
     val rng = new Random(seed)
