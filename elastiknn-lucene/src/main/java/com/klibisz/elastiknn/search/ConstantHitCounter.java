@@ -18,6 +18,11 @@ public class ConstantHitCounter implements HitCounter {
     }
 
     @Override
+    public void increment(int key, int count) {
+        increment(key, (short) count);
+    }
+
+    @Override
     public boolean isEmpty() {
         return isEmpty;
     }

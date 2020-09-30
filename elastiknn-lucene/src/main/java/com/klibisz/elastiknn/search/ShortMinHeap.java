@@ -1,121 +1,94 @@
 package com.klibisz.elastiknn.search;
 
 /**
- * Min heap where the values are shorts.
- * Credit to: https://www.geeksforgeeks.org/min-heap-in-java/
+ * Min heap where the values are shorts. Useful for tracking top counts for a query.
+ * Based on the Python std. lib. implementation: https://docs.python.org/3.8/library/heapq.html#module-heapq
  */
 public class ShortMinHeap {
     private short[] heap;
     private int size;
-    private int maxsize;
+    private final int capacity;
 
-    private static final int FRONT = 1;
-
-    public ShortMinHeap(int maxsize)
-    {
-        this.maxsize = maxsize;
+    public ShortMinHeap(int capacity) {
+        this.capacity = capacity;
         this.size = 0;
-        this.heap = new short[this.maxsize + 1];
-        this.heap[0] = Short.MIN_VALUE;
+        this.heap = new short[capacity];
     }
 
-    // Return the position of the parent for the node currently at pos.
-    private int parent(int pos) {
-        return pos / 2;
+    public int size() {
+        return this.size;
     }
 
-    // Return the position of the left child for the node currently at pos.
-    private int leftChild(int pos) {
-        return (2 * pos);
+    public short peek() {
+        return heap[0];
     }
 
-    // Return the position of the right child for the node currently at pos.
-    private int rightChild(int pos) {
-        return (2 * pos) + 1;
-    }
-
-    // Return true if the passed node is a leaf node.
-    private boolean isLeaf(int pos) {
-        return pos >= (size / 2) && pos <= size;
-    }
-
-    // Swap two nodes of the heap.
-    private void swap(int fpos, int spos) {
-        short tmp;
-        tmp = heap[fpos];
-        heap[fpos] = heap[spos];
-        heap[spos] = tmp;
-    }
-
-    // Heapify the node at pos.
-    private void minHeapify(int pos) {
-
-        // If the node is a non-leaf node and greater than any of its child.
-        if (!isLeaf(pos)) {
-            if (heap[pos] > heap[leftChild(pos)]
-                    || heap[pos] > heap[rightChild(pos)]) {
-
-                // Swap with the left child and heapify the left child.
-                if (heap[leftChild(pos)] < heap[rightChild(pos)]) {
-                    swap(pos, leftChild(pos));
-                    minHeapify(leftChild(pos));
-                }
-
-                // Swap with the right child and heapify the right child.
-                else {
-                    swap(pos, rightChild(pos));
-                    minHeapify(rightChild(pos));
-                }
-            }
-        }
-    }
-
-    // Insert a node into the heap.
     public void insert(short element) {
-        if (size >= maxsize) {
-            return;
-        }
-        heap[++size] = element;
-        int current = size;
-        while (heap[current] < heap[parent(current)]) {
-            swap(current, parent(current));
-            current = parent(current);
+        if (size >= capacity) {
+            throw new IllegalStateException("Cannot insert to full heap");
+        } else {
+            heap[size++] = element;
+            siftDown(heap, 0, size - 1);
         }
     }
 
-    // Alias for inserting int that gets cast to a short.
     public void insert(int element) {
         insert((short) element);
     }
 
-    // Build the min heap using the minHeapify.
-    public void minHeapify() {
-        for (int pos = (size / 2); pos >= 1; pos--) {
-            minHeapify(pos);
+    public short remove() {
+        if (size > 1) {
+            short min = heap[0];
+            heap[0] = heap[--size];
+            siftUp(heap, 0, size + 1);
+            return min;
+        } else if (size == 1) {
+            return heap[--size];
+        } else {
+            throw new IllegalStateException("Cannot remove from empty heap");
         }
     }
 
-    // Remove, return the minimum element from the heap.
-    public short remove() {
-        short popped = heap[FRONT];
-        heap[FRONT] = heap[size--];
-        minHeapify(FRONT);
-        return popped;
+    public short replace(short element) {
+        short min = heap[0];
+        heap[0] = element;
+        siftUp(heap, 0, size);
+        return min;
     }
 
-    // Driver code
-    public static void main(String[] arg) {
-        ShortMinHeap minHeap = new ShortMinHeap(3);
-        minHeap.insert(5);
-        minHeap.insert(3);
-        minHeap.insert(17);
-//        minHeap.minHeap();
-
-        System.out.println(minHeap.remove());
-        System.out.println(minHeap.remove());
-        System.out.println(minHeap.remove());
-
+    private static void siftDown(short[] heap, int startPos, int pos) {
+        short newItem = heap[pos];
+        while (pos > startPos) {
+            int parentPos = (pos - 1) / 2;
+            short parent = heap[parentPos];
+            if (newItem < parent) {
+                heap[pos] = parent;
+                pos = parentPos;
+                continue;
+            }
+            break;
+        }
+        heap[pos] = newItem;
     }
+
+    private static void siftUp(short[] heap, int pos, int endPos) {
+        int startPos = pos;
+        short newItem = heap[pos];
+        int childPos = 2 * pos + 1;
+        while (childPos < endPos) {
+            int rightPos = childPos + 1;
+            if (rightPos < endPos && !(heap[childPos] < heap[rightPos])) {
+                childPos = rightPos;
+            }
+            heap[pos] = heap[childPos];
+            pos = childPos;
+            childPos = 2 * pos + 1;
+        }
+        heap[pos] = newItem;
+        siftDown(heap, startPos, pos);
+    }
+
+
 
 }
 

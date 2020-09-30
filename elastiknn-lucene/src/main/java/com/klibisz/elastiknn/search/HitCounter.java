@@ -7,6 +7,8 @@ public interface HitCounter {
 
     void increment(int key, short count);
 
+    void increment(int key, int count);
+
     boolean isEmpty();
 
     short get(int key);

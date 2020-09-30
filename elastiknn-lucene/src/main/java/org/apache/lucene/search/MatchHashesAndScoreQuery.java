@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.search.KthGreatest;
+import com.klibisz.elastiknn.search.ShortMinHeap;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -70,7 +71,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     }
 
                     // Use a priority queue to track the top `candidates` current counts.
-                    PriorityQueue<Short> topCounts = new PriorityQueue(candidates);
+                    ShortMinHeap topCounts = new ShortMinHeap(candidates);
 
                     // Use an array to track the counts for docs in this segment.
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
@@ -87,10 +88,9 @@ public class MatchHashesAndScoreQuery extends Query {
 
                                 // Maintain heap of top counts.
                                 if (topCounts.size() < candidates) {
-                                    topCounts.add(counter.get(doc.docID()));
+                                    topCounts.insert(counter.get(doc.docID()));
                                 } else if (topCounts.peek() < counter.get(doc.docID())) {
-                                    topCounts.remove();
-                                    topCounts.add(counter.get(doc.docID()));
+                                    topCounts.replace(counter.get(doc.docID()));
                                 }
 
                                 // Check early-stopping condition.

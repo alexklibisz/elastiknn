@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.search
 
-import org.apache.lucene.search.KthGreatest
 import org.scalatest._
 
 import scala.util.Random
