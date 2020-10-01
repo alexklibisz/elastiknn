@@ -13,6 +13,8 @@ public interface HitCounter {
 
     short get(int key);
 
-    int size();
+    int capacity();
+
+    int hits();
 
 }

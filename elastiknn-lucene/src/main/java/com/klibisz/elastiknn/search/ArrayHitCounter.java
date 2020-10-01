@@ -7,11 +7,14 @@ package com.klibisz.elastiknn.search;
  */
 public class ArrayHitCounter implements HitCounter {
 
-    private final short[] counts; // TODO make private again.
+    private final short[] counts;
+    private final boolean[] hits;
+    private int numHits;
     private boolean isEmpty;
 
     public ArrayHitCounter(int maxDocs) {
         counts = new short[maxDocs];
+        hits = new boolean[maxDocs];
         isEmpty = true;
     }
 
@@ -19,6 +22,10 @@ public class ArrayHitCounter implements HitCounter {
     public void increment(int key, short count) {
         counts[key] += count;
         isEmpty = false;
+        if (!hits[key]) {
+            hits[key] = true;
+            numHits++;
+        }
     }
 
     @Override
@@ -37,8 +44,13 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     @Override
-    public int size() {
+    public int capacity() {
         return counts.length;
+    }
+
+    @Override
+    public int hits() {
+        return numHits;
     }
 
 }

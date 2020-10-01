@@ -13,8 +13,6 @@ package com.klibisz.elastiknn.query
 //import scala.concurrent.Future
 //import scala.util.Random
 
-import java.util.UUID
-
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -22,6 +20,7 @@ import org.scalatest.{AsyncFunSpec, Inspectors, Matchers}
 
 import scala.concurrent.Future
 import scala.util.Random
+import scala.util.hashing.MurmurHash3
 
 class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
@@ -106,7 +105,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       (mapping, queries) <- mappingsAndQueries
       query: NearestNeighborsQuery <- queries
     } it(s"filters with mapping [${mapping}] and query [${query}]") {
-      val index = s"$indexPrefix-${UUID.randomUUID.toString}"
+      val index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0)}"
       val rawMapping =
         s"""
            |{

@@ -3,7 +3,6 @@
 import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
-import com.klibisz.elastiknn.search.KthGreatest;
 import com.klibisz.elastiknn.search.ShortMinHeap;
 import com.klibisz.elastiknn.utils.Pair;
 import org.apache.lucene.index.*;
@@ -95,9 +94,9 @@ public class MatchHashesAndScoreQuery extends Query {
                                     countHeap.replace(counter.get(doc.docID()));
                                 }
 
-                                // Check early-stopping condition.
+//                                // Check early-stopping condition.
 //                                totalMatches -= doc.freq();
-//                                if (countHeap.peek() > totalMatches) {
+//                                if (counter.hits() >= candidates && countHeap.peek() > totalMatches) {
 //                                    return new Pair<>(counter, countHeap);
 //                                }
                             }
@@ -130,7 +129,7 @@ public class MatchHashesAndScoreQuery extends Query {
                         @Override
                         public int nextDoc() {
                             while (true) {
-                                if (numEmitted == candidates || docId + 1 == hitCounter.size()) {
+                                if (numEmitted == candidates || docId + 1 == hitCounter.capacity()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 } else {
@@ -152,7 +151,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public long cost() {
-                            return hitCounter.size();
+                            return hitCounter.capacity();
                         }
                     };
                 }
