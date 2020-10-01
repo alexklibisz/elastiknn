@@ -1,3 +1,7 @@
+- Fixed docs for running nearest neighbors query on a filtered subset of documents.
+The original suggestion to use a bool query results in evaluating all docs. 
+The correct way to do it is to use a standard query with a rescorer.  
+---
 - Fixed null pointer exception which was happening when running queries after deleting some vectors.
 ---
 - More memory-efficient implementation of Python ElastiknnModel.fit method. Uses an iterator over the vectors instead of a list of the vectors.

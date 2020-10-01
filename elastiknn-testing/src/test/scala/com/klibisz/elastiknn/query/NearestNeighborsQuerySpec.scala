@@ -12,6 +12,7 @@ import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
 
 import scala.concurrent.Future
 import scala.util.Random
+import scala.util.hashing.MurmurHash3
 
 class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
@@ -77,18 +78,21 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     val numBlue = 8
     val corpus = (0 until 100).map(i => (s"v$i", Vec.DenseFloat.random(dims), if (i < numBlue) "blue" else "red"))
 
+    // Make sure there are fewer candidates than the whole corpus. This ensures the filter is executed before the knn.
+    val candidates = 10
+
     // Test with multiple mappings/queries.
     val queryVec = Vec.DenseFloat.random(dims)
     val mappingsAndQueries = Seq(
       Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
         NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
         NearestNeighborsQuery.Exact("vec", Similarity.Angular, queryVec),
-        NearestNeighborsQuery.L2Lsh("vec", 100, vec = queryVec)
+        NearestNeighborsQuery.L2Lsh("vec", candidates, vec = queryVec)
       ),
       Mapping.AngularLsh(dims, 40, 1) -> Seq(
         NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
         NearestNeighborsQuery.Exact("vec", Similarity.Angular, queryVec),
-        NearestNeighborsQuery.AngularLsh("vec", 100, queryVec)
+        NearestNeighborsQuery.AngularLsh("vec", candidates, queryVec)
       )
     )
 
@@ -96,7 +100,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       (mapping, queries) <- mappingsAndQueries
       query: NearestNeighborsQuery <- queries
     } it(s"filters with mapping [${mapping}] and query [${query}]") {
-      val index = s"$indexPrefix-${UUID.randomUUID.toString}"
+      val index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0).toString}"
       val rawMapping =
         s"""
            |{
@@ -111,12 +115,17 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       val rawQuery =
         s"""
            |{
-           |  "bool": {
-           |    "filter": [
-           |      { "term": { "color": "blue" } }
-           |    ],
-           |    "must": {
-           |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nearestNeighborsQuery(query).spaces4}
+           |  "query": {
+           |    "term": { "color": "blue" }
+           |  },
+           |  "rescore": {
+           |    "window_size": $candidates,
+           |    "query": {
+           |      "rescore_query": {
+           |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nearestNeighborsQuery(query).spaces4}
+           |      },
+           |      "query_weight": 0,
+           |      "rescore_query_weight": 1
            |    }
            |  }
            |}
@@ -137,9 +146,9 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
             eknn.execute(indexInto(index).id(id).source(docSource))
         }
         _ <- eknn.execute(refreshIndex(index))
-        res <- eknn.execute(search(index).rawQuery(rawQuery))
+        res <- eknn.execute(search(index).source(rawQuery))
       } yield {
-        res.result.hits.hits should have length numBlue
+        res.result.hits.hits.length shouldBe numBlue
         res.result.hits.hits.map(_.id).toSet shouldBe corpus.filter(_._3 == "blue").map(_._1).toSet
       }
     }
