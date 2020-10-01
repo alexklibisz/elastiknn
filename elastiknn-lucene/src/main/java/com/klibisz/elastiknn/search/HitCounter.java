@@ -13,16 +13,6 @@ public interface HitCounter {
 
     short get(int key);
 
-    int numHits();
+    int size();
 
-    KthGreatest.Result kthGreatest(int k);
-
-    interface Iterator {
-        void advance();
-        boolean hasNext();
-        int docID();
-        int count();
-    }
-
-    Iterator iterator();
 }

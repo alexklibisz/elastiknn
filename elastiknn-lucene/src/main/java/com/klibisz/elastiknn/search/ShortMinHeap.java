@@ -19,6 +19,8 @@ public class ShortMinHeap {
         return this.size;
     }
 
+    public int capacity() { return this.capacity; }
+
     public short peek() {
         return heap[0];
     }

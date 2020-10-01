@@ -7,7 +7,7 @@ package com.klibisz.elastiknn.search;
  */
 public class ArrayHitCounter implements HitCounter {
 
-    private final short[] counts;
+    private final short[] counts; // TODO make private again.
     private boolean isEmpty;
 
     public ArrayHitCounter(int maxDocs) {
@@ -37,40 +37,8 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     @Override
-    public int numHits() {
+    public int size() {
         return counts.length;
     }
 
-    @Override
-    public KthGreatest.Result kthGreatest(int k) {
-        return KthGreatest.kthGreatest(counts, Math.min(k, counts.length - 1));
-    }
-
-    @Override
-    public Iterator iterator() {
-        return new Iterator() {
-
-            private int i = -1;
-
-            @Override
-            public void advance() {
-                i++;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return i + 1 < counts.length;
-            }
-
-            @Override
-            public int docID() {
-                return i;
-            }
-
-            @Override
-            public int count() {
-                return counts[i];
-            }
-        };
-    }
 }

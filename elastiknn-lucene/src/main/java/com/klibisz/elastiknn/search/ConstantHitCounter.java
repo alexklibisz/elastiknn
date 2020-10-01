@@ -33,40 +33,8 @@ public class ConstantHitCounter implements HitCounter {
     }
 
     @Override
-    public int numHits() {
+    public int size() {
         return maxDocs;
     }
 
-    @Override
-    public KthGreatest.Result kthGreatest(int k) {
-        return new KthGreatest.Result(constScore, 0, this.maxDocs, 0, maxDocs);
-    }
-
-    @Override
-    public Iterator iterator() {
-        return new Iterator() {
-
-            private int id = -1;
-
-            @Override
-            public void advance() {
-                id++;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return id + 1 < maxDocs;
-            }
-
-            @Override
-            public int docID() {
-                return id;
-            }
-
-            @Override
-            public int count() {
-                return constScore;
-            }
-        };
-    }
 }

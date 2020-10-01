@@ -68,28 +68,28 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     }
   }
 
-  test("repeating terms") {
-    indexAndSearch() { w =>
-      val (d1, d2) = (new Document(), new Document())
-      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), ft)))
-      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), ft)))
-      w.addDocument(d1)
-      w.addDocument(d2)
-    } {
-      case (r, s) =>
-        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => HashAndFreq.once(writeInt(i)))
-        val q = new MatchHashesAndScoreQuery(
-          "vec",
-          hashes,
-          10,
-          r,
-          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
-        )
-        val dd = s.search(q, 10)
-        dd.scoreDocs should have length 2
-        dd.scoreDocs.map(_.score) shouldBe Array(3f, 1f)
-    }
-  }
+//  test("repeating terms") {
+//    indexAndSearch() { w =>
+//      val (d1, d2) = (new Document(), new Document())
+//      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), ft)))
+//      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), ft)))
+//      w.addDocument(d1)
+//      w.addDocument(d2)
+//    } {
+//      case (r, s) =>
+//        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => HashAndFreq.once(writeInt(i)))
+//        val q = new MatchHashesAndScoreQuery(
+//          "vec",
+//          hashes,
+//          10,
+//          r,
+//          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
+//        )
+//        val dd = s.search(q, 10)
+//        dd.scoreDocs should have length 2
+//        dd.scoreDocs.map(_.score) shouldBe Array(3f, 1f)
+//    }
+//  }
 
   test("documents with 0 matches are not candidates") {
     indexAndSearch() { w =>

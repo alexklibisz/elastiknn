@@ -73,7 +73,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     }
 
                     // Use a priority queue to track the top `candidates` current counts.
-                    ShortMinHeap countHeap = new ShortMinHeap(candidates);
+                    ShortMinHeap countHeap = new ShortMinHeap(Math.min(candidates, reader.maxDoc()));
 
                     // Use an array to track the counts for docs in this segment.
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
@@ -89,7 +89,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                 counter.increment(doc.docID(), doc.freq());
 
                                 // Maintain heap of top counts.
-                                if (countHeap.size() < candidates) {
+                                if (countHeap.size() < countHeap.capacity()) {
                                     countHeap.insert(counter.get(doc.docID()));
                                 } else if (countHeap.peek() <= counter.get(doc.docID())) {
                                     countHeap.replace(counter.get(doc.docID()));
@@ -112,31 +112,15 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (hitCounter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
-//                    short kthGreatestCount = countHeap.peek();
-//                    int numGreaterThan = 0;
-//                    for (int i = 0; i < hitCounter.numHits(); i++) {
-//                        if (hitCounter.get(i) > kthGreatestCount) {
-//                            numGreaterThan += 1;
-//                        }
-//                    }
-//                    final int wtf = numGreaterThan;
-
-                    KthGreatest.Result kgr = hitCounter.kthGreatest(candidates);
-                    short kthGreatestCount = kgr.kthGreatest;
-                    int wtf = kgr.numGreaterThan;
-
-                    System.out.printf("%d, %d\n", kgr.kthGreatest, countHeap.peek());
+                    short minCandidateCount = countHeap.peek();
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
                         private int docId = -1;
 
-                        private final HitCounter.Iterator iterator = hitCounter.iterator();
-
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
-                        private int numEq = 0;
 
                         @Override
                         public int docID() {
@@ -146,20 +130,16 @@ public class MatchHashesAndScoreQuery extends Query {
                         @Override
                         public int nextDoc() {
                             while (true) {
-                                if (numEmitted == candidates || !iterator.hasNext()) {
+                                if (numEmitted == candidates || docId + 1 == hitCounter.size()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
-                                }
-                                iterator.advance();
-                                if (iterator.count() > kthGreatestCount) {
-                                    docId = iterator.docID();
-                                    numEmitted++;
-                                    return docID();
-                                } else if (iterator.count() == kthGreatestCount && numEq < candidates - wtf) {
-                                    docId = iterator.docID();
-                                    numEq++;
-                                    numEmitted++;
-                                    return docID();
+                                } else {
+                                    docId++;
+                                    if (hitCounter.get(docId) >= minCandidateCount) {
+                                        numEmitted++;
+                                        System.out.printf("%d, %d, %d\n", numEmitted, countHeap.capacity(), candidates);
+                                        return docID();
+                                    }
                                 }
                             }
                         }
@@ -172,7 +152,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public long cost() {
-                            return hitCounter.numHits();
+                            return hitCounter.size();
                         }
                     };
                 }
