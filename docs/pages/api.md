@@ -769,10 +769,10 @@ GET /my-index/_search
     "term": { "color": "blue" }                     # 1
   },
   "rescore": {
-    "window_size": 10,
+    "window_size": 10,                              # 2
     "query": {
       "rescore_query": {
-        "elastiknn_nearest_neighbors": {            # 2
+        "elastiknn_nearest_neighbors": {            # 3
             "field" : "vec",
             "similarity" : "l2",
             "model" : "exact",            
@@ -781,8 +781,8 @@ GET /my-index/_search
             }
         }
       },
-      "query_weight": 0,                            # 3
-      "rescore_query_weight": 1                     # 4
+      "query_weight": 0,                            # 4
+      "rescore_query_weight": 1                     # 5
     }
   }
 }
@@ -791,9 +791,10 @@ GET /my-index/_search
 |#|Description|
 |:--|:--|
 |1|Term query will limit to only run on documents containing `"color": "blue"`.|
-|2|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
-|3|Ignore the score from the term query.|
-|4|Use the score from the rescore query.|
+|2|The window size controls how many of the docs that matched the term query will be considered for the nearest neighbors query.|
+|3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
+|4|Ignore the score from the term query.|
+|5|Use the score from the rescore query.|
 
 ## Miscellaneous Implementation Details
 
