@@ -1,10 +1,8 @@
- package org.apache.lucene.search;
+package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.search.ArrayHitCounter;
-import com.klibisz.elastiknn.search.HitCounter;
+import com.klibisz.elastiknn.lucene.ArrayHitCounter;
+import com.klibisz.elastiknn.lucene.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
-import com.klibisz.elastiknn.search.ShortMinHeap;
-import com.klibisz.elastiknn.utils.Pair;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -51,75 +49,47 @@ public class MatchHashesAndScoreQuery extends Query {
         return new Weight(this) {
 
             /**
-             * Builds and returns a Pair containing:
-             * 1. A HitCounter mapping all doc IDs in this segment to the number of term matches in the doc.
-             * 2. A heap of the top `candidates` term match counts.
+             * Builds and returns a map from doc ID to the number of matching hashes in that doc.
              */
-            private Pair<HitCounter, ShortMinHeap> countMatches(LeafReader reader) throws IOException {
+            private HitCounter countHits(LeafReader reader) throws IOException {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) {
-                    return new Pair<>(new ArrayHitCounter(0), new ShortMinHeap(0));
+                    return new ArrayHitCounter(0);
                 } else {
                     TermsEnum termsEnum = terms.iterator();
-
-                    // Count the sum of docs matching the given terms.
-                    int totalMatches = 0;
+                    PostingsEnum docs = null;
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
+                    // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hac : hashAndFrequencies) {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            totalMatches += termsEnum.docFreq();
-                        }
-                    }
-
-                    // Use a priority queue to track the top `candidates` current counts.
-                    ShortMinHeap countHeap = new ShortMinHeap(Math.min(candidates, reader.maxDoc()));
-
-                    // Use an array to track the counts for docs in this segment.
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
-
-                    termsEnum = terms.iterator();
-                    PostingsEnum doc = null;
-
-                    for (HashAndFreq hf : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hf.getHash()))) {
-                            doc = termsEnum.postings(doc, PostingsEnum.FREQS);
-                            while (doc.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                // Maintain counter.
-                                counter.increment(doc.docID(), doc.freq());
-
-                                // Maintain heap of top counts.
-                                if (countHeap.size() < countHeap.capacity()) {
-                                    countHeap.insert(counter.get(doc.docID()));
-                                } else if (countHeap.peek() <= counter.get(doc.docID())) {
-                                    countHeap.replace(counter.get(doc.docID()));
-                                }
-
-//                                // Check early-stopping condition.
-//                                totalMatches -= doc.freq();
-//                                if (counter.hits() >= candidates && countHeap.peek() > totalMatches) {
-//                                    return new Pair<>(counter, countHeap);
-//                                }
+                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
                             }
                         }
                     }
-
-                    return new Pair<>(counter, countHeap);
+                    return counter;
                 }
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(HitCounter hitCounter, ShortMinHeap countHeap) {
-                if (hitCounter.isEmpty()) return DocIdSetIterator.empty();
+            private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
+                if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
-                    short minCandidateCount = countHeap.peek();
+                    KthGreatest.Result kgr = counter.kthGreatest(candidates);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
                         private int docId = -1;
 
+                        private final HitCounter.Iterator iterator = counter.iterator();
+
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
+                        private int numEq = 0;
 
                         @Override
                         public int docID() {
@@ -128,19 +98,27 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
+
+                            // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
+                            // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || docId + 1 == hitCounter.capacity()) {
+                                if (numEmitted == candidates || !iterator.hasNext()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
-                                } else {
-                                    docId++;
-                                    if (hitCounter.get(docId) >= minCandidateCount) {
-                                        numEmitted++;
-                                        System.out.printf("%d, %d, %d\n", numEmitted, countHeap.capacity(), candidates);
-                                        return docID();
-                                    }
+                                }
+                                iterator.advance();
+                                if (iterator.count() > kgr.kthGreatest) {
+                                    docId = iterator.docID();
+                                    numEmitted++;
+                                    return docID();
+                                } else if (iterator.count() == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                    docId = iterator.docID();
+                                    numEq++;
+                                    numEmitted++;
+                                    return docID();
                                 }
                             }
+
                         }
 
                         @Override
@@ -151,7 +129,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public long cost() {
-                            return hitCounter.capacity();
+                            return counter.numHits();
                         }
                     };
                 }
@@ -169,8 +147,8 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 LeafReader reader = context.reader();
-                Pair<HitCounter, ShortMinHeap> countResult = countMatches(reader);
-                DocIdSetIterator disi = buildDocIdSetIterator(countResult.a, countResult.b);
+                HitCounter counter = countHits(reader);
+                DocIdSetIterator disi = buildDocIdSetIterator(counter);
 
                 return new Scorer(this) {
                     @Override
@@ -185,7 +163,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), countResult.a.get(docID()));
+                        return (float) scoreFunction.score(docID(), counter.get(docID()));
                     }
 
                     @Override

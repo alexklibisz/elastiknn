@@ -757,37 +757,44 @@ It's common to filter for a subset of documents based on some property and _then
 query on that subset.
 For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`,
 and only run `elastiknn_nearest_neighbors` on that subset.
-To do this, you can use the `elastiknn_nearest_neighbors` query in a [boolean query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-bool-query.html).
+To do this, you can use the `elastiknn_nearest_neighbors` query in a  
+[query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
 
 Consider this example:
 
 ```json
 GET /my-index/_search
 {
+  "query": {
+    "term": { "color": "blue" }                     # 1
+  },
+  "rescore": {
+    "window_size": 10,                              # 2
     "query": {
-        "bool": {
-            "filter": [
-                { "term": { "color": "blue" } },             # 1
-            ],
-            "must": {
-                "elastiknn_nearest_neighbors": {             # 2
-                    "field": "vec",
-                    "vec": { 
-                        "values": [0.1, 0.2, 0.3, ...]
-                    },
-                    "model": "exact",
-                    "similarity": "l2"
-                 }
-            }           
+      "rescore_query": {
+        "elastiknn_nearest_neighbors": {            # 3
+            "field" : "vec",
+            "similarity" : "l2",
+            "model" : "exact",            
+            "vec" : {
+                "values" : [0.1, 0.2, 0.3, ...]
+            }
         }
+      },
+      "query_weight": 0,                            # 4
+      "rescore_query_weight": 1                     # 5
     }
+  }
 }
-``` 
+```
 
 |#|Description|
 |:--|:--|
-|1|Filter clause that will limit the query to only run on documents containing `"color": "blue"`.|
-|2|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
+|1|Term query will limit to only run on documents containing `"color": "blue"`.|
+|2|The window size controls how many of the docs that matched the term query will be considered for the nearest neighbors query.|
+|3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
+|4|Ignore the score from the term query.|
+|5|Use the score from the rescore query.|
 
 ## Miscellaneous Implementation Details
 
