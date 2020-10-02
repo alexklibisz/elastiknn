@@ -22,7 +22,15 @@ public class ShortMinHeap {
     public int capacity() { return this.capacity; }
 
     public short peek() {
-        return heap[0];
+        if (size == 0) {
+            throw new IllegalStateException("Cannot peek an empty heap");
+        } else {
+            return heap[0];
+        }
+    }
+
+    public void clear() {
+        this.size = 0;
     }
 
     public void insert(short element) {

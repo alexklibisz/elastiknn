@@ -21,6 +21,12 @@ class ShortMinHeapSuite extends FunSuite with Matchers {
     ex.getMessage shouldBe "Cannot remove from empty heap"
   }
 
+  test("Peek empty heap") {
+    val h = new ShortMinHeap(3)
+    val ex = intercept[IllegalStateException](h.peek())
+    ex.getMessage shouldBe "Cannot peek an empty heap"
+  }
+
   test("Simple example") {
     val h = new ShortMinHeap(3)
     h.insert(10)
@@ -39,6 +45,12 @@ class ShortMinHeapSuite extends FunSuite with Matchers {
     h.peek() shouldBe 11
     h.remove() shouldBe 11
     intercept[IllegalStateException](h.remove())
+    h.insert(22)
+    h.peek() shouldBe 22
+    h.size shouldBe 1
+    h.clear()
+    h.size() shouldBe 0
+    intercept[IllegalStateException](h.peek())
   }
 
   test("Replace") {

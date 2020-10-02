@@ -5,9 +5,9 @@ package com.klibisz.elastiknn.search;
  */
 public interface HitCounter {
 
-    void increment(int key, short count);
+    short increment(int key, short count);
 
-    void increment(int key, int count);
+    short increment(int key, int count);
 
     boolean isEmpty();
 
@@ -16,5 +16,9 @@ public interface HitCounter {
     int capacity();
 
     int hits();
+
+    int minKey();
+
+    int maxKey();
 
 }

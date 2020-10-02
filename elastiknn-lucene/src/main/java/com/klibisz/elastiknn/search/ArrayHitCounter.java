@@ -8,29 +8,29 @@ package com.klibisz.elastiknn.search;
 public class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;
-    private final boolean[] hits;
     private int numHits;
+    private int minKey;
+    private int maxKey;
     private boolean isEmpty;
 
     public ArrayHitCounter(int maxDocs) {
         counts = new short[maxDocs];
-        hits = new boolean[maxDocs];
         isEmpty = true;
     }
 
     @Override
-    public void increment(int key, short count) {
+    public short increment(int key, short count) {
         counts[key] += count;
         isEmpty = false;
-        if (!hits[key]) {
-            hits[key] = true;
-            numHits++;
-        }
+        if (counts[key] == 1) numHits++;
+        minKey = Math.min(minKey, key);
+        maxKey = Math.max(maxKey, key);
+        return counts[key];
     }
 
     @Override
-    public void increment(int key, int count) {
-        increment(key, (short) count);
+    public short increment(int key, int count) {
+        return increment(key, (short) count);
     }
 
     @Override
@@ -51,6 +51,16 @@ public class ArrayHitCounter implements HitCounter {
     @Override
     public int hits() {
         return numHits;
+    }
+
+    @Override
+    public int minKey() {
+        return this.minKey;
+    }
+
+    @Override
+    public int maxKey() {
+        return this.maxKey;
     }
 
 }
