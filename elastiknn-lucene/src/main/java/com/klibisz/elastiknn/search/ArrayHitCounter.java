@@ -10,14 +10,12 @@ import org.apache.lucene.search.KthGreatest;
 public class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;
-    private boolean isEmpty;
     private int numHits;
     private int minKey;
     private int maxKey;
 
     public ArrayHitCounter(int capacity) {
         counts = new short[capacity];
-        isEmpty = true;
         numHits = 0;
         minKey = capacity;
         maxKey = 0;
@@ -26,7 +24,6 @@ public class ArrayHitCounter implements HitCounter {
     @Override
     public void increment(int key, short count) {
         if (counts[key] == 0) {
-            isEmpty = false;
             numHits++;
             minKey = Math.min(key, minKey);
             maxKey = Math.max(key, maxKey);
@@ -41,7 +38,7 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public boolean isEmpty() {
-        return isEmpty;
+        return numHits > 0;
     }
 
     @Override
