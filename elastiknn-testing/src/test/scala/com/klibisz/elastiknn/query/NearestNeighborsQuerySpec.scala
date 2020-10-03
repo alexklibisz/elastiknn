@@ -226,7 +226,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
 
           // Search for the randomly-picked vector. It should be its own best match.
           s1 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
-          _ <- s1.result.hits.hits.headOption.map(_.id) shouldBe Some(id)
+          _ = s1.result.hits.hits.headOption.map(_.id) shouldBe Some(id)
 
           // Delete the top five vectors.
           deletedIdxs = s1.result.hits.hits.take(5).map(_.id.drop(1).toInt).toSeq
@@ -260,10 +260,10 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         _ <- eknn.execute(refreshIndex(index))
 
         _ <- searchDeleteSearchReplace()
-        _ <- searchDeleteSearchReplace()
-        _ <- searchDeleteSearchReplace()
-        _ <- searchDeleteSearchReplace()
-        _ <- searchDeleteSearchReplace()
+//        _ <- searchDeleteSearchReplace()
+//        _ <- searchDeleteSearchReplace()
+//        _ <- searchDeleteSearchReplace()
+//        _ <- searchDeleteSearchReplace()
 
       } yield Assertions.succeed
     }

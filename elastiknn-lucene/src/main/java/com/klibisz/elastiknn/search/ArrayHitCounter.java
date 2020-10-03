@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.lucene;
+package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.KthGreatest;
 
@@ -11,16 +11,27 @@ public class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;
     private boolean isEmpty;
+    private int numHits;
+    private int minKey;
+    private int maxKey;
 
-    public ArrayHitCounter(int maxDocs) {
-        counts = new short[maxDocs];
+    public ArrayHitCounter(int capacity) {
+        counts = new short[capacity];
         isEmpty = true;
+        numHits = 0;
+        minKey = capacity;
+        maxKey = 0;
     }
 
     @Override
     public void increment(int key, short count) {
+        if (counts[key] == 0) {
+            isEmpty = false;
+            numHits++;
+            minKey = Math.min(key, minKey);
+            maxKey = Math.max(key, maxKey);
+        }
         counts[key] += count;
-        isEmpty = false;
     }
 
     @Override
@@ -35,7 +46,22 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public int numHits() {
+        return numHits;
+    }
+
+    @Override
+    public int capacity() {
         return counts.length;
+    }
+
+    @Override
+    public int minKey() {
+        return minKey;
+    }
+
+    @Override
+    public int maxKey() {
+        return maxKey;
     }
 
     @Override
@@ -43,31 +69,4 @@ public class ArrayHitCounter implements HitCounter {
         return KthGreatest.kthGreatest(counts, Math.min(k, counts.length - 1));
     }
 
-    @Override
-    public Iterator iterator() {
-        return new Iterator() {
-
-            private int i = -1;
-
-            @Override
-            public void advance() {
-                i++;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return i + 1 < counts.length;
-            }
-
-            @Override
-            public int docID() {
-                return i;
-            }
-
-            @Override
-            public int count() {
-                return counts[i];
-            }
-        };
-    }
 }

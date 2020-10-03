@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.lucene;
+package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.KthGreatest;
 
@@ -15,14 +15,13 @@ public interface HitCounter {
 
     int numHits();
 
+    int capacity();
+
+    int minKey();
+
+    int maxKey();
+
     KthGreatest.Result kthGreatest(int k);
 
-    interface Iterator {
-        void advance();
-        boolean hasNext();
-        int docID();
-        int count();
-    }
 
-    Iterator iterator();
 }
