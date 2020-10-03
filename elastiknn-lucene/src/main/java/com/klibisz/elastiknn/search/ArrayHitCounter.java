@@ -38,7 +38,7 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public boolean isEmpty() {
-        return numHits > 0;
+        return numHits == 0;
     }
 
     @Override
