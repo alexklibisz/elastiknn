@@ -9,6 +9,8 @@ public interface HitCounter {
 
     void increment(int key, short count);
 
+    void increment(int key, int count);
+
     boolean isEmpty();
 
     short get(int key);
@@ -22,6 +24,5 @@ public interface HitCounter {
     int maxKey();
 
     KthGreatest.Result kthGreatest(int k);
-
 
 }

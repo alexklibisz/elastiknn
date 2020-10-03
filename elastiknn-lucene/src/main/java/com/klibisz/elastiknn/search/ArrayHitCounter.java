@@ -31,7 +31,12 @@ public class ArrayHitCounter implements HitCounter {
             minKey = Math.min(key, minKey);
             maxKey = Math.max(key, maxKey);
         }
-        counts[key] += count;
+        counts[key] += count;  // Important to be after the above.
+    }
+
+    @Override
+    public void increment(int key, int count) {
+        increment(key, (short) count);
     }
 
     @Override

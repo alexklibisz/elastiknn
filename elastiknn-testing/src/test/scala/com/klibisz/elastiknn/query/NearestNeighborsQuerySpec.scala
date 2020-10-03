@@ -214,7 +214,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       val (index, vecField, idField, dims) = ("issue-158", "vec", "id", 100)
       val corpus = Vec.DenseFloat.randoms(dims, 1000)
       val ids = corpus.indices.map(i => s"v$i")
-      val mapping = Mapping.L2Lsh(dims, 40, 4, 2)
+      val mapping = Mapping.L2Lsh(dims, 50, 1, 2)
       val query = NearestNeighborsQuery.L2Lsh(vecField, 30, 1)
 
       def searchDeleteSearchReplace(): Future[Assertion] = {
@@ -247,7 +247,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
 
           // Search again for the same original vector.
           s3 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
-          _ = s3.result.hits.hits.map(_.id).toSet shouldBe s1.result.hits.hits.map(_.id).toSet
+          _ = s3.result.hits.hits.map(_.id).sorted shouldBe s1.result.hits.hits.map(_.id).sorted
 
         } yield Assertions.succeed
       }
@@ -260,10 +260,10 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         _ <- eknn.execute(refreshIndex(index))
 
         _ <- searchDeleteSearchReplace()
-//        _ <- searchDeleteSearchReplace()
-//        _ <- searchDeleteSearchReplace()
-//        _ <- searchDeleteSearchReplace()
-//        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
+        _ <- searchDeleteSearchReplace()
 
       } yield Assertions.succeed
     }

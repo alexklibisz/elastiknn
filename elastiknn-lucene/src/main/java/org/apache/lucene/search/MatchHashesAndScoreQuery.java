@@ -66,7 +66,7 @@ public class MatchHashesAndScoreQuery extends Query {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
+                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
                             }
                         }
                     }
@@ -100,7 +100,7 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || docId + 1 == counter.capacity()) {
+                                if (numEmitted == candidates || docId + 1 > counter.maxKey()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 } else {
