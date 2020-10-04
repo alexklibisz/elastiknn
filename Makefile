@@ -12,8 +12,8 @@ version = $(shell cat version)
 git_branch = $(shell git rev-parse --abbrev-ref HEAD)
 src_all = $(shell git diff --name-only --diff-filter=ACMR)
 site_srvr = elastiknn-site
-site_main = elastiknn.klibisz.com
-site_arch = archive.elastiknn.klibisz.com
+site_main = elastiknn.com
+site_arch = archive.elastiknn.com
 ecr_prefix = ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
 ecr_benchmarks_prefix = $(ecr_prefix)/elastiknn-benchmarks-cluster
 

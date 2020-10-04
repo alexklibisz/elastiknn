@@ -27,7 +27,7 @@ This includes a low level client that roughly mirrors the [Scala client](/scala-
 **Documentation**
 
 - **<a href="/docs/pdoc" target="_blank">PDoc for latest the release</a>**
-- <a href="http://archive.elastiknn.klibisz.com" target="_blank">Archived docs from previous releases</a>
+- <a href="https://archive.elastiknn.com" target="_blank">Archived docs from previous releases</a>
 
 **Versions**
 
@@ -89,7 +89,7 @@ libraryDependencies += "com.klibisz.elastiknn" %% "client-elastic4s" % <version 
 **Documentation**
 
 - **<a href="/docs/scaladoc/com/klibisz/elastiknn/client/" target="_blank">Scaladocs for the latest release</a>**
-- <a href="http://archive.elastiknn.klibisz.com" target="_blank">Archived docs from previous releases</a>
+- <a href="https://archive.elastiknn.com" target="_blank">Archived docs from previous releases</a>
 
 **Versions**
 
