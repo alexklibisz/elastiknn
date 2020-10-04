@@ -3,7 +3,7 @@ email: aklibisz@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   An Elasticsearch Plugin for Exact and Approximate Nearest Neighbors Search in High Dimensional Vector Spaces
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://elastiknn.klibisz.com" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://elastiknn.com" # the base hostname & protocol for your site, e.g. http://example.com
 
 theme: just-the-docs
 color_scheme: light
