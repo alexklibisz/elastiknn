@@ -1,3 +1,7 @@
+- Minor internal change to increase the number of non-candidate doc IDs which are iterated over
+during a query.
+- Changed documentation URL from elastiknn.klibisz.com to elastiknn.com.
+---
 - Fixed docs for running nearest neighbors query on a filtered subset of documents.
 The original suggestion to use a bool query results in evaluating all docs. 
 The correct way to do it is to use a standard query with a rescorer.  
