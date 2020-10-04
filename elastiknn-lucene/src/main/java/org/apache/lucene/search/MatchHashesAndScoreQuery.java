@@ -1,7 +1,7 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.lucene.ArrayHitCounter;
-import com.klibisz.elastiknn.lucene.HitCounter;
+import com.klibisz.elastiknn.search.ArrayHitCounter;
+import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -66,7 +66,7 @@ public class MatchHashesAndScoreQuery extends Query {
                         if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), (short) Math.min(hac.getFreq(), docs.freq()));
+                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
                             }
                         }
                     }
@@ -83,9 +83,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docId = -1;
-
-                        private final HitCounter.Iterator iterator = counter.iterator();
+                        private int docId = counter.minKey() - 1;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -102,23 +100,21 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || !iterator.hasNext()) {
+                                if (numEmitted == candidates || docId + 1 > counter.maxKey()) {
                                     docId = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
-                                }
-                                iterator.advance();
-                                if (iterator.count() > kgr.kthGreatest) {
-                                    docId = iterator.docID();
-                                    numEmitted++;
-                                    return docID();
-                                } else if (iterator.count() == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
-                                    docId = iterator.docID();
-                                    numEq++;
-                                    numEmitted++;
-                                    return docID();
+                                } else {
+                                    docId++;
+                                    if (counter.get(docId) > kgr.kthGreatest) {
+                                        numEmitted++;
+                                        return docID();
+                                    } else if (counter.get(docId) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                        numEq++;
+                                        numEmitted++;
+                                        return docID();
+                                    }
                                 }
                             }
-
                         }
 
                         @Override
