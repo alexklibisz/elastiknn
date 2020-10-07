@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.models
 
+import java.util.Optional
+
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper
 import com.klibisz.elastiknn.query.HashingQuery
@@ -7,7 +9,7 @@ import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
-import org.apache.lucene.search.{MatchHashesAndScoreQuery}
+import org.apache.lucene.search.MatchHashesAndScoreQuery
 import org.scalatest._
 
 import scala.util.Random
@@ -83,7 +85,7 @@ class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport
         val f: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
           (_: LeafReaderContext) => (_: Int, matches: Int) => matches * 1f
 
-        val q = new MatchHashesAndScoreQuery("vec", hq, 2, reader, f)
+        val q = new MatchHashesAndScoreQuery("vec", hq, 2, reader, f, Optional.empty())
         val res = searcher.search(q, 2)
         res.scoreDocs.map(_.doc) shouldBe Array(0, 1)
         res.scoreDocs.map(_.score) shouldBe Array(3f, 2f)

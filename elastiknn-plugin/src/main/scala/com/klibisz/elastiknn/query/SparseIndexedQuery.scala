@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.query
 
+import java.util.Optional
+
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{HashAndFreq, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
@@ -29,7 +31,8 @@ object SparseIndexedQuery {
       terms,
       indexReader.getDocCount(field),
       indexReader,
-      scoreFunction
+      scoreFunction,
+      Optional.empty()
     )
   }
 

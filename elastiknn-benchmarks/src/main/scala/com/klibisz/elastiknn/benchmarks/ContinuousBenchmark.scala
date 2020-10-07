@@ -19,7 +19,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbSift,
       Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 1),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 75, 3, 7),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 10000, 7), k)
       )
@@ -40,7 +40,7 @@ object ContinuousBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 1000
+            maxQueries = 100
           ))
       } yield ()
     }

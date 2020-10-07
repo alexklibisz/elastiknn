@@ -3,11 +3,14 @@ package org.apache.lucene.search;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -21,17 +24,44 @@ public class MatchHashesAndScoreQuery extends Query {
         double score(int docId, int numMatchingHashes);
     }
 
+    public interface HitsCache {
+
+        class Key {
+            final BytesRef term;
+            final int docFreq;
+            public Key(BytesRef term, int docFreq) {
+                this.term = term;
+                this.docFreq = docFreq;
+            }
+        }
+
+        class Value {
+            final int docId;
+            final int freq;
+            public Value(int id, int freq) {
+                this.docId = id;
+                this.freq = freq;
+            }
+        }
+
+        Optional<Value[]> get(Key key);
+        void set(Key key, Value[] values);
+    }
+
     private final String field;
     private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
+    private final Logger logger;
+    private final Optional<HitsCache> hitsCacheOpt;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
                                     final int candidates,
                                     final IndexReader indexReader,
-                                    final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
+                                    final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder,
+                                    final Optional<HitsCache> hitsCacheOpt) {
         // `countMatches` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
         java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
@@ -41,6 +71,8 @@ public class MatchHashesAndScoreQuery extends Query {
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
+        this.hitsCacheOpt = hitsCacheOpt;
+        this.logger = LogManager.getLogger(this.getClass().getName());
     }
 
     @Override
@@ -57,16 +89,45 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (terms == null) {
                     return new ArrayHitCounter(0);
                 } else {
+
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
+
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
+
                     for (HashAndFreq hac : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
+                        BytesRef term = new BytesRef(hac.getHash());
+                        if (termsEnum.seekExact(term)) {
+                            // Yes caching.
+                            if (hitsCacheOpt.isPresent()) {
+                                HitsCache.Key key = new HitsCache.Key(term, termsEnum.docFreq());
+                                Optional<HitsCache.Value[]> valuesOpt = hitsCacheOpt.get().get(key);
+                                // Populate the cache for this term and update the counter.
+                                if (!valuesOpt.isPresent()) {
+                                    HitsCache.Value[] values = new HitsCache.Value[termsEnum.docFreq()];
+                                    docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                                    int vix = 0;
+                                    while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                        values[vix++] = new HitsCache.Value(docs.docID(), docs.freq());
+                                        counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
+                                    }
+                                    hitsCacheOpt.get().set(key, values);
+                                }
+                                // Read the terms from the cache and update the counter.
+                                else {
+                                    for (HitsCache.Value value : valuesOpt.get()) {
+                                        counter.increment(value.docId, Math.min(hac.getFreq(), value.freq));
+                                    }
+                                }
+                            }
+                            // No caching.
+                            else {
+                                docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                                while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS)
+                                    counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
                             }
                         }
                     }

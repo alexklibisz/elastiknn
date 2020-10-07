@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.query
 
+import java.util.Optional
+
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
@@ -58,7 +60,8 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
               docId shouldBe 0
               numMatchingHashes shouldBe 2
               99d
-          }
+          },
+          Optional.empty()
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 1
@@ -83,7 +86,8 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
           hashes,
           10,
           r,
-          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
+          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f,
+          Optional.empty()
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 2
@@ -101,7 +105,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     } {
       case (r, s) =>
         val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
-        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
+        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f, Optional.empty())
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
     }
@@ -140,7 +144,8 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
                                                (_: Int, c: Int) => {
                                                  counts.append(c)
                                                  c.toFloat
-                                             })
+                                             },
+                                             Optional.empty())
         val dd = s.search(q, 10)
         dd.scoreDocs.length shouldBe 5
         counts.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)

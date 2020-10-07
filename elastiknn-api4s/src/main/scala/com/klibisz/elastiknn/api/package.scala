@@ -6,7 +6,6 @@ import scala.util.Random
 package object api {
 
   type JavaJsonMap = java.util.Map[String, Object]
-  type ScalaJsonMap = Map[String, AnyRef]
 
   sealed trait Similarity
   object Similarity {
@@ -22,12 +21,12 @@ package object api {
 
   object Vec {
 
-    sealed trait KnownDims {
+    sealed trait HasDims {
       this: Vec =>
       def dims: Int
     }
 
-    final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec with KnownDims {
+    final case class SparseBool(trueIndices: Array[Int], totalIndices: Int) extends Vec with HasDims {
       def sorted(): SparseBool = copy(trueIndices.sorted)
 
       def isSorted: Boolean = {
@@ -61,7 +60,7 @@ package object api {
         (0 until n).map(_ => random(totalIndices, bias)).toVector
     }
 
-    final case class DenseFloat(values: Array[Float]) extends Vec with KnownDims {
+    final case class DenseFloat(values: Array[Float]) extends Vec with HasDims {
       override def equals(other: Any): Boolean = other match {
         case other: DenseFloat => other.values.deep == values.deep
         case _                 => false
