@@ -73,7 +73,8 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Populate postingsEnums and docsRemaining.
                     for (int i = 0; i < hashAndFrequencies.length; i++) {
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].getHash()))) {
-                            postingsEnums[i] = termsEnum.postings(null);
+                            PostingsEnum postingsEnum = null;
+                            postingsEnums[i] = termsEnum.postings(postingsEnum, PostingsEnum.FREQS);
                             docsRemaining += termsEnum.docFreq();
                         }
                     }
@@ -101,8 +102,8 @@ public class MatchHashesAndScoreQuery extends Query {
                         for (int i = 0; i < postingsEnums.length; i++) {
                             if (postingsEnums[i] != null) {
                                 PostingsEnum docs = postingsEnums[i];
-                                if (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                    docsRemaining -= 1;
+                                if (docs.docID() != DocIdSetIterator.NO_MORE_DOCS && docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                    docsRemaining--;
                                     minDocId = Math.min(minDocId, docs.docID());
                                     scores[docs.docID()] += Math.min(hashAndFrequencies[i].getFreq(), docs.freq());
                                     lastSeen[i] = docs.docID();
@@ -123,10 +124,10 @@ public class MatchHashesAndScoreQuery extends Query {
                         int threshold = 0;
                         for (int docId : lastSeen) threshold += scores[docId];
 
-                        // Early stopping.
-                        if (minHeap.size() == candidates && minHeap.peek() > threshold) {
-                            break;
-                        }
+//                        // Early stopping.
+//                        if (minHeap.size() == candidates && minHeap.peek() > threshold) {
+//                            break;
+//                        }
                     }
 
                     return new Pair<>(minHeap.toArray(new Integer[0]), scores);
@@ -139,12 +140,13 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     // Lucene likes doc IDs in sorted order.
                     Arrays.sort(topDocIDs);
+                    // System.out.printf("%d top doc IDs\n", topDocIDs.length);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
                         private int i = -1;
-                        private int docID = DocIdSetIterator.NO_MORE_DOCS;
+                        private int docID = topDocIDs[0];
 
                         @Override
                         public int docID() {
@@ -153,17 +155,20 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
+                            // System.out.printf("nextDoc: %d\n", i);
                             if (i + 1 == topDocIDs.length) {
                                 docID = DocIdSetIterator.NO_MORE_DOCS;
                                 return docID;
                             } else {
-                                docID = topDocIDs[i++];
+                                docID = topDocIDs[++i];
+                                // System.out.printf("Emitting the %d-th doc id: %d\n", i, docID);
                                 return docID;
                             }
                         }
 
                         @Override
                         public int advance(int target) {
+                            // System.out.printf("advance: %d\n", target);
                             while (docID < target) nextDoc();
                             return docID;
                         }
