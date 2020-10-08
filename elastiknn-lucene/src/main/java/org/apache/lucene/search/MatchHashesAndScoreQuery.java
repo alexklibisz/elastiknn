@@ -7,7 +7,9 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -57,20 +59,89 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (terms == null) {
                     return new ArrayHitCounter(0);
                 } else {
+
                     TermsEnum termsEnum = terms.iterator();
-                    PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
-                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
-                    // Bits liveDocs = reader.getLiveDocs();
-                    for (HashAndFreq hac : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
-                            }
+
+                    // Array of PostingsEnums, one for each term.
+                    final PostingsEnum[] postingsEnums = new PostingsEnum[hashAndFrequencies.length];
+
+                    // Total number of docs matching the query terms.
+                    int docsRemaining = 0;
+
+                    // Populate postingsEnums and docsRemaining.
+                    for (int i = 0; i < hashAndFrequencies.length; i++) {
+                        if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].getHash()))) {
+                            postingsEnums[i] = termsEnum.postings(null);
+                            docsRemaining += termsEnum.docFreq();
                         }
                     }
-                    return counter;
+
+                    // Number of query terms matched in each doc.
+                    int[] counter = new int[reader.maxDoc()];
+
+                    // Doc id of the last doc seen by each postings enum.
+                    int[] lastSeen = new int[postingsEnums.length];
+
+                    // Track the top k doc IDs. Note using counter for comparator.
+                    PriorityQueue<Integer> minHeap = new PriorityQueue<>(candidates, Comparator.comparingInt(i -> counter[i]));
+                    minHeap.add(0);
+
+                    // Track the min doc id on each pass through the postings enums.
+                    int minDocId = Integer.MAX_VALUE;
+
+                    while (docsRemaining > 0) {
+
+                        // Don't forget the previous min doc id.
+                        int prevMinDocID = minDocId;
+                        minDocId = Integer.MAX_VALUE;
+
+                        // Iterate the postings and update the various state trackers.
+                        for (int i = 0; i < postingsEnums.length; i++) {
+                            PostingsEnum docs = postingsEnums[i];
+                            if (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                docsRemaining -= 1;
+                                minDocId = Math.min(minDocId, docs.docID());
+                                counter[docs.docID()] += Math.min(hashAndFrequencies[i].getFreq(), docs.freq());
+                                lastSeen[i] = docs.docID();
+                            }
+                        }
+
+                        // Any doc id between the previous min and the current min can be added to the heap.
+                        for (int i = prevMinDocID; i < minDocId; i++) {
+                            if (minHeap.size() < candidates) minHeap.add(i);
+                            else if (counter[minHeap.peek()] < counter[i]) {
+                                minHeap.remove();
+                                minHeap.add(i);
+                            }
+                        }
+
+                        // Set the threshold, based on the count of the last doc id matched for each term.
+                        int threshold = 0;
+                        for (int docId : lastSeen) threshold += counter[docId];
+
+                        // Early stopping.
+                        if (minHeap.size() == candidates && minHeap.peek() > threshold) {
+                            return minHeap.values;
+                        }
+                    }
+
+                    return minHeap.values;
+
+//                    termsEnum = terms.iterator();
+//                    PostingsEnum docs = null;
+//                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+//                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
+//                    // Bits liveDocs = reader.getLiveDocs();
+//                    for (HashAndFreq hac : hashAndFrequencies) {
+//                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
+//                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
+//                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+//                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
+//                            }
+//                        }
+//                    }
+//                    return counter;
+                    return null;
                 }
             }
 
