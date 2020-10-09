@@ -16,12 +16,12 @@ object ContinuousBenchmark extends App {
   private val experiments = Seq(
     // Expected ~3 Q/S for exact and 0.85 recall with ~35 Q/S for L2 LSH.
     Experiment(
-      Dataset.AnnbFashionMnist,
-      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 3, 3),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 1),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 8), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 6), k)
       )
     )
   )

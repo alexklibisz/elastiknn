@@ -116,10 +116,6 @@ public class MatchHashesAndScoreQuery extends Query {
                         int threshold = 0;
                         for (int score : currentScores) threshold += score;
 
-//                        if (minHeap.size() > 0) {
-//                            System.out.printf("Threshold = [%d], kth greatest score = [%d]\n", threshold, scores[minHeap.peek()]);
-//                        }
-
                         // Any doc id between the previous min and the current min can be added to the heap.
                         for (int docID = prevMinDocID; docID < minDocId; docID++) {
                             if (minHeap.size() < candidates) minHeap.add(docID);
@@ -128,6 +124,10 @@ public class MatchHashesAndScoreQuery extends Query {
                                 minHeap.add(docID);
                             }
                         }
+
+//                        if (minHeap.size() == candidates) {
+//                            System.out.printf("Threshold = [%d], kth greatest score = [%d]\n", threshold, scores[minHeap.peek()]);
+//                        }
 
                         // Regular stopping condition.
                         if (docsVisited == totalDocs) break;
