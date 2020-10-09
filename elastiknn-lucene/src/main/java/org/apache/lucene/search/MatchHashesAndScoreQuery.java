@@ -34,7 +34,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
-        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
+        Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
@@ -59,7 +59,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (terms == null) return new Pair<>(new Integer[0], new int[0]);
                 else {
 
-                    // TODO: Where this the right place to use the live docs bitset to check for deleted docs?
+                    // TODO: Where is the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
 
                     TermsEnum termsEnum = terms.iterator();
@@ -67,15 +67,15 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Array of PostingsEnums, one for each term.
                     final PostingsEnum[] postingsEnums = new PostingsEnum[hashAndFrequencies.length];
 
-                    // Total number of docs matching the query terms.
-                    int docsRemaining = 0;
+                    // Total number of docs matching the query terms. Used as a stopping criteria.
+                    int totalDocs = 0;
 
-                    // Populate postingsEnums and docsRemaining.
+                    // Populate postingsEnums and totalDocs.
                     for (int i = 0; i < hashAndFrequencies.length; i++) {
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].getHash()))) {
                             PostingsEnum postingsEnum = null;
                             postingsEnums[i] = termsEnum.postings(postingsEnum, PostingsEnum.FREQS);
-                            docsRemaining += termsEnum.docFreq();
+                            totalDocs += termsEnum.docFreq();
                         }
                     }
 
@@ -83,18 +83,18 @@ public class MatchHashesAndScoreQuery extends Query {
                     int[] scores = new int[reader.maxDoc()];
 
                     // Doc id of the last doc seen by each postings enum.
-                    int[] lastSeen = new int[postingsEnums.length];
+                    int[] currentScores = new int[postingsEnums.length];
 
                     // Track the top k doc IDs. Note using counter for comparator.
                     PriorityQueue<Integer> minHeap = new PriorityQueue<>(candidates, Comparator.comparingInt(i -> scores[i]));
-                    minHeap.add(0);
 
                     // Track the min doc id on each pass through the postings enums.
                     int minDocId = Integer.MAX_VALUE;
 
-                    while (docsRemaining > 0) {
+                    int docsVisited = 0;
 
-                        // Don't forget the previous min doc id.
+                    while (true) {
+                        // Need to remember the previous min doc id.
                         int prevMinDocID = minDocId;
                         minDocId = Integer.MAX_VALUE;
 
@@ -103,31 +103,40 @@ public class MatchHashesAndScoreQuery extends Query {
                             if (postingsEnums[i] != null) {
                                 PostingsEnum docs = postingsEnums[i];
                                 if (docs.docID() != DocIdSetIterator.NO_MORE_DOCS && docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                    docsRemaining--;
+                                    docsVisited++;
                                     minDocId = Math.min(minDocId, docs.docID());
-                                    scores[docs.docID()] += Math.min(hashAndFrequencies[i].getFreq(), docs.freq());
-                                    lastSeen[i] = docs.docID();
+                                    int score = Math.min(hashAndFrequencies[i].getFreq(), docs.freq());
+                                    scores[docs.docID()] += score;
+                                    currentScores[i] = score;
                                 }
                             }
                         }
 
+                        // Set the threshold as the sum of the last score for each term.
+                        int threshold = 0;
+                        for (int score : currentScores) threshold += score;
+
+//                        if (minHeap.size() > 0) {
+//                            System.out.printf("Threshold = [%d], kth greatest score = [%d]\n", threshold, scores[minHeap.peek()]);
+//                        }
+
                         // Any doc id between the previous min and the current min can be added to the heap.
-                        for (int i = prevMinDocID; i < minDocId; i++) {
-                            if (minHeap.size() < candidates) minHeap.add(i);
-                            else if (scores[minHeap.peek()] < scores[i]) {
+                        for (int docID = prevMinDocID; docID < minDocId; docID++) {
+                            if (minHeap.size() < candidates) minHeap.add(docID);
+                            else if (scores[docID] > scores[minHeap.peek()]) {
                                 minHeap.remove();
-                                minHeap.add(i);
+                                minHeap.add(docID);
                             }
                         }
 
-                        // Set the threshold, based on the count of the last doc id matched for each term.
-                        int threshold = 0;
-                        for (int docId : lastSeen) threshold += scores[docId];
+                        // Regular stopping condition.
+                        if (docsVisited == totalDocs) break;
 
-//                        // Early stopping.
-//                        if (minHeap.size() == candidates && minHeap.peek() > threshold) {
-//                            break;
-//                        }
+                        // Early stopping condition.
+                        if (minHeap.size() == candidates && scores[minHeap.peek()] >= threshold) {
+                            System.out.printf("Stopping %d, %d, %d, %d, %d\n", docsVisited, totalDocs, minDocId, scores[minHeap.peek()], threshold);
+                            break;
+                        }
                     }
 
                     return new Pair<>(minHeap.toArray(new Integer[0]), scores);
@@ -140,7 +149,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     // Lucene likes doc IDs in sorted order.
                     Arrays.sort(topDocIDs);
-                    // System.out.printf("%d top doc IDs\n", topDocIDs.length);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
@@ -155,20 +163,17 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
-                            // System.out.printf("nextDoc: %d\n", i);
                             if (i + 1 == topDocIDs.length) {
                                 docID = DocIdSetIterator.NO_MORE_DOCS;
                                 return docID;
                             } else {
                                 docID = topDocIDs[++i];
-                                // System.out.printf("Emitting the %d-th doc id: %d\n", i, docID);
                                 return docID;
                             }
                         }
 
                         @Override
                         public int advance(int target) {
-                            // System.out.printf("advance: %d\n", target);
                             while (docID < target) nextDoc();
                             return docID;
                         }
