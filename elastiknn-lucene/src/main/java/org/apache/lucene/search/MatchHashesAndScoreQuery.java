@@ -1,15 +1,17 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.search.ArrayHitCounter;
-import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
+import it.unimi.dsi.fastutil.ints.IntArrays;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
+
+import static java.lang.Math.log10;
 
 /**
  * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
@@ -25,6 +27,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
     private final IndexReader indexReader;
+    private final Logger logger;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
 
     public MatchHashesAndScoreQuery(final String field,
@@ -32,7 +35,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
-        // `countMatches` expects hashes to be in sorted order.
+        // `countHits` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
         java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
@@ -41,6 +44,7 @@ public class MatchHashesAndScoreQuery extends Query {
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
+        this.logger = LogManager.getLogger(this.getClass().getName());
     }
 
     @Override
@@ -49,83 +53,120 @@ public class MatchHashesAndScoreQuery extends Query {
         return new Weight(this) {
 
             /**
-             * Builds and returns a map from doc ID to the number of matching hashes in that doc.
+             * Build and return an array of the top `candidates` docIDs.
              */
-            private HitCounter countHits(LeafReader reader) throws IOException {
+            private Integer[] countHits(LeafReader reader) throws IOException {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
-                if (terms == null) {
-                    return new ArrayHitCounter(0);
-                } else {
+                if (terms == null) return new Integer[0];
+                else {
                     TermsEnum termsEnum = terms.iterator();
-                    PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
-                    // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
-                    // Bits liveDocs = reader.getLiveDocs();
-                    for (HashAndFreq hac : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
-                            }
+
+                    // Array of postings, one per term.
+                    PostingsEnum[] postings = new PostingsEnum[hashAndFrequencies.length];
+
+                    // Array of term upper-bounds, one per term, and sum of them.
+                    float[] tubs = new float[hashAndFrequencies.length];
+                    float tubSum = 0;
+
+                    // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
+                    int[] sortedIxs = new int[hashAndFrequencies.length];
+
+                    // Populate postings, tubs, tubSum, sortedIxs.
+                    for (int i = 0; i < hashAndFrequencies.length; i++) {
+                        sortedIxs[i] = i;
+                        if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].getHash()))) {
+                            postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
+                            tubs[i] = (float) log10(reader.maxDoc() * 1f / termsEnum.docFreq()) * hashAndFrequencies[i].getFreq();
+                            tubSum += tubs[i];
                         }
                     }
-                    return counter;
+
+                    // Sort the sortedIxs based on tub in descending order.
+                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
+
+                    // Array of (partial) scores, one per doc.
+                    short[] partials = new short[reader.maxDoc()];
+
+                    // Min-heap of top `candidates` docIDs with comparator using partial scores.
+                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingInt(i -> partials[i]));
+
+                    // Iterate the postings in sorted order, maintain partial scores and topDocs.
+                    // Check early stopping criteria after each postings list.
+                    for (int i = 0; i < sortedIxs.length; i++) {
+                        int ix = sortedIxs[i];
+                        if (postings[ix] != null) {
+                            HashAndFreq hf = hashAndFrequencies[ix];
+                            PostingsEnum docs = postings[ix];
+                            float tub = tubs[ix];
+                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                if (docs.freq() >= hf.getFreq()) partials[docs.docID()] += tub;
+                                else partials[docs.docID()] += tub / hf.getFreq() * docs.freq();
+                                if (topDocs.size() < candidates) topDocs.add(docs.docID());
+                                else if (partials[topDocs.peek()] < partials[docs.docID()]) {
+                                    topDocs.remove();
+                                    topDocs.add(docs.docID());
+                                }
+                            }
+                        }
+
+                        // Early stopping.
+                        tubSum -= tubs[ix];
+                        if (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()]) {
+                            logger.info(String.format(
+                                    "i = [%d], tub = [%f], tubSum = [%f], topDocs.size() = [%d], partials[topDocs.peek()] = [%d]",
+                                    i, tubs[ix], tubSum, topDocs.size(), partials[topDocs.peek()]
+                            ));
+                            break;
+                        }
+                    }
+
+                    logger.info(String.format(
+                            "Returning: tubSum = [%f], partials[topDocs.peek()] = [%d]", tubSum, partials[topDocs.peek()]
+                    ));
+
+                    return topDocs.toArray(new Integer[0]);
                 }
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                if (counter.isEmpty()) return DocIdSetIterator.empty();
+            private DocIdSetIterator buildDocIdSetIterator(Integer[] topDocIDs) {
+                if (topDocIDs.length == 0) return DocIdSetIterator.empty();
                 else {
 
-                    KthGreatest.Result kgr = counter.kthGreatest(candidates);
+                    // Lucene likes doc IDs in sorted order.
+                    Arrays.sort(topDocIDs);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docId = counter.minKey() - 1;
-
-                        // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
-                        private int numEmitted = 0;
-                        private int numEq = 0;
+                        private int i = -1;
+                        private int docID = topDocIDs[0];
 
                         @Override
                         public int docID() {
-                            return docId;
+                            return docID;
                         }
 
                         @Override
                         public int nextDoc() {
-
-                            // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
-                            // than `candidates` docs with count > kgr.kthGreatest.
-                            while (true) {
-                                if (numEmitted == candidates || docId + 1 > counter.maxKey()) {
-                                    docId = DocIdSetIterator.NO_MORE_DOCS;
-                                    return docID();
-                                } else {
-                                    docId++;
-                                    if (counter.get(docId) > kgr.kthGreatest) {
-                                        numEmitted++;
-                                        return docID();
-                                    } else if (counter.get(docId) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
-                                        numEq++;
-                                        numEmitted++;
-                                        return docID();
-                                    }
-                                }
+                            if (i + 1 == topDocIDs.length) {
+                                docID = DocIdSetIterator.NO_MORE_DOCS;
+                                return docID;
+                            } else {
+                                docID = topDocIDs[++i];
+                                return docID;
                             }
                         }
 
                         @Override
                         public int advance(int target) {
-                            while (docId < target) nextDoc();
-                            return docID();
+                            while (docID < target) nextDoc();
+                            return docID;
                         }
 
                         @Override
                         public long cost() {
-                            return counter.numHits();
+                            return topDocIDs.length;
                         }
                     };
                 }
@@ -143,8 +184,8 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 LeafReader reader = context.reader();
-                HitCounter counter = countHits(reader);
-                DocIdSetIterator disi = buildDocIdSetIterator(counter);
+                Integer[] topDocIDs = countHits(reader);
+                DocIdSetIterator disi = buildDocIdSetIterator(topDocIDs);
 
                 return new Scorer(this) {
                     @Override
@@ -159,7 +200,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), counter.get(docID()));
+                        return (float) scoreFunction.score(docID(), 0);
                     }
 
                     @Override

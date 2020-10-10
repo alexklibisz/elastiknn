@@ -40,32 +40,32 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
 
   private val tests = Seq(
-    // Exact
-    Test(
-      Mapping.SparseBool(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
-    Test(
-      Mapping.DenseFloat(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
-      )
-    ),
-    // SparseIndexed
-    Test(
-      Mapping.SparseIndexed(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
+//    // Exact
+//    Test(
+//      Mapping.SparseBool(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
+//      )
+//    ),
+//    Test(
+//      Mapping.DenseFloat(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
+//      )
+//    ),
+//    // SparseIndexed
+//    Test(
+//      Mapping.SparseIndexed(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
+//      )
+//    ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
@@ -83,90 +83,90 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.81
       )
     ),
-    // Hamming LSH
-    Test(
-      Mapping.HammingLsh(dims, dims * 1 / 2, 1),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.68,
-        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.85
-      )
-    ),
-    Test(
-      // Increasing k increases recall up to a point.
-      Mapping.HammingLsh(dims, dims * 2 / 5, 2),
-      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.80)
-    ),
-    Test(
-      // But increasing it too far decreases recall.
-      Mapping.HammingLsh(dims, dims * 2 / 5, 4),
-      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.62)
-    ),
-    // Angular Lsh
-    Test(
-      Mapping.AngularLsh(dims, 400, 1),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.46,
-        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.67
-      )
-    ),
-    Test(
-      Mapping.AngularLsh(dims, 400, 2),
-      Seq(
-        NearestNeighborsQuery.AngularLsh(vecField, 200) -> 0.34,
-        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.50,
-        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.72
-      )
-    ),
-    // L2 Lsh
-    Test(
-      Mapping.L2Lsh(dims, 600, 1, 4),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.12,
-        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.22,
-        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.40,
-        // Adding probes should improve recall, but since k = 1, probing > 2 times should have no effect.
-        NearestNeighborsQuery.L2Lsh(vecField, 800, 1) -> 0.43,
-        NearestNeighborsQuery.L2Lsh(vecField, 800, 2) -> 0.49,
-        NearestNeighborsQuery.L2Lsh(vecField, 800, 10) -> 0.49
-      )
-    ),
-    // Permutation Lsh
-    Test(
-      Mapping.PermutationLsh(dims, 128, true),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
-      ),
-      // TODO: This one seems to be more sensitive for some unknown reason.
-      recallTolerance = 5e-2
-    ),
-    Test(
-      Mapping.PermutationLsh(dims, 128, false),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.31,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.51,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.43
-      ),
-      // TODO: This one seems to be more sensitive for some unknown reason.
-      recallTolerance = 5e-2
-    )
+//    // Hamming LSH
+//    Test(
+//      Mapping.HammingLsh(dims, dims * 1 / 2, 1),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.68,
+//        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.85
+//      )
+//    ),
+//    Test(
+//      // Increasing k increases recall up to a point.
+//      Mapping.HammingLsh(dims, dims * 2 / 5, 2),
+//      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.80)
+//    ),
+//    Test(
+//      // But increasing it too far decreases recall.
+//      Mapping.HammingLsh(dims, dims * 2 / 5, 4),
+//      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.62)
+//    ),
+//    // Angular Lsh
+//    Test(
+//      Mapping.AngularLsh(dims, 400, 1),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.46,
+//        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.67
+//      )
+//    ),
+//    Test(
+//      Mapping.AngularLsh(dims, 400, 2),
+//      Seq(
+//        NearestNeighborsQuery.AngularLsh(vecField, 200) -> 0.34,
+//        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.50,
+//        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.72
+//      )
+//    ),
+//    // L2 Lsh
+//    Test(
+//      Mapping.L2Lsh(dims, 600, 1, 4),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.12,
+//        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.22,
+//        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.40,
+//        // Adding probes should improve recall, but since k = 1, probing > 2 times should have no effect.
+//        NearestNeighborsQuery.L2Lsh(vecField, 800, 1) -> 0.43,
+//        NearestNeighborsQuery.L2Lsh(vecField, 800, 2) -> 0.49,
+//        NearestNeighborsQuery.L2Lsh(vecField, 800, 10) -> 0.49
+//      )
+//    ),
+//    // Permutation Lsh
+//    Test(
+//      Mapping.PermutationLsh(dims, 128, true),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
+//      ),
+//      // TODO: This one seems to be more sensitive for some unknown reason.
+//      recallTolerance = 5e-2
+//    ),
+//    Test(
+//      Mapping.PermutationLsh(dims, 128, false),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.31,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.51,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
+//        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.43
+//      ),
+//      // TODO: This one seems to be more sensitive for some unknown reason.
+//      recallTolerance = 5e-2
+//    )
   )
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
