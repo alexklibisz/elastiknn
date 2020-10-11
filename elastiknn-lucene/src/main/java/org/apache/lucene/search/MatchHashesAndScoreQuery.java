@@ -14,8 +14,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 
-import static java.lang.Math.log;
-import static java.lang.Math.log10;
+import static java.lang.Math.*;
 
 /**
  * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
@@ -87,21 +86,15 @@ public class MatchHashesAndScoreQuery extends Query {
                         }
                     }
 
-//                    Percentile percentile = new Percentile();
-//                    logger.info(String.format(
-//                            "tubs = [%f, %f, %f]",
-//                            percentile.evaluate(tubs, 0.05),
-//                            percentile.evaluate(tubs, 0.5),
-//                            percentile.evaluate(tubs, 0.95)));
-
                     // Sort the sortedIxs based on tub in descending order.
                     IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
-                    // Array of (partial) scores, one per doc.
-                    float[] partials = new float[reader.maxDoc()];
+                    // Array of accumulators containing partial scores, indexed on docID.
+                    // Setting the accumulator to Float.MIN_VALUE indicates the docID is longer a candidate.
+                    float[] accumulators = new float[reader.maxDoc()];
 
                     // Min-heap of top `candidates` docIDs with comparator using partial scores.
-                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> partials[i]));
+                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> accumulators[i]));
 
                     // Iterate the postings in sorted order, maintain partial scores and topDocs.
                     // Check early stopping criteria after each postings list.
@@ -110,11 +103,11 @@ public class MatchHashesAndScoreQuery extends Query {
                         float tub = tubs[ix];
 
                         // Check early stopping.
-                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()])) {
-                            logger.info(String.format(
-                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
-                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
-                            ));
+                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= accumulators[topDocs.peek()])) {
+//                            logger.info(String.format(
+//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
+//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
+//                            ));
                             break;
                         }
 
@@ -122,15 +115,69 @@ public class MatchHashesAndScoreQuery extends Query {
                         if (postings[ix] != null) {
                             HashAndFreq hf = hashAndFrequencies[ix];
                             PostingsEnum docs = postings[ix];
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                if (docs.freq() >= hf.freq) partials[docs.docID()] += tub;
-                                else partials[docs.docID()] += tub / hf.freq * docs.freq();
-                                if (topDocs.size() < candidates) topDocs.add(docs.docID());
-                                else if (partials[topDocs.peek()] < partials[docs.docID()]) {
-                                    topDocs.remove();
-                                    topDocs.add(docs.docID());
+
+                            int accumID = 0;
+                            while (docs.docID() != DocIdSetIterator.NO_MORE_DOCS && accumID < accumulators.length) {
+                                if (accumulators[accumID] < 0) {
+                                    accumID++;
+                                } else if (accumID < docs.docID()) {
+                                    accumID = docs.docID();
+                                } else if (accumID > docs.docID()) {
+                                    docs.advance(accumID);
+                                } else {
+                                    // Update accumulator score.
+                                    if (docs.freq() > hf.freq) accumulators[accumID] += tub;
+                                    else accumulators[accumID] += tub / hf.freq * docs.freq();
+                                    // Update the topDocs heap.
+                                    if (topDocs.size() < candidates) {
+                                        topDocs.add(docs.docID());
+                                    } else if (accumulators[topDocs.peek()] < accumulators[accumID]) {
+                                        topDocs.remove();
+                                        topDocs.add(accumID);
+                                    } else if (accumulators[topDocs.peek()] >= accumulators[accumID] + tubSum - tub) {
+                                        accumulators[accumID] = Float.MIN_VALUE;
+                                    }
+                                    // Move to the next accumulator. Cheaper than docs.nextDoc().
+                                    accumID++;
                                 }
                             }
+
+//                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+//                                if (partials[docs.docID()] != Float.MIN_VALUE) {
+//                                    if (docs.freq() > hf.freq) partials[docs.docID()] += tub;
+//                                    else partials[docs.docID()] += tub / hf.freq * docs.freq();
+//                                    if (topDocs.size() < candidates) {
+//                                        topDocs.add(docs.docID());
+//                                    } else if (partials[topDocs.peek()] < partials[docs.docID()]) {
+//                                        topDocs.remove();
+//                                        topDocs.add(docs.docID());
+//                                    } else if (partials[topDocs.peek()] >= partials[docs.docID()] + tubSum - tub) {
+//                                        logger.info(String.format("Cancelling [%d]", docs.docID()));
+//                                        partials[docs.docID()] = Float.MIN_VALUE;
+//                                    }
+//                                }
+//                            }
+
+
+//                            for (int docID = 0; docID < partials.length; docID++) {
+//                                if (partials[docID] != Float.MIN_VALUE && docs.docID() != DocIdSetIterator.NO_MORE_DOCS) {
+//                                    int adv = docs.advance(docID);
+//                                    logger.info(String.format("Visiting [%d], [%d]", docID, adv));
+//                                    if (adv == docID) {
+//                                        if (docs.freq() > hf.freq) partials[docID] += tub;
+//                                        else partials[docID] += tub / hf.freq * docs.freq();
+//                                        if (topDocs.size() < candidates) {
+//                                            topDocs.add(docID);
+//                                        } else if (partials[topDocs.peek()] < partials[docID]) {
+//                                            topDocs.remove();
+//                                            topDocs.add(docID);
+//                                        } else if (partials[topDocs.peek()] >= partials[docID] + tubSum - tub) {
+//                                            logger.info(String.format("Cancelling [%d]", docID));
+//                                            partials[docID] = Float.MIN_VALUE;
+//                                        }
+//                                    }
+//                                }
+//                            }
                         }
 
                         // Decrement remaining sum of term upper-bounds.
@@ -152,7 +199,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     return new DocIdSetIterator() {
 
                         private int i = -1;
-                        private int docID = topDocIDs[0];
+                        private int docID = -1;
 
                         @Override
                         public int docID() {

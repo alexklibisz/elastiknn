@@ -49,7 +49,7 @@ object ContinuousBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 1000
+            maxQueries = 10000
           ))
       } yield ()
     }
