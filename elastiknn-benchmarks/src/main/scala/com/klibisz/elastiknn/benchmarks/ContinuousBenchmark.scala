@@ -22,16 +22,17 @@ object ContinuousBenchmark extends App {
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 200, 10), k)
       )
-    ),
-    Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-      NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 75, 4, 7),
-      Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 6), k)
-      )
     )
+//    ,
+//    Experiment(
+//      Dataset.AnnbSift,
+//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 75, 4, 7),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 6), k)
+//      )
+//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
