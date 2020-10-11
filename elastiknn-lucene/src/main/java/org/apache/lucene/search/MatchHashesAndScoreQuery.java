@@ -9,13 +9,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
-import org.javatuples.Pair;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 
-import static java.lang.Math.*;
+import static java.lang.Math.log;
+import static java.lang.Math.log10;
 
 /**
  * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
@@ -41,7 +41,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countHits` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
-        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
+        // java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
@@ -65,195 +65,78 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (terms == null) return new Integer[0];
                 else {
 
-                    int n = hashAndFrequencies.length;
-                    int k = candidates;
-
                     TermsEnum termsEnum = terms.iterator();
+                    int numDocs = reader.numDocs();
 
-                    // An array p of n posting lists, one per query term.
-                    PostingsEnum[] p = new PostingsEnum[n];
+                    // Array of postings, one per term.
+                    PostingsEnum[] postings = new PostingsEnum[hashAndFrequencies.length];
 
-                    // An array \sigma of n max score contributions, one per query term.
-                    float[] sigma = new float[n];
+                    // Array of term upper-bounds, one per term, and sum of them.
+                    float[] tubs = new float[hashAndFrequencies.length];
+                    float tubSum = 0;
 
-                    // Term indices, sorted by \sigma value in ascending order.
-                    int [] sortedIxs = new int[n];
+                    // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
+                    int[] sortedIxs = new int[hashAndFrequencies.length];
 
-                    // smallest docID from all postings.
-                    int minDocID = Integer.MAX_VALUE;
-
-                    // An array of n document upper bounds, one per posting list.
-                    float[] ub = new float[n];
-
-                    // Populate the above.
-                    for (int i = 0; i < n; i++) {
+                    // Populate postings, tubs, tubSum, sortedIxs.
+                    for (int i = 0; i < hashAndFrequencies.length; i++) {
                         sortedIxs[i] = i;
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
-                            p[i] = termsEnum.postings(null, PostingsEnum.FREQS);
-                            p[i].nextDoc(); // Advances the iterator.
-                            minDocID = min(minDocID, p[i].docID());
-                            sigma[i] = (float) log10(reader.maxDoc() * 1f / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
-                            ub[i] = ub[max(i - 1, 0)] + sigma[i];
+                            tubs[i] = (float) log10(numDocs * 1.0 / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
+                            tubSum += tubs[i];
+                            postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
                         }
                     }
 
-                    // Sort the indices by sigma[i].
-                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(sigma[i], sigma[j]));
+//                    Percentile percentile = new Percentile();
+//                    logger.info(String.format(
+//                            "tubs = [%f, %f, %f]",
+//                            percentile.evaluate(tubs, 0.05),
+//                            percentile.evaluate(tubs, 0.5),
+//                            percentile.evaluate(tubs, 0.95)));
 
-                    // A priority queue of (at most) k (docID, score) pairs, sorted in decreasing order of score.
-                    PriorityQueue<Pair<Integer, Float>> q = new PriorityQueue<>(k, (a, b) -> Float.compare(a.getValue1(), b.getValue1()));
+                    // Sort the sortedIxs based on tub in descending order.
+                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
-                    float theta = 0f;
-                    int pivot = 0;
-                    int current = minDocID;
+                    // Array of (partial) scores, one per doc.
+                    float[] partials = new float[reader.maxDoc()];
 
-                    while (pivot < n && current != DocIdSetIterator.NO_MORE_DOCS) {
-                        float score = 0;
-                        int next = DocIdSetIterator.NO_MORE_DOCS;
-                        // Essential lists.
-                        for (int i = pivot; i < n; i++) {
-                            if (p[i] != null) {
-                                if (p[i].docID() == current) {
-                                    score += sigma[i];
-                                    p[i].nextDoc();
-                                }
-                                next = min(next, p[i].docID());
-                            }
-                        }
-                        // Non-essential lists.
-                        for (int i = pivot - 1; i > 0; i--) {
-                            if (score + ub[i] <= theta) break;
-                            else if (p[i] != null && p[i].docID() != DocIdSetIterator.NO_MORE_DOCS) {
-                                p[i].advance(current);
-                                if (p[i].docID() == current) {
-                                    score += sigma[i];
-                                }
-                            }
-                        }
-                        // List pivot update.
-                        if (q.size() < k) {
-                            q.add(new Pair<>(current, score));
-                            theta = q.peek().getValue1();
-                            while (pivot < n && ub[pivot] <= theta) pivot++;
-                        } else if (score > q.peek().getValue1()) {
-                            q.remove();
-                            q.add(new Pair<>(current, score));
-                            theta = q.peek().getValue1();
-                            while (pivot < n && ub[pivot] <= theta) pivot++;
-                        }
-                        // Advance the loop.
-                        current = next;
-                    }
+                    // Min-heap of top `candidates` docIDs with comparator using partial scores.
+                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> partials[i]));
 
-                    Integer[] topDocIDs = new Integer[k];
-                    Object[] oo = q.toArray();
-                    for (int i = 0; i < k; i++) {
-                        topDocIDs[i] = ((Pair<Integer, Float>) oo[i]).getValue0();
-                    }
+                    // Iterate the postings in sorted order, maintain partial scores and topDocs.
+                    // Check early stopping criteria after each postings list.
+                    for (int i = 0; i < sortedIxs.length; i++) {
+                        int ix = sortedIxs[i];
+                        float tub = tubs[ix];
 
-                    return topDocIDs;
-
-
-//                    // Sort the sortedIxs based on tub in descending order.
-//                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
-//
-//                    // Array of accumulators containing partial scores, indexed on docID.
-//                    // Setting the accumulator to Float.MIN_VALUE indicates the docID is longer a candidate.
-//                    float[] accumulators = new float[reader.maxDoc()];
-//
-//                    // Min-heap of top `candidates` docIDs with comparator using partial scores.
-//                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> accumulators[i]));
-//
-//                    // Iterate the postings in sorted order, maintain partial scores and topDocs.
-//                    // Check early stopping criteria after each postings list.
-//                    for (int i = 0; i < sortedIxs.length; i++) {
-//                        int ix = sortedIxs[i];
-//                        float tub = tubs[ix];
-//
-//                        // Check early stopping.
-//                        if (tub == 0) break;
-//                        else if (topDocs.size() == candidates && tubSum <= accumulators[topDocs.peek()]) {
+                        // Check early stopping.
+                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()])) {
 //                            logger.info(String.format(
-//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], accumulators[topDocs.peek()] = [%f]",
-//                                    i, sortedIxs.length, tubs[ix], tubSum, accumulators[topDocs.peek()]
+//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
+//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
 //                            ));
-//                            break;
-//                        }
-//
-//                        // Process postings for this term.
-//                        if (postings[ix] != null) {
-//                            HashAndFreq hf = hashAndFrequencies[ix];
-//                            PostingsEnum docs = postings[ix];
-//
-//                            int accumID = 0;
-//                            while (docs.docID() != DocIdSetIterator.NO_MORE_DOCS && accumID < accumulators.length) {
-//                                if (accumulators[accumID] < 0) {
-//                                    accumID++;
-//                                } else if (accumID < docs.docID()) {
-//                                    accumID = docs.docID();
-//                                } else if (accumID > docs.docID()) {
-//                                    docs.advance(accumID);
-//                                } else {
-//                                    // Update accumulator score.
-//                                    if (docs.freq() > hf.freq) accumulators[accumID] += tub;
-//                                    else accumulators[accumID] += tub / hf.freq * docs.freq();
-//                                    // Update the topDocs heap.
-//                                    if (topDocs.size() < candidates) {
-//                                        topDocs.add(docs.docID());
-//                                    } else if (accumulators[topDocs.peek()] < accumulators[accumID]) {
-//                                        topDocs.remove();
-//                                        topDocs.add(accumID);
-//                                    } else if (accumulators[topDocs.peek()] >= accumulators[accumID] + tubSum - tub) {
-//                                        accumulators[accumID] = Float.MIN_VALUE;
-//                                    }
-//                                    // Move to the next accumulator. Cheaper than docs.nextDoc().
-//                                    accumID++;
-//                                }
-//                            }
-//
-////                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-////                                if (partials[docs.docID()] != Float.MIN_VALUE) {
-////                                    if (docs.freq() > hf.freq) partials[docs.docID()] += tub;
-////                                    else partials[docs.docID()] += tub / hf.freq * docs.freq();
-////                                    if (topDocs.size() < candidates) {
-////                                        topDocs.add(docs.docID());
-////                                    } else if (partials[topDocs.peek()] < partials[docs.docID()]) {
-////                                        topDocs.remove();
-////                                        topDocs.add(docs.docID());
-////                                    } else if (partials[topDocs.peek()] >= partials[docs.docID()] + tubSum - tub) {
-////                                        logger.info(String.format("Cancelling [%d]", docs.docID()));
-////                                        partials[docs.docID()] = Float.MIN_VALUE;
-////                                    }
-////                                }
-////                            }
-//
-//
-////                            for (int docID = 0; docID < partials.length; docID++) {
-////                                if (partials[docID] != Float.MIN_VALUE && docs.docID() != DocIdSetIterator.NO_MORE_DOCS) {
-////                                    int adv = docs.advance(docID);
-////                                    logger.info(String.format("Visiting [%d], [%d]", docID, adv));
-////                                    if (adv == docID) {
-////                                        if (docs.freq() > hf.freq) partials[docID] += tub;
-////                                        else partials[docID] += tub / hf.freq * docs.freq();
-////                                        if (topDocs.size() < candidates) {
-////                                            topDocs.add(docID);
-////                                        } else if (partials[topDocs.peek()] < partials[docID]) {
-////                                            topDocs.remove();
-////                                            topDocs.add(docID);
-////                                        } else if (partials[topDocs.peek()] >= partials[docID] + tubSum - tub) {
-////                                            logger.info(String.format("Cancelling [%d]", docID));
-////                                            partials[docID] = Float.MIN_VALUE;
-////                                        }
-////                                    }
-////                                }
-////                            }
-//                        }
-//
-//                        // Decrement remaining sum of term upper-bounds.
-//                        tubSum -= tub;
-//                    }
-//
-//                    return topDocs.toArray(new Integer[0]);
+                            break;
+                        }
+
+                        // Process postings for this term.
+                        HashAndFreq hf = hashAndFrequencies[ix];
+                        PostingsEnum docs = postings[ix];
+                        while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                            if (docs.freq() >= hf.freq) partials[docs.docID()] += tub;
+                            else partials[docs.docID()] += tub / hf.freq * docs.freq();
+                            if (topDocs.size() < candidates) topDocs.add(docs.docID());
+                            else if (partials[topDocs.peek()] < partials[docs.docID()]) {
+                                topDocs.remove();
+                                topDocs.add(docs.docID());
+                            }
+                        }
+
+                        // Decrement remaining sum of term upper-bounds.
+                        tubSum -= tub;
+                    }
+
+                    return topDocs.toArray(new Integer[0]);
                 }
             }
 
@@ -268,7 +151,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     return new DocIdSetIterator() {
 
                         private int i = -1;
-                        private int docID = -1;
+                        private int docID = topDocIDs[0];
 
                         @Override
                         public int docID() {
