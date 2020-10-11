@@ -118,12 +118,10 @@ public class MatchHashesAndScoreQuery extends Query {
                             break;
                         }
 
-                        tubSum -= tub;
-
+                        // Process postings for this term.
                         if (postings[ix] != null) {
                             HashAndFreq hf = hashAndFrequencies[ix];
                             PostingsEnum docs = postings[ix];
-                            // logger.info(String.format("Processing term [%d] of [%d], tub = [%f]", i, hashAndFrequencies.length, tub));
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                                 if (docs.freq() >= hf.freq) partials[docs.docID()] += tub;
                                 else partials[docs.docID()] += tub / hf.freq * docs.freq();
@@ -134,6 +132,9 @@ public class MatchHashesAndScoreQuery extends Query {
                                 }
                             }
                         }
+
+                        // Decrement remaining sum of term upper-bounds.
+                        tubSum -= tub;
                     }
 
                     return topDocs.toArray(new Integer[0]);
