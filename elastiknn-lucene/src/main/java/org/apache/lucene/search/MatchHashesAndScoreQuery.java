@@ -1,10 +1,9 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
+import it.unimi.dsi.fastutil.ints.Int2FloatMap;
+import it.unimi.dsi.fastutil.ints.Int2FloatMaps;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import org.apache.commons.math3.stat.descriptive.moment.Mean;
-import org.apache.commons.math3.stat.descriptive.rank.Median;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 
-import static java.lang.Math.log;
 import static java.lang.Math.log10;
 
 /**
@@ -145,7 +143,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 else {
 
                     // Lucene likes doc IDs in sorted order.
-                    Arrays.sort(topDocIDs);
+                    // Arrays.sort(topDocIDs);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {

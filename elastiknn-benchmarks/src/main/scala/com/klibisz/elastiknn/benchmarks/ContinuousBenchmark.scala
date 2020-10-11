@@ -18,21 +18,21 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbFashionMnist,
       Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 3, 6),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 25, 3, 6),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 200, 10), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 125, 10), k)
+      )
+    ),
+    Experiment(
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      NearestNeighborsQuery.Exact(field, Similarity.L2),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
+      Seq(
+        Query(NearestNeighborsQuery.L2Lsh(field, 200, 9), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 500, 9), k)
       )
     )
-//    ,
-//    Experiment(
-//      Dataset.AnnbSift,
-//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 75, 4, 7),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 6), k)
-//      )
-//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
@@ -49,7 +49,7 @@ object ContinuousBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 10000
+            maxQueries = 1000
           ))
       } yield ()
     }
