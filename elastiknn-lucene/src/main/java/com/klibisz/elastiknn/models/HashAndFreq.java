@@ -8,8 +8,8 @@ import java.util.Objects;
  * This enables LSH algorithms where the repetition of a hash has some significance.
  */
 public class HashAndFreq implements Comparable<HashAndFreq> {
-    private final byte[] hash;
-    private final int freq;
+    public final byte[] hash;
+    public final int freq;
 
     public static HashAndFreq once(byte[] hash) {
         return new HashAndFreq(hash, 1);
@@ -20,17 +20,9 @@ public class HashAndFreq implements Comparable<HashAndFreq> {
         this.freq = freq;
     }
 
-    public byte[] getHash() {
-        return hash;
-    }
-
-    public int getFreq() {
-        return freq;
-    }
-
     @Override
     public int compareTo(HashAndFreq o) {
-        byte[] ohash = o.getHash();
+        byte[] ohash = o.hash;
         return Arrays.compareUnsigned(hash, 0, hash.length, ohash, 0, ohash.length);
     }
 

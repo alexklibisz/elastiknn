@@ -2,6 +2,9 @@ package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Median;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
@@ -11,6 +14,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 
+import static java.lang.Math.log;
 import static java.lang.Math.log10;
 
 /**
@@ -60,6 +64,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) return new Integer[0];
                 else {
+
                     TermsEnum termsEnum = terms.iterator();
 
                     // Array of postings, one per term.
@@ -75,33 +80,53 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Populate postings, tubs, tubSum, sortedIxs.
                     for (int i = 0; i < hashAndFrequencies.length; i++) {
                         sortedIxs[i] = i;
-                        if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].getHash()))) {
+                        if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
                             postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
-                            tubs[i] = (float) log10(reader.maxDoc() * 1f / termsEnum.docFreq()) * hashAndFrequencies[i].getFreq();
+                            tubs[i] = (float) log10(reader.maxDoc() * 1.0 / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
                             tubSum += tubs[i];
                         }
                     }
+
+//                    Percentile percentile = new Percentile();
+//                    logger.info(String.format(
+//                            "tubs = [%f, %f, %f]",
+//                            percentile.evaluate(tubs, 0.05),
+//                            percentile.evaluate(tubs, 0.5),
+//                            percentile.evaluate(tubs, 0.95)));
 
                     // Sort the sortedIxs based on tub in descending order.
                     IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
                     // Array of (partial) scores, one per doc.
-                    short[] partials = new short[reader.maxDoc()];
+                    float[] partials = new float[reader.maxDoc()];
 
                     // Min-heap of top `candidates` docIDs with comparator using partial scores.
-                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingInt(i -> partials[i]));
+                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> partials[i]));
 
                     // Iterate the postings in sorted order, maintain partial scores and topDocs.
                     // Check early stopping criteria after each postings list.
                     for (int i = 0; i < sortedIxs.length; i++) {
                         int ix = sortedIxs[i];
+                        float tub = tubs[ix];
+
+                        // Check early stopping.
+                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()])) {
+                            logger.info(String.format(
+                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
+                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
+                            ));
+                            break;
+                        }
+
+                        tubSum -= tub;
+
                         if (postings[ix] != null) {
                             HashAndFreq hf = hashAndFrequencies[ix];
                             PostingsEnum docs = postings[ix];
-                            float tub = tubs[ix];
+                            // logger.info(String.format("Processing term [%d] of [%d], tub = [%f]", i, hashAndFrequencies.length, tub));
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                if (docs.freq() >= hf.getFreq()) partials[docs.docID()] += tub;
-                                else partials[docs.docID()] += tub / hf.getFreq() * docs.freq();
+                                if (docs.freq() >= hf.freq) partials[docs.docID()] += tub;
+                                else partials[docs.docID()] += tub / hf.freq * docs.freq();
                                 if (topDocs.size() < candidates) topDocs.add(docs.docID());
                                 else if (partials[topDocs.peek()] < partials[docs.docID()]) {
                                     topDocs.remove();
@@ -109,21 +134,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                 }
                             }
                         }
-
-                        // Early stopping.
-                        tubSum -= tubs[ix];
-                        if (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()]) {
-                            logger.info(String.format(
-                                    "i = [%d], tub = [%f], tubSum = [%f], topDocs.size() = [%d], partials[topDocs.peek()] = [%d]",
-                                    i, tubs[ix], tubSum, topDocs.size(), partials[topDocs.peek()]
-                            ));
-                            break;
-                        }
                     }
-
-                    logger.info(String.format(
-                            "Returning: tubSum = [%f], partials[topDocs.peek()] = [%d]", tubSum, partials[topDocs.peek()]
-                    ));
 
                     return topDocs.toArray(new Integer[0]);
                 }
