@@ -64,7 +64,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 else {
 
                     TermsEnum termsEnum = terms.iterator();
-                    int numDocs = reader.numDocs();
+                    int numDocs = reader.maxDoc();
 
                     // Array of postings, one per term.
                     PostingsEnum[] postings = new PostingsEnum[hashAndFrequencies.length];
@@ -85,13 +85,6 @@ public class MatchHashesAndScoreQuery extends Query {
                             postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
                         }
                     }
-
-//                    Percentile percentile = new Percentile();
-//                    logger.info(String.format(
-//                            "tubs = [%f, %f, %f]",
-//                            percentile.evaluate(tubs, 0.05),
-//                            percentile.evaluate(tubs, 0.5),
-//                            percentile.evaluate(tubs, 0.95)));
 
                     // Sort the sortedIxs based on tub in descending order.
                     IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
