@@ -8,7 +8,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
+import org.javatuples.Pair;
 
+import java.awt.geom.FlatteningPathIterator;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
@@ -64,70 +66,51 @@ public class MatchHashesAndScoreQuery extends Query {
                 else {
 
                     TermsEnum termsEnum = terms.iterator();
-                    int numDocs = reader.maxDoc();
 
-                    // Array of postings, one per term.
-                    PostingsEnum[] postings = new PostingsEnum[hashAndFrequencies.length];
+                    int N = reader.numDocs();
+                    int n = hashAndFrequencies.length;
+                    int k = candidates;
 
-                    // Array of term upper-bounds, one per term, and sum of them.
-                    float[] tubs = new float[hashAndFrequencies.length];
-                    float tubSum = 0;
-
-                    // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
-                    int[] sortedIxs = new int[hashAndFrequencies.length];
-
-                    // Populate postings, tubs, tubSum, sortedIxs.
-                    for (int i = 0; i < hashAndFrequencies.length; i++) {
-                        sortedIxs[i] = i;
+                    PostingsEnum[] postings = new PostingsEnum[n];
+                    float[] scores = new float[n];
+                    for (int i = 0; i < n; i++) {
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
-                            tubs[i] = (float) log10(numDocs * 1.0 / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
-                            tubSum += tubs[i];
                             postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
+                            scores[i] = (float) log10(N * 1f / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
                         }
                     }
 
-                    // Sort the sortedIxs based on tub in descending order.
-                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
+                    PriorityQueue<Pair<Integer, Float>> q = new PriorityQueue<>(k, (o1, o2) -> Float.compare(o1.getValue1(), o2.getValue1()));
 
-                    // Array of (partial) scores, one per doc.
-                    float[] partials = new float[reader.maxDoc()];
-
-                    // Min-heap of top `candidates` docIDs with comparator using partial scores.
-                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> partials[i]));
-
-                    // Iterate the postings in sorted order, maintain partial scores and topDocs.
-                    // Check early stopping criteria after each postings list.
-                    for (int i = 0; i < sortedIxs.length; i++) {
-                        int ix = sortedIxs[i];
-                        float tub = tubs[ix];
-
-                        // Check early stopping.
-                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= partials[topDocs.peek()])) {
-//                            logger.info(String.format(
-//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
-//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
-//                            ));
-                            break;
-                        }
-
-                        // Process postings for this term.
-                        HashAndFreq hf = hashAndFrequencies[ix];
-                        PostingsEnum docs = postings[ix];
-                        while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                            if (docs.freq() >= hf.freq) partials[docs.docID()] += tub;
-                            else partials[docs.docID()] += tub / hf.freq * docs.freq();
-                            if (topDocs.size() < candidates) topDocs.add(docs.docID());
-                            else if (partials[topDocs.peek()] < partials[docs.docID()]) {
-                                topDocs.remove();
-                                topDocs.add(docs.docID());
+                    int current = 0;
+                    while (current != DocIdSetIterator.NO_MORE_DOCS) {
+                        float score = 0;
+                        int next = DocIdSetIterator.NO_MORE_DOCS;
+                        for (int i = 0; i < n; i++) {
+                            if (postings[i] == null) continue;
+                            if (postings[i].docID() == current) {
+                                score += scores[i];
+                                postings[i].nextDoc();
+                            }
+                            if (postings[i].docID() < next) {
+                                next = postings[i].docID();
                             }
                         }
-
-                        // Decrement remaining sum of term upper-bounds.
-                        tubSum -= tub;
+                        if (q.size() < k) q.add(new Pair<>(current, score));
+                        else if (q.peek().getValue1() < score) {
+                            q.remove();
+                            q.add(new Pair<>(current, score));
+                        }
+                        current = next;
                     }
 
-                    return topDocs.toArray(new Integer[0]);
+                    Integer[] docIDs = new Integer[k];
+                    Object[] objects = q.toArray();
+                    for (int i = 0; i < docIDs.length; i++) {
+                        docIDs[i] = ((Pair<Integer, Float>) objects[i]).getValue0();
+                        // logger.info(docIDs[i]);
+                    }
+                    return docIDs;
                 }
             }
 
@@ -136,7 +119,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 else {
 
                     // Lucene likes doc IDs in sorted order.
-                    // Arrays.sort(topDocIDs);
+                    Arrays.sort(topDocIDs);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
