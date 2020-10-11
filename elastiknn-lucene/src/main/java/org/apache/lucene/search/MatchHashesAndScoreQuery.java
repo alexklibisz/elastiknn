@@ -103,11 +103,12 @@ public class MatchHashesAndScoreQuery extends Query {
                         float tub = tubs[ix];
 
                         // Check early stopping.
-                        if (tub == 0 || (topDocs.size() == candidates && tubSum <= accumulators[topDocs.peek()])) {
-//                            logger.info(String.format(
-//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
-//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
-//                            ));
+                        if (tub == 0) break;
+                        else if (topDocs.size() == candidates && tubSum <= accumulators[topDocs.peek()]) {
+                            logger.info(String.format(
+                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], accumulators[topDocs.peek()] = [%f]",
+                                    i, sortedIxs.length, tubs[ix], tubSum, accumulators[topDocs.peek()]
+                            ));
                             break;
                         }
 
