@@ -89,19 +89,19 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.68,
-        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.85
+        NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.72,
+        NearestNeighborsQuery.HammingLsh(vecField, 400) -> 0.92
       )
     ),
     Test(
       // Increasing k increases recall up to a point.
       Mapping.HammingLsh(dims, dims * 2 / 5, 2),
-      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.80)
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.86)
     ),
     Test(
       // But increasing it too far decreases recall.
       Mapping.HammingLsh(dims, dims * 2 / 5, 4),
-      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.62)
+      Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.65)
     ),
     // Angular Lsh
     Test(
@@ -204,9 +204,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       .zip(responses)
       .map {
         case (Query(_, correctResults), response) =>
-          val correctScores: Vector[Float] = correctResults(resultsIx).values.map(_.toFloat)
-          val hitScores: Array[Float] = response.result.hits.hits.map(_.score)
-          correctScores.intersect(hitScores).length
+          val minCorrectScore = correctResults(resultsIx).values.min
+          val numGreaterEqual = response.result.hits.hits.count(_.score >= minCorrectScore)
+          numGreaterEqual
       }
       .sum
     numMatches * 1d / queries.map(_.results(resultsIx).values.length).sum
