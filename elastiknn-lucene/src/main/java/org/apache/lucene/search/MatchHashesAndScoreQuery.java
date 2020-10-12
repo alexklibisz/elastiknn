@@ -98,6 +98,10 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Min-heap of top `candidates` docIDs with comparator using partial scores.
                     PriorityQueue<Integer> topDocs = new PriorityQueue<>(k, Comparator.comparingDouble(i -> partials[i]));
 
+                    // Boolean mask representing whether a docID is in the heap.
+                    // Otherwise the PriorityQueue's .contains() method does an O(k) loop.
+                    boolean[] isTopDoc = new boolean[N];
+
                     // Iterate the postings in sorted order, maintain partial scores and topDocs.
                     // Check early stopping criteria after each postings list.
                     for (int i = 0; i < sortedIxs.length; i++) {
@@ -119,15 +123,25 @@ public class MatchHashesAndScoreQuery extends Query {
                         PostingsEnum docs = postings[ix];
                         while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                             int docID = docs.docID();
-                            if (partials[docID] >= 0) {
+                            if (partials[docID] >= 0) { // Skip excluded docs.
                                 if (partials[docID] == 0) numDocsVisited++;
                                 partials[docID] += tub;
-                                if (topDocs.size() < k) {
+                                // Heap not at capacity, and this docID is not already in the heap -> add to heap.
+                                if (topDocs.size() < k && !isTopDoc[docID]) {
                                     topDocs.add(docID);
-                                } else if (partials[topDocs.peek()] < partials[docID]) {
-                                    topDocs.remove();
+                                    isTopDoc[docID] = true;
+                                }
+                                // Heap at capacity and this docID's partial score exceeds the minimum score -> add to heap.
+                                else if (partials[topDocs.peek()] < partials[docID]) {
+                                    // If this doc is already a top doc, remove it from the heap. Otherwise remove the
+                                    // min doc and update the isTopDoc array.
+                                    if (isTopDoc[docID]) topDocs.remove(docID);
+                                    else isTopDoc[topDocs.remove()] = false;
                                     topDocs.add(docID);
-                                } else if (partials[topDocs.peek()] >= partials[docID] - tub + tubSum) {
+                                    isTopDoc[docID] = true;
+                                }
+                                // Partial score for this doc could never exceed the min threshold -> exclude it.
+                                else if (partials[topDocs.peek()] >= partials[docID] - tub + tubSum) {
                                     partials[docID] = Float.MIN_VALUE;
                                     numDocsExcluded += 1;
                                 }
@@ -137,6 +151,11 @@ public class MatchHashesAndScoreQuery extends Query {
                         // Decrement remaining sum of term upper-bounds.
                         tubSum -= tub;
                     }
+
+//                    Integer[] docIDs = topDocs.toArray(new Integer[0]);
+//                    Set<Integer> distinct = new HashSet<>();
+//                    for (int docID: docIDs) distinct.add(docID);
+//                    logger.info(String.format("distinct.size() = [%d]", distinct.size()));
 
                     return topDocs.toArray(new Integer[0]);
                 }
@@ -153,7 +172,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     return new DocIdSetIterator() {
 
                         private int i = -1;
-                        private int docID = topDocIDs[0];
+                        private int docID = -1;
 
                         @Override
                         public int docID() {

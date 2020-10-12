@@ -18,7 +18,7 @@ object ContinuousBenchmark extends App {
       Dataset.AnnbFashionMnist,
       Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 25, 3, 6),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 3, 6),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 125, 10), k)
       )

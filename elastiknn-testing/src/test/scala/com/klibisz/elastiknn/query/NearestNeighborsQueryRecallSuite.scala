@@ -15,7 +15,8 @@ import scala.util.hashing.MurmurHash3.orderedHash
 /**
   * Tests for recall regressions for all of the mappings and their queries using random vectors.
   * There are some subtleties:
-  * - Recall is evaluated based on the minimum score returned, not the actual IDs.
+  * - Recall is evaluated based on the minimum score returned, not the actual IDs. So it's important to also check that
+  *   all of the IDs are unique.
   * - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_.
   *   Each shard can have a non-specific number of segments but we merge each shard to a specific number.
   * - Repeated query results against the same index should be deterministic. However if you re-index the data and run
@@ -71,8 +72,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       Seq(
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.JaccardLsh(vecField, 200) -> 0.56,
-        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.84
+        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.56,
+        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.84
       )
     ),
 //    Test(
@@ -265,8 +266,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         info(s"IDs hashes: ${idsHashCodes.mkString(",")}")
         info(s"Scores hashes: ${scoresHashCodes.mkString(",")}")
 
-        withClue("DocIDs are distinct") {
-          explicitResponses1.foreach { res =>
+        explicitResponses1.foreach { res =>
+          withClue("DocIDs are distinct") {
             res.result.hits.hits.map(_.id).distinct.length shouldBe res.result.hits.hits.length
           }
         }
