@@ -70,19 +70,19 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
       Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
         NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.69,
-        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.87
+//        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.87
       )
     ),
-    Test(
-      Mapping.JaccardLsh(dims, 300, 2),
-      Seq(
-        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.62,
-        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.81
-      )
-    ),
+//    Test(
+//      Mapping.JaccardLsh(dims, 300, 2),
+//      Seq(
+//        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.62,
+//        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.81
+//      )
+//    ),
 //    // Hamming LSH
 //    Test(
 //      Mapping.HammingLsh(dims, dims * 1 / 2, 1),
@@ -204,9 +204,9 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       .zip(responses)
       .map {
         case (Query(_, correctResults), response) =>
-          val correctScores: Vector[Float] = correctResults(resultsIx).values.map(_.toFloat)
-          val hitScores: Array[Float] = response.result.hits.hits.map(_.score)
-          correctScores.intersect(hitScores).length
+          val minCorrectScore = correctResults(resultsIx).values.min
+          val numGreaterEqual = response.result.hits.hits.count(_.score >= minCorrectScore)
+          numGreaterEqual
       }
       .sum
     numMatches * 1d / queries.map(_.results(resultsIx).values.length).sum

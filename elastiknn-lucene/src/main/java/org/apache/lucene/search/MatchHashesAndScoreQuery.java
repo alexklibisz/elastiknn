@@ -107,7 +107,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         // Check early stopping.
                         if (tub == 0 || (topDocs.size() == k && tubSum <= partials[topDocs.peek()])) {
-                            logger.debug(String.format(
+                            logger.info(String.format(
                                 "Early stopping after [%d] of [%d] terms, [%d] of [%d] docs, excluded [%d] docs, upper-bound sum [%f], threshold [%f]",
                                 i, n, numDocsVisited, N, numDocsExcluded, tubSum, topDocs.isEmpty() ? 0f : partials[topDocs.peek()]
                             ));
