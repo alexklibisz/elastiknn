@@ -19,8 +19,8 @@ object HashingQuery {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
         val reader = new ExactQuery.StoredVecReader[S](lrc, field)
-        (docId: Int, _: Int) =>
-          val storedVec = reader(docId)
+        (docID: Int) =>
+          val storedVec = reader(docID)
           exactFunction(query, storedVec)
       }
     new MatchHashesAndScoreQuery(

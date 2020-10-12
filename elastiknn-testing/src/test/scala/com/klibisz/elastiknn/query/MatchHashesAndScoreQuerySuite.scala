@@ -54,9 +54,8 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
           10,
           r,
           (_: LeafReaderContext) =>
-            (docId: Int, numMatchingHashes: Int) => {
-              docId shouldBe 0
-              numMatchingHashes shouldBe 2
+            (docID: Int) => {
+              docID shouldBe 0
               99d
           }
         )
@@ -83,7 +82,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
           hashes,
           10,
           r,
-          (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
+          (_: LeafReaderContext) => (docID: Int) => docID * 1f
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 2
@@ -101,7 +100,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     } {
       case (r, s) =>
         val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
-        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
+        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (docID: Int) => docID * 1f)
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
     }
@@ -131,19 +130,19 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
       }
     } {
       case (r, s) =>
-        val counts = ArrayBuffer.empty[Int]
+        val docIDs = ArrayBuffer.empty[Int]
         val q = new MatchHashesAndScoreQuery("vec",
                                              query,
                                              candidates,
                                              r,
                                              (_: LeafReaderContext) =>
-                                               (_: Int, c: Int) => {
-                                                 counts.append(c)
-                                                 c.toFloat
+                                               (docID: Int) => {
+                                                 docIDs.append(docID)
+                                                 docID.toFloat
                                              })
         val dd = s.search(q, 10)
         dd.scoreDocs.length shouldBe 5
-        counts.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)
+        docIDs.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)
     }
   }
 

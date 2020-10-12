@@ -7,7 +7,7 @@ import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
+import com.klibisz.elastiknn.models.{Cache => ModelCache}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import io.circe.Json
@@ -81,12 +81,6 @@ object KnnQueryBuilder {
       case (Exact(f, Similarity.Angular, v: Vec.DenseFloat),
             _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
         ExactQuery(f, v, ESF.Angular)
-
-      case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard, indexReader)
-
-      case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, indexReader)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
         HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)

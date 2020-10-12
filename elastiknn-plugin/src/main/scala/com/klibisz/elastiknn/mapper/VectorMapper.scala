@@ -4,7 +4,7 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
@@ -32,8 +32,7 @@ object VectorMapper {
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
-            case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
+            case Mapping.SparseBool(_) => Try(ExactQuery.index(field, sorted))
             case m: Mapping.JaccardLsh =>
               Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
             case m: Mapping.HammingLsh =>

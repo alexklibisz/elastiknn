@@ -19,7 +19,7 @@ import static java.lang.Math.log10;
 public class MatchHashesAndScoreQuery extends Query {
 
     public interface ScoreFunction {
-        double score(int docId, int numMatchingHashes);
+        double score(int docID);
     }
 
     private final String field;
@@ -70,7 +70,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     PostingsEnum[] postings = new PostingsEnum[n];
 
                     // Array of term upper-bounds, one per term.
-                    float[] tubs = new float[n];
+                    double[] tubs = new double[n];
                     float tubSum = 0;
 
                     // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
@@ -81,14 +81,14 @@ public class MatchHashesAndScoreQuery extends Query {
                     for (int i = 0; i < n; i++) {
                         sortedIxs[i] = i;
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
-                            tubs[i] = (float) log10(N * 1f / termsEnum.docFreq());
+                            tubs[i] = log10(N * 1f / termsEnum.docFreq());
                             tubSum += tubs[i];
                             postings[i] = termsEnum.postings(null, PostingsEnum.NONE);
                         }
                     }
 
                     // Sort the sortedIxs based on tub in descending order.
-                    Arrays.sort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
+                    Arrays.sort(sortedIxs, (i, j) -> Double.compare(tubs[j], tubs[i]));
 
                     // Array of partial scores (often called accumulators), one per doc.
                     float[] partials = new float[N];
@@ -102,7 +102,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Check early stopping criteria after each postings list.
                     for (int i = 0; i < sortedIxs.length; i++) {
                         int ix = sortedIxs[i];
-                        float tub = tubs[ix];
+                        double tub = tubs[ix];
 
                         // Check early stopping.
                         if (tub == 0 || (topDocs.size() == k && tubSum <= partials[topDocs.peek()])) {
@@ -213,7 +213,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), 0);
+                        return (float) scoreFunction.score(docID());
                     }
 
                     @Override

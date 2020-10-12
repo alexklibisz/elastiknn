@@ -15,8 +15,7 @@ import scala.util.hashing.MurmurHash3.orderedHash
 /**
   * Tests for recall regressions for all of the mappings and their queries using random vectors.
   * There are some subtleties:
-  * - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could
-  *   have the same score relative a query vector.
+  * - Recall is evaluated based on the minimum score returned, not the actual IDs.
   * - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_.
   *   Each shard can have a non-specific number of segments but we merge each shard to a specific number.
   * - Repeated query results against the same index should be deterministic. However if you re-index the data and run
@@ -33,11 +32,11 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val storedIdField: String = "id"
   private val dims: Int = 1024
   private val k: Int = 100
-  private val shards: Int = 2
+  private val shards: Int = 1
   private val segmentsPerShard: Int = 1
-  private val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
-  private val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
-  private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
+  private lazy val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
+  private lazy val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
+  private lazy val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
 
   private val tests = Seq(
 //    // Exact
@@ -72,8 +71,8 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       Seq(
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
 //        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.69,
-//        NearestNeighborsQuery.JaccardLsh(vecField, 800) -> 0.87
+        NearestNeighborsQuery.JaccardLsh(vecField, 200) -> 0.56,
+        NearestNeighborsQuery.JaccardLsh(vecField, 400) -> 0.84
       )
     ),
 //    Test(
@@ -265,6 +264,12 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         }
         info(s"IDs hashes: ${idsHashCodes.mkString(",")}")
         info(s"Scores hashes: ${scoresHashCodes.mkString(",")}")
+
+        withClue("DocIDs are distinct") {
+          explicitResponses1.foreach { res =>
+            res.result.hits.hits.map(_.id).distinct.length shouldBe res.result.hits.hits.length
+          }
+        }
 
         // Make sure results were deterministic.
         withClue(s"Explicit query recalls should be deterministic") {
