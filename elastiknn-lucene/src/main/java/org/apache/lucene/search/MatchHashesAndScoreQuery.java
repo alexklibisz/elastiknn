@@ -8,9 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
-import org.javatuples.Pair;
 
-import java.awt.geom.FlatteningPathIterator;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
@@ -41,7 +39,7 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countHits` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
-        // java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
+        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
 
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
@@ -66,51 +64,75 @@ public class MatchHashesAndScoreQuery extends Query {
                 else {
 
                     TermsEnum termsEnum = terms.iterator();
-
-                    int N = reader.numDocs();
+                    int N = reader.maxDoc();
                     int n = hashAndFrequencies.length;
                     int k = candidates;
 
+                    // Array of postings, one per term.
                     PostingsEnum[] postings = new PostingsEnum[n];
-                    float[] scores = new float[n];
+
+                    // Array of term upper-bounds, one per term, and sum of them.
+                    float[] tubs = new float[n];
+                    float tubSum = 0;
+
+                    // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
+                    int[] sortedIxs = new int[n];
+
+                    // Populate postings, tubs, tubSum, sortedIxs.
                     for (int i = 0; i < n; i++) {
+                        sortedIxs[i] = i;
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
-                            postings[i] = termsEnum.postings(null, PostingsEnum.FREQS);
-                            scores[i] = (float) log10(N * 1f / termsEnum.docFreq()) * hashAndFrequencies[i].freq;
+                            tubs[i] = (float) log10(N * 1.0 / termsEnum.docFreq());
+                            tubSum += tubs[i];
+                            postings[i] = termsEnum.postings(null, PostingsEnum.NONE);
                         }
                     }
 
-                    PriorityQueue<Pair<Integer, Float>> q = new PriorityQueue<>(k, (o1, o2) -> Float.compare(o1.getValue1(), o2.getValue1()));
+                    // Sort the sortedIxs based on tub in descending order.
+                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
-                    int current = 0;
-                    while (current != DocIdSetIterator.NO_MORE_DOCS) {
-                        float score = 0;
-                        int next = DocIdSetIterator.NO_MORE_DOCS;
-                        for (int i = 0; i < n; i++) {
-                            if (postings[i] == null) continue;
-                            if (postings[i].docID() == current) {
-                                score += scores[i];
-                                postings[i].nextDoc();
+                    // Array of (partial) scores, one per doc.
+                    float[] partials = new float[reader.maxDoc()];
+
+                    // Min-heap of top `candidates` docIDs with comparator using partial scores.
+                    PriorityQueue<Integer> topDocs = new PriorityQueue<>(k, Comparator.comparingDouble(i -> partials[i]));
+
+                    // Iterate the postings in sorted order, maintain partial scores and topDocs.
+                    // Check early stopping criteria after each postings list.
+                    for (int i = 0; i < sortedIxs.length; i++) {
+                        int ix = sortedIxs[i];
+                        float tub = tubs[ix];
+
+                        // Check early stopping.
+                        if (tub == 0 || (topDocs.size() == k && tubSum <= partials[topDocs.peek()])) {
+//                            logger.info(String.format(
+//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
+//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
+//                            ));
+                            break;
+                        }
+
+                        // Process postings for this term.
+                        PostingsEnum docs = postings[ix];
+                        while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                            if (partials[docs.docID()] >= 0) {
+                                partials[docs.docID()] += tub;
+                                if (topDocs.size() < k) {
+                                    topDocs.add(docs.docID());
+                                } else if (partials[topDocs.peek()] < partials[docs.docID()]) {
+                                    topDocs.remove();
+                                    topDocs.add(docs.docID());
+                                } else if (partials[topDocs.peek()] >= partials[docs.docID()] - tub + tubSum) {
+                                    partials[docs.docID()] = Float.MIN_VALUE;
+                                }
                             }
-                            if (postings[i].docID() < next) {
-                                next = postings[i].docID();
-                            }
                         }
-                        if (q.size() < k) q.add(new Pair<>(current, score));
-                        else if (q.peek().getValue1() < score) {
-                            q.remove();
-                            q.add(new Pair<>(current, score));
-                        }
-                        current = next;
+
+                        // Decrement remaining sum of term upper-bounds.
+                        tubSum -= tub;
                     }
 
-                    Integer[] docIDs = new Integer[k];
-                    Object[] objects = q.toArray();
-                    for (int i = 0; i < docIDs.length; i++) {
-                        docIDs[i] = ((Pair<Integer, Float>) objects[i]).getValue0();
-                        // logger.info(docIDs[i]);
-                    }
-                    return docIDs;
+                    return topDocs.toArray(new Integer[0]);
                 }
             }
 

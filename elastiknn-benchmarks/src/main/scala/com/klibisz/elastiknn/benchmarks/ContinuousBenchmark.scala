@@ -20,20 +20,20 @@ object ContinuousBenchmark extends App {
       NearestNeighborsQuery.Exact(field, Similarity.L2),
       Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 25, 3, 6),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 200, 10), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 125, 10), k)
       )
     )
-//    ,
-//    Experiment(
-//      Dataset.AnnbSift,
-//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
-//      NearestNeighborsQuery.Exact(field, Similarity.L2),
-//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
-//      Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 200, 9), k),
-//        Query(NearestNeighborsQuery.L2Lsh(field, 500, 9), k)
-//      )
-//    )
+    //    ,
+    //    Experiment(
+    //      Dataset.AnnbSift,
+    //      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+    //      NearestNeighborsQuery.Exact(field, Similarity.L2),
+    //      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
+    //      Seq(
+    //        Query(NearestNeighborsQuery.L2Lsh(field, 200, 9), k),
+    //        Query(NearestNeighborsQuery.L2Lsh(field, 500, 9), k)
+    //      )
+    //    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
@@ -49,8 +49,7 @@ object ContinuousBenchmark extends App {
             datasetsPrefix = "data/processed",
             resultsPrefix = "results",
             bucket = bucket,
-            s3Url = Some(s3Url),
-            maxQueries = 1000
+            s3Url = Some(s3Url)
           ))
       } yield ()
     }
