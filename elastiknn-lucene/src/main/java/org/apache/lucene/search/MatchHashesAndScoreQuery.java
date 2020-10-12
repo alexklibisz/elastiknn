@@ -1,7 +1,6 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.*;
@@ -75,7 +74,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     float tubSum = 0;
 
                     // Indices into hashAndFrequences, postings, tubs. Will be sorted after populating.
-                    int[] sortedIxs = new int[n];
+                    Integer[] sortedIxs = new Integer[n];
 
                     // Populate postings, tubs, tubSum, sortedIxs.
                     TermsEnum termsEnum = terms.iterator();
@@ -89,7 +88,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     }
 
                     // Sort the sortedIxs based on tub in descending order.
-                    IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
+                    Arrays.sort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
                     // Array of partial scores (often called accumulators), one per doc.
                     float[] partials = new float[N];
@@ -107,10 +106,12 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         // Check early stopping.
                         if (tub == 0 || (topDocs.size() == k && tubSum <= partials[topDocs.peek()])) {
-                            logger.info(String.format(
-                                "Early stopping after [%d] of [%d] terms, [%d] of [%d] docs, excluded [%d] docs, upper-bound sum [%f], threshold [%f]",
-                                i, n, numDocsVisited, N, numDocsExcluded, tubSum, topDocs.isEmpty() ? 0f : partials[topDocs.peek()]
-                            ));
+                            if (logger.isDebugEnabled()) {
+                                logger.debug(String.format(
+                                        "Early stopping after [%d] of [%d] terms, [%d] of [%d] docs, excluded [%d] docs, upper-bound sum [%f], threshold [%f]",
+                                        i, n, numDocsVisited, N, numDocsExcluded, tubSum, topDocs.isEmpty() ? 0f : partials[topDocs.peek()]
+                                ));
+                            }
                             break;
                         }
 
