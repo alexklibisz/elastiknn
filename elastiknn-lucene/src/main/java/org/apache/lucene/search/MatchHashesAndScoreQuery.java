@@ -1,8 +1,6 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
-import it.unimi.dsi.fastutil.ints.Int2FloatMap;
-import it.unimi.dsi.fastutil.ints.Int2FloatMaps;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,14 +54,15 @@ public class MatchHashesAndScoreQuery extends Query {
 
             /**
              * Build and return an array of the top `candidates` docIDs.
+             * The implementation is based on the Term-at-a-time Quit-and-continue strategy, described on page 39 of
+             * http://www.dcs.gla.ac.uk/~craigm/publications/fnt-efficient-query-processing.pdf.
              */
-            private Integer[] countHits(LeafReader reader) throws IOException {
+            private Integer[] topKDocs(LeafReader reader) throws IOException {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) return new Integer[0];
                 else {
 
-                    TermsEnum termsEnum = terms.iterator();
                     int N = reader.maxDoc();
                     int n = hashAndFrequencies.length;
                     int k = candidates;
@@ -71,7 +70,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Array of postings, one per term.
                     PostingsEnum[] postings = new PostingsEnum[n];
 
-                    // Array of term upper-bounds, one per term, and sum of them.
+                    // Array of term upper-bounds, one per term.
                     float[] tubs = new float[n];
                     float tubSum = 0;
 
@@ -79,10 +78,11 @@ public class MatchHashesAndScoreQuery extends Query {
                     int[] sortedIxs = new int[n];
 
                     // Populate postings, tubs, tubSum, sortedIxs.
+                    TermsEnum termsEnum = terms.iterator();
                     for (int i = 0; i < n; i++) {
                         sortedIxs[i] = i;
                         if (termsEnum.seekExact(new BytesRef(hashAndFrequencies[i].hash))) {
-                            tubs[i] = (float) log10(N * 1.0 / termsEnum.docFreq());
+                            tubs[i] = (float) log10(N * 1f / termsEnum.docFreq());
                             tubSum += tubs[i];
                             postings[i] = termsEnum.postings(null, PostingsEnum.NONE);
                         }
@@ -91,8 +91,10 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Sort the sortedIxs based on tub in descending order.
                     IntArrays.quickSort(sortedIxs, (i, j) -> Float.compare(tubs[j], tubs[i]));
 
-                    // Array of (partial) scores, one per doc.
-                    float[] partials = new float[reader.maxDoc()];
+                    // Array of partial scores (often called accumulators), one per doc.
+                    float[] partials = new float[N];
+                    int numDocsVisited = 0;
+                    int numDocsExcluded = 0;
 
                     // Min-heap of top `candidates` docIDs with comparator using partial scores.
                     PriorityQueue<Integer> topDocs = new PriorityQueue<>(k, Comparator.comparingDouble(i -> partials[i]));
@@ -105,25 +107,30 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         // Check early stopping.
                         if (tub == 0 || (topDocs.size() == k && tubSum <= partials[topDocs.peek()])) {
-//                            logger.info(String.format(
-//                                    "Early stopping at term [%d] of [%d], tub = [%f], tubSum = [%f], partials[topDocs.peek()] = [%f]",
-//                                    i, sortedIxs.length, tubs[ix], tubSum, partials[topDocs.peek()]
-//                            ));
+                            if (logger.isInfoEnabled()) {
+                                String fmt = "Early stopping after [%d] of [%d] terms, [%d] of [%d] docs, excluded [%d] docs, upper-bound sum [%f], threshold [%f]";
+                                float thresh = topDocs.isEmpty() ? 0f : partials[topDocs.peek()];
+                                String msg = String.format(fmt, i, n, numDocsVisited, N, numDocsExcluded, tubSum, thresh);
+                                logger.info(msg);
+                            }
                             break;
                         }
 
                         // Process postings for this term.
                         PostingsEnum docs = postings[ix];
                         while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                            if (partials[docs.docID()] >= 0) {
-                                partials[docs.docID()] += tub;
+                            int docID = docs.docID();
+                            if (partials[docID] >= 0) {
+                                if (partials[docID] == 0) numDocsVisited++;
+                                partials[docID] += tub;
                                 if (topDocs.size() < k) {
-                                    topDocs.add(docs.docID());
-                                } else if (partials[topDocs.peek()] < partials[docs.docID()]) {
+                                    topDocs.add(docID);
+                                } else if (partials[topDocs.peek()] < partials[docID]) {
                                     topDocs.remove();
-                                    topDocs.add(docs.docID());
-                                } else if (partials[topDocs.peek()] >= partials[docs.docID()] - tub + tubSum) {
-                                    partials[docs.docID()] = Float.MIN_VALUE;
+                                    topDocs.add(docID);
+                                } else if (partials[topDocs.peek()] >= partials[docID] - tub + tubSum) {
+                                    partials[docID] = Float.MIN_VALUE;
+                                    numDocsExcluded += 1;
                                 }
                             }
                         }
@@ -191,7 +198,7 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 LeafReader reader = context.reader();
-                Integer[] topDocIDs = countHits(reader);
+                Integer[] topDocIDs = topKDocs(reader);
                 DocIdSetIterator disi = buildDocIdSetIterator(topDocIDs);
 
                 return new Scorer(this) {
