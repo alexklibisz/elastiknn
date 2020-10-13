@@ -14,16 +14,27 @@ object ContinuousBenchmark extends App {
   private val k = 100
 
   private val experiments = Seq(
-    // Expected ~3 Q/S for exact and 0.85 recall with ~35 Q/S for L2 LSH.
     Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      Dataset.AnnbFashionMnist,
+      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 1),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 3, 6),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 10000, 7), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 125, 10), k)
       )
     )
+//    ,
+//    Experiment(
+//      Dataset.AnnbSift,
+//      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+//      NearestNeighborsQuery.Exact(field, Similarity.L2),
+//      // Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
+//      Mapping.L2Lsh(Dataset.AnnbSift.dims, 25, 3, 6),
+//      Seq(
+//        Query(NearestNeighborsQuery.L2Lsh(field, 200, 9), k),
+//        Query(NearestNeighborsQuery.L2Lsh(field, 500, 9), k)
+//      )
+//    )
   )
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
@@ -39,8 +50,7 @@ object ContinuousBenchmark extends App {
             datasetsPrefix = "data/processed",
             resultsPrefix = "results",
             bucket = bucket,
-            s3Url = Some(s3Url),
-            maxQueries = 1000
+            s3Url = Some(s3Url)
           ))
       } yield ()
     }

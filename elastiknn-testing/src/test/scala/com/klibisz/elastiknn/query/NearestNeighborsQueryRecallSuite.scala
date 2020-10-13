@@ -40,32 +40,32 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
   private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
 
   private val tests = Seq(
-    // Exact
-    Test(
-      Mapping.SparseBool(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
-    Test(
-      Mapping.DenseFloat(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
-      )
-    ),
-    // SparseIndexed
-    Test(
-      Mapping.SparseIndexed(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
+//    // Exact
+//    Test(
+//      Mapping.SparseBool(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
+//      )
+//    ),
+//    Test(
+//      Mapping.DenseFloat(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
+//      )
+//    ),
+//    // SparseIndexed
+//    Test(
+//      Mapping.SparseIndexed(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
+//      )
+//    ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
@@ -250,7 +250,14 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
         _ <- eknn.execute(deleteIndex(queriesIndex))
       } yield {
 
-        // First compute recall.
+        // Should have no duplicate IDs.
+        explicitResponses1.foreach { res =>
+          withClue("Should have no duplicate IDs") {
+            res.result.hits.hits.map(_.id).distinct.length shouldBe res.result.hits.hits.length
+          }
+        }
+
+        // Compute recall.
         val explicitRecall1 = recall(testData.queries, resultsIx, explicitResponses1)
         val explicitRecall2 = recall(testData.queries, resultsIx, explicitResponses2)
         val explicitRecall3 = recall(testData.queries, resultsIx, explicitResponses3)
