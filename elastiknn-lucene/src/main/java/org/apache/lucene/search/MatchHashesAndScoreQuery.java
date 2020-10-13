@@ -53,12 +53,11 @@ public class MatchHashesAndScoreQuery extends Query {
 
         return new Weight(this) {
 
-            private int[] topKDocIDs(LeafReader reader) throws IOException {
+            private Integer[] topKDocIDs(LeafReader reader) throws IOException {
                 Terms terms = reader.terms(field);
-                if (terms == null) return new int[0];
+                if (terms == null) return new Integer[0];
                 else {
                     int N = reader.maxDoc();
-                    int k = candidates;
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
                     float[] scores = new float[N];
@@ -75,20 +74,20 @@ public class MatchHashesAndScoreQuery extends Query {
                             }
                         }
                     }
-                    PriorityQueue<Integer> q = new PriorityQueue<>(k, Comparator.comparingDouble(i -> scores[i]));
+                    PriorityQueue<Integer> q = new PriorityQueue<>(candidates, Comparator.comparingDouble(i -> scores[i]));
                     for (int docID = minDocID; docID <= maxDocID; docID++) {
-                        if (q.size() < k) q.add(docID);
+                        if (q.size() < candidates) q.add(docID);
                         else if (scores[docID] > scores[q.peek()]) {
                             q.remove();
                             q.add(docID);
                         }
                     }
                     // logger.info(String.format("q.size() = %d", q.size()));
-                    return q.stream().mapToInt(x -> x).toArray();
+                    return q.toArray(new Integer[0]);
                 }
             }
 
-            private DocIdSetIterator buildDocIdSetIterator(int[] topDocIDs) {
+            private DocIdSetIterator buildDocIdSetIterator(Integer[] topDocIDs) {
                 if (topDocIDs.length == 0) return DocIdSetIterator.empty();
                 else {
 
@@ -144,7 +143,7 @@ public class MatchHashesAndScoreQuery extends Query {
             public Scorer scorer(LeafReaderContext context) throws IOException {
                 ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                 LeafReader reader = context.reader();
-                int[] topDocIDs = topKDocIDs(reader);
+                Integer[] topDocIDs = topKDocIDs(reader);
                 DocIdSetIterator disi = buildDocIdSetIterator(topDocIDs);
 
                 return new Scorer(this) {
