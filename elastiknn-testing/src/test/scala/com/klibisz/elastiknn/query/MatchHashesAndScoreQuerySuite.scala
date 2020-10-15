@@ -153,7 +153,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
   test("Stops early after limit is exceeded") {
 
     indexAndSearch() { w =>
-      (0 to 100)
+      (0 until 100)
         .map { i =>
           Array(1, 2, 3, i)
         }
@@ -177,8 +177,8 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
                                                  id.toFloat
                                              })
         val dd = s.search(q, 20)
-//        b.toArray.length shouldBe 10
-//        dd.scoreDocs.length shouldBe 10
+        b.toArray.length shouldBe 10
+        dd.scoreDocs.length shouldBe 10
     }
 
   }

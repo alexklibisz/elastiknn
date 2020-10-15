@@ -88,7 +88,6 @@ class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport
         res.scoreDocs.map(_.doc) shouldBe Array(0, 1)
         res.scoreDocs.map(_.score) shouldBe Array(3f, 2f)
     }
-
   }
 
   test("deterministic lucene indexing and queries") {

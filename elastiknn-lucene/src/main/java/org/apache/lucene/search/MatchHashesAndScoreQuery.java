@@ -89,7 +89,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docId = counter.minKey() - 1;
+                        private int docID = counter.minKey() - 1;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -97,7 +97,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int docID() {
-                            return docId;
+                            return docID;
                         }
 
                         @Override
@@ -106,15 +106,15 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || docId + 1 > counter.maxKey()) {
-                                    docId = DocIdSetIterator.NO_MORE_DOCS;
+                                if (numEmitted == candidates || docID + 1 > counter.maxKey()) {
+                                    docID = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 } else {
-                                    docId++;
-                                    if (counter.get(docId) > kgr.kthGreatest) {
+                                    docID++;
+                                    if (counter.get(docID) > kgr.kthGreatest) {
                                         numEmitted++;
                                         return docID();
-                                    } else if (counter.get(docId) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                    } else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                         numEq++;
                                         numEmitted++;
                                         return docID();
@@ -125,7 +125,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int advance(int target) {
-                            while (docId < target) nextDoc();
+                            while (docID < target) nextDoc();
                             return docID();
                         }
 
