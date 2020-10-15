@@ -4,24 +4,21 @@ import com.klibisz.elastiknn.api._
 import zio._
 import zio.console.Console
 
-/**
-  * App that runs micro-benchmarks in a Github Workflow.
-  */
-object ContinuousBenchmark extends App {
+object LocalBenchmark extends App {
 
   private val field = "vec"
   private val bucket = s"elastiknn-benchmarks"
   private val k = 100
 
   private val experiments = Seq(
-    // Expected ~3 Q/S for exact and 0.85 recall with ~35 Q/S for L2 LSH.
     Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      Dataset.AnnbFashionMnist,
+      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 1),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 6),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 10000, 7), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4, limit = 0.5f), k)
       )
     )
   )

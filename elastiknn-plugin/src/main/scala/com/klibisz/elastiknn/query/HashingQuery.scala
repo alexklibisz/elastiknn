@@ -13,6 +13,7 @@ object HashingQuery {
   def apply[V <: Vec, S <: StoredVec](field: String,
                                       query: V,
                                       candidates: Int,
+                                      limit: Float,
                                       hashes: Array[HashAndFreq],
                                       exactFunction: ExactSimilarityFunction[V, S],
                                       indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
@@ -27,18 +28,11 @@ object HashingQuery {
       field,
       hashes,
       candidates,
+      limit,
       indexReader,
       scoreFunction
     )
   }
-
-  def apply[M <: Mapping, V <: Vec, S <: StoredVec](field: String,
-                                                    query: V,
-                                                    candidates: Int,
-                                                    lshFunction: HashingFunction[M, V, S],
-                                                    exactFunction: ExactSimilarityFunction[V, S],
-                                                    indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query =
-    HashingQuery(field, query, candidates, lshFunction(query), exactFunction, indexReader)
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec, F <: HashingFunction[M, V, S]](
       field: String,

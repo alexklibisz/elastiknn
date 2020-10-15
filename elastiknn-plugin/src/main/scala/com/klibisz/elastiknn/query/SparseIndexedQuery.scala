@@ -28,6 +28,7 @@ object SparseIndexedQuery {
       field,
       terms,
       indexReader.getDocCount(field),
+      1f,
       indexReader,
       scoreFunction
     )
