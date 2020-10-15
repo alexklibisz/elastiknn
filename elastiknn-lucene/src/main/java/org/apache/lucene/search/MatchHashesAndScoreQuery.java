@@ -11,6 +11,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import static java.lang.Math.min;
+
 /**
  * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
  * docs containing the most matching hashes. Largely based on Lucene's TermsInSetQuery.
@@ -67,10 +69,10 @@ public class MatchHashesAndScoreQuery extends Query {
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hf : hashAndFrequencies) {
-                        if (counter.numHits() < counterLimit && termsEnum.seekExact(new BytesRef(hf.getHash()))) {
+                        if (counter.numHits() < counterLimit && termsEnum.seekExact(new BytesRef(hf.hash))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS && counter.numHits() < counterLimit) {
-                                counter.increment(docs.docID(), Math.min(hf.getFreq(), docs.freq()));
+                                counter.increment(docs.docID(), min(hf.freq, docs.freq()));
                             }
                         }
                     }

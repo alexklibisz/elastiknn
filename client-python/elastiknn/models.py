@@ -1,14 +1,11 @@
 import json
-import itertools
-
-from concurrent.futures import wait
 from concurrent.futures.thread import ThreadPoolExecutor
-from elasticsearch import Elasticsearch
 from logging import Logger
 from time import time
 from typing import List, Union
 
 import numpy as np
+from elasticsearch import Elasticsearch
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
