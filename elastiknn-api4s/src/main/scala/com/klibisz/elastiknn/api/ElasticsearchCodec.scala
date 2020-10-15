@@ -187,13 +187,28 @@ object ElasticsearchCodec { esc =>
       } yield mapping
   }
 
-  implicit val exactNNQ: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
-  implicit val jaccardIndexedNNQ: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
-  implicit val jaccardLshNNQ: ESC[NearestNeighborsQuery.JaccardLsh] = ElasticsearchCodec(deriveCodec)
-  implicit val hammingLshNNQ: ESC[NearestNeighborsQuery.HammingLsh] = ElasticsearchCodec(deriveCodec)
-  implicit val angularLshNNQ: ESC[NearestNeighborsQuery.AngularLsh] = ElasticsearchCodec(deriveCodec)
-  implicit val l2LshNNQ: ESC[NearestNeighborsQuery.L2Lsh] = ElasticsearchCodec(deriveCodec)
-  implicit val queryPermutationLsh: ESC[NearestNeighborsQuery.PermutationLsh] = ElasticsearchCodec(deriveCodec)
+  implicit val queryExact: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
+  implicit val querySparseIndexed: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
+  implicit val queryJaccardLsh: ESC[NearestNeighborsQuery.JaccardLsh] = {
+    implicit val cfg: Configuration = Configuration.default.withDefaults
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
+  implicit val queryHammingLsh: ESC[NearestNeighborsQuery.HammingLsh] = {
+    implicit val cfg: Configuration = Configuration.default.withDefaults
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
+  implicit val queryAngularLsh: ESC[NearestNeighborsQuery.AngularLsh] = {
+    implicit val cfg: Configuration = Configuration.default.withDefaults
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
+  implicit val queryL2Lsh: ESC[NearestNeighborsQuery.L2Lsh] = {
+    implicit val cfg: Configuration = Configuration.default.withDefaults
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
+  implicit val queryPermutationLsh: ESC[NearestNeighborsQuery.PermutationLsh] = {
+    implicit val cfg: Configuration = Configuration.default.withDefaults
+    ElasticsearchCodec(deriveConfiguredCodec)
+  }
 
   implicit val nearestNeighborsQuery: ESC[NearestNeighborsQuery] = new ESC[NearestNeighborsQuery] {
     override def apply(a: NearestNeighborsQuery): Json = {

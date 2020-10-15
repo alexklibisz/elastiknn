@@ -12,13 +12,13 @@ object LocalBenchmark extends App {
 
   private val experiments = Seq(
     Experiment(
-      Dataset.AnnbFashionMnist,
-      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+      Dataset.AnnbSift,
+      Mapping.DenseFloat(Dataset.AnnbSift.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 6),
+      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
       Seq(
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4, limit = 0.5f), k)
+//        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4), k),
+        Query(NearestNeighborsQuery.L2Lsh(field, 10000, 9, limit = 0.5f), k)
       )
     )
   )
