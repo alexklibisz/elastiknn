@@ -1,5 +1,7 @@
-- Minor internal change to increase the number of non-candidate doc IDs which are iterated over
-during a query.
+- Added optional `limit` parameter to all Lsh queries. For now I'm leaving it undocumented. I'm not 100% sure it's
+a great idea. 
+---
+- Minor internal change to decrease the number of non-candidate doc IDs which are iterated over during a query.
 - Changed documentation URL from elastiknn.klibisz.com to elastiknn.com.
 ---
 - Fixed docs for running nearest neighbors query on a filtered subset of documents.
