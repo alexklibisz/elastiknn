@@ -52,6 +52,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
           "vec",
           hashes,
           10,
+          1f,
           r,
           (_: LeafReaderContext) =>
             (docId: Int, numMatchingHashes: Int) => {
@@ -82,6 +83,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
           "vec",
           hashes,
           10,
+          1f,
           r,
           (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
         )
@@ -101,7 +103,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
     } {
       case (r, s) =>
         val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
-        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
+        val q = new MatchHashesAndScoreQuery("vec", hashes, 5, 1f, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
     }
@@ -135,6 +137,7 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
         val q = new MatchHashesAndScoreQuery("vec",
                                              query,
                                              candidates,
+                                             1f,
                                              r,
                                              (_: LeafReaderContext) =>
                                                (_: Int, c: Int) => {
@@ -145,6 +148,39 @@ class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSu
         dd.scoreDocs.length shouldBe 5
         counts.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)
     }
+  }
+
+  test("Stops early after limit is exceeded") {
+
+    indexAndSearch() { w =>
+      (0 until 100)
+        .map { i =>
+          Array(1, 2, 3, i)
+        }
+        .foreach { arr =>
+          val d = new Document()
+          arr.foreach(i => d.add(new Field("vec", writeInt(i), ft)))
+          w.addDocument(d)
+        }
+    } {
+      case (r, s) =>
+        val b = new ArrayBuffer[Int]()
+        val v = Array(1, 2, 3).map(i => HashAndFreq.once(writeInt(i)))
+        val q = new MatchHashesAndScoreQuery("vec",
+                                             v,
+                                             20,
+                                             0.1f,
+                                             r,
+                                             (_: LeafReaderContext) =>
+                                               (id: Int, _: Int) => {
+                                                 b.append(id)
+                                                 id.toFloat
+                                             })
+        val dd = s.search(q, 20)
+        b.toArray.length shouldBe 10
+        dd.scoreDocs.length shouldBe 10
+    }
+
   }
 
 }

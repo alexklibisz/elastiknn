@@ -16,8 +16,8 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
         parsed shouldBe 'right
       }
 
-      withClue("parsed json doesn't match encoded object") {
-        parsed shouldBe Right(ElasticsearchCodec.encode(obj))
+      withClue("parsed json doesn't encode to match encoded object") {
+        decoded.map(ElasticsearchCodec.encode(_)) shouldBe Right(ElasticsearchCodec.encode(obj))
       }
 
       withClue("given json string doesn't decode to match the given object") {
@@ -182,6 +182,20 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99))
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99), 1f)
+
+    """
+      |{
+      | "field": "vec",
+      | "model": "lsh",
+      | "similarity": "jaccard",
+      | "candidates": 100,
+      | "vec": {
+      |   "true_indices": [1,2,3],
+      |   "total_indices": 99
+      | },
+      | "limit": 0.3
+      |}
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99), 0.3f)
   }
 }

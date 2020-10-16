@@ -45,7 +45,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       case (r, s) =>
         val t0 = System.currentTimeMillis()
         queryVecs.foreach { vec =>
-          val q = HashingQuery(field, vec, 100, model.hash(vec.values, 9), exactFunc, r)
+          val q = HashingQuery(field, vec, 100, 1f, model.hash(vec.values, 9), exactFunc, r)
           val dd = s.search(q, 100)
           dd.scoreDocs should have length 100
         }

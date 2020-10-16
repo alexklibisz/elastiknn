@@ -77,7 +77,6 @@ compile: compile/gradle
 run/cluster: .mk/run-cluster
 
 run/gradle:
-	cd elastiknn-testing && $(dc) down
 	$(gradle) :plugin:run $(shell cat .esopts | xargs)
 
 run/debug:

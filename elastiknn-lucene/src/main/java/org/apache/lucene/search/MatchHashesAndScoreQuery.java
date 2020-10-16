@@ -11,6 +11,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+import static java.lang.Math.min;
+
 /**
  * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
  * docs containing the most matching hashes. Largely based on Lucene's TermsInSetQuery.
@@ -24,12 +26,14 @@ public class MatchHashesAndScoreQuery extends Query {
     private final String field;
     private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
+    private final float limit;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
                                     final int candidates,
+                                    final float limit,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
@@ -39,6 +43,7 @@ public class MatchHashesAndScoreQuery extends Query {
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
         this.candidates = candidates;
+        this.limit = limit;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
     }
@@ -60,13 +65,14 @@ public class MatchHashesAndScoreQuery extends Query {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    double counterLimit = limit < 1f ? limit * counter.capacity() : counter.capacity() + 1;
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
-                    for (HashAndFreq hac : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hac.getHash()))) {
+                    for (HashAndFreq hf : hashAndFrequencies) {
+                        if (counter.numHits() < counterLimit && termsEnum.seekExact(new BytesRef(hf.hash))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), Math.min(hac.getFreq(), docs.freq()));
+                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS && counter.numHits() < counterLimit) {
+                                counter.increment(docs.docID(), min(hf.freq, docs.freq()));
                             }
                         }
                     }
@@ -83,7 +89,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docId = counter.minKey() - 1;
+                        private int docID = counter.minKey() - 1;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -91,7 +97,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int docID() {
-                            return docId;
+                            return docID;
                         }
 
                         @Override
@@ -100,15 +106,15 @@ public class MatchHashesAndScoreQuery extends Query {
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
-                                if (numEmitted == candidates || docId + 1 > counter.maxKey()) {
-                                    docId = DocIdSetIterator.NO_MORE_DOCS;
+                                if (numEmitted == candidates || docID + 1 > counter.maxKey()) {
+                                    docID = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 } else {
-                                    docId++;
-                                    if (counter.get(docId) > kgr.kthGreatest) {
+                                    docID++;
+                                    if (counter.get(docID) > kgr.kthGreatest) {
                                         numEmitted++;
                                         return docID();
-                                    } else if (counter.get(docId) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                    } else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                         numEq++;
                                         numEmitted++;
                                         return docID();
@@ -119,7 +125,7 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int advance(int target) {
-                            while (docId < target) nextDoc();
+                            while (docID < target) nextDoc();
                             return docID();
                         }
 

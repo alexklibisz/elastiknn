@@ -119,7 +119,6 @@ object Execute extends App {
       (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
 
-      _ <- searchClient.deleteIndex(trainIndex)
     } yield BenchmarkResult(dataset, eknnMapping, eknnQuery, k, shards, parallelQueries, dur.toMillis, results.toArray)
   }
 

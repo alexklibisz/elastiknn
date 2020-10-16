@@ -88,26 +88,26 @@ object KnnQueryBuilder {
       case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, indexReader)
 
-      case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)
+      case (JaccardLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.JaccardLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)
 
-      case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming, indexReader)
+      case (HammingLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.HammingLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming, indexReader)
 
-      case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
+      case (AngularLsh(f, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.AngularLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
 
-      case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values, probes), ESF.L2, indexReader)
+      case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat, l: Float), m: Mapping.L2Lsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values, probes), ESF.L2, indexReader)
 
-      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
+      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
 
-      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.L2, indexReader)
+      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.L2, indexReader)
 
-      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, ModelCache(m).hash(v.values), ESF.L1, indexReader)
+      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
+        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.L1, indexReader)
 
       case _ => throw incompatible(mapping, query)
     }
