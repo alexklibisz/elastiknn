@@ -12,16 +12,14 @@ from tqdm import tqdm
 from . import ELASTIKNN_NAME
 from .api import Mapping, Vec, NearestNeighborsQuery, Similarity
 from .client import ElastiknnClient
-from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, dealias_metric
+from .utils import canonical_vectors_to_elastiknn, valid_metrics_algos, dealias_metric, ndarray_to_dense_float_vectors
 
 
 class ElastiknnModel(object):
 
     def __init__(self, algorithm: str, metric: str, es: Elasticsearch = None, mapping_params: dict = {},
-                 query_params: dict = {}, n_jobs=1, index: str = None):
+                 query_params: dict = {}, index: str = None):
         self._logger = Logger(self.__class__.__name__)
-        self._n_jobs = n_jobs
-        self._tpex = ThreadPoolExecutor(self._n_jobs)
         self._vec_field = "vec"
         self._stored_id_field = "id"
         self._index = index
@@ -32,7 +30,11 @@ class ElastiknnModel(object):
         assert (self._algorithm, metric) in valid_metrics_algos, \
             f"algorithm [{algorithm}] and metric [{metric}] should be one of {valid_metrics_algos}"
         self._metric = dealias_metric(metric)
-        self._dims, self._query = None, None
+        self._dims = None # Defined in fit()
+        self._query = None
+
+        # TODO remove after debugging...
+        self._took_sum = 0
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         self._dims = len(X[0])
@@ -56,24 +58,27 @@ class ElastiknnModel(object):
         self._eknn.index(self._index, self._vec_field, [], self._stored_id_field, [], refresh=True)
 
 
+    def set_query_params(self, query_params: dict = None):
+        self._query_params = query_params
+        (_, self._query) = self._mk_mapping_query(self._query_params)
+
     def kneighbors(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat], List[Vec.Base]],
-                   n_neighbors: int, return_similarity: bool = False, progbar: bool = False, query_params: dict = None):
+                   n_neighbors: int, return_similarity: bool = False, progbar: bool = False):
 
-        if query_params is not None:
-            (_, self._query) = self._mk_mapping_query(query_params)
+        inds = np.zeros((len(X), n_neighbors), dtype=np.int32) - 1
+        # sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
+        sims = inds * np.nan
 
-        mapped = self._tpex.map(
-            lambda v: self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
-                                                   n_neighbors, fetch_source=False),
-            canonical_vectors_to_elastiknn(X))
-
-        inds = np.ones((len(X), n_neighbors), dtype=np.int32) * -1
-        sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
-        for i, res in tqdm(enumerate(mapped), disable=not progbar):
+        for i, v in tqdm(enumerate(canonical_vectors_to_elastiknn(X)), disable=not progbar):
+            res = self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
+                                               n_neighbors, fetch_source=False)
+            # from pprint import pprint
+            # pprint(res)
+            # print("---")
+            # self._took_sum += res['took']
             hits = res['hits']['hits']
             for j, hit in enumerate(hits):
-                hit['_id'] = hit['fields'][self._stored_id_field][0]    # Access stored ID.
-                inds[i][j] = int(hit['_id']) - 1                        # Subtract one because 0 is an invalid id in ES.
+                inds[i][j] = int(hit['fields'][self._stored_id_field][0]) - 1  # Subtract one from id because 0 is an invalid id in ES.
                 sims[i][j] = float(hit['_score'])
 
         if return_similarity:
