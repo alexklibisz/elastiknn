@@ -31,10 +31,7 @@ class ElastiknnModel(object):
             f"algorithm [{algorithm}] and metric [{metric}] should be one of {valid_metrics_algos}"
         self._metric = dealias_metric(metric)
         self._dims = None # Defined in fit()
-        self._query = None
-
-        # TODO remove after debugging...
-        self._took_sum = 0
+        self._query = None # Defined in fit() and set_query_params()
 
     def fit(self, X: Union[np.ndarray, csr_matrix, List[Vec.SparseBool], List[Vec.DenseFloat]], shards: int = 1):
         self._dims = len(X[0])
@@ -66,16 +63,11 @@ class ElastiknnModel(object):
                    n_neighbors: int, return_similarity: bool = False, progbar: bool = False):
 
         inds = np.zeros((len(X), n_neighbors), dtype=np.int32) - 1
-        # sims = np.zeros((len(X), n_neighbors), dtype=np.float) * np.nan
         sims = inds * np.nan
 
         for i, v in tqdm(enumerate(canonical_vectors_to_elastiknn(X)), disable=not progbar):
             res = self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
                                                n_neighbors, fetch_source=False)
-            # from pprint import pprint
-            # pprint(res)
-            # print("---")
-            # self._took_sum += res['took']
             hits = res['hits']['hits']
             for j, hit in enumerate(hits):
                 inds[i][j] = int(hit['fields'][self._stored_id_field][0]) - 1  # Subtract one from id because 0 is an invalid id in ES.
