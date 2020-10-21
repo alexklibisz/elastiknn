@@ -30,7 +30,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
     val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0))
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
-    val fieldType = new VectorMapper.FieldType(field)
+    val fieldType = VectorMapper.denseFloatVector.luceneFieldType
     indexAndSearch(codec = new BenchmarkCodec) { w =>
       val t0 = System.currentTimeMillis()
       for {

@@ -1,24 +1,23 @@
 package com.klibisz.elastiknn.mapper
 
 import java.util
+import java.util.Collections
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
+import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
-import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
+import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
-import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.common.lucene.Lucene
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
-import org.elasticsearch.index.similarity.SimilarityProvider
 
 import scala.util.{Failure, Try}
 
@@ -33,11 +32,11 @@ object VectorMapper {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
             case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
+            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, luceneFieldType, sorted))
             case m: Mapping.JaccardLsh =>
-              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+              Try(HashingQuery.index(field, luceneFieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
             case m: Mapping.HammingLsh =>
-              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+              Try(HashingQuery.index(field, luceneFieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
             case _ => Failure(incompatible(mapping, vec))
           }
         }
@@ -51,9 +50,9 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
           }
     }
@@ -62,20 +61,8 @@ object VectorMapper {
     s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
   )
 
-  class FieldType(typeName: String) extends MappedFieldType {
-
-    // We generally only care about the presence or absence of terms, not their counts or anything fancier.
-    setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
-    setOmitNorms(true)
-    setBoost(1f)
-    setTokenized(false)
-    setIndexOptions(IndexOptions.DOCS_AND_FREQS)
-    setStoreTermVectors(false)
-
-    // TODO: are these necessary?
-    setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
-    setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
-
+  // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
+  class FieldType(typeName: String) extends MappedFieldType(typeName, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName)
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {
@@ -84,7 +71,6 @@ object VectorMapper {
         throw new UnsupportedOperationException(
           s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
     }
-
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
   }
 
@@ -95,12 +81,22 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   val CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  protected val fieldType = new VectorMapper.FieldType(CONTENT_TYPE)
+  final val mappedFieldType = new VectorMapper.FieldType(CONTENT_TYPE)
+
+  final val luceneFieldType: LuceneFieldType = {
+    // TODO: is there a way to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
+    val ft = new LuceneFieldType()
+    ft.setTokenized(false)
+    ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+    ft.setOmitNorms(true)
+    ft.freeze()
+    ft
+  }
 
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
+    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_] = {
       val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
       val builder: Builder = new Builder(name, mapping)
       TypeParsers.parseField(builder, name, node, parserContext)
@@ -109,7 +105,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
     }
   }
 
-  private class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder[Builder, FieldMapper](field, fieldType, fieldType) {
+  private class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder[Builder](field, luceneFieldType) {
 
     /** Populate the given builder from the given Json. */
     private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
@@ -143,10 +139,8 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
       populate(json)
     }
 
-    override def build(context: Mapper.BuilderContext): FieldMapper = {
-      super.setupFieldType(context)
-
-      new FieldMapper(field, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
+    override def build(context: Mapper.BuilderContext): FieldMapper =
+      new FieldMapper(field, luceneFieldType, mappedFieldType, multiFieldsBuilder.build(this, context), copyTo) {
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser.map.asJson
@@ -154,9 +148,12 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           val fields = self.checkAndCreateFields(mapping, name, vec).get
           fields.foreach(doc.add)
         }
-        override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
+
+        override def parseCreateField(context: ParseContext): Unit =
           throw new IllegalStateException("parse() is implemented directly")
+
         override def contentType(): String = CONTENT_TYPE
+
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)
           ElasticsearchCodec
@@ -168,8 +165,12 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
             .foreach(populateXContent(_, builder))
 
         }
+
+        override def mergeOptions(other: FieldMapper, conflicts: util.List[String]): Unit = {
+          // TODO: should probably do something here? This is new in 7.9.x.
+          ()
+        }
       }
-    }
   }
 
 }

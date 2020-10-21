@@ -1,20 +1,20 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.mapper
+import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.query.HashingQuery
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
-import org.apache.lucene.search.{MatchHashesAndScoreQuery}
+import org.apache.lucene.search.MatchHashesAndScoreQuery
 import org.scalatest._
 
 import scala.util.Random
 
 class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport {
 
-  val ft = new mapper.VectorMapper.FieldType("elastiknn_dense_float_vector")
+  val ft = VectorMapper.denseFloatVector.luceneFieldType
 
   test("example from paper") {
     val mapping = Mapping.PermutationLsh(6, 4, true)

@@ -13,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
-  val ft: VectorMapper.FieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector")
+  val ft: FieldType = VectorMapper.denseFloatVector.luceneFieldType
 
   test("empty harness") {
     indexAndSearch() { (_: IndexWriter) =>
