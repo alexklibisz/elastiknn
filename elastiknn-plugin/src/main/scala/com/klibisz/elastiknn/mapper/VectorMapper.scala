@@ -78,12 +78,12 @@ object VectorMapper {
 
 abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
-  val CONTENT_TYPE: String
+  def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  final val mappedFieldType = new VectorMapper.FieldType(CONTENT_TYPE)
+  final def mappedFieldType: VectorMapper.FieldType = new VectorMapper.FieldType(CONTENT_TYPE)
 
-  final val luceneFieldType: LuceneFieldType = {
+  final def luceneFieldType: LuceneFieldType = {
     // TODO: is there a way to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
     val ft = new LuceneFieldType()
     ft.setTokenized(false)
