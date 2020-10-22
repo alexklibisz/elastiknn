@@ -1,3 +1,8 @@
+- Tweaks to the Python client:
+  - Removed threadpool from python `ElastiknnModel`. There's a non-trivial cost to using this, and the benchmarking code that uses this client is already single-threaded by design.
+  - Added method `set_query_params` to python `ElastiknnModel`. This lets you update the query parameters once instead of doing it on every call to the `kneighbors` method. 
+  - Using `filter_path` parameter in python `es.search()` method calls. This seems to add about 10 queries/sec. I guess there's some non-negligible cost to how the Elasticsearch python library parses JSON responses?
+---
 - Added optional `limit` parameter to all Lsh queries. For now I'm leaving it undocumented. I'm not 100% sure it's
 a great idea. 
 ---
