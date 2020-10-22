@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.query
 
 import java.util.Objects
 
-import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
@@ -45,7 +44,7 @@ object ExactQuery {
     * Helper class that makes it easy to read vectors that were stored using the conventions in this class.
     */
   final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, field: String) {
-    private val vecDocVals = lrc.reader.getBinaryDocValues(vecDocValuesField(field))
+    private val vecDocVals = lrc.reader.getBinaryDocValues(field)
 
     def apply(docId: Int): S =
       if (vecDocVals.advanceExact(docId)) {
@@ -60,22 +59,17 @@ object ExactQuery {
     */
   def apply[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
       implicit codec: StoredVec.Codec[V, S]): FunctionScoreQuery = {
-    val subQuery = new DocValuesFieldExistsQuery(vecDocValuesField(field))
+    val subQuery = new DocValuesFieldExistsQuery(field)
     val func = new ExactScoreFunction(field, queryVec, simFunc)
     new FunctionScoreQuery(subQuery, func)
   }
-
-  /**
-    * Appends to the given field name to produce the name where a vector is stored.
-    */
-  def vecDocValuesField(field: String): String = s"$field.$ELASTIKNN_NAME.vector"
 
   /**
     * Creates and returns a single indexable field that stores the vector contents as a [[BinaryDocValuesField]].
     */
   def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
     val storedVec = implicitly[StoredVec.Encoder[V]].apply(vec)
-    Seq(new BinaryDocValuesField(vecDocValuesField(field), new BytesRef(storedVec)))
+    Seq(new BinaryDocValuesField(field, new BytesRef(storedVec)))
   }
 
 }
