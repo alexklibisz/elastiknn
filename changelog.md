@@ -1,3 +1,6 @@
+- **Breaking internal change**
+  - Storing the vector doc-values using just the field name. Previously used the field name with a suffix. Turns out this is not necessary, and it complicates "exists" queries.   
+---
 - Tweaks to the Python client:
   - Removed threadpool from python `ElastiknnModel`. There's a non-trivial cost to using this, and the benchmarking code that uses this client is already single-threaded by design.
   - Added method `set_query_params` to python `ElastiknnModel`. This lets you update the query parameters once instead of doing it on every call to the `kneighbors` method. 
