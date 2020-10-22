@@ -85,7 +85,9 @@ object VectorMapper {
           s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
     }
 
-    override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
+    override def existsQuery(context: QueryShardContext): Query = {
+      new DocValuesFieldExistsQuery(name())
+    }
   }
 
 }
