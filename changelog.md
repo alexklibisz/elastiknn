@@ -1,5 +1,5 @@
-- **Breaking internal change**
-  - Storing the vector doc-values using just the field name. Previously used the field name with a suffix. Turns out this is not necessary, and it complicates "exists" queries.   
+- **Breaking internal change - you should re-index your vectors when moving to this version**
+  - Storing the vector doc-values using just the field name. Previously used the field name with a suffix. Turns out this is not necessary, and it complicates "exists" queries.
 ---
 - Tweaks to the Python client:
   - Removed threadpool from python `ElastiknnModel`. There's a non-trivial cost to using this, and the benchmarking code that uses this client is already single-threaded by design.
