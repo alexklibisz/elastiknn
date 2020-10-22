@@ -125,6 +125,6 @@ class ElastiknnClient(object):
         if fetch_source:
             return self.es.search(index, body=body, size=k)
         else:
-
             return self.es.search(index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
-                                  stored_fields="_none_")
+                                  stored_fields="_none_",
+                                  filter_path=[f'hits.hits.fields.{stored_id_field}', 'hits.hits._score'])

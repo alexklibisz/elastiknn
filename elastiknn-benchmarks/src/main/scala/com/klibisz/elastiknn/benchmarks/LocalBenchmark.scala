@@ -12,13 +12,12 @@ object LocalBenchmark extends App {
 
   private val experiments = Seq(
     Experiment(
-      Dataset.AnnbSift,
-      Mapping.DenseFloat(Dataset.AnnbSift.dims),
+      Dataset.AnnbFashionMnist,
+      Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbSift.dims, 50, 4, 1),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 6),
       Seq(
-//        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 4), k),
-        Query(NearestNeighborsQuery.L2Lsh(field, 10000, 9, limit = 0.5f), k)
+        Query(NearestNeighborsQuery.L2Lsh(field, 1000, 3), k)
       )
     )
   )
@@ -37,7 +36,7 @@ object LocalBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 1000
+            maxQueries = 10000
           ))
       } yield ()
     }
