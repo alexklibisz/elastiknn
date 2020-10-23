@@ -31,7 +31,7 @@ class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers wit
     } yield {
       catNodesRes.shouldBeSuccess
       catNodesRes.result should have length 2
-      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("dil", "m").sorted
+      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("dilrt", "m").sorted
       // These change to Seq("dilrt", "dilrt", "mr") in version 7.7.x.
     }
   }
