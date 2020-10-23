@@ -22,6 +22,20 @@ import org.elasticsearch.index.query.QueryShardContext
 import scala.util.{Failure, Try}
 
 object VectorMapper {
+
+//  private val metaMappingKey = s"$ELASTIKNN_NAME.mapping"
+//
+//  def putMetaMapping(mapping: Mapping, meta: util.Map[String, String] = new util.HashMap[String, String](1)): util.Map[String, String] = {
+//    // meta.put(metaMappingKey, ElasticsearchCodec.encode(mapping).noSpaces)
+//    meta
+//  }
+//
+//  def getMetaMapping(meta: util.Map[String, String]): Try[Mapping] = {
+//    if (meta.containsKey(metaMappingKey))
+//      ElasticsearchCodec.parse(meta.get(metaMappingKey)).flatMap(ElasticsearchCodec.decodeJson[Mapping]).toTry
+//    else Failure(new RuntimeException(s"Expected to find key $metaMappingKey in the meta map"))
+//  }
+
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
     new VectorMapper[Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
@@ -62,9 +76,10 @@ object VectorMapper {
   )
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
-  class FieldType(typeName: String) extends MappedFieldType(typeName, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
+  class FieldType(typeName: String, fieldName: String, val mapping: Mapping)
+      extends MappedFieldType(fieldName, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
     override def typeName(): String = typeName
-    override def clone(): FieldType = new FieldType(typeName)
+    override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {
       case b: BytesRef => new TermQuery(new Term(name(), b))
       case _ =>
@@ -81,10 +96,8 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  final def mappedFieldType: VectorMapper.FieldType = new VectorMapper.FieldType(CONTENT_TYPE)
-
   final def luceneFieldType: LuceneFieldType = {
-    // TODO: is there a way to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
+    // TODO 7.9.2: is there a way (or a need) to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
     val ft = new LuceneFieldType()
     ft.setTokenized(false)
     ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
@@ -139,8 +152,14 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
       populate(json)
     }
 
-    override def build(context: Mapper.BuilderContext): FieldMapper =
-      new FieldMapper(field, luceneFieldType, mappedFieldType, multiFieldsBuilder.build(this, context), copyTo) {
+    override def build(context: Mapper.BuilderContext): FieldMapper = {
+      new FieldMapper(
+        field,
+        luceneFieldType,
+        new VectorMapper.FieldType(CONTENT_TYPE, context.path.pathAsText(name), mapping),
+        multiFieldsBuilder.build(this, context),
+        copyTo
+      ) {
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser.map.asJson
@@ -171,6 +190,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           ()
         }
       }
+    }
   }
 
 }

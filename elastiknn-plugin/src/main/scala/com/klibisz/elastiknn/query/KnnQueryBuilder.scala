@@ -1,25 +1,24 @@
 package com.klibisz.elastiknn.query
 
-import java.time.Duration
 import java.util.Objects
 
-import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
-import org.elasticsearch.action.admin.indices.mapping.get._
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
+import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
 
 object KnnQueryBuilder {
@@ -52,9 +51,6 @@ object KnnQueryBuilder {
       new KnnQueryBuilder(query)
     }
   }
-
-  private val mappingCache: Cache[(String, String), Mapping] =
-    CacheBuilder.newBuilder.expireAfterWrite(Duration.ofMinutes(1)).build()
 
   def apply(query: NearestNeighborsQuery, mapping: Mapping, indexReader: IndexReader): Query = {
     import NearestNeighborsQuery._
@@ -133,35 +129,20 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     case _                => this
   }
 
-  override def doToQuery(context: QueryShardContext): Query = KnnQueryBuilder(query, getMapping(context), context.getIndexReader)
+  override def doToQuery(context: QueryShardContext): Query = {
+    val mapping = getMapping(context)
+    val indexReader = context.getIndexReader
+    KnnQueryBuilder(query, mapping, indexReader)
+  }
 
   private def getMapping(context: QueryShardContext): Mapping = {
-    import KnnQueryBuilder.mappingCache
-    val index = context.index.getName
-    try {
-      mappingCache.get(
-        (index, query.field),
-        () => {
-          val client = context.getClient
-          val request = new GetFieldMappingsRequest().indices(index).fields(query.field)
-          val response = client.execute(GetFieldMappingsAction.INSTANCE, request).actionGet(1000)
-          val mappingMap = response
-            .mappings()
-            .get(index)
-            .get("_doc")
-            .get(query.field)
-            .sourceAsMap()
-            .get(query.field.split('.').last) // For nested fields e.g. "foo.bar.vec" -> "vec"
-          val mappingJsonMap = mappingMap.asInstanceOf[JavaJsonMap]
-          val mappingJson: Json = javaMapEncoder(mappingJsonMap)
-          ElasticsearchCodec.decodeJsonGet[Mapping](mappingJson)
-        }
-      )
-    } catch {
-      // Guava cache wraps any exceptions in an ExecutionException. Pass along only the cause.
-      case e: java.util.concurrent.ExecutionException =>
-        throw new RuntimeException(s"Failed to retrieve mapping at index [$index] field [${query.field}]", e.getCause)
-      case e: Throwable => throw e
+    import VectorMapper._
+    val mft: MappedFieldType = context.fieldMapper(query.field)
+    mft match {
+      case vft: FieldType => vft.mapping
+      case _ =>
+        throw new RuntimeException(
+          s"Expected field [${mft.name()}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}]")
     }
   }
 
