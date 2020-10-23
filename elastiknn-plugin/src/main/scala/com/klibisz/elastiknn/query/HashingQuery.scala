@@ -38,9 +38,14 @@ object HashingQuery {
       field: String,
       fieldType: MappedFieldType,
       vec: V,
-      hashes: Array[HashAndFreq]): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
-    val f = new Field(field, h.hash, fieldType)
-    (0 until h.freq).map(_ => f)
+      hashes: Array[HashAndFreq]): Seq[IndexableField] = {
+    val a = ExactQuery.index(field, vec)
+    val b = hashes.flatMap { h =>
+      println(h.hash)
+      val f = new Field(field, h.hash, fieldType)
+      (0 until h.freq).map(_ => f)
+    }
+    a ++ b
   }
 
 }

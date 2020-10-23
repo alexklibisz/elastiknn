@@ -52,6 +52,22 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   }
 
   /**
+    * Update a batch of vectors into existing Elasticsearch docs, one doc per vector.
+    *
+    * @param index Index where vectors are stored.
+    * @param vecField Field in each doc where vector is stored.
+    * @param vecs Sequence of vectors to add to existing documents.
+    * @param ids Sequence of ids. Assumed one-to-one correspondence to given vectors.
+    * @return [[Response]] containing [[BulkResponse]] containing update responses.
+    */
+  def update(index: String, vecField: String, vecs: Seq[Vec], ids: Seq[String]): F[Response[BulkResponse]] = {
+    val reqs = vecs.zip(ids).map {
+      case (vec, id) => ElastiknnRequests.update(index, vecField, vec, id)
+    }
+    execute(bulk(reqs))
+  }
+
+  /**
     * See [[ElastiknnRequests.nearestNeighbors()]].
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
@@ -132,7 +148,7 @@ object ElastiknnClient {
           case None => findBulkError(bulkResponseItems.tail, acc)
         }
     if (res.isError) {
-      Left(res.error.asException)
+      Left(StrictFailureException(s"Returned error response [$res] for request [$req].", res.error.asException))
     } else if (res.status >= 300) Left(StrictFailureException(s"Returned non-200 response [$res] for request [$req]."))
     else
       res.result match {

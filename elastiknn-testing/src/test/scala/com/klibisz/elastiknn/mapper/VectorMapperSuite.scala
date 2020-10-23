@@ -6,6 +6,8 @@ import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, Vec}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
+import com.sksamuel.elastic4s.requests.indexes.IndexRequest
+import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import com.sksamuel.elastic4s.{Indexes, Response}
 import io.circe.parser.parse
 import io.circe.{Json, JsonObject}
@@ -158,6 +160,67 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       exceptions <- Future.sequence(indexReqs)
 
     } yield forAll(exceptions)(_.getMessage shouldBe "mapper_parsing_exception failed to parse")
+  }
+
+  test("allow multiple vectors in the same doc") {
+
+    val index = "issue-176"
+    val dims = 10
+
+    val genDense = () => ElasticsearchCodec.nospaces(Vec.DenseFloat.random(dims))
+    val genSparse = () => ElasticsearchCodec.nospaces(Vec.SparseBool.random(dims))
+
+    // (Field name, Mapping, Function to generate a random vector)
+    val members: Seq[(String, Mapping, () => String)] = Seq(
+      Mapping.DenseFloat(dims),
+      Mapping.AngularLsh(dims, 10, 1),
+      Mapping.AngularLsh(dims, 10, 1),
+      Mapping.L2Lsh(dims, 21, 2, 3),
+      Mapping.PermutationLsh(dims, 22, false)
+    ).zipWithIndex.map(x => (s"df${x._2}", x._1, genDense)) ++ Seq(
+      Mapping.SparseBool(dims),
+      Mapping.SparseIndexed(dims),
+      Mapping.JaccardLsh(dims, 10, 2),
+      Mapping.JaccardLsh(dims, 10, 2),
+      Mapping.HammingLsh(dims, 10, 3)
+    ).zipWithIndex.map(x => (s"sb${x._2}", x._1, genSparse))
+
+    val combinedMapping = {
+      val vecFields = members.map {
+        case (name, mapping, _) => s""" "$name": ${ElasticsearchCodec.nospaces(mapping)} """
+      }
+      s"""
+         |{
+         |  "properties": {
+         |    "id": {
+         |      "type": "keyword",
+         |      "store": true
+         |    },
+         |    ${vecFields.mkString(",\n")}
+         |  }
+         |}
+         |""".stripMargin
+    }
+
+    val mappingDef = MappingDefinition(rawSource = Some(combinedMapping))
+
+    val indexReqs = (1 to 10).map { i =>
+      val vecFields = members.map {
+        case (name, _, gen) => s""""$name":${gen()}"""
+      }
+      val id = s"v$i"
+      val source = s""" { "id": "$id", ${vecFields.mkString(",")} """
+      IndexRequest(index, id = Some(id), source = Some(source))
+    }
+
+    for {
+      _ <- deleteIfExists(index)
+      _ <- eknn.execute(createIndex(index).shards(1).replicas(0).mapping(mappingDef))
+      _ <- eknn.execute(bulk(indexReqs))
+    } yield {
+      Assertions.succeed
+    }
+
   }
 
 }
