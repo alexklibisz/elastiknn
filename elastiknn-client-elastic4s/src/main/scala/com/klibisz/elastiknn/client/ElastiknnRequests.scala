@@ -5,7 +5,6 @@ import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
-import com.sksamuel.elastic4s.requests.update.UpdateRequest
 import com.sksamuel.elastic4s.{ElasticDsl, Indexes, XContentFactory}
 
 /**
@@ -29,20 +28,6 @@ trait ElastiknnRequests {
   def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
     val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
     IndexRequest(index, source = Some(xcb.string()), id = Some(id))
-  }
-
-  /**
-    * Create a request for updating a document with a vector.
-    *
-    * @param index Name of the index.
-    * @param vecField Field where the vector is stored.
-    * @param vec Vector to index.
-    * @param id Document ID.
-    * @return Instance of a [[com.sksamuel.elastic4s.requests.update.UpdateRequest]].
-    */
-  def update(index: String, vecField: String, vec: Vec, id: String): UpdateRequest = {
-    val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec))
-    UpdateRequest(index, documentSource = Some(xcb.string()), id = id)
   }
 
   /**

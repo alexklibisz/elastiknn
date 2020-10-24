@@ -298,7 +298,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     }
   }
 
-  describe("allow storing, searching multiple vectors in the same doc") {
+  describe("Storing, searching multiple vectors in the same doc") {
 
     it("stores and searches docs with multiple vectors") {
       implicit val rng: Random = new Random(0)
