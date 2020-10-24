@@ -171,19 +171,19 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     val genSparse = () => ElasticsearchCodec.nospaces(Vec.SparseBool.random(dims))
 
     // (Field name, Mapping, Function to generate a random vector)
-    val members: Seq[(String, Mapping, () => String)] = Seq(
-      Mapping.DenseFloat(dims),
-      Mapping.AngularLsh(dims, 10, 1),
-      Mapping.AngularLsh(dims, 10, 1),
-      Mapping.L2Lsh(dims, 21, 2, 3),
-      Mapping.PermutationLsh(dims, 22, false)
-    ).zipWithIndex.map(x => (s"df${x._2}", x._1, genDense)) ++ Seq(
-      Mapping.SparseBool(dims),
-      Mapping.SparseIndexed(dims),
-      Mapping.JaccardLsh(dims, 10, 2),
-      Mapping.JaccardLsh(dims, 10, 2),
-      Mapping.HammingLsh(dims, 10, 3)
-    ).zipWithIndex.map(x => (s"sb${x._2}", x._1, genSparse))
+    val members: Seq[(String, Mapping, () => String)] =
+      Seq(
+        ("df1", Mapping.DenseFloat(dims), genDense),
+        ("df2", Mapping.AngularLsh(dims, 10, 1), genDense),
+        ("df3", Mapping.AngularLsh(dims, 10, 1), genDense),
+        ("df4", Mapping.L2Lsh(dims, 21, 2, 3), genDense),
+        ("df5", Mapping.PermutationLsh(dims, 6, repeating = false), genDense),
+        ("sb1", Mapping.SparseBool(dims), genSparse),
+        ("sb2", Mapping.SparseIndexed(dims), genSparse),
+        ("sb3", Mapping.JaccardLsh(dims, 10, 2), genSparse),
+        ("sb4", Mapping.JaccardLsh(dims, 10, 2), genSparse),
+        ("sb5", Mapping.HammingLsh(dims, 10, 3), genSparse)
+      )
 
     val combinedMapping = {
       val vecFields = members.map {
@@ -209,7 +209,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
         case (name, _, gen) => s""""$name":${gen()}"""
       }
       val id = s"v$i"
-      val source = s""" { "id": "$id", ${vecFields.mkString(",")} """
+      val source = s""" { "id": "$id", ${vecFields.mkString(",")} } """
       IndexRequest(index, id = Some(id), source = Some(source))
     }
 

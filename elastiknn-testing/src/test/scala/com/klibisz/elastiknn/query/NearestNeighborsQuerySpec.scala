@@ -296,39 +296,4 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     }
   }
 
-//  describe("allow multiple vectors in the same document") {
-//
-//    implicit val rng: Random = new Random(0)
-//
-//    it("allows multiple dense vectors in the same document") {
-//      val (index, field1, field2, id) = ("issue-176", "vec1", "vec2", "id")
-//      val corpus = Vec.DenseFloat.randoms(128, 99)
-//      val ids = corpus.indices.map(i => s"d$i")
-//      val mappings = Seq(
-//        Mapping.DenseFloat(corpus.head.dims),
-//        Mapping.L2Lsh(corpus.head.dims, 50, 1, 3)
-//      )
-//
-//      Future
-//        .traverse(mappings) { mapping =>
-//          for {
-//            _ <- deleteIfExists(index)
-//            _ <- eknn.execute(createIndex(index).replicas(0).shards(1))
-//            _ <- eknn.putMapping(index, field1, id, mapping)
-//            _ <- eknn.putMapping(index, field2, id, mapping)
-//            _ <- eknn.index(index, field1, corpus, id, ids)
-//            _ <- eknn.index(index, field2, corpus, id, ids)
-//            _ <- eknn.execute(refreshIndex(index))
-//          } yield Assertions.succeed
-//        }
-//        .map(_.last)
-//
-//    }
-//
-////    it("allows multiple sparse vectors in the same document") {}
-////
-////    it("allows multiple mixed vectors in the same document") {}
-//
-//  }
-
 }
