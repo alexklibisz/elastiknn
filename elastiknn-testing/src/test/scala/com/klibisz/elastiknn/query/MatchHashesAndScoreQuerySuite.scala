@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.query
 
+import com.klibisz.elastiknn.api.Mapping
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
@@ -13,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
 
-  val ft: VectorMapper.FieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector")
+  val ft: VectorMapper.FieldType = new VectorMapper.FieldType("elastiknn_dense_float_vector", "vec", Mapping.DenseFloat(-1))
 
   test("empty harness") {
     indexAndSearch() { (_: IndexWriter) =>

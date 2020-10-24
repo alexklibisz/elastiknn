@@ -26,35 +26,35 @@ object VectorMapper {
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
     new VectorMapper[Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
-        if (mapping.dims != vec.totalIndices)
-          Failure(VectorDimensionException(vec.totalIndices, mapping.dims))
+      override def checkAndCreateFields(fieldType: FieldType, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
+        if (fieldType.mapping.dims != vec.totalIndices)
+          Failure(VectorDimensionException(vec.totalIndices, fieldType.mapping.dims))
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
-          mapping match {
-            case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, fieldType, sorted))
+          fieldType.mapping match {
+            case Mapping.SparseBool(_)    => Try(ExactQuery.index(fieldType.fieldName, sorted))
+            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(fieldType.fieldName, fieldType, sorted))
             case m: Mapping.JaccardLsh =>
-              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+              Try(HashingQuery.index(fieldType.fieldName, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
             case m: Mapping.HammingLsh =>
-              Try(HashingQuery.index(field, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
-            case _ => Failure(incompatible(mapping, vec))
+              Try(HashingQuery.index(fieldType.fieldName, fieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
+            case _ => Failure(incompatible(fieldType.mapping, vec))
           }
         }
     }
   val denseFloatVector: VectorMapper[Vec.DenseFloat] =
     new VectorMapper[Vec.DenseFloat] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
-        if (mapping.dims != vec.values.length)
-          Failure(VectorDimensionException(vec.values.length, mapping.dims))
+      override def checkAndCreateFields(fieldType: FieldType, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
+        if (fieldType.mapping.dims != vec.values.length)
+          Failure(VectorDimensionException(vec.values.length, fieldType.mapping.dims))
         else
-          mapping match {
-            case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, fieldType, vec, Cache(m).hash(vec.values)))
-            case _                         => Failure(incompatible(mapping, vec))
+          fieldType.mapping match {
+            case Mapping.DenseFloat(_)     => Try(ExactQuery.index(fieldType.fieldName, vec))
+            case m: Mapping.AngularLsh     => Try(HashingQuery.index(fieldType.fieldName, fieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.L2Lsh          => Try(HashingQuery.index(fieldType.fieldName, fieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.PermutationLsh => Try(HashingQuery.index(fieldType.fieldName, fieldType, vec, Cache(m).hash(vec.values)))
+            case _                         => Failure(incompatible(fieldType.mapping, vec))
           }
     }
 
@@ -62,7 +62,7 @@ object VectorMapper {
     s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
   )
 
-  class FieldType(typeName: String) extends MappedFieldType {
+  case class FieldType(override val typeName: String, fieldName: String, mapping: Mapping) extends MappedFieldType {
 
     // We generally only care about the presence or absence of terms, not their counts or anything fancier.
     setSimilarity(new SimilarityProvider("boolean", new BooleanSimilarity))
@@ -76,16 +76,48 @@ object VectorMapper {
     setIndexAnalyzer(Lucene.KEYWORD_ANALYZER)
     setSearchAnalyzer(Lucene.KEYWORD_ANALYZER)
 
-    override def typeName(): String = typeName
-    override def clone(): FieldType = new FieldType(typeName)
+    override def name(): String = fieldName
+    override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {
       case b: BytesRef => new TermQuery(new Term(name(), b))
       case _ =>
         throw new UnsupportedOperationException(
-          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
+          s"Field [${name()}] of type [${typeName}] doesn't support term queries with value of type [${value.getClass}]")
     }
 
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
+  }
+
+  /** Populate the given builder from the given Json. */
+  private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
+    def populate(json: Json): Unit =
+      if (json.isBoolean) json.asBoolean.foreach(builder.value)
+      else if (json.isString) json.asString.foreach(builder.value)
+      else if (json.isNumber) json.asNumber.foreach { n =>
+        lazy val asInt = n.toInt
+        lazy val asLong = n.toLong
+        if (asInt.isDefined) builder.value(asInt.get)
+        else if (asLong.isDefined) builder.value(asLong.get)
+        else builder.value(n.toDouble)
+      } else if (json.isArray) json.asArray.foreach(_.foreach(populate))
+      else if (json.isObject) json.asObject.foreach {
+        _.toIterable.foreach {
+          case (k, v) =>
+            if (v.isObject) {
+              builder.startObject(k)
+              populate(v)
+              builder.endObject()
+            } else if (v.isArray) {
+              builder.startArray(k)
+              populate(v)
+              builder.endArray()
+            } else {
+              builder.field(k)
+              populate(v)
+            }
+        }
+      }
+    populate(json)
   }
 
 }
@@ -93,65 +125,37 @@ object VectorMapper {
 abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
   val CONTENT_TYPE: String
-  def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
-
-  protected val fieldType = new VectorMapper.FieldType(CONTENT_TYPE)
+  def checkAndCreateFields(fieldType: VectorMapper.FieldType, vec: V): Try[Seq[IndexableField]]
 
   import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
       val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
-      val builder: Builder = new Builder(name, mapping)
+      val builder: FieldMapper.Builder[Builder, FieldMapper] = Builder(name, mapping)
       TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
       builder
     }
   }
 
-  private class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder[Builder, FieldMapper](field, fieldType, fieldType) {
-
-    /** Populate the given builder from the given Json. */
-    private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
-      def populate(json: Json): Unit =
-        if (json.isBoolean) json.asBoolean.foreach(builder.value)
-        else if (json.isString) json.asString.foreach(builder.value)
-        else if (json.isNumber) json.asNumber.foreach { n =>
-          lazy val asInt = n.toInt
-          lazy val asLong = n.toLong
-          if (asInt.isDefined) builder.value(asInt.get)
-          else if (asLong.isDefined) builder.value(asLong.get)
-          else builder.value(n.toDouble)
-        } else if (json.isArray) json.asArray.foreach(_.foreach(populate))
-        else if (json.isObject) json.asObject.foreach {
-          _.toIterable.foreach {
-            case (k, v) =>
-              if (v.isObject) {
-                builder.startObject(k)
-                populate(v)
-                builder.endObject()
-              } else if (v.isArray) {
-                builder.startArray(k)
-                populate(v)
-                builder.endArray()
-              } else {
-                builder.field(k)
-                populate(v)
-              }
-          }
-        }
-      populate(json)
-    }
-
+  private class Builder(fieldName: String, mapping: Mapping, fieldType: VectorMapper.FieldType, defaultFieldType: VectorMapper.FieldType)
+      extends FieldMapper.Builder[Builder, FieldMapper](fieldName, fieldType, defaultFieldType) {
     override def build(context: Mapper.BuilderContext): FieldMapper = {
       super.setupFieldType(context)
-
-      new FieldMapper(field, fieldType, defaultFieldType, context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo) {
+      // Re-define the fieldtype using the context to define the fieldName to support nested fields.
+      val fullContextFieldType = fieldType.copy(fieldName = context.path.pathAsText(fieldName))
+      new FieldMapper(fieldName,
+                      fullContextFieldType,
+                      defaultFieldType,
+                      context.indexSettings(),
+                      multiFieldsBuilder.build(this, context),
+                      copyTo) {
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
           val json: Json = context.parser.map.asJson
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          val fields = self.checkAndCreateFields(mapping, name, vec).get
+          val fields = self.checkAndCreateFields(fullContextFieldType, vec).get
           fields.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
@@ -165,10 +169,17 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
             .map(_.toIterable.filter(_._1 != "type"))
             .map(JsonObject.fromIterable)
             .map(Json.fromJsonObject)
-            .foreach(populateXContent(_, builder))
+            .foreach(VectorMapper.populateXContent(_, builder))
 
         }
       }
+    }
+  }
+
+  private object Builder {
+    def apply(fieldName: String, mapping: Mapping): FieldMapper.Builder[Builder, FieldMapper] = {
+      val fieldType = new VectorMapper.FieldType(CONTENT_TYPE, fieldName, mapping)
+      new Builder(fieldName, mapping, fieldType, fieldType)
     }
   }
 

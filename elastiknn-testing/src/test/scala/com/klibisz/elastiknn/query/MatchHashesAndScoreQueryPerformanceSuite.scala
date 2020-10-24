@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
@@ -27,10 +27,11 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
     implicit val rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 10000, unit = true)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 1000, unit = true)
-    val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0))
+    val mapping = Mapping.L2Lsh(128, 100, 2, 1)
+    val model = new L2LshModel(mapping.dims, mapping.L, mapping.k, mapping.w, new java.util.Random(0))
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
-    val fieldType = new VectorMapper.FieldType(field)
+    val fieldType = new VectorMapper.FieldType(field, field, mapping)
     indexAndSearch(codec = new BenchmarkCodec) { w =>
       val t0 = System.currentTimeMillis()
       for {
