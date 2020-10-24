@@ -132,7 +132,7 @@ object ElastiknnClient {
           case None => findBulkError(bulkResponseItems.tail, acc)
         }
     if (res.isError) {
-      Left(res.error.asException)
+      Left(StrictFailureException(s"Returned error response [$res] for request [$req].", res.error.asException))
     } else if (res.status >= 300) Left(StrictFailureException(s"Returned non-200 response [$res] for request [$req]."))
     else
       res.result match {

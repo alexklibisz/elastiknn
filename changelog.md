@@ -1,3 +1,5 @@
+- No longer caching the mapping for the field being queried. Instead, using the internal mapper service to retrieve the mapping. 
+---
 - **Breaking internal change - you should re-index your vectors when moving to this version**
   - Storing the vector doc-values using just the field name. Previously used the field name with a suffix. Turns out this is not necessary, and it complicates "exists" queries.
 ---
