@@ -823,15 +823,6 @@ using a Lucene Term field.
 For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in 
 a doc values field and the vector's hash values as a set of Lucene Terms.
 
-### Caching Mappings
-
-When a user submits an `elastiknn_nearest_neighbors` query, Elastiknn has to retrieve the mapping for the indexed vector field in order to validate and hash the query vector. 
-Mappings are typically static, so Elastiknn keeps an in-memory cache of mappings with a one-minute expiration to avoid repeatedly requesting an unchanged mapping for every query. 
-This cache is local to each Elasticsearch node.
-
-The practical implication is that if you intend to delete and re-create an index with different Elastiknn mappings, you should wait more than 60 seconds between deleting and running new queries. 
-In reality it usually takes much longer than one minute to delete, re-create, and populate an index.
-
 ### Parallelism
 
 From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. 

@@ -17,7 +17,8 @@ trait ElasticAsyncClient {
   protected def deleteIfExists(index: String): Future[Unit] =
     for {
       ex <- eknn.execute(indexExists(index)).map(_.result.exists).recover { case _ => false }
-      _ <- if (ex) eknn.execute(deleteIndex(index)) else Future.successful(())
+      // TODO: ES sometimes returns that the index exists, then returns index_not_found when deleting it.
+      _ <- if (ex) eknn.execute(deleteIndex(index)).recover { case _ => () } else Future.successful(())
     } yield ()
 
   protected lazy val eknn: ElastiknnClient[Future] = ElastiknnClient.futureClient(httpHost.getHostName, httpHost.getPort)

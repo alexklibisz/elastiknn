@@ -5,10 +5,10 @@ import java.util.Objects
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.mapper.VectorMapper
 import io.circe.Json
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
@@ -129,20 +129,18 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     case _                => this
   }
 
-  override def doToQuery(context: QueryShardContext): Query = {
-    val mapping = getMapping(context)
-    val indexReader = context.getIndexReader
-    KnnQueryBuilder(query, mapping, indexReader)
-  }
+  override def doToQuery(context: QueryShardContext): Query = KnnQueryBuilder(query, getMapping(context), context.getIndexReader)
 
   private def getMapping(context: QueryShardContext): Mapping = {
     import VectorMapper._
     val mft: MappedFieldType = context.fieldMapper(query.field)
     mft match {
-      case vft: FieldType => vft.mapping
+      case ft: FieldType => ft.mapping
+      case null =>
+        throw new RuntimeException(s"Could not find mapped field type for field [${query.field}]")
       case _ =>
         throw new RuntimeException(
-          s"Expected field [${mft.name()}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}]")
+          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
     }
   }
 

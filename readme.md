@@ -8,10 +8,14 @@ Elasticsearch plugin for similarity search on dense floating point and sparse bo
 
 ## Community
 
-Join the Gitter channel at [gitter.im/elastiknn/community](https://gitter.im/elastiknn/community).
+- Join the Gitter channel at [gitter.im/elastiknn/community](https://gitter.im/elastiknn/community).
+- Post on the [Github issue tracker](https://github.com/alexklibisz/elastiknn/issues) if you have questions, bugs, etc.
 
-If you're using Elastiknn in your research or work, I'd love to hear feedback.
-Post an issue, post in the Gitter channel, or contact me directly (contact info in my Github bio).
+## Users
+
+Are you using Elastiknn? If so, please consider submitting a pull request to list your organization below.
+
+- You could be the first!
 
 ## Builds
 
