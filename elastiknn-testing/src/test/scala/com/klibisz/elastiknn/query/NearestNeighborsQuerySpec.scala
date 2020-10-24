@@ -298,6 +298,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     }
   }
 
+  // https://github.com/alexklibisz/elastiknn/issues/176
   describe("Storing, searching multiple vectors in the same doc") {
 
     it("stores and searches docs with multiple vectors") {
