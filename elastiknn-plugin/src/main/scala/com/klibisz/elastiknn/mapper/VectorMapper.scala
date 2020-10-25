@@ -4,11 +4,11 @@ import java.util
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
+import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
-import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
-import io.circe.{Json, JsonObject}
+import io.circe.{Json, JsonObject, ParsingFailure, parser}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
@@ -20,7 +20,7 @@ import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 import org.elasticsearch.index.similarity.SimilarityProvider
 
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object VectorMapper {
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
@@ -151,12 +151,22 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
                       context.indexSettings(),
                       multiFieldsBuilder.build(this, context),
                       copyTo) {
+
+        private def parseAsTry(k: String)(j: Json): Try[Json] =
+          j.findAllByKey(k).headOption.toRight(ParsingFailure(s"Expected value for key [$k]", None.orNull)).toTry
+
         override def parse(context: ParseContext): Unit = {
           val doc: ParseContext.Document = context.doc()
-          val json: Json = context.parser.map.asJson
-          val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          val fields = self.checkAndCreateFields(fullContextFieldType, vec).get
-          fields.foreach(doc.add)
+          val vecPath = context.path.pathAsText(fieldName).split('.')
+          val parsing = for {
+            docJson <- parser.parse(context.sourceToParse.source.utf8ToString).toTry
+            vecJson <- vecPath.foldLeft[Try[Json]](Success(docJson)) {
+              case (e, key) => e.flatMap(parseAsTry(key)(_))
+            }
+            vec <- ElasticsearchCodec.decodeJson[V](vecJson).toTry
+            fields <- self.checkAndCreateFields(fullContextFieldType, vec)
+          } yield fields.foreach(doc.add)
+          parsing.get
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
