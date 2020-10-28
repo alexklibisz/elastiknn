@@ -8,19 +8,20 @@ import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
 import io.circe.syntax._
-import io.circe.{Json, JsonObject, ParsingFailure, parser}
+import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.Lucene
+import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
 import org.elasticsearch.index.similarity.SimilarityProvider
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 object VectorMapper {
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
@@ -127,7 +128,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   val CONTENT_TYPE: String
   def checkAndCreateFields(fieldType: VectorMapper.FieldType, vec: V): Try[Seq[IndexableField]]
 
-  import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+  import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
@@ -150,23 +151,20 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
                       defaultFieldType,
                       context.indexSettings(),
                       multiFieldsBuilder.build(this, context),
-                      copyTo) {
-
-        private def parseAsTry(k: String)(j: Json): Try[Json] =
-          j.findAllByKey(k).headOption.toRight(ParsingFailure(s"Expected value for key [$k]", None.orNull)).toTry
+                      copyTo) with ArrayValueMapperParser {
 
         override def parse(context: ParseContext): Unit = {
-          val doc: ParseContext.Document = context.doc()
-          val vecPath = context.path.pathAsText(fieldName).split('.')
-          val parsing = for {
-            docJson <- parser.parse(context.sourceToParse.source.utf8ToString).toTry
-            vecJson <- vecPath.foldLeft[Try[Json]](Success(docJson)) {
-              case (e, key) => e.flatMap(parseAsTry(key)(_))
-            }
-            vec <- ElasticsearchCodec.decodeJson[V](vecJson).toTry
-            fields <- self.checkAndCreateFields(fullContextFieldType, vec)
-          } yield fields.foreach(doc.add)
-          parsing.get
+          val doc = context.doc()
+          val parser = context.parser()
+          val json = if (parser.currentToken() == Token.START_OBJECT) {
+            context.parser.map.asJson
+          } else if (parser.currentToken() == Token.START_ARRAY) {
+            context.parser.list.asJson
+          } else Json.Null
+          val vec = ElasticsearchCodec.decodeJsonGet[V](json)
+          val fields = checkAndCreateFields(fullContextFieldType, vec).get
+          doc.addWithKey(fields.head.name(), fields.head)
+          fields.tail.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
           throw new IllegalStateException("parse() is implemented directly")
