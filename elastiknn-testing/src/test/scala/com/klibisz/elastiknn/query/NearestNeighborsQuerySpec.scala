@@ -8,7 +8,7 @@ import com.klibisz.elastiknn.client.ElastiknnRequests
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
-import com.sksamuel.elastic4s.requests.common.{HealthStatus, RefreshPolicy}
+import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
