@@ -89,7 +89,9 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docID = counter.minKey() - 1;
+                        // Important that this starts at -1. Need a boolean to denote that it has started iterating.
+                        private int docID = -1;
+                        private boolean started = false;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -102,6 +104,11 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
+
+                            if (!started) {
+                                started = true;
+                                docID = counter.minKey() - 1;
+                            }
 
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
@@ -165,7 +172,8 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), counter.get(docID()));
+                        int docID = docID();
+                        return (float) scoreFunction.score(docID, counter.get(docID));
                     }
 
                     @Override
