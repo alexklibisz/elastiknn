@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.utils
 
 import java.{lang, util}
 
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import io.circe.{Encoder, Json, JsonObject}
 
 import scala.collection.JavaConverters._
@@ -23,7 +24,7 @@ trait CirceUtils {
         val iterable = m.asScala.map(x => x._1.toString -> encodeAny(x._2))
         Json.fromJsonObject(JsonObject.fromIterable(iterable))
       case null  => null
-      case other => throw new RuntimeException(s"Couldn't encode object $other to Json")
+      case other => throw new ElastiknnRuntimeException(s"Couldn't encode object $other to Json")
     }
     override def apply(a: util.Map[String, Object]): Json = encodeAny(a)
   }

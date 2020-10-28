@@ -4,10 +4,11 @@ import java.util.UUID
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
+import com.klibisz.elastiknn.client.ElastiknnRequests
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
-import com.sksamuel.elastic4s.requests.common.RefreshPolicy
+import com.sksamuel.elastic4s.requests.common.{HealthStatus, RefreshPolicy}
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
@@ -375,6 +376,59 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         forAll(counts.map(_.result.count))(_ shouldBe n)
         forAll(neighbors.map(_.result.hits.hits.head.id))(_ shouldBe "v0")
       }
+    }
+  }
+
+  describe("Search when not all documents have vectors") {
+
+    // Based on two issues:
+    // https://github.com/alexklibisz/elastiknn/issues/181
+    // https://github.com/alexklibisz/elastiknn/issues/180
+    // This seemed to only cause runtime issues with >= 20k documents.
+    // The solution was to ensure the DocIdSetIterator in the MatchHashesAndScoreQuery begins iterating at docID = -1.
+    it("Searches docs with a vector mapping, but only half the indexed docs have vectors") {
+      implicit val rng = new Random(0)
+      val index = "issue-181"
+      val (vecField, idField, dims, numDocs) = ("vec", "id", 128, 20000)
+      val vecMapping: Mapping = Mapping.AngularLsh(dims, 99, 1)
+      val mappingJsonString =
+        s"""
+           |{
+           |  "properties": {
+           |    "$vecField": ${ElasticsearchCodec.encode(vecMapping).spaces2},
+           |    "$idField": { "type": "keyword" }
+           |  }
+           |}
+           |""".stripMargin
+
+      val v0 = Vec.DenseFloat.random(dims)
+
+      for {
+        _ <- deleteIfExists(index)
+        _ <- eknn.execute(createIndex(index))
+        _ <- eknn.execute(putMapping(index).rawSource(mappingJsonString))
+        _ <- Future.traverse((0 until numDocs).grouped(500)) { ids =>
+          val reqs = ids.map { i =>
+            if (i % 2 == 0) ElastiknnRequests.index(index, vecField, if (i == 0) v0 else Vec.DenseFloat.random(dims), idField, s"v$i")
+            else indexInto(index).id(s"v$i").fields(Map(idField -> s"v$i"))
+          }
+          eknn.execute(bulk(reqs))
+        }
+        _ <- eknn.execute(refreshIndex(index))
+
+        countWithIdField <- eknn.execute(count(index).query(existsQuery(idField)))
+        countWithVecField <- eknn.execute(count(index).query(existsQuery(vecField)))
+        _ = countWithIdField.result.count shouldBe numDocs
+        _ = countWithVecField.result.count shouldBe numDocs / 2
+
+        nbrsExact <- eknn.nearestNeighbors(index, NearestNeighborsQuery.Exact(vecField, Similarity.Angular, v0), 10, idField)
+        _ = nbrsExact.result.hits.hits.length shouldBe 10
+        _ = nbrsExact.result.hits.hits.head.score shouldBe 2f
+
+        nbrsApprox <- eknn.nearestNeighbors(index, NearestNeighborsQuery.AngularLsh(vecField, 13, v0), 10, idField)
+        _ = nbrsApprox.result.hits.hits.length shouldBe 10
+        _ = nbrsApprox.result.hits.hits.head.score shouldBe 2f
+      } yield Assertions.succeed
     }
   }
 
