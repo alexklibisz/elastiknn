@@ -89,7 +89,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        // Important that this starts at -1. Need a boolean for denote that it has started iterating.
+                        // Important that this starts at -1. Need a boolean to denote that it has started iterating.
                         private int docID = -1;
                         private boolean started = false;
 
