@@ -5,6 +5,8 @@ import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -29,6 +31,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final float limit;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
+    private final Logger logger;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
@@ -46,6 +49,7 @@ public class MatchHashesAndScoreQuery extends Query {
         this.limit = limit;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
+        this.logger = LogManager.getLogger(getClass().getName());
     }
 
     @Override
@@ -81,6 +85,11 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
+                if (counter.numHits() < candidates) {
+                    logger.warn(String.format(
+                            "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
+                            counter.numHits(), candidates));
+                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
