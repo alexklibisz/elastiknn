@@ -164,8 +164,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
 
   // https://github.com/alexklibisz/elastiknn/issues/177
   test("index shorthand dense float vectors") {
-
-    val (index, dims, vecField, idField) = ("issue-177", 42, "vec", "id")
+    val (index, dims, vecField, idField) = ("issue-177-dense", 42, "vec", "id")
     val corpus = Vec.DenseFloat.randoms(dims, 1000)
     val mapping = Mapping.L2Lsh(dims, 33, 1, 1)
     val ixReqs = corpus.zipWithIndex.map {
@@ -181,6 +180,31 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       _ <- eknn.execute(refreshIndex(index))
       count <- eknn.execute(count(index).query(existsQuery(vecField)))
       nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+    } yield {
+      count.result.count shouldBe corpus.length
+      nbrs.result.hits.hits.length shouldBe 10
+      nbrs.result.hits.hits.head.id shouldBe "v0"
+    }
+  }
+
+  // https://github.com/alexklibisz/elastiknn/issues/177
+  test("index shorthand sparse bool vectors") {
+    val (index, dims, vecField, idField) = ("issue-177-sparse", 42, "vec", "id")
+    val corpus = Vec.SparseBool.randoms(dims, 1000)
+    val mapping = Mapping.JaccardLsh(dims, 20, 1)
+    val ixReqs = corpus.zipWithIndex.map {
+      case (vec, i) =>
+        val source = s""" { "$idField": "v$i", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
+        IndexRequest(index, source = Some(source))
+    }
+    for {
+      _ <- deleteIfExists(index)
+      _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+      _ <- eknn.putMapping(index, vecField, idField, mapping)
+      _ <- eknn.execute(bulk(ixReqs))
+      _ <- eknn.execute(refreshIndex(index))
+      count <- eknn.execute(count(index).query(existsQuery(vecField)))
+      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
     } yield {
       count.result.count shouldBe corpus.length
       nbrs.result.hits.hits.length shouldBe 10

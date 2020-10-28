@@ -57,6 +57,8 @@ class ElasticsearchCodecSuite extends FunSuite with Matchers {
 
     "[0.1, 1, 11]" shouldDecodeTo [Vec] Vec.DenseFloat(Array(0.1f, 1f, 11f))
 
+    "[[1, 3, 9, 11], 33]" shouldDecodeTo [Vec] Vec.SparseBool(Array(1, 3, 9, 11), 33)
+
   }
 
   test("vectors w/ invalid contents") {

@@ -114,15 +114,24 @@ object ElasticsearchCodec { esc =>
       override def apply(c: HCursor): Result[Vec.DenseFloat] = c.as[Array[Float]].map(Vec.DenseFloat(_))
     }
     new ESC[Vec.DenseFloat] {
-      override def apply(c: HCursor): Result[Vec.DenseFloat] = {
-        derivedCodec(c).orElse(shortHandDecoder(c))
-      }
+      override def apply(c: HCursor): Result[Vec.DenseFloat] = derivedCodec(c).orElse(shortHandDecoder(c))
       override def apply(a: Vec.DenseFloat): Json = derivedCodec(a)
     }
   }
   implicit val sparseBoolVector: ESC[Vec.SparseBool] = {
     implicit val cfg: Configuration = Configuration.default.withSnakeCaseMemberNames
-    ElasticsearchCodec(deriveConfiguredCodec)
+    val derivedCodec: ESC[Vec.SparseBool] = ElasticsearchCodec(deriveConfiguredCodec)
+    // Shorthand for a SparseBool(Array(i1, i2, i3), n) is [[i1,i2,i3], n].
+    val shortHandDecoder = new Decoder[Vec.SparseBool] {
+      override def apply(c: HCursor): Result[Vec.SparseBool] =
+        c.value.as[(Array[Int], Int)].map {
+          case (trueIndices, totalIndices) => Vec.SparseBool(trueIndices, totalIndices)
+        }
+    }
+    new ESC[Vec.SparseBool] {
+      override def apply(a: Vec.SparseBool): Json = derivedCodec(a)
+      override def apply(c: HCursor): Result[Vec.SparseBool] = derivedCodec(c).orElse(shortHandDecoder(c))
+    }
   }
   implicit val indexedVector: ESC[Vec.Indexed] = ElasticsearchCodec(deriveCodec)
   implicit val emptyVec: ESC[Vec.Empty] = {
