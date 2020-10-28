@@ -1,3 +1,5 @@
+- Added a logger warning when the approximate query matches fewer candidates than the specified number of candidates.
+---
 - No longer caching the mapping for the field being queried. Instead, using the internal mapper service to retrieve the mapping. 
 ---
 - **Breaking internal change - you should re-index your vectors when moving to this version**
