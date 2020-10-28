@@ -2,11 +2,12 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
+import com.klibisz.elastiknn.ElastiknnException._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
-import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
+import com.klibisz.elastiknn._
+import com.klibisz.elastiknn.models.Cache
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
@@ -29,7 +30,7 @@ object VectorMapper {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
       override def checkAndCreateFields(fieldType: FieldType, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
         if (fieldType.mapping.dims != vec.totalIndices)
-          Failure(VectorDimensionException(vec.totalIndices, fieldType.mapping.dims))
+          Failure(ElastiknnException.vectorDimensions(vec.totalIndices, fieldType.mapping.dims))
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           fieldType.mapping match {
@@ -48,7 +49,7 @@ object VectorMapper {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
       override def checkAndCreateFields(fieldType: FieldType, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
         if (fieldType.mapping.dims != vec.values.length)
-          Failure(VectorDimensionException(vec.values.length, fieldType.mapping.dims))
+          Failure(ElastiknnException.vectorDimensions(vec.values.length, fieldType.mapping.dims))
         else
           fieldType.mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(fieldType.fieldName, vec))
@@ -82,7 +83,7 @@ object VectorMapper {
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {
       case b: BytesRef => new TermQuery(new Term(name(), b))
       case _ =>
-        throw new UnsupportedOperationException(
+        throw new ElastiknnUnsupportedOperationException(
           s"Field [${name()}] of type [${typeName}] doesn't support term queries with value of type [${value.getClass}]")
     }
 
@@ -170,11 +171,10 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           }
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
           val fields = checkAndCreateFields(fullContextFieldType, vec).get
-          doc.addWithKey(fields.head.name(), fields.head)
-          fields.tail.foreach(doc.add)
+          fields.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
-          throw new IllegalStateException("parse() is implemented directly")
+          throw new ElastiknnUnsupportedOperationException("parse() is implemented directly")
         override def contentType(): String = CONTENT_TYPE
         override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, includeDefaults, params)

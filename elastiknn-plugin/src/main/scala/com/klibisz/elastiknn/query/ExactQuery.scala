@@ -2,6 +2,7 @@ package com.klibisz.elastiknn.query
 
 import java.util.Objects
 
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.StoredVec
@@ -50,7 +51,7 @@ object ExactQuery {
       if (vecDocVals.advanceExact(docId)) {
         val bytesRef = vecDocVals.binaryValue()
         implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
-      } else throw new RuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
+      } else throw new ElastiknnRuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
 
   }
 
