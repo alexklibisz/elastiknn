@@ -151,16 +151,23 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
                       defaultFieldType,
                       context.indexSettings(),
                       multiFieldsBuilder.build(this, context),
-                      copyTo) with ArrayValueMapperParser {
+                      copyTo)
+      // Important to extend this as to tell Elasticsearch that the parse() method can handle arrays.
+      // In 7.9.x it switches to a simple method override for the `parsesArrayValue` method.
+      with ArrayValueMapperParser {
 
         override def parse(context: ParseContext): Unit = {
           val doc = context.doc()
           val parser = context.parser()
-          val json = if (parser.currentToken() == Token.START_OBJECT) {
-            context.parser.map.asJson
-          } else if (parser.currentToken() == Token.START_ARRAY) {
-            context.parser.list.asJson
-          } else Json.Null
+          val json = {
+            // The XContentParser's current token tells us how to convert its contents into Circe Json which can be
+            // neatly parsed into a vector. If the parser is pointing at a new object, convert it to a map and then
+            // conver to Json. If it's pointing at an array, convert to a list, then to Json. Otherwise it's not
+            // parseable so return a Null Json.
+            if (parser.currentToken() == Token.START_OBJECT) context.parser.map.asJson
+            else if (parser.currentToken() == Token.START_ARRAY) context.parser.list.asJson
+            else Json.Null
+          }
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
           val fields = checkAndCreateFields(fullContextFieldType, vec).get
           doc.addWithKey(fields.head.name(), fields.head)
