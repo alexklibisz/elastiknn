@@ -16,6 +16,67 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 1. TOC
 {:toc}
 
+## Vectors
+
+You need to specify vectors when indexing documents and when running queries with a literal query vector. 
+In both cases you use the same JSON structure to define vectors. 
+Each vector also has a shorthand alternative, which can be convenient when using tools that don't support nested documents.
+The examples below show the indexing case; the query case will be covered later.
+
+### elastiknn_dense_float_vector
+
+This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_float_vector`.
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": {
+        "values": [0.1, 0.2, 0.3, ...]    # 1
+    }
+}
+```
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": [0.1, 0.2, 0.3, ...]        # 2
+}
+
+```
+
+|#|Description|
+|:--|:--|
+|1|JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
+|2|Shorthand alternative to #1.|
+
+### elastiknn_sparse_bool_vector
+
+This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_bool_vector`.
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": {
+       "true_indices": [1, 3, 5, ...],   # 1
+       "total_indices": 100,             # 2
+    }
+}
+```
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": [[1, 3, 5, ...], 100]      # 3
+}
+
+```
+
+|#|Description|
+|:--|:--|
+|1|JSON list of the indices which are `true` in your vector.|
+|2|The total number of indices in your vector. This should match the `dims` in your mapping.|
+|3|Shorthand alternative to #1 and #2. A two-item list where the first item is the `true_indices` and the second is the `total_indices`.|
+
 ## Mappings
 
 Before indexing vectors, you first define a mapping specifying a vector datatype, an indexing model, and the model's parameters. 
@@ -350,51 +411,7 @@ PUT /my-index/_mapping
 |4|Similarity. Supports angular, l1, and l2|
 |5|The number of top indices to pick.|
 |6|Whether or not to repeat the indices proportionally to their rank. See the notes on repeating above.|
-  
 
-## Vectors
-
-You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries
-with a literal query vector. 
-In both cases you use the same JSON structure to define vectors. 
-The examples below show the indexing case; the query case will be covered later.
-
-### elastiknn_sparse_bool_vector
-
-This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_bool_vector`.
-
-```json
-POST /my-index/_doc
-{
-    "my_vec": {
-       "true_indices": [1, 3, 5, ...],   # 1
-       "total_indices": 100,             # 2
-    }
-}
-
-```
-
-|#|Description|
-|:--|:--|
-|1|JSON list of the indices which are `true` in your vector.|
-|2|The total number of indices in your vector. This should match the `dims` in your mapping.|
-
-### elastiknn_dense_float_vector
-
-This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_float_vector`.
-
-```json
-POST /my-index/_doc
-{
-    "my_vec": {
-        "values": [0.1, 0.2, 0.3, ...]    # 1
-    }
-}
-```
-
-|#|Description|
-|:--|:--|
-|1|JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
 
 ## Nearest Neighbor Queries
 
