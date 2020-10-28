@@ -1,3 +1,7 @@
+- Introduces a shorthand alternative format for dense and sparse vectors that makes it easier to work with ES-connectors that don't allow nested docs.
+  - Dense vectors can be represented as a simple array: `{ "vec": [0.1, 0.2, 0.3, ...] }` is equivalent to `{ "vec": { "values": [0.1, 0.2, 0.3] }}`.
+  - Sparse vectors can be represented as an array where the first element is the array of true indices, and the second is the number of total indices: `{"vec": [[1, 3, 5, ...], 100] }` is equivalent to `{ "vec": { "true_indices": [1,3,5,...], "total_indices": 100 }}`
+---
 - No longer caching the mapping for the field being queried. Instead, using the internal mapper service to retrieve the mapping. 
 ---
 - **Breaking internal change - you should re-index your vectors when moving to this version**
