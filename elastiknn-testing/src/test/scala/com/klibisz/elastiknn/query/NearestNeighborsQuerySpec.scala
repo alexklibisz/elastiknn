@@ -76,13 +76,15 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     implicit val rng: Random = new Random(0)
     val indexPrefix = "issue-97"
 
-    // Generate a corpus of 100 docs. < 10 of the them have color blue, rest have color red.
+    // Generate a corpus of docs. Small number of the them have color blue, rest have color green.
     val dims = 10
-    val numBlue = 8
-    val corpus = (0 until 100).map(i => (s"v$i", Vec.DenseFloat.random(dims), if (i < numBlue) "blue" else "red"))
+    val numTotal = 1000
+    val numBlue = 100
+    val corpus: Seq[(String, Vec.DenseFloat, String)] =
+      (0 until numTotal).map(i => (s"v$i", Vec.DenseFloat.random(dims), if (i < numBlue) "blue" else "green"))
 
     // Make sure there are fewer candidates than the whole corpus. This ensures the filter is executed before the knn.
-    val candidates = 10
+    val candidates = numBlue
 
     // Test with multiple mappings/queries.
     val queryVec = Vec.DenseFloat.random(dims)
@@ -102,8 +104,8 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     for {
       (mapping, queries) <- mappingsAndQueries
       query: NearestNeighborsQuery <- queries
-    } it(s"filters with mapping [${mapping}] and query [${query}]") {
-      val index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0).toString}"
+      index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0).toString}"
+    } it(s"filters with mapping [${mapping}] and query [${query}] in index [$index]") {
       val rawMapping =
         s"""
            |{
@@ -118,6 +120,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       val rawQuery =
         s"""
            |{
+           |  "size": $numBlue,
            |  "query": {
            |    "term": { "color": "blue" }
            |  },
@@ -125,7 +128,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
            |    "window_size": $candidates,
            |    "query": {
            |      "rescore_query": {
-           |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nearestNeighborsQuery(query).spaces4}
+           |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)}
            |      },
            |      "query_weight": 0,
            |      "rescore_query_weight": 1
@@ -137,16 +140,13 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         _ <- deleteIfExists(index)
         _ <- eknn.execute(createIndex(index).shards(1).replicas(1))
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-        _ <- Future.traverse(corpus) {
-          case (id, vec, color) =>
-            val docSource =
-              s"""
-                 |{
-                 |  "vec": ${ElasticsearchCodec.nospaces(vec)},
-                 |  "color": "$color"
-                 |}
-                 |""".stripMargin
-            eknn.execute(indexInto(index).id(id).source(docSource))
+        _ <- Future.traverse(corpus.grouped(100)) { batch =>
+          val reqs = batch.map {
+            case (id, vec, color) =>
+              val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+              indexInto(index).id(id).source(docSource)
+          }
+          eknn.execute(bulk(reqs))
         }
         _ <- eknn.execute(refreshIndex(index))
         res <- eknn.execute(search(index).source(rawQuery))

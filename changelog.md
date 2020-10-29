@@ -1,3 +1,4 @@
+- Added a logger warning when the approximate query matches fewer candidates than the specified number of candidates.
 - Subtle modification to the DocIdSetIterator created by the MatchHashesAndScoreQuery to address issues 180 and 181.
   The gist of issue 180 is that the binary doc values iterator used to access vectors would attempt to visit the same
   document twice, and on the second visit the call to advanceExact would fail.
