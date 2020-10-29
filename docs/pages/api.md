@@ -770,10 +770,8 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
-It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors`
-query on that subset.
-For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`,
-and only run `elastiknn_nearest_neighbors` on that subset.
+It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
+For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`, and only run `elastiknn_nearest_neighbors` on that subset.
 To do this, you can use the `elastiknn_nearest_neighbors` query in a  
 [query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
 
@@ -812,6 +810,23 @@ GET /my-index/_search
 |3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
 |4|Ignore the score from the term query.|
 |5|Use the score from the rescore query.|
+
+**Some important things to consider with this kind of query**
+
+Elasticsearch has a configurable limit for the number of docs that are matched and passed to the `rescore` query.
+The default is 10,000. 
+You can modify the `index.max_rescore_window` setting to get around this.
+
+Given the default limit of 10k vectors passed to the nearest neighbors query, you can typically use exact queries.
+As a point of reference, exact queries on the Fashion-MNIST dataset (60k 784-dimensional vectors) run in about 250ms.
+
+If you determine you need an approximate query for re-scoring, you should ensure that `candidates = window_size > size`.
+Ideally `candidates` is 10x-100x larger than `size`.
+Also, consider that it's possible for the approximate query to match fewer than `candidates` vectors.
+So you can end up with fewer than `size` results in your search response.
+This can happen because the nearest neighbors query is only given access to the `window_size` vectors which matched the original query.
+If you run into this, you should probably adjust your approximate model parameters for higher recall.
+There are notes on each model about how the parameters affect recall and precision.
 
 ## Miscellaneous Implementation Details
 
