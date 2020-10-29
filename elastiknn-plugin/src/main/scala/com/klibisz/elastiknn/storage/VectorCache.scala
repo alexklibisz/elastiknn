@@ -15,10 +15,10 @@ object VectorCache {
 
   case class Key(docId: Int, field: String, contextHashCode: Long)
 
-  def apply[S <: StoredVec](concurrency: Int, capacityBytes: Long, ttlSeconds: Long): VectorCache[S] = new VectorCache[S] {
+  def apply[S <: StoredVec](concurrency: Int, capacityMb: Long, ttlSeconds: Long): VectorCache[S] = new VectorCache[S] {
     private val cache: Cache[Key, S] = CacheBuilder.newBuilder
       .concurrencyLevel(concurrency)
-      .maximumWeight(capacityBytes)
+      .maximumWeight(capacityMb * 1000000) // mb to bytes
       .weigher((_: Key, value: S) => value.sizeBytes)
       .expireAfterWrite(ttlSeconds, TimeUnit.SECONDS)
       .build()

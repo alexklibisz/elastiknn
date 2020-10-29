@@ -2,3 +2,6 @@
 -Dtests.es.indices.query.bool.max_clause_count=4096
 -Dtests.es.node.processors=1
 -Dtests.es.thread_pool.search.size=1
+-Dtests.es.elastiknn.cache.enabled=true
+-Dtests.es.elastiknn.cache.capacity_mb=512
+-Dtests.es.elastiknn.cache.ttl_seconds=60
