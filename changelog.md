@@ -1,3 +1,6 @@
+- Introduces a shorthand alternative format for dense and sparse vectors that makes it easier to work with ES-connectors that don't allow nested docs.
+  - Dense vectors can be represented as a simple array: `{ "vec": [0.1, 0.2, 0.3, ...] }` is equivalent to `{ "vec": { "values": [0.1, 0.2, 0.3] }}`.
+  - Sparse vectors can be represented as an array where the first element is the array of true indices, and the second is the number of total indices: `{"vec": [[1, 3, 5, ...], 100] }` is equivalent to `{ "vec": { "true_indices": [1,3,5,...], "total_indices": 100 }}`
 - Added a logger warning when the approximate query matches fewer candidates than the specified number of candidates.
 - Subtle modification to the DocIdSetIterator created by the MatchHashesAndScoreQuery to address issues 180 and 181.
   The gist of issue 180 is that the binary doc values iterator used to access vectors would attempt to visit the same

@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.mapper
 
 import java.util
 
-import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
+import com.klibisz.elastiknn.ElastiknnException._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
@@ -15,6 +15,7 @@ import org.apache.lucene.search.similarities.BooleanSimilarity
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.Lucene
+import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
@@ -128,7 +129,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   val CONTENT_TYPE: String
   def checkAndCreateFields(fieldType: VectorMapper.FieldType, vec: V): Try[Seq[IndexableField]]
 
-  import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+  import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_, _] = {
@@ -151,12 +152,25 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
                       defaultFieldType,
                       context.indexSettings(),
                       multiFieldsBuilder.build(this, context),
-                      copyTo) {
+                      copyTo)
+      // Important to extend this as to tell Elasticsearch that the parse() method can handle arrays.
+      // In 7.9.x it switches to a simple method override for the `parsesArrayValue` method.
+      with ArrayValueMapperParser {
+
         override def parse(context: ParseContext): Unit = {
-          val doc: ParseContext.Document = context.doc()
-          val json: Json = context.parser.map.asJson
+          val doc = context.doc()
+          val parser = context.parser()
+          val json = {
+            // The XContentParser's current token tells us how to convert its contents into Circe Json which can be
+            // neatly parsed into a vector. If the parser is pointing at a new object, convert it to a map and then
+            // conver to Json. If it's pointing at an array, convert to a list, then to Json. Otherwise it's not
+            // parseable so return a Null Json.
+            if (parser.currentToken() == Token.START_OBJECT) context.parser.map.asJson
+            else if (parser.currentToken() == Token.START_ARRAY) context.parser.list.asJson
+            else Json.Null
+          }
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          val fields = self.checkAndCreateFields(fullContextFieldType, vec).get
+          val fields = checkAndCreateFields(fullContextFieldType, vec).get
           fields.foreach(doc.add)
         }
         override def parseCreateField(context: ParseContext, fields: util.List[IndexableField]): Unit =
