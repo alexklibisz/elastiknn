@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.query
 import java.util.Objects
 
 import com.google.common.io.BaseEncoding
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
@@ -137,9 +138,9 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     mft match {
       case ft: FieldType => ft.mapping
       case null =>
-        throw new RuntimeException(s"Could not find mapped field type for field [${query.field}]")
+        throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${query.field}]")
       case _ =>
-        throw new RuntimeException(
+        throw new ElastiknnRuntimeException(
           s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
     }
   }

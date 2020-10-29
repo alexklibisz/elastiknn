@@ -4,6 +4,7 @@ import java.util.UUID
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
+import com.klibisz.elastiknn.client.ElastiknnRequests
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
@@ -77,13 +78,15 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     implicit val rng: Random = new Random(0)
     val indexPrefix = "issue-97"
 
-    // Generate a corpus of 100 docs. < 10 of the them have color blue, rest have color red.
+    // Generate a corpus of docs. Small number of the them have color blue, rest have color green.
     val dims = 10
-    val numBlue = 8
-    val corpus = (0 until 100).map(i => (s"v$i", Vec.DenseFloat.random(dims), if (i < numBlue) "blue" else "red"))
+    val numTotal = 1000
+    val numBlue = 100
+    val corpus: Seq[(String, Vec.DenseFloat, String)] =
+      (0 until numTotal).map(i => (s"v$i", Vec.DenseFloat.random(dims), if (i < numBlue) "blue" else "green"))
 
     // Make sure there are fewer candidates than the whole corpus. This ensures the filter is executed before the knn.
-    val candidates = 10
+    val candidates = numBlue
 
     // Test with multiple mappings/queries.
     val queryVec = Vec.DenseFloat.random(dims)
@@ -103,8 +106,8 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     for {
       (mapping, queries) <- mappingsAndQueries
       query: NearestNeighborsQuery <- queries
-    } it(s"filters with mapping [${mapping}] and query [${query}]") {
-      val index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0).toString}"
+      index = s"$indexPrefix-${MurmurHash3.orderedHash(Seq(mapping, query), 0).toString}"
+    } it(s"filters with mapping [${mapping}] and query [${query}] in index [$index]") {
       val rawMapping =
         s"""
            |{
@@ -119,6 +122,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       val rawQuery =
         s"""
            |{
+           |  "size": $numBlue,
            |  "query": {
            |    "term": { "color": "blue" }
            |  },
@@ -126,7 +130,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
            |    "window_size": $candidates,
            |    "query": {
            |      "rescore_query": {
-           |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nearestNeighborsQuery(query).spaces4}
+           |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)}
            |      },
            |      "query_weight": 0,
            |      "rescore_query_weight": 1
@@ -138,16 +142,13 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         _ <- deleteIfExists(index)
         _ <- eknn.execute(createIndex(index).shards(1).replicas(1))
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-        _ <- Future.traverse(corpus) {
-          case (id, vec, color) =>
-            val docSource =
-              s"""
-                 |{
-                 |  "vec": ${ElasticsearchCodec.nospaces(vec)},
-                 |  "color": "$color"
-                 |}
-                 |""".stripMargin
-            eknn.execute(indexInto(index).id(id).source(docSource))
+        _ <- Future.traverse(corpus.grouped(100)) { batch =>
+          val reqs = batch.map {
+            case (id, vec, color) =>
+              val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+              indexInto(index).id(id).source(docSource)
+          }
+          eknn.execute(bulk(reqs))
         }
         _ <- eknn.execute(refreshIndex(index))
         res <- eknn.execute(search(index).source(rawQuery))
@@ -378,6 +379,59 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         forAll(counts.map(_.result.count))(_ shouldBe n)
         forAll(neighbors.map(_.result.hits.hits.head.id))(_ shouldBe "v0")
       }
+    }
+  }
+
+  describe("Search when not all documents have vectors") {
+
+    // Based on two issues:
+    // https://github.com/alexklibisz/elastiknn/issues/181
+    // https://github.com/alexklibisz/elastiknn/issues/180
+    // This seemed to only cause runtime issues with >= 20k documents.
+    // The solution was to ensure the DocIdSetIterator in the MatchHashesAndScoreQuery begins iterating at docID = -1.
+    it("Searches docs with a vector mapping, but only half the indexed docs have vectors") {
+      implicit val rng = new Random(0)
+      val index = "issue-181"
+      val (vecField, idField, dims, numDocs) = ("vec", "id", 128, 20000)
+      val vecMapping: Mapping = Mapping.AngularLsh(dims, 99, 1)
+      val mappingJsonString =
+        s"""
+           |{
+           |  "properties": {
+           |    "$vecField": ${ElasticsearchCodec.encode(vecMapping).spaces2},
+           |    "$idField": { "type": "keyword" }
+           |  }
+           |}
+           |""".stripMargin
+
+      val v0 = Vec.DenseFloat.random(dims)
+
+      for {
+        _ <- deleteIfExists(index)
+        _ <- eknn.execute(createIndex(index))
+        _ <- eknn.execute(putMapping(index).rawSource(mappingJsonString))
+        _ <- Future.traverse((0 until numDocs).grouped(500)) { ids =>
+          val reqs = ids.map { i =>
+            if (i % 2 == 0) ElastiknnRequests.index(index, vecField, if (i == 0) v0 else Vec.DenseFloat.random(dims), idField, s"v$i")
+            else indexInto(index).id(s"v$i").fields(Map(idField -> s"v$i"))
+          }
+          eknn.execute(bulk(reqs))
+        }
+        _ <- eknn.execute(refreshIndex(index))
+
+        countWithIdField <- eknn.execute(count(index).query(existsQuery(idField)))
+        countWithVecField <- eknn.execute(count(index).query(existsQuery(vecField)))
+        _ = countWithIdField.result.count shouldBe numDocs
+        _ = countWithVecField.result.count shouldBe numDocs / 2
+
+        nbrsExact <- eknn.nearestNeighbors(index, NearestNeighborsQuery.Exact(vecField, Similarity.Angular, v0), 10, idField)
+        _ = nbrsExact.result.hits.hits.length shouldBe 10
+        _ = nbrsExact.result.hits.hits.head.score shouldBe 2f
+
+        nbrsApprox <- eknn.nearestNeighbors(index, NearestNeighborsQuery.AngularLsh(vecField, 13, v0), 10, idField)
+        _ = nbrsApprox.result.hits.hits.length shouldBe 10
+        _ = nbrsApprox.result.hits.hits.head.score shouldBe 2f
+      } yield Assertions.succeed
     }
   }
 

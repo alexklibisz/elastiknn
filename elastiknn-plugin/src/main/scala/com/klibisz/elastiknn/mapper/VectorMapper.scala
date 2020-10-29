@@ -7,13 +7,14 @@ import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
-import com.klibisz.elastiknn.{ELASTIKNN_NAME, VectorDimensionException}
+import com.klibisz.elastiknn._
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
 import org.apache.lucene.util.BytesRef
+import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
@@ -23,25 +24,12 @@ import scala.util.{Failure, Try}
 
 object VectorMapper {
 
-//  private val metaMappingKey = s"$ELASTIKNN_NAME.mapping"
-//
-//  def putMetaMapping(mapping: Mapping, meta: util.Map[String, String] = new util.HashMap[String, String](1)): util.Map[String, String] = {
-//    // meta.put(metaMappingKey, ElasticsearchCodec.encode(mapping).noSpaces)
-//    meta
-//  }
-//
-//  def getMetaMapping(meta: util.Map[String, String]): Try[Mapping] = {
-//    if (meta.containsKey(metaMappingKey))
-//      ElasticsearchCodec.parse(meta.get(metaMappingKey)).flatMap(ElasticsearchCodec.decodeJson[Mapping]).toTry
-//    else Failure(new RuntimeException(s"Expected to find key $metaMappingKey in the meta map"))
-//  }
-
   val sparseBoolVector: VectorMapper[Vec.SparseBool] =
     new VectorMapper[Vec.SparseBool] {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
       override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
         if (mapping.dims != vec.totalIndices)
-          Failure(VectorDimensionException(vec.totalIndices, mapping.dims))
+          Failure(ElastiknnException.vectorDimensions(vec.totalIndices, mapping.dims))
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
@@ -60,7 +48,7 @@ object VectorMapper {
       override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
       override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
         if (mapping.dims != vec.values.length)
-          Failure(VectorDimensionException(vec.values.length, mapping.dims))
+          Failure(ElastiknnException.vectorDimensions(vec.values.length, mapping.dims))
         else
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
@@ -106,7 +94,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
     ft
   }
 
-  import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+  import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_] = {
@@ -160,11 +148,22 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
         multiFieldsBuilder.build(this, context),
         copyTo
       ) {
+        override def parsesArrayValue(): Boolean = true
+
         override def parse(context: ParseContext): Unit = {
-          val doc: ParseContext.Document = context.doc()
-          val json: Json = context.parser.map.asJson
+          val doc = context.doc()
+          val parser = context.parser()
+          val json = {
+            // The XContentParser's current token tells us how to convert its contents into Circe Json which can be
+            // neatly parsed into a vector. If the parser is pointing at a new object, convert it to a map and then
+            // conver to Json. If it's pointing at an array, convert to a list, then to Json. Otherwise it's not
+            // parseable so return a Null Json.
+            if (parser.currentToken() == Token.START_OBJECT) context.parser.map.asJson
+            else if (parser.currentToken() == Token.START_ARRAY) context.parser.list.asJson
+            else Json.Null
+          }
           val vec = ElasticsearchCodec.decodeJsonGet[V](json)
-          val fields = self.checkAndCreateFields(mapping, name, vec).get
+          val fields = checkAndCreateFields(mapping, name, vec).get
           fields.foreach(doc.add)
         }
 

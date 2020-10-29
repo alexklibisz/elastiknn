@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.query
 
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{HashAndFreq, SparseIndexedSimilarityFunction}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
@@ -20,7 +21,7 @@ object SparseIndexedQuery {
           if (numericDocValues.advanceExact(docId)) {
             val numTrue = numericDocValues.longValue.toInt
             simFunc(queryVec, matchingTerms, numTrue)
-          } else throw new RuntimeException(s"Couldn't advance to doc with id [$docId]")
+          } else throw new ElastiknnRuntimeException(s"Couldn't advance to doc with id [$docId]")
       }
 
     new MatchHashesAndScoreQuery(

@@ -2,13 +2,15 @@ package com.klibisz.elastiknn.mapper
 
 import java.util.UUID
 
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, Vec}
+import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
+import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.{Indexes, Response}
 import io.circe.parser.parse
 import io.circe.{Json, JsonObject}
+import io.circe.syntax._
 import org.scalatest._
 
 import scala.concurrent.Future
@@ -158,6 +160,56 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       exceptions <- Future.sequence(indexReqs)
 
     } yield forAll(exceptions)(_.getMessage shouldBe "mapper_parsing_exception failed to parse")
+  }
+
+  // https://github.com/alexklibisz/elastiknn/issues/177
+  test("index shorthand dense float vectors") {
+    val (index, dims, vecField, idField) = ("issue-177-dense", 42, "vec", "id")
+    val corpus = Vec.DenseFloat.randoms(dims, 1000)
+    val mapping = Mapping.L2Lsh(dims, 33, 1, 1)
+    val ixReqs = corpus.zipWithIndex.map {
+      case (vec, i) =>
+        val source = s""" { "$idField": "v$i", "$vecField": ${vec.values.asJson.noSpaces} } """
+        IndexRequest(index, source = Some(source))
+    }
+    for {
+      _ <- deleteIfExists(index)
+      _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+      _ <- eknn.putMapping(index, vecField, idField, mapping)
+      _ <- eknn.execute(bulk(ixReqs))
+      _ <- eknn.execute(refreshIndex(index))
+      count <- eknn.execute(count(index).query(existsQuery(vecField)))
+      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+    } yield {
+      count.result.count shouldBe corpus.length
+      nbrs.result.hits.hits.length shouldBe 10
+      nbrs.result.hits.hits.head.id shouldBe "v0"
+    }
+  }
+
+  // https://github.com/alexklibisz/elastiknn/issues/177
+  test("index shorthand sparse bool vectors") {
+    val (index, dims, vecField, idField) = ("issue-177-sparse", 42, "vec", "id")
+    val corpus = Vec.SparseBool.randoms(dims, 1000)
+    val mapping = Mapping.JaccardLsh(dims, 20, 1)
+    val ixReqs = corpus.zipWithIndex.map {
+      case (vec, i) =>
+        val source = s""" { "$idField": "v$i", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
+        IndexRequest(index, source = Some(source))
+    }
+    for {
+      _ <- deleteIfExists(index)
+      _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+      _ <- eknn.putMapping(index, vecField, idField, mapping)
+      _ <- eknn.execute(bulk(ixReqs))
+      _ <- eknn.execute(refreshIndex(index))
+      count <- eknn.execute(count(index).query(existsQuery(vecField)))
+      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
+    } yield {
+      count.result.count shouldBe corpus.length
+      nbrs.result.hits.hits.length shouldBe 10
+      nbrs.result.hits.hits.head.id shouldBe "v0"
+    }
   }
 
 }

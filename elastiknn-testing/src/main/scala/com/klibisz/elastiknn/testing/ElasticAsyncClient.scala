@@ -7,6 +7,7 @@ import org.apache.http.HttpHost
 import org.scalatest.AsyncTestSuite
 
 import scala.concurrent.Future
+import scala.util.Success
 
 trait ElasticAsyncClient {
 
@@ -15,11 +16,9 @@ trait ElasticAsyncClient {
   lazy val httpHost: HttpHost = new HttpHost("localhost", 9200)
 
   protected def deleteIfExists(index: String): Future[Unit] =
-    for {
-      ex <- eknn.execute(indexExists(index)).map(_.result.exists).recover { case _ => false }
-      // TODO: ES sometimes returns that the index exists, then returns index_not_found when deleting it.
-      _ <- if (ex) eknn.execute(deleteIndex(index)).recover { case _ => () } else Future.successful(())
-    } yield ()
+    eknn.execute(deleteIndex(index)).transform {
+      case _ => Success(())
+    }
 
   protected lazy val eknn: ElastiknnClient[Future] = ElastiknnClient.futureClient(httpHost.getHostName, httpHost.getPort)
 

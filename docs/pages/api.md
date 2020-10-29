@@ -16,6 +16,67 @@ Once you've [installed Elastiknn](/installation/), you can use the REST API just
 1. TOC
 {:toc}
 
+## Vectors
+
+You need to specify vectors when indexing documents and when running queries with a literal query vector. 
+In both cases you use the same JSON structure to define vectors. 
+Each vector also has a shorthand alternative, which can be convenient when using tools that don't support nested documents.
+The examples below show the indexing case; the query case will be covered later.
+
+### elastiknn_dense_float_vector
+
+This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_float_vector`.
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": {
+        "values": [0.1, 0.2, 0.3, ...]    # 1
+    }
+}
+```
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": [0.1, 0.2, 0.3, ...]        # 2
+}
+
+```
+
+|#|Description|
+|:--|:--|
+|1|JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
+|2|Shorthand alternative to #1.|
+
+### elastiknn_sparse_bool_vector
+
+This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_bool_vector`.
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": {
+       "true_indices": [1, 3, 5, ...],   # 1
+       "total_indices": 100,             # 2
+    }
+}
+```
+
+```json
+POST /my-index/_doc
+{
+    "my_vec": [[1, 3, 5, ...], 100]      # 3
+}
+
+```
+
+|#|Description|
+|:--|:--|
+|1|JSON list of the indices which are `true` in your vector.|
+|2|The total number of indices in your vector. This should match the `dims` in your mapping.|
+|3|Shorthand alternative to #1 and #2. A two-item list where the first item is the `true_indices` and the second is the `total_indices`.|
+
 ## Mappings
 
 Before indexing vectors, you first define a mapping specifying a vector datatype, an indexing model, and the model's parameters. 
@@ -350,51 +411,7 @@ PUT /my-index/_mapping
 |4|Similarity. Supports angular, l1, and l2|
 |5|The number of top indices to pick.|
 |6|Whether or not to repeat the indices proportionally to their rank. See the notes on repeating above.|
-  
 
-## Vectors
-
-You need to specify vectors in your REST requests when indexing documents containing a vector and when running queries
-with a literal query vector. 
-In both cases you use the same JSON structure to define vectors. 
-The examples below show the indexing case; the query case will be covered later.
-
-### elastiknn_sparse_bool_vector
-
-This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_bool_vector`.
-
-```json
-POST /my-index/_doc
-{
-    "my_vec": {
-       "true_indices": [1, 3, 5, ...],   # 1
-       "total_indices": 100,             # 2
-    }
-}
-
-```
-
-|#|Description|
-|:--|:--|
-|1|JSON list of the indices which are `true` in your vector.|
-|2|The total number of indices in your vector. This should match the `dims` in your mapping.|
-
-### elastiknn_dense_float_vector
-
-This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_float_vector`.
-
-```json
-POST /my-index/_doc
-{
-    "my_vec": {
-        "values": [0.1, 0.2, 0.3, ...]    # 1
-    }
-}
-```
-
-|#|Description|
-|:--|:--|
-|1|JSON list of all floating point values in your vector. The length should match the `dims` in your mapping.|
 
 ## Nearest Neighbor Queries
 
@@ -753,10 +770,8 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
-It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors`
-query on that subset.
-For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`,
-and only run `elastiknn_nearest_neighbors` on that subset.
+It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
+For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`, and only run `elastiknn_nearest_neighbors` on that subset.
 To do this, you can use the `elastiknn_nearest_neighbors` query in a  
 [query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
 
@@ -795,6 +810,23 @@ GET /my-index/_search
 |3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
 |4|Ignore the score from the term query.|
 |5|Use the score from the rescore query.|
+
+**Some important things to consider with this kind of query**
+
+Elasticsearch has a configurable limit for the number of docs that are matched and passed to the `rescore` query.
+The default is 10,000. 
+You can modify the `index.max_rescore_window` setting to get around this.
+
+Given the default limit of 10k vectors passed to the nearest neighbors query, you can typically use exact queries.
+As a point of reference, exact queries on the Fashion-MNIST dataset (60k 784-dimensional vectors) run in about 250ms.
+
+If you determine you need an approximate query for re-scoring, you should ensure that `candidates = window_size > size`.
+Ideally `candidates` is 10x-100x larger than `size`.
+Also, consider that it's possible for the approximate query to match fewer than `candidates` vectors.
+So you can end up with fewer than `size` results in your search response.
+This can happen because the nearest neighbors query is only given access to the `window_size` vectors which matched the original query.
+If you run into this, you should probably adjust your approximate model parameters for higher recall.
+There are notes on each model about how the parameters affect recall and precision.
 
 ## Miscellaneous Implementation Details
 

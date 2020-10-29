@@ -1,3 +1,15 @@
+- Introduces a shorthand alternative format for dense and sparse vectors that makes it easier to work with ES-connectors that don't allow nested docs.
+  - Dense vectors can be represented as a simple array: `{ "vec": [0.1, 0.2, 0.3, ...] }` is equivalent to `{ "vec": { "values": [0.1, 0.2, 0.3] }}`.
+  - Sparse vectors can be represented as an array where the first element is the array of true indices, and the second is the number of total indices: `{"vec": [[1, 3, 5, ...], 100] }` is equivalent to `{ "vec": { "true_indices": [1,3,5,...], "total_indices": 100 }}`
+- Added a logger warning when the approximate query matches fewer candidates than the specified number of candidates.
+- Subtle modification to the DocIdSetIterator created by the MatchHashesAndScoreQuery to address issues 180 and 181.
+  The gist of issue 180 is that the binary doc values iterator used to access vectors would attempt to visit the same
+  document twice, and on the second visit the call to advanceExact would fail.
+  The gist of the change is that the docID was previously initialized to be the smallest candidate docID.
+  Initializing it to -1 seems to be the correct convention, and it makes that problem go away.
+- Renamed all exceptions explicitly thrown by Elastiknn to ElastiknnFooException, e.g. ElastiknnIllegalArgumentException.
+  This just makes it a bit more obvious where to look when debugging exceptions and errors. 
+---
 - No longer caching the mapping for the field being queried. Instead, using the internal mapper service to retrieve the mapping. 
 ---
 - **Breaking internal change - you should re-index your vectors when moving to this version**

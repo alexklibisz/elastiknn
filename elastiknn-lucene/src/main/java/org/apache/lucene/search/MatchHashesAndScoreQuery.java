@@ -5,6 +5,8 @@ import com.klibisz.elastiknn.search.HitCounter;
 import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -29,6 +31,7 @@ public class MatchHashesAndScoreQuery extends Query {
     private final float limit;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
+    private final Logger logger;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
@@ -46,6 +49,7 @@ public class MatchHashesAndScoreQuery extends Query {
         this.limit = limit;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
+        this.logger = LogManager.getLogger(getClass().getName());
     }
 
     @Override
@@ -81,6 +85,11 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
+                if (counter.numHits() < candidates) {
+                    logger.warn(String.format(
+                            "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
+                            counter.numHits(), candidates));
+                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
@@ -89,7 +98,9 @@ public class MatchHashesAndScoreQuery extends Query {
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {
 
-                        private int docID = counter.minKey() - 1;
+                        // Important that this starts at -1. Need a boolean to denote that it has started iterating.
+                        private int docID = -1;
+                        private boolean started = false;
 
                         // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
                         private int numEmitted = 0;
@@ -102,6 +113,11 @@ public class MatchHashesAndScoreQuery extends Query {
 
                         @Override
                         public int nextDoc() {
+
+                            if (!started) {
+                                started = true;
+                                docID = counter.minKey() - 1;
+                            }
 
                             // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                             // than `candidates` docs with count > kgr.kthGreatest.
@@ -165,7 +181,8 @@ public class MatchHashesAndScoreQuery extends Query {
 
                     @Override
                     public float score() {
-                        return (float) scoreFunction.score(docID(), counter.get(docID()));
+                        int docID = docID();
+                        return (float) scoreFunction.score(docID, counter.get(docID));
                     }
 
                     @Override
