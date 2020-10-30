@@ -155,7 +155,7 @@ spec:
           - --bucket
           - "{{workflow.parameters.bucket}}"
           - --maxQueries
-          - "1000"
+          - "10000"
           - --shards
           - "{{workflow.parameters.shards}}"
         env:

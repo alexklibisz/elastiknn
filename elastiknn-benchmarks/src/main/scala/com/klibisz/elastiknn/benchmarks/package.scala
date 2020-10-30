@@ -133,9 +133,9 @@ package object benchmarks {
 
       case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
         for {
-          tables <- Seq(50, 75, 100, 125)
+          tables <- Seq(50, 75, 100)
           hashesPerTable <- Seq(2, 3, 4)
-          width <- 1 to 7
+          width <- 5 to 8
         } yield
           Experiment(
             dataset,
@@ -144,7 +144,7 @@ package object benchmarks {
             Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
             for {
               candidates <- Seq(1000, 5000)
-              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(10)
+              probes <- Seq(0, 3, 6, 9)
             } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
           )
 
