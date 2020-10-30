@@ -180,7 +180,7 @@ class NearestNeighborsQueryRecallSuite extends AsyncFunSuite with Matchers with 
       _ <- if (corpusExists && queryExists) Future.successful(())
       else
         for {
-          _ <- eknn.createIndex(corpusIndex)
+          _ <- eknn.createIndex(corpusIndex, shards)
           _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
           _ <- eknn.createIndex(queriesIndex)
           _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
