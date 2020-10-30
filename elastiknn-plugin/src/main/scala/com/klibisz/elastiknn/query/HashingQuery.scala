@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq, HashingFunction}
-import com.klibisz.elastiknn.storage.{StoredVec, VectorCache}
+import com.klibisz.elastiknn.storage.StoredVec
 import org.apache.lucene.document.Field
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{MatchHashesAndScoreQuery, Query}
@@ -16,11 +16,10 @@ object HashingQuery {
                                       limit: Float,
                                       hashes: Array[HashAndFreq],
                                       exactFunction: ExactSimilarityFunction[V, S],
-                                      indexReader: IndexReader,
-                                      cache: VectorCache[S])(implicit codec: StoredVec.Codec[V, S]): Query = {
+                                      indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
-        val reader = new ExactQuery.StoredVecReader[S](lrc, field, cache)
+        val reader = new ExactQuery.StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = reader(docId)
           exactFunction(query, storedVec)
