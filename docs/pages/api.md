@@ -9,7 +9,7 @@ permalink: /api/
 # Elastiknn API
 {: .no_toc }
 
-This document covers the Elastiknn API, including the REST API payloads and some important implementation details.
+This document covers the Elastiknn API, including: indexing settings, REST API payloads, all aproximate similarity models, and some nice-to-know implementation details.
 
 Once you've [installed Elastiknn](/installation/), you can use the REST API just like you would use the [official Elasticsearch REST APIs](https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html).
 
