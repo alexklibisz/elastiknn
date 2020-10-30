@@ -65,7 +65,8 @@ object SearchClient {
                     createIndex(index)
                       .replicas(0)
                       .shards(shards)
-                      .indexSetting("refresh_interval", "-1"))
+                      .indexSetting("refresh_interval", "-1")
+                      .indexSetting("elastiknn", true))
                   _ <- execute(ElastiknnRequests.putMapping(index, "vec", "id", mapping))
                   n <- vectors
                     .grouped(200)

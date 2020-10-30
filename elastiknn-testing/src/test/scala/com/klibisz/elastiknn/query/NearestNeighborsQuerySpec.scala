@@ -58,7 +58,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       it(s"works with nested field: $nestedField") {
         for {
           _ <- deleteIfExists(index)
-          _ <- eknn.execute(createIndex(index))
+          _ <- eknn.createIndex(index)
           _ <- eknn.execute(putMapping(index).rawSource(mappingSource))
           _ <- eknn.execute(indexInto(index).source(docSource).refresh(RefreshPolicy.IMMEDIATE))
           res <- eknn.execute(search(index).query(NearestNeighborsQuery.Exact(nestedField, Similarity.L2, vec)))
@@ -137,7 +137,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
            |""".stripMargin
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index).shards(1).replicas(1))
+        _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
         _ <- Future.traverse(corpus.grouped(100)) { batch =>
           val reqs = batch.map {
@@ -195,7 +195,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
       val index = s"$indexPrefix-${UUID.randomUUID.toString}"
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index).shards(1).replicas(1))
+        _ <- eknn.createIndex(index)
         _ <- eknn.putMapping(index, "vec", "id", mapping)
         _ <- eknn.index(index, "vec", corpus, "id", corpus.indices.map(i => s"v$i"))
         _ <- eknn.execute(refreshIndex(index))
@@ -256,7 +256,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
 
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+        _ <- eknn.createIndex(index)
         _ <- eknn.putMapping(index, vecField, idField, mapping)
         _ <- eknn.index(index, vecField, corpus, idField, ids)
         _ <- eknn.execute(refreshIndex(index))
@@ -285,7 +285,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
     } it(s"counts vectors for mapping $mapping") {
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index).replicas(0).shards(1))
+        _ <- eknn.createIndex(index)
         _ <- eknn.putMapping(index, field, id, mapping)
         _ <- eknn.index(index, field, corpus, id, ids)
         _ <- eknn.execute(refreshIndex(index))
@@ -403,7 +403,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
 
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index))
+        _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(mappingJsonString))
         _ <- Future.traverse((0 until numDocs).grouped(500)) { ids =>
           val reqs = ids.map { i =>
