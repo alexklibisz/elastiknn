@@ -15,7 +15,7 @@ object LocalBenchmark extends App {
       Dataset.AnnbFashionMnist,
       Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
       NearestNeighborsQuery.Exact(field, Similarity.L2),
-      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 6),
+      Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
       Seq(
         Query(NearestNeighborsQuery.L2Lsh(field, 1000, 3), k)
       )
@@ -36,7 +36,7 @@ object LocalBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 1000
+            maxQueries = 10000
           ))
       } yield ()
     }
