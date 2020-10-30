@@ -1,12 +1,12 @@
-- Adds a global guava cache for dense vectors and another for sparse vectors.
-  The main motivation for this is that versions above 7.6.2 use a version of Lucene that introduced higher compression to binary doc values fields. 
-  So it takes significantly longer to consume the vectors from Lucene to do exact similarity scoring.
-  Caching is configurable using the parameters below, shown with their default values:
-  ```
-  elastiknn.cache.enabled=false    # whether to use caching
-  elastiknn.cache.capacity_mb=512  # capacity limit of each cache in megabytes
-  elastiknn.cache.ttl_seconds=600  # TTL (expire-after-write) for any entry in each cache
-  ```
+- Adds an index-level setting: `index.elastiknn = true|false`, which defaults to `false`.
+  Setting this to true tells Elastiknn to use a non-default storage format for doc values fields.
+  Specifically, Elastiknn will use the latest Lucene formats for all fields except doc values, which will use the `Lucene70DocValuesFormat`.
+  Using this specific doc values format is necessary to disable compression that makes Elastiknn extremely slow when upgraded past Elasticsearch version 7.6.x.
+  Without this format, it's basically impossible to upgrade beyond 7.6.x.
+  The root cause is a change that was made between Lucene 8.4.x and 8.5.x, which introduces more aggressive compression on binary doc values.
+  This compression saves space, but becomes an extreme bottleneck for Elastiknn (40-100x slower queries), since Elastiknn stores vectors as binary doc values.
+  Hopefully the Lucene folks will make this compression optional in the future.
+  Read more here: https://issues.apache.org/jira/browse/LUCENE-9378
 ---
 - Introduces a shorthand alternative format for dense and sparse vectors that makes it easier to work with ES-connectors that don't allow nested docs.
   - Dense vectors can be represented as a simple array: `{ "vec": [0.1, 0.2, 0.3, ...] }` is equivalent to `{ "vec": { "values": [0.1, 0.2, 0.3] }}`.

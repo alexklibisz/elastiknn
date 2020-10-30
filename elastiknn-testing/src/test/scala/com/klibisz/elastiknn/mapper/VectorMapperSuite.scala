@@ -30,7 +30,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       ("vec_jcdlsh", Mapping.JaccardLsh(100, 65, 1))
     )
     for {
-      createIndexRes <- eknn.execute(createIndex(index))
+      createIndexRes <- eknn.createIndex(index)
       _ = createIndexRes.shouldBeSuccess
 
       putMappingReqs = mappings.map {
@@ -106,7 +106,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       putMappingReqs = inputs.map {
         case (indexName, mapping, _, _) =>
           for {
-            _ <- eknn.execute(createIndex(indexName))
+            _ <- eknn.createIndex(indexName)
             _ <- eknn.putMapping(indexName, vecField, storedIdField, mapping)
           } yield ()
       }
@@ -145,7 +145,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       ("intentional-failure-dfv", Mapping.DenseFloat(dims), Vec.DenseFloat.random(dims + 1))
     )
     for {
-      _ <- eknn.execute(createIndex(index))
+      _ <- eknn.createIndex(index)
       putMappingReqs = inputs.map {
         case (fieldName, mapping, _) => eknn.putMapping(index, fieldName, storedIdField, mapping)
       }
@@ -174,7 +174,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     }
     for {
       _ <- deleteIfExists(index)
-      _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+      _ <- eknn.createIndex(index)
       _ <- eknn.putMapping(index, vecField, idField, mapping)
       _ <- eknn.execute(bulk(ixReqs))
       _ <- eknn.execute(refreshIndex(index))
@@ -199,7 +199,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     }
     for {
       _ <- deleteIfExists(index)
-      _ <- eknn.execute(createIndex(index).shards(1).replicas(0))
+      _ <- eknn.createIndex(index)
       _ <- eknn.putMapping(index, vecField, idField, mapping)
       _ <- eknn.execute(bulk(ixReqs))
       _ <- eknn.execute(refreshIndex(index))

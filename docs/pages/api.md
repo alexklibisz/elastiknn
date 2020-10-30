@@ -9,19 +9,42 @@ permalink: /api/
 # Elastiknn API
 {: .no_toc }
 
-This document covers the Elastiknn API, including the REST API payloads and some important implementation details.
+This document covers the Elastiknn API, including: indexing settings, REST API payloads, all aproximate similarity models, and some nice-to-know implementation details.
 
 Once you've [installed Elastiknn](/installation/), you can use the REST API just like you would use the [official Elasticsearch REST APIs](https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html).
 
 1. TOC
 {:toc}
 
+## Index Settings
+
+Bellow are some index settings which affect Elastiknn performance and behavior.
+
+```json
+PUT /my-index
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,          # 1  
+      "elastiknn": true               # 2
+       
+    }
+  }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|The number of shards in your index. Like all Elasticsearch queries, Elastiknn queries execute once per shard in parallel. This means you can generally speed up your queries by adding more shards to the index.|
+|2|Setting this to `true` (default is `false`) yields a significant performance improvement for Elastiknn on Elasticsearch versions 7.7.x and beyond. The reason is a bit involved: Elastiknn stores vectors as binary doc values. Setting this to `true` tells Elastiknn to use an older Lucene format for storing doc values. Specifically, it uses the `Lucene70DocValuesFormat`. The latest format, `Lucene80DocValuesFormat`, uses more aggressive compression for binary doc values. This save space on disk but makes reading vectors significantly slower. [There is some discussion](https://issues.apache.org/jira/browse/LUCENE-9378) to make this compression configurable. If you really need to save space on disk, or you know you really need to use the `Lucene80DocValuesFormat`, then you should set this to `false`. The reason it's `false` by default is that, if it were `true`, Elasticsearch would use this older Lucene format on any index, even if contains no vectors.|
+
 ## Vectors
 
-You need to specify vectors when indexing documents and when running queries with a literal query vector. 
-In both cases you use the same JSON structure to define vectors. 
+You need to specify vectors when indexing documents and when running queries. 
+In both cases you use the same JSON structure to define vectors.
 Each vector also has a shorthand alternative, which can be convenient when using tools that don't support nested documents.
-The examples below show the indexing case; the query case will be covered later.
+The examples below show how to specify vectors when indexing them.
+The format for specifying vectors in queries is covered later.
 
 ### elastiknn_dense_float_vector
 
@@ -768,6 +791,8 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 |L2 LSH                          |✔ (A, L1, L2) |x           |✔      |x              |
 |Permutation LSH                 |✔ (A, L1, L2) |x           |x      |✔              |
 
+## Common Patterns
+
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
 It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
@@ -828,7 +853,15 @@ This can happen because the nearest neighbors query is only given access to the 
 If you run into this, you should probably adjust your approximate model parameters for higher recall.
 There are notes on each model about how the parameters affect recall and precision.
 
-## Miscellaneous Implementation Details
+### Using Stored Fields for Faster Queries
+
+This is a fairly well-known Elasticsearch optimization that applies nicely to some elastiknn use cases.
+If you only need to retrieve a small subset of the document source (e.g. only the ID), you can store the relavant fields as `stored` fields to get a meaningful speedup.
+The Elastiknn scala client uses this optimization to store and retrieve document IDs, yielding a ~40% speedup for queries.
+The setting [is documented here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html)
+and discussed in detail [in this Github issue.](https://github.com/elastic/elasticsearch/issues/17159)
+
+## Nice to Know
 
 Here are some other things worth knowing. 
 Perhaps there will be a more cohesive way to present these in the future.
@@ -862,11 +895,3 @@ Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` 
 This means the simplest way to increase query parallelism is to add shards to your index. 
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
 
-### Use stored fields for faster queries
-
-This is a fairly well-known Elasticsearch optimization that applies nicely to some elastiknn use cases.
-If you only need to retrieve a small subset of the document source (e.g. only the ID), you can store the 
-relavant fields as `stored` fields to get a meaningful speedup.
-The Elastiknn scala client uses this optimization to store and retrieve document IDs, yielding a ~40% speedup.
-The setting [is documented here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html)
-and discussed in detail [in this Github issue.](https://github.com/elastic/elasticsearch/issues/17159)

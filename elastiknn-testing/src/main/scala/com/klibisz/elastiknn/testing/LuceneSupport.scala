@@ -2,9 +2,9 @@ package com.klibisz.elastiknn.testing
 
 import java.nio.file.Files
 
+import com.klibisz.elastiknn.codec.Elastiknn86Codec
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.codecs.Codec
-import org.apache.lucene.codecs.lucene86.Lucene86Codec
 import org.apache.lucene.index._
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.MMapDirectory
@@ -12,7 +12,7 @@ import org.elasticsearch.common.lucene.Lucene
 
 trait LuceneSupport {
 
-  def indexAndSearch[I, S](codec: Codec = new Lucene86Codec(), analyzer: Analyzer = Lucene.KEYWORD_ANALYZER)(index: IndexWriter => I)(
+  def indexAndSearch[I, S](codec: Codec = new Elastiknn86Codec(), analyzer: Analyzer = Lucene.KEYWORD_ANALYZER)(index: IndexWriter => I)(
       search: (IndexReader, IndexSearcher) => S): (I, S) = {
     val tmpDir = Files.createTempDirectory(null).toFile
     val indexDir = new MMapDirectory(tmpDir.toPath)

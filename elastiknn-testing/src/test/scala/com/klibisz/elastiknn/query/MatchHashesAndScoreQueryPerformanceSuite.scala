@@ -3,7 +3,6 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
-import com.klibisz.elastiknn.storage.VectorCache
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene86.Lucene86Codec
 import org.apache.lucene.document.Document
@@ -46,7 +45,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers wi
       case (r, s) =>
         val t0 = System.currentTimeMillis()
         queryVecs.foreach { vec =>
-          val q = HashingQuery(field, vec, 100, 1f, model.hash(vec.values, 9), exactFunc, r, VectorCache.empty)
+          val q = HashingQuery(field, vec, 100, 1f, model.hash(vec.values, 9), exactFunc, r)
           val dd = s.search(q, 100)
           dd.scoreDocs should have length 100
         }
