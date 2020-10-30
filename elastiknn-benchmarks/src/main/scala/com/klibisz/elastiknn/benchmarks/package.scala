@@ -27,7 +27,6 @@ package object benchmarks {
     case object AnnbMnist extends Dataset(784)
     case object AnnbNyt extends Dataset(256)
     case object AnnbSift extends Dataset(128)
-    case class S3Pointer(bucket: String, prefix: String, override val dims: Int) extends Dataset(dims)
   }
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)

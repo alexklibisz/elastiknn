@@ -36,7 +36,7 @@ object LocalBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url),
-            maxQueries = 10000
+            maxQueries = 1000
           ))
       } yield ()
     }
