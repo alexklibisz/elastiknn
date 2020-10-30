@@ -26,16 +26,13 @@ import scala.language.implicitConversions
   *  Anything using Unsafe comes with the tradeoff that it requires extra JVM security permissions.
   *  If this becomes a problem we should likely switch to ObjectOutput/InputStreams.
   */
-sealed trait StoredVec {
-  def sizeBytes: Int
-}
+sealed trait StoredVec
 
 object StoredVec {
 
   sealed trait SparseBool extends StoredVec {
     val trueIndices: Array[Int]
     override def hashCode: Int = util.Arrays.hashCode(trueIndices)
-    override def sizeBytes: Int = trueIndices.length * 4 + 4
   }
 
   object SparseBool {
@@ -47,7 +44,6 @@ object StoredVec {
   sealed trait DenseFloat extends StoredVec {
     val values: Array[Float]
     override def hashCode: Int = util.Arrays.hashCode(values)
-    override def sizeBytes: Int = values.length * 4 + 4
   }
 
   object DenseFloat {

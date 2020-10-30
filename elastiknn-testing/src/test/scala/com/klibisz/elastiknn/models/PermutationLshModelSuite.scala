@@ -4,7 +4,6 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.query.HashingQuery
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
-import com.klibisz.elastiknn.storage.VectorCache
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
@@ -110,7 +109,7 @@ class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport
       } {
         case (r, s) =>
           queryVecs.map { v =>
-            val q = HashingQuery("vec", v, 200, 1f, lsh.hash(v.values), ExactSimilarityFunction.Angular, r, VectorCache.empty)
+            val q = HashingQuery("vec", v, 200, 1f, lsh.hash(v.values), ExactSimilarityFunction.Angular, r)
             s.search(q, 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
           }
       }
