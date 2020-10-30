@@ -5,7 +5,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
-import com.sksamuel.elastic4s.requests.indexes.PutMappingResponse
+import com.sksamuel.elastic4s.requests.indexes.{CreateIndexResponse, PutMappingResponse}
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
 import org.apache.http.HttpHost
 import org.apache.http.client.config.RequestConfig
@@ -25,13 +25,29 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   /**
     * Abstract method for executing a request.
     */
-  def execute[T, U](t: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
+  def execute[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
+
+  /**
+    * Execute the given request.
+    */
+  final def apply[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]] = execute(request)
 
   /**
     * See [[ElastiknnRequests.putMapping()]].
     */
   def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
     execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
+
+  /**
+    * Create an index with recommended defaults.
+    * @param index The index name.
+    * @param shards How many shards, 1 by default.
+    * @param replicas How many replicas, 1 by default.
+    * @param elastiknn Value for `index.elastiknn` setting, true by default.
+    * @return [[CreateIndexResponse]]
+    */
+  def createIndex(index: String, shards: Int = 1, replicas: Int = 0, elastiknn: Boolean = true): F[Response[CreateIndexResponse]] =
+    execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas).indexSetting("elastiknn", elastiknn))
 
   /**
     * Index a batch of vectors as new Elasticsearch docs, one doc per vector.

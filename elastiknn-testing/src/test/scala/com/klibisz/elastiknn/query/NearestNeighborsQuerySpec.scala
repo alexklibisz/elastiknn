@@ -10,7 +10,6 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import com.sksamuel.elastic4s.requests.mappings.MappingDefinition
 import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
 
 import scala.concurrent.Future
@@ -332,8 +331,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         val vecFields = fields.map {
           case (name, mapping, _, _) => s""" "$name": ${ElasticsearchCodec.nospaces(mapping)} """
         }
-        val source =
-          s"""
+        s"""
              |{
              |  "properties": {
              |    "id": {
@@ -344,7 +342,6 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
              |  }
              |}
              |""".stripMargin
-        MappingDefinition(rawSource = Some(source))
       }
 
       // Generate docs and index requests for documents that implement this mapping.
@@ -362,7 +359,8 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
 
       for {
         _ <- deleteIfExists(index)
-        _ <- eknn.execute(createIndex(index).shards(1).replicas(0).mapping(combinedMapping))
+        _ <- eknn.createIndex(index)
+        _ <- eknn.execute(putMapping(index).rawSource(combinedMapping))
         _ <- eknn.execute(bulk(indexReqs))
         _ <- eknn.execute(refreshIndex(index))
         counts <- Future.sequence(countExistsReqs.map(eknn.execute(_)))
