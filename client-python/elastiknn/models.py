@@ -44,7 +44,7 @@ class ElastiknnModel(object):
             self._logger.warning(f"index was not given, using {self._index} instead")
 
         self._eknn.es.indices.delete(self._index, ignore=[400, 404])
-        body = dict(settings=dict(number_of_shards=shards, elastiknn=true, number_of_replicas=0))
+        body = dict(settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
         self._eknn.es.indices.create(self._index, body=json.dumps(body))
         self._eknn.put_mapping(self._index, self._vec_field, mapping, self._stored_id_field)
 
