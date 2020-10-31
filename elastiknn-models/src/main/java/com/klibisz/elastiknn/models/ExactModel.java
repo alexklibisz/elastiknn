@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.models;
 
+import jdk.internal.vm.annotation.ForceInline;
+
 import java.util.Arrays;
 
 import static com.klibisz.elastiknn.models.Utils.sortedIntersectionCount;
@@ -18,6 +20,7 @@ public class ExactModel {
 
     public static class Jaccard implements SparseBool {
         @Override
+        @ForceInline
         public double similarity(int[] v1, int[] v2, int totalIndices) {
             int isec = sortedIntersectionCount(v1, v2);
             int denom = v1.length + v2.length - isec;
@@ -28,8 +31,8 @@ public class ExactModel {
     }
 
     public static class Hamming implements SparseBool {
-
         @Override
+        @ForceInline
         public double similarity(int[] v1, int[] v2, int totalIndices) {
             int eqTrueCount = sortedIntersectionCount(v1, v2);
             int neqTrueCount = Math.max(v1.length - eqTrueCount, 0) + Math.max(v2.length - eqTrueCount, 0);
@@ -39,6 +42,7 @@ public class ExactModel {
 
     public static class L2 implements DenseFloat {
         @Override
+        @ForceInline
         public double similarity(float[] v1, float[] v2) {
             double sumSqrDiff = 0.0;
             for (int i = 0; i < v1.length; i++) {
@@ -51,6 +55,7 @@ public class ExactModel {
 
     public static class L1 implements DenseFloat {
         @Override
+        @ForceInline
         public double similarity(float[] v1, float[] v2) {
             double sumAbsDiff = 0.0;
             for (int i = 0; i < v1.length; i++) {
@@ -62,6 +67,7 @@ public class ExactModel {
 
     public static class Angular implements DenseFloat {
         @Override
+        @ForceInline
         public double similarity(float[] v1, float[] v2) {
             double dotProd = 0.0;
             double v1SqrSum = 0.0;

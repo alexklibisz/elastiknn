@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.benchmarks
 
 import com.amazonaws.services.s3.model.PutObjectResult
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity}
 import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.syntax._
 import zio._
@@ -46,7 +47,20 @@ object Generate extends App {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = Experiment.gridsearch(Dataset.AnnbFashionMnist)
+      // val experiments = Experiment.gridsearch(Dataset.AnnbFashionMnist)
+
+      val experiments = Seq(
+        Experiment(
+          Dataset.AnnbFashionMnist,
+          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+          NearestNeighborsQuery.Exact("vec", Similarity.L2),
+          Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
+          Seq(
+            Query(NearestNeighborsQuery.L2Lsh("vec", 1000, 3), 100)
+          )
+        )
+      )
+
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)

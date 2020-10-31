@@ -88,6 +88,7 @@ spec:
               cluster.name: "no-cluster"
               network.host: 0.0.0.0
               node.processors: {{workflow.parameters.shards}}
+              thread_pool.search.size: {{workflow.parameters.shards}}
             jvm.options: |
               # Memory allocated to JVM.
               -Xms{{workflow.parameters.esJvmMemory}}
@@ -105,6 +106,10 @@ spec:
               -XX:ErrorFile=logs/hs_err_pid%p.log
               # JDK 9+ GC logging
               9-:-Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m
+              # Informationa bout JIT optimization and inlining. See: https://www.baeldung.com/jvm-method-inlining
+              # -XX:+PrintCompilation
+              # -XX:+UnlockDiagnosticVMOptions
+              # -XX:+PrintInlining
               # VisualVM profiling
               -Dcom.sun.management.jmxremote.ssl=false
               -Dcom.sun.management.jmxremote.authenticate=false
@@ -154,8 +159,14 @@ spec:
           - "results/raw"
           - --bucket
           - "{{workflow.parameters.bucket}}"
-          - --maxQueries
+          - --numQueries
           - "10000"
+          - --warmupQueries
+          - "200"
+          - --minWarmupRounds
+          - "5"
+          - --maxWarmupRounds
+          - "100"
           - --shards
           - "{{workflow.parameters.shards}}"
         env:

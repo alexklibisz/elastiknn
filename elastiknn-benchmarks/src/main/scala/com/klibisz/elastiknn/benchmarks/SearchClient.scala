@@ -99,7 +99,7 @@ object SearchClient {
                   for {
                     (dur, res) <- ZIO.fromFuture(_ => client.nearestNeighbors(index, query, k, "id")).timed
                     _ <- if (i % 100 == 0) log.debug(s"Completed query [$i] in [$index] in [${dur.toMillis}] ms") else ZIO.succeed(())
-                  } yield QueryResult(res.result.hits.hits.map(_.score), dur.toMillis)
+                  } yield QueryResult(res.result.hits.hits.map(_.score), res.result.took)
               }
             }
 
