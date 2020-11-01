@@ -164,7 +164,7 @@ spec:
           - --warmupQueries
           - "200"
           - --minWarmupRounds
-          - "5"
+          - "15"
           - --maxWarmupRounds
           - "100"
           - --shards
