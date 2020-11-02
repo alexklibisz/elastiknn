@@ -1,3 +1,8 @@
+- Upgraded to Elasticsearch version 7.9.2. No changes to the API. 
+  It did require quite a bit of internal refactoring, mostly to the way vector types are implemented.
+- Indices should be backwards compatible, however if you indexed on an earlier version, I'd recommend re-indexing and 
+  setting the `index.elastiknn` setting to `true`.
+---
 - Adds an index-level setting: `index.elastiknn = true|false`, which defaults to `false`.
   Setting this to true tells Elastiknn to use a non-default storage format for doc values fields.
   Specifically, Elastiknn will use the latest Lucene formats for all fields except doc values, which will use the `Lucene70DocValuesFormat`.

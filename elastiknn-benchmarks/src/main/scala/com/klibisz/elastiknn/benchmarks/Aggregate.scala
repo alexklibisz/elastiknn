@@ -3,13 +3,11 @@ package com.klibisz.elastiknn.benchmarks
 import java.io.File
 
 import com.klibisz.elastiknn.api.ElasticsearchCodec
-import com.klibisz.elastiknn.benchmarks.codecs._
 import kantan.codecs.Encoder
 import kantan.csv
 import kantan.csv._
 import kantan.csv.ops._
 import kantan.csv.generic._
-import kantan.csv.java8._
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
@@ -36,8 +34,6 @@ object Aggregate extends App {
     opt[String]("aggregateKey").action((x, c) => c.copy(aggregateKey = x)).required()
     opt[String]("bucket").action((x, c) => c.copy(bucket = x)).required()
     opt[String]("s3Url").action((x, c) => c.copy(s3Url = Some(x))).optional()
-    opt[String]("airtableUrl").action((x, c) => c.copy(airtableUrl = Some(x))).optional()
-    opt[String]("airtableToken").action((x, c) => c.copy(airtableUrl = Some(x))).optional()
   }
 
   implicit def cellEncoder[A: ElasticsearchCodec]: Encoder[String, A, csv.codecs.type] =
@@ -46,21 +42,15 @@ object Aggregate extends App {
   def apply(params: Params): ZIO[Any, Throwable, Unit] = {
     import params._
     val s3Client = S3Utils.client(s3Url)
-    val airtableLayer = (for {
-      url <- airtableUrl
-      token <- airtableToken
-    } yield AirtableClient.scalaj(url, token)).getOrElse(AirtableClient.devnull())
 
     val layer =
       (Blocking.live ++ ZLayer.succeed(s3Client)) >>>
         Slf4jLogger.make((_, s) => s, Some(this.getClass.getSimpleName)) ++
           ResultClient.s3(bucket, params.resultsPrefix) ++
-          airtableLayer ++
           Blocking.live
 
     val logic = for {
       resultClient <- ZIO.access[Has[ResultClient]](_.get)
-      airtableClient <- ZIO.access[Has[AirtableClient]](_.get)
       blocking <- ZIO.access[Blocking](_.get)
 
       // Stream results from S3.
@@ -82,9 +72,6 @@ object Aggregate extends App {
       _ = writer.close()
       _ <- log.info(s"Wrote ${rows.length} rows to csv file.")
       _ <- blocking.effectBlocking(s3Client.putObject(bucket, params.aggregateKey, csvFile))
-
-      // Write rows to Airtable.
-      _ <- airtableClient.appendRows(rows)
 
     } yield ()
 

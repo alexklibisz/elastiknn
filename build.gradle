@@ -2,8 +2,8 @@ import javax.swing.table.DefaultTableCellRenderer
 
 buildscript {
     ext {
-        esVersion = '7.6.2'
-        luceneVersion = '8.4.0'
+        esVersion = '7.9.2'
+        luceneVersion = '8.6.2'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
         scalaFullVersion = '2.12.10'

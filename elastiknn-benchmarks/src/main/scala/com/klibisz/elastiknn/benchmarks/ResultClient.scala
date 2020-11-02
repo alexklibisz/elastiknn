@@ -23,14 +23,40 @@ object ResultClient {
 
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, Has[ResultClient]] = {
 
-    def validChars(s: String): String = s.map { c =>
-      if (c.isLetter && c <= 'z' || c.isDigit || c == '.') c
-      else '-'
-    }
-
     def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): String = {
-      val suffix = validChars(s"res-${dataset.toString}-${mapping.toString}-${query.toString}-$k.json")
-      if (keyPrefix.nonEmpty) s"$keyPrefix/$suffix".replace("//", "/")
+
+      def mappingString(mapping: Mapping): String = mapping match {
+        case Mapping.SparseBool(_)                   => s"m_sparsebool"
+        case Mapping.SparseIndexed(_)                => s"m_sparseindexed"
+        case Mapping.JaccardLsh(_, l, k)             => s"m_jaccardlsh/L_$l/k_$k"
+        case Mapping.HammingLsh(_, l, k)             => s"m_hamminglsh/L_$l/k_$k"
+        case Mapping.DenseFloat(_)                   => s"m_densefloat"
+        case Mapping.AngularLsh(_, l, k)             => s"m_angularlsh/L_$l/k_$k"
+        case Mapping.L2Lsh(_, l, k, w)               => s"m_l2lsh/L_$l/k_$k"
+        case Mapping.PermutationLsh(_, k, repeating) => s"m_permutaitonlsh/k_$k/repeating_$repeating"
+      }
+
+      def queryString(query: NearestNeighborsQuery): String =
+        query match {
+          case NearestNeighborsQuery.Exact(_, similarity, _)         => s"q_exact/sim_$similarity/k_${k}"
+          case NearestNeighborsQuery.SparseIndexed(_, similarity, _) => s"q_sparseindexed/sim_$similarity/k_${k}"
+          case nnq: NearestNeighborsQuery.ApproximateQuery =>
+            nnq match {
+              case NearestNeighborsQuery.JaccardLsh(_, candidates, _, limit) =>
+                s"q_jaccardlsh/candidates_$candidates/limit_$limit/k_${k}"
+              case NearestNeighborsQuery.HammingLsh(_, candidates, _, limit) =>
+                s"q_hamminglsh/candidates_$candidates/limit_$limit/k_${k}"
+              case NearestNeighborsQuery.AngularLsh(_, candidates, _, limit) =>
+                s"q_angularlsh/candidates_$candidates/limit_$limit/k_${k}"
+              case NearestNeighborsQuery.L2Lsh(_, candidates, probes, _, limit) =>
+                s"q_l2lsh/candidates_$candidates/probes_$probes/limit_$limit/k_${k}"
+              case NearestNeighborsQuery.PermutationLsh(_, similarity, candidates, _, limit) =>
+                s"q_permutationlsh/sim_$similarity/candidates_$candidates/limit_$limit/k_${k}"
+            }
+        }
+
+      val suffix = s"${dataset.toString}/${mappingString(mapping)}/${queryString(query)}.json"
+      if (keyPrefix.nonEmpty) s"$keyPrefix/$suffix"
       else suffix
     }
 

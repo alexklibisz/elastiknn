@@ -45,12 +45,14 @@ object ExactQuery {
     * Helper class that makes it easy to read vectors that were stored using the conventions in this class.
     */
   final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, field: String) {
+    // Important that each of these is instantiated here and not in the apply method.
     private val vecDocVals = lrc.reader.getBinaryDocValues(field)
+    private val decoder = implicitly[StoredVec.Decoder[S]]
 
     def apply(docId: Int): S =
       if (vecDocVals.advanceExact(docId)) {
         val bytesRef = vecDocVals.binaryValue()
-        implicitly[StoredVec.Decoder[S]].apply(bytesRef.bytes, bytesRef.offset, bytesRef.length)
+        decoder(bytesRef.bytes, bytesRef.offset, bytesRef.length)
       } else throw new ElastiknnRuntimeException(s"Couldn't advance to binary doc values for doc with id [$docId]")
 
   }

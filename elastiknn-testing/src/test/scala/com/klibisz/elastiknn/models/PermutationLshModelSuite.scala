@@ -14,7 +14,7 @@ import scala.util.Random
 
 class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport {
 
-  val ft = new VectorMapper.FieldType("elastiknn_dense_float_vector", "vec", Mapping.DenseFloat(-1))
+  val ft = VectorMapper.denseFloatVector.luceneFieldType
 
   test("example from paper") {
     val mapping = Mapping.PermutationLsh(6, 4, true)

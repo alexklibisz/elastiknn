@@ -46,7 +46,8 @@ object Generate extends App {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = Experiment.gridsearch(Dataset.AnnbSift)
+      val experiments = Experiment.gridsearch(Dataset.AnnbFashionMnist)
+
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)

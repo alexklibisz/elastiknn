@@ -16,6 +16,8 @@ import scala.concurrent.Future
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
+import scala.util.Random
+
 class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
 
   // https://github.com/alexklibisz/elastiknn/issues/60
@@ -197,6 +199,7 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
         _ <- deleteIfExists(index)
         _ <- eknn.createIndex(index)
         _ <- eknn.putMapping(index, "vec", "id", mapping)
+        _ <- eknn.execute(refreshIndex(index))
         _ <- eknn.index(index, "vec", corpus, "id", corpus.indices.map(i => s"v$i"))
         _ <- eknn.execute(refreshIndex(index))
         res <- eknn.nearestNeighbors(index, query, 5, "id")

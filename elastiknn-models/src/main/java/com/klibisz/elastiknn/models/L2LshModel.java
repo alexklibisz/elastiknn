@@ -63,77 +63,78 @@ public class L2LshModel implements HashingModel.DenseFloat {
         return hash(values, 0);
     }
 
-    public HashAndFreq[] hash(float[] values, int probesPerTable) {
-        int numHashes = L * (1 + Math.max(0, Math.min(probesPerTable, maxProbesPerTable)));
-        HashAndFreq[] hashes = new HashAndFreq[numHashes];
-
-        // If you don't need probing (e.g. when indexing or when probes = 0), just compute the hashes.
-        if (hashes.length == L) {
-            for (int ixL = 0; ixL < L; ixL++) {
-                int[] ints = new int[1 + k];
-                ints[0] = ixL;
-                for (int ixk = 0; ixk < k; ixk++) {
-                    float[] a = A[ixL * k + ixk];
-                    float b = B[ixL * k + ixk];
-                    ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
-                }
-                hashes[ixL] = HashAndFreq.once(writeInts(ints));
+    private HashAndFreq[] hashNoProbing(float[] values) {
+        HashAndFreq[] hashes = new HashAndFreq[L];
+        for (int ixL = 0; ixL < L; ixL++) {
+            int[] ints = new int[1 + k];
+            ints[0] = ixL;
+            for (int ixk = 0; ixk < k; ixk++) {
+                float[] a = A[ixL * k + ixk];
+                float b = B[ixL * k + ixk];
+                ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
             }
-        } else {
-            // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
-            Perturbation[] zeroPerturbations = new Perturbation[L * k];
-            Perturbation[][] sortedPerturbations = new Perturbation[L][k * 2];
-            for (int ixL = 0; ixL < L; ixL++) {
-                int[] ints = new int[k + 1];
-                ints[0] = ixL;
-                for (int ixk = 0; ixk < k; ixk++) {
-                    float[] a = A[ixL * k + ixk];
-                    float b = B[ixL * k + ixk];
-                    float proj = dot(a, values) + b;
-                    int hash = (int) Math.floor(proj / w);
-                    float dneg = proj - hash * w;
-                    sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
-                    sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
-                    zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
-                    ints[ixk + 1] = hash;
-                }
-                hashes[ixL] = HashAndFreq.once(writeInts(ints));
-            }
-
-            PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
-
-//            // Use algorithm 1 from Qin et. al to pick the best perturbation sets.
-//            MinMaxPriorityQueue<PerturbationSet> heap = MinMaxPriorityQueue
-//                    .orderedBy((Comparator<PerturbationSet>) (o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum))
-//                    .create();
-
-            // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
-            for (int ixL = 0; ixL < L; ixL++) {
-                Arrays.sort(sortedPerturbations[ixL], (o1, o2) -> Float.compare(o1.absDistance, o2.absDistance));
-                heap.add(PerturbationSet.single(sortedPerturbations[ixL][0]));
-            }
-
-            // Start at L because the first L non-perturbed hashes were added above.
-            for (int ixhashes = L; ixhashes < hashes.length; ixhashes++) {
-                // Extract top perturbation set and add the shifted/expanded versions.
-                // Different from the paper, assumes shift/expand can only return valid perturbation sets, or return null.
-                PerturbationSet Ai = heap.remove();
-                PerturbationSet As = PerturbationSet.shift(sortedPerturbations[Ai.ixL], Ai);
-                PerturbationSet Ae = PerturbationSet.expand(sortedPerturbations[Ai.ixL], Ai);
-                if (As != null) heap.add(As);
-                if (Ae != null) heap.add(Ae);
-
-                // Generate the hash value for Ai. If ixk is unperturbed access the zeroPerturbations from above.
-                int[] ints = new int[k + 1];
-                ints[0] = Ai.ixL;
-                for (int ixk = 0; ixk < k; ixk++) {
-                    Perturbation pert = Ai.members.getOrDefault(ixk, zeroPerturbations[Ai.ixL * k + ixk]);
-                    ints[ixk + 1] = pert.hash + pert.delta;
-                }
-                hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
-            }
+            hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
         return hashes;
+    }
+
+    private HashAndFreq[] hashWithProbing(float[] values, int probesPerTable) {
+        int numHashes = L * (1 + Math.max(0, Math.min(probesPerTable, maxProbesPerTable)));
+        HashAndFreq[] hashes = new HashAndFreq[numHashes];
+        // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
+        Perturbation[] zeroPerturbations = new Perturbation[L * k];
+        Perturbation[][] sortedPerturbations = new Perturbation[L][k * 2];
+        for (int ixL = 0; ixL < L; ixL++) {
+            int[] ints = new int[k + 1];
+            ints[0] = ixL;
+            for (int ixk = 0; ixk < k; ixk++) {
+                float[] a = A[ixL * k + ixk];
+                float b = B[ixL * k + ixk];
+                float proj = dot(a, values) + b;
+                int hash = (int) Math.floor(proj / w);
+                float dneg = proj - hash * w;
+                sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
+                sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
+                zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
+                ints[ixk + 1] = hash;
+            }
+            hashes[ixL] = HashAndFreq.once(writeInts(ints));
+        }
+
+        PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
+
+        // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
+        for (int ixL = 0; ixL < L; ixL++) {
+            Arrays.sort(sortedPerturbations[ixL], (o1, o2) -> Float.compare(o1.absDistance, o2.absDistance));
+            heap.add(PerturbationSet.single(sortedPerturbations[ixL][0]));
+        }
+
+        // Start at L because the first L non-perturbed hashes were added above.
+        for (int ixhashes = L; ixhashes < hashes.length; ixhashes++) {
+            // Extract top perturbation set and add the shifted/expanded versions.
+            // Different from the paper, assumes shift/expand can only return valid perturbation sets, or return null.
+            PerturbationSet Ai = heap.remove();
+            PerturbationSet As = PerturbationSet.shift(sortedPerturbations[Ai.ixL], Ai);
+            PerturbationSet Ae = PerturbationSet.expand(sortedPerturbations[Ai.ixL], Ai);
+            if (As != null) heap.add(As);
+            if (Ae != null) heap.add(Ae);
+
+            // Generate the hash value for Ai. If ixk is unperturbed access the zeroPerturbations from above.
+            int[] ints = new int[k + 1];
+            ints[0] = Ai.ixL;
+            for (int ixk = 0; ixk < k; ixk++) {
+                Perturbation pert = Ai.members.getOrDefault(ixk, zeroPerturbations[Ai.ixL * k + ixk]);
+                ints[ixk + 1] = pert.hash + pert.delta;
+            }
+            hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
+        }
+        return hashes;
+    }
+
+
+    public HashAndFreq[] hash(float[] values, int probesPerTable) {
+        if (probesPerTable == 0) return hashNoProbing(values);
+        else return hashWithProbing(values, probesPerTable);
     }
 
     private static class Perturbation {
