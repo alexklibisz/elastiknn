@@ -142,7 +142,7 @@ package object benchmarks {
 
       case Dataset.AnnbSift =>
         for {
-          tables <- Seq(50, 75, 100, 125)
+          tables <- Seq(50, 75, 100)
           hashesPerTable <- Seq(2, 3, 4)
           width <- Seq(1, 2, 3)
         } yield
@@ -159,8 +159,8 @@ package object benchmarks {
 
       case Dataset.AnnbGlove100 =>
         val projections = for {
-          tables <- Seq(50, 75, 100)
-          hashesPerTable <- Seq(1, 2, 3)
+          tables <- Seq(50, 100, 125)
+          hashesPerTable <- Seq(6, 9)
         } yield
           Experiment(
             dataset,
@@ -172,18 +172,18 @@ package object benchmarks {
             } yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
           )
         val permutations = for {
-          m <- Seq(0.2, 0.4, 0.6)
+          k <- Seq(10, 25, 50, 75)
+          rep <- Seq(false)
         } yield
           Experiment(
             dataset,
             Mapping.DenseFloat(dataset.dims),
             NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
-            Mapping.PermutationLsh(dataset.dims, (m * dataset.dims).toInt, repeating = false),
+            Mapping.PermutationLsh(dataset.dims, k, repeating = rep),
             for {
-              candidates <- Seq(1000, 5000)
+              candidates <- Seq(1000, 5000, 10000)
             } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
           )
-
         projections ++ permutations
 
       case _ => Seq.empty
