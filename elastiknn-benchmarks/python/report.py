@@ -23,7 +23,7 @@ def pareto_frontier(df: pd.DataFrame, colx: str, coly: str) -> pd.DataFrame:
 
 
 def cleanup_query(s: str) -> str:
-    d = {k: v for (k, v) in json.loads(s).items() if k not in {'field', 'vec'}}
+    d = {k: v for (k, v) in json.loads(s).items() if k not in {'field', 'vec', 'limit'}}
     return json.dumps(d)
 
 
@@ -33,7 +33,7 @@ def cleanup_mapping(s: str) -> str:
 
 
 def cleanup_dataset(s: str) -> str:
-    return ''.join(map(lambda c: c if c.islower() else f" {c}", s)).strip()
+    return ''.join(map(lambda c: c if c.islower() or c.isdigit() else f" {c}", s)).strip()
 
 
 def main():

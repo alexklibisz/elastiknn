@@ -8,7 +8,7 @@ services:
   # Single master node.
   elasticsearch_master:
     build:
-      context: ${ES_CONTEXT:-../elastiknn-plugin}
+      context: ../elastiknn-plugin
       dockerfile: Dockerfile
     container_name: elasticsearch_master
     environment:
@@ -35,7 +35,7 @@ services:
 
   elasticsearch_data:
     build:
-      context: ${ES_CONTEXT:-../elastiknn-plugin}
+      context: ../elastiknn-plugin
       dockerfile: Dockerfile
     environment:
       - cluster.name=docker-cluster

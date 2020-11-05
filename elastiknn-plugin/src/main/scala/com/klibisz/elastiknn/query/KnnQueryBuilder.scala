@@ -6,10 +6,10 @@ import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
+import com.klibisz.elastiknn.mapper.VectorMapper
 import io.circe.Json
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
