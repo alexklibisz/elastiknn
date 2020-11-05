@@ -71,7 +71,7 @@ class ElastiknnModel(object):
             try:
                 hits = res['hits']['hits']
             except KeyError as ex:
-                self._logger.warning(f"query for {v} returned no hits: {res}")
+                self._logger.warning(f"Query returned no hits: {res}")
                 continue
             for j, hit in enumerate(hits):
                 inds[i][j] = int(hit['fields'][self._stored_id_field][0]) - 1  # Subtract one from id because 0 is an invalid id in ES.
