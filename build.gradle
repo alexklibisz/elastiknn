@@ -237,6 +237,9 @@ configure(pluginCommon, List.of(
         {
             dependencies {
                 implementation api4s
+                implementation models
+                implementation "com.google.guava:guava:28.1-jre"
+                runtime "com.google.guava:guava:28.1-jre"
             }
         }
 ))
@@ -274,8 +277,6 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation lucene
         implementation api4s
         implementation pluginCommon
-        implementation "com.google.guava:guava:28.1-jre"
-        runtime "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
