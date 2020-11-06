@@ -1,3 +1,6 @@
+- Improved the Python ElastiknnModel's handling of empty query responses (i.e. no results). 
+  Previously it threw an exception. Now it will just not populate the ID and distance arrays for that particular query.
+---
 - Upgraded to Elasticsearch version 7.9.2. No changes to the API. 
   It did require quite a bit of internal refactoring, mostly to the way vector types are implemented.
 - Indices should be backwards compatible, however if you indexed on an earlier version, I'd recommend re-indexing and 
