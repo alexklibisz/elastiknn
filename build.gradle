@@ -1,7 +1,5 @@
 buildscript {
     ext {
-        esVersion = '7.9.0'
-        luceneVersion = '8.6.0'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
         scalaFullVersion = '2.12.10'
@@ -16,7 +14,7 @@ buildscript {
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
         classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.26'
-        classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
+        classpath "org.elasticsearch.gradle:build-tools:7.9.0"
     }
 }
 
@@ -48,11 +46,12 @@ subprojects {
 Project api4s = project(':api4s')
 Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
-Project lucene = project(':lucene')
 Project models = project(':models')
-Project plugin = project(':plugin')
 Project pluginCommon = project(':plugin-common')
 Project testing = project(':testing')
+
+Project plugin79x = project(':plugin-79x')
+Project lucene86x = project(':lucene-86x')
 
 // Utility to apply multiple configuration closures to a single project.
 // TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
@@ -170,6 +169,7 @@ configure(api4s, List.of(
 configure(benchmarks, List.of(
         scalaProjectConfig,
         {
+
             apply plugin: 'application'
             apply plugin: 'com.github.johnrengelman.shadow'
 
@@ -184,8 +184,8 @@ configure(benchmarks, List.of(
 
             dependencies {
                 implementation models
-                implementation lucene
-                implementation plugin
+                implementation lucene86x
+                implementation plugin79x
                 implementation clientElastic4s
                 implementation "dev.zio:zio_${scalaShortVersion}:${zioVersion}"
                 implementation "dev.zio:zio-streams_${scalaShortVersion}:${zioVersion}"
@@ -196,10 +196,10 @@ configure(benchmarks, List.of(
                 implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-java8_${scalaShortVersion}:0.6.1"
-                implementation "org.elasticsearch:elasticsearch:${esVersion}"
-                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
+                // implementation "org.elasticsearch:elasticsearch:${esVersion}"
+                // implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+                // implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+                // implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
                 implementation "org.scalaj:scalaj-http_${scalaShortVersion}:2.4.2"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
@@ -222,9 +222,10 @@ configure(clientElastic4s, List.of(
 configure(models, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
 
-configure(lucene, List.of(
+configure(lucene86x, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
+            def luceneVersion = '8.6.0'
             dependencies {
                 implementation models
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
@@ -244,7 +245,9 @@ configure(pluginCommon, List.of(
         }
 ))
 
-configure(plugin, List.of(scalaProjectConfig, {
+configure(plugin79x, List.of(scalaProjectConfig, {
+
+    def esVersion = '7.9.0'
 
     version = "${version}_es${esVersion}"
 
@@ -274,7 +277,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
         runtime models
         implementation models
-        implementation lucene
+        implementation lucene86x
         implementation api4s
         implementation pluginCommon
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
@@ -282,6 +285,9 @@ configure(plugin, List.of(scalaProjectConfig, {
 }))
 
 configure(testing, List.of(scalaProjectConfig, {
+
+    def esVersion = "7.9.0"
+    def luceneVersion = "8.6.0"
 
     apply plugin: 'com.github.maiflai.scalatest'
 
@@ -298,8 +304,8 @@ configure(testing, List.of(scalaProjectConfig, {
     dependencies {
         implementation models
         implementation clientElastic4s
-        implementation plugin
-        implementation lucene
+        implementation plugin79x
+        implementation lucene86x
         implementation pluginCommon
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
