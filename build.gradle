@@ -158,9 +158,7 @@ configure(api4s, List.of(
         publishConfig("Scala case classes and circe codecs for the Elastiknn JSON API", true),
         {
             dependencies {
-                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
                 api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
                 api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
             }
         }
@@ -192,14 +190,7 @@ configure(benchmarks, List.of(
                 implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
-                implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
-                implementation "com.nrinaudo:kantan.csv-java8_${scalaShortVersion}:0.6.1"
-                implementation "org.elasticsearch:elasticsearch:${esVersion}"
-                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
-                implementation "org.scalaj:scalaj-http_${scalaShortVersion}:2.4.2"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
                 implementation 'javax.xml:jaxb-api:2.1'
@@ -219,18 +210,13 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(models, List.of(
-        publishConfig("Exact and approximate similarity models used in Elastiknn", false),
-        {
-            dependencies {
-                implementation api4s
-                implementation lucene
-            }
-        }))
+        publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
 
 configure(lucene, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
+                implementation models
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.logging.log4j:log4j-api:2.11.1"
             }
