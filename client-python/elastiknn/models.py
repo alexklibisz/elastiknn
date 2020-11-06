@@ -68,7 +68,11 @@ class ElastiknnModel(object):
         for i, v in tqdm(enumerate(canonical_vectors_to_elastiknn(X)), disable=not progbar):
             res = self._eknn.nearest_neighbors(self._index, self._query.with_vec(v), self._stored_id_field,
                                                n_neighbors, fetch_source=False)
-            hits = res['hits']['hits']
+            try:
+                hits = res['hits']['hits']
+            except KeyError as ex:
+                self._logger.warning(f"Query returned no hits: {res}")
+                continue
             for j, hit in enumerate(hits):
                 inds[i][j] = int(hit['fields'][self._stored_id_field][0]) - 1  # Subtract one from id because 0 is an invalid id in ES.
                 sims[i][j] = float(hit['_score'])
