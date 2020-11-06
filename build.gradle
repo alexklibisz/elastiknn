@@ -50,8 +50,10 @@ Project models = project(':models')
 Project pluginCommon = project(':plugin-common')
 Project testing = project(':testing')
 
-Project plugin79x = project(':plugin-79x')
-Project lucene86x = project(':lucene-86x')
+Project plugin790 = project(':plugin-790')
+Project lucene860 = project(':elastiknn-lucene').copy()
+Project lucene862 = project(':elastiknn-lucene')
+// Project lucene862 = project(':lucene-862')
 
 // Utility to apply multiple configuration closures to a single project.
 // TODO: Why can't you just chain .configure(closure1).configure(closure2)...?
@@ -184,8 +186,8 @@ configure(benchmarks, List.of(
 
             dependencies {
                 implementation models
-                implementation lucene86x
-                implementation plugin79x
+                implementation lucene860
+                implementation plugin790
                 implementation clientElastic4s
                 implementation "dev.zio:zio_${scalaShortVersion}:${zioVersion}"
                 implementation "dev.zio:zio-streams_${scalaShortVersion}:${zioVersion}"
@@ -195,11 +197,6 @@ configure(benchmarks, List.of(
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
                 implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
-                implementation "com.nrinaudo:kantan.csv-java8_${scalaShortVersion}:0.6.1"
-                // implementation "org.elasticsearch:elasticsearch:${esVersion}"
-                // implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                // implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-                // implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
                 implementation "org.scalaj:scalaj-http_${scalaShortVersion}:2.4.2"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
@@ -222,16 +219,27 @@ configure(clientElastic4s, List.of(
 configure(models, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
 
-configure(lucene86x, List.of(
-        publishConfig("Custom Lucene queries used in Elastiknn"),
+configure(lucene860, List.of(
+        publishConfig("Custom Lucene queries used in Elastiknn, built for Lucene 8.6.0"),
         {
-            def luceneVersion = '8.6.0'
             dependencies {
                 implementation models
-                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+                implementation "org.apache.lucene:lucene-core:8.6.0"
                 implementation "org.apache.logging.log4j:log4j-api:2.11.1"
             }
-        }))
+        }
+))
+
+configure(lucene862, List.of(
+        publishConfig("Custom Lucene queries used in Elastiknn, built for Lucene 8.6.2"),
+        {
+            dependencies {
+                implementation models
+                implementation "org.apache.lucene:lucene-core:8.6.2"
+                implementation "org.apache.logging.log4j:log4j-api:2.11.1"
+            }
+        }
+))
 
 configure(pluginCommon, List.of(
         scalaProjectConfig,
@@ -245,7 +253,7 @@ configure(pluginCommon, List.of(
         }
 ))
 
-configure(plugin79x, List.of(scalaProjectConfig, {
+configure(plugin790, List.of(scalaProjectConfig, {
 
     def esVersion = '7.9.0'
 
@@ -277,7 +285,7 @@ configure(plugin79x, List.of(scalaProjectConfig, {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
         runtime models
         implementation models
-        implementation lucene86x
+        implementation lucene860
         implementation api4s
         implementation pluginCommon
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
@@ -304,8 +312,8 @@ configure(testing, List.of(scalaProjectConfig, {
     dependencies {
         implementation models
         implementation clientElastic4s
-        implementation plugin79x
-        implementation lucene86x
+        implementation plugin790
+        implementation lucene860
         implementation pluginCommon
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"

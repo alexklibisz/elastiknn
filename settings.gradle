@@ -1,18 +1,24 @@
 rootProject.name = 'elastiknn'
 
-List<String> subprojectNames = List.of(
-    'api4s',
-    'benchmarks',
-    'client-elastic4s',
-    'lucene-86x',
-    'models',
-    'plugin-79x',
-    'plugin-common',
-    'testing'
-)
+include "elastiknn-api4s"
+project(":elastiknn-api4s").setName("api4s")
 
-subprojectNames.forEach {
-    String fullName ="${rootProject.name}-$it"
-    include fullName
-    project(":$fullName").setName(it)
-}
+include "elastiknn-benchmarks"
+project(":elastiknn-benchmarks").setName("benchmarks")
+
+include "elastiknn-client-elastic4s"
+project(":elastiknn-client-elastic4s").setName("client-elastic4s")
+
+include "elastiknn-models"
+project(":elastiknn-models").setName("models")
+
+include "elastiknn-plugin-common"
+project(":elastiknn-plugin-common").setName("plugin-common")
+
+include "elastiknn-testing"
+project(":elastiknn-testing").setName("testing")
+
+include "elastiknn-lucene"
+
+include "elastiknn-plugin-79x"
+project(":elastiknn-plugin-79x").setName("plugin-790")
