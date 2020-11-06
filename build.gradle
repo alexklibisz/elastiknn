@@ -51,7 +51,6 @@ Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
 Project plugin = project(':plugin')
-Project pluginCommon = project(':plugin-common')
 Project testing = project(':testing')
 
 // Utility to apply multiple configuration closures to a single project.
@@ -159,9 +158,7 @@ configure(api4s, List.of(
         publishConfig("Scala case classes and circe codecs for the Elastiknn JSON API", true),
         {
             dependencies {
-                api "io.circe:circe-core_${scalaShortVersion}:${circeVersion}"
                 api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-generic_${scalaShortVersion}:${circeVersion}"
                 api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeVersion}"
             }
         }
@@ -193,14 +190,7 @@ configure(benchmarks, List.of(
                 implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
-                implementation "com.nrinaudo:kantan.csv_${scalaShortVersion}:0.6.1"
                 implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
-                implementation "com.nrinaudo:kantan.csv-java8_${scalaShortVersion}:0.6.1"
-                implementation "org.elasticsearch:elasticsearch:${esVersion}"
-                implementation "org.apache.lucene:lucene-core:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
-                implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
-                implementation "org.scalaj:scalaj-http_${scalaShortVersion}:2.4.2"
                 // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
                 // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
                 implementation 'javax.xml:jaxb-api:2.1'
@@ -231,15 +221,6 @@ configure(lucene, List.of(
                 implementation "org.apache.logging.log4j:log4j-api:2.11.1"
             }
         }))
-
-configure(pluginCommon, List.of(
-        scalaProjectConfig,
-        {
-            dependencies {
-                implementation api4s
-            }
-        }
-))
 
 configure(plugin, List.of(scalaProjectConfig, {
 
@@ -273,7 +254,6 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation models
         implementation lucene
         implementation api4s
-        implementation pluginCommon
         implementation "com.google.guava:guava:28.1-jre"
         runtime "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
@@ -299,7 +279,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation clientElastic4s
         implementation plugin
         implementation lucene
-        implementation pluginCommon
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
