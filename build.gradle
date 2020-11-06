@@ -1,7 +1,7 @@
 buildscript {
     ext {
-        esVersion = '7.9.2'
-        luceneVersion = '8.6.2'
+        esVersion = '7.9.0'
+        luceneVersion = '8.6.0'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
         scalaFullVersion = '2.12.10'
@@ -51,6 +51,7 @@ Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
 Project plugin = project(':plugin')
+Project pluginCommon = project(':plugin-common')
 Project testing = project(':testing')
 
 // Utility to apply multiple configuration closures to a single project.
@@ -219,22 +220,26 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(models, List.of(
-        publishConfig("Exact and approximate similarity models used in Elastiknn", false),
-        {
-            dependencies {
-                implementation api4s
-                implementation lucene
-            }
-        }))
+        publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
 
 configure(lucene, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
+                implementation models
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
                 implementation "org.apache.logging.log4j:log4j-api:2.11.1"
             }
         }))
+
+configure(pluginCommon, List.of(
+        scalaProjectConfig,
+        {
+            dependencies {
+                implementation api4s
+            }
+        }
+))
 
 configure(plugin, List.of(scalaProjectConfig, {
 
@@ -268,6 +273,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation models
         implementation lucene
         implementation api4s
+        implementation pluginCommon
         implementation "com.google.guava:guava:28.1-jre"
         runtime "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
@@ -293,6 +299,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation clientElastic4s
         implementation plugin
         implementation lucene
+        implementation pluginCommon
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.0.8"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
