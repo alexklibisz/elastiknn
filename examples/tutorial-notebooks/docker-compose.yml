@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  # Single master node.
+  elasticsearch_master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elasticsearch_master
+    environment:
+      - node.name=elasticsearch_master
+      - cluster.name=docker-cluster
+      - cluster.initial_master_nodes=elasticsearch_master
+      - node.master=true
+      - node.data=false
+      - node.ml=false
+      - node.ingest=false
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - ES_JAVA_OPTS=-Xms700m -Xmx700m
+    ports:
+      - "9200:9200"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
+
+  elasticsearch_data:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - cluster.name=docker-cluster
+      - cluster.initial_master_nodes=elasticsearch_master
+      - discovery.zen.ping.unicast.hosts=elasticsearch_master
+      - node.master=false
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms4G -Xmx4G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
