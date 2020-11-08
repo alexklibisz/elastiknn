@@ -1,3 +1,5 @@
+from IPython.display import Image, display
+
 import json
 import gzip 
 import array
@@ -14,4 +16,18 @@ def iter_vectors(fname):
       if asin == '': break
       a = array.array('f')
       a.fromfile(f, 4096)
-      yield (asin, a.tolist())
+      yield (asin.decode(), a.tolist())
+
+def display_hits(res):
+    print(f"Found {res['hits']['total']['value']} hits in {res['took']} ms")
+    print("")
+    for hit in res['hits']['hits']:
+        s = hit['_source']    
+        print(f"Title:          {s.get('title', None)}")
+        print(f"Description:    {s.get('description', None)}"[:100] + "...")
+        print(f"Price:          {s.get('price', None)}")
+        print(f"ID:             {s.get('asin', None)}")
+        print(f"Score:          {hit.get('_score', None)}")
+
+        display(Image(s.get("imUrl"), width=128))
+        print("")
