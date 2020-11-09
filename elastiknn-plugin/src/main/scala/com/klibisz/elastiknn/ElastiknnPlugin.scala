@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import java.util
-import java.util.Optional
+import java.util.{Collections, Optional}
 
 import com.klibisz.elastiknn.codec.ElastiknnCodecService
 import com.klibisz.elastiknn.mapper.VectorMapper
@@ -10,12 +10,12 @@ import org.elasticsearch.common.settings.{Setting, Settings}
 import org.elasticsearch.index.IndexSettings
 import org.elasticsearch.index.engine.{Engine, EngineConfig, EngineFactory, InternalEngine}
 import org.elasticsearch.index.mapper.Mapper
-import org.elasticsearch.plugins.SearchPlugin.QuerySpec
+import org.elasticsearch.plugins.SearchPlugin.{QuerySpec, ScoreFunctionSpec}
 import org.elasticsearch.plugins._
 
 class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with MapperPlugin with EnginePlugin {
 
-  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = util.Arrays.asList(
+  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = Collections.singletonList(
     new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
   )
 
@@ -27,9 +27,12 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
     }
   }
 
-  override def getSettings: util.List[Setting[_]] = util.List.of[Setting[_]](
-    ElastiknnPlugin.Settings.elastiknn
-  )
+  override def getSettings: util.List[Setting[_]] = Collections.singletonList(ElastiknnPlugin.Settings.elastiknn)
+
+  override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
+    Collections.singletonList(
+      new ScoreFunctionSpec(KnnScoreFunctionBuilder.NAME, KnnScoreFunctionBuilder.Reader, KnnScoreFunctionBuilder.Parser)
+    )
 
   override def getEngineFactory(indexSettings: IndexSettings): Optional[EngineFactory] = {
     if (indexSettings.getValue(ElastiknnPlugin.Settings.elastiknn)) Optional.of {
