@@ -27,7 +27,7 @@ object ExactQuery {
           simFunc(queryVec, storedVec)
         }
         override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
-          Explanation.`match`(100, s"Elastiknn exact query")
+          Explanation.`match`(score(docId, subQueryScore.getValue.floatValue()), s"Elastiknn exact query")
       }
     }
 
