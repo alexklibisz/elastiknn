@@ -4,7 +4,7 @@ import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnIllegalArgumentException
-import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.{Explanation, Query, ScoreMode, Weight}
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
@@ -22,7 +22,10 @@ object KnnScoreFunctionBuilder {
 
   object Reader extends Writeable.Reader[KnnScoreFunctionBuilder] {
     override def read(in: StreamInput): KnnScoreFunctionBuilder = {
-      val knnQueryBuilder = KnnQueryBuilder.Reader.read(in)
+      in.readOptionalFloat() // read weight
+      val s = in.readString()
+      val query = KnnQueryBuilder.decodeB64[NearestNeighborsQuery](s)
+      val knnQueryBuilder = KnnQueryBuilder(query)
       new KnnScoreFunctionBuilder(knnQueryBuilder)
     }
   }
