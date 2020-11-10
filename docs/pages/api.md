@@ -797,10 +797,46 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
 For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`, and only run `elastiknn_nearest_neighbors` on that subset.
-To do this, you can use the `elastiknn_nearest_neighbors` query in a  
-[query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
+To do this, you can use the `elastiknn_nearest_neighbors` query in a [function score query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
+or in a [query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
+The function score query is usually simpler, but both are covered below.
 
-Consider this example:
+#### Using a Function Score Query
+
+```json
+GET /my-index/_search
+
+{
+  "size": 10,
+  "query": {
+    "function_score": {
+      "query": {
+        "term": { "color": "blue" }                  # 1
+      },
+      "functions": [                                 # 2
+        {
+          "elastiknn_nearest_neighbors": {           # 3
+            "field": "vec",
+            "similarity": "angular",
+            "model": "exact",
+            "vec": {
+              "values": [0.1, 0.2, 0.3, ...]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|Term query will limit the functions to only run on documents matching `"color": "blue"`.|
+|2|List of functions which are applied to the matching documents.|
+|3|`elastiknn_nearest_neighbors` query that is evaluated on matching documents. The query produces the similarity score, which, by default, is multiplied by the term query score. If you'd like to change this behavior, see the `score_mode`, `boost_mode`, and `weight` parameters in the Elasticsearch [function score docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html).|
+
+#### Using a Query Rescorer 
 
 ```json
 GET /my-index/_search

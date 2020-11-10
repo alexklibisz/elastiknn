@@ -27,8 +27,17 @@ object KnnQueryBuilder {
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
   private val b64 = BaseEncoding.base64()
-  private def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
-  private def decodeB64[T: ElasticsearchCodec](s: String): T = parse(new String(b64.decode(s))).flatMap(decodeJson[T]).toTry.get
+  def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
+  def decodeB64[T: ElasticsearchCodec](s: String): T = parse(new String(b64.decode(s))).flatMap(decodeJson[T]).toTry.get
+
+  object Reader extends Writeable.Reader[KnnQueryBuilder] {
+    override def read(in: StreamInput): KnnQueryBuilder = {
+      in.readFloat() // boost
+      in.readOptionalString() // query name
+      val query = decodeB64[NearestNeighborsQuery](in.readString())
+      new KnnQueryBuilder(query)
+    }
+  }
 
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
@@ -41,15 +50,6 @@ object KnnQueryBuilder {
         case _                                => query.vec
       }
       new KnnQueryBuilder(query.withVec(sortedVec))
-    }
-  }
-
-  object Reader extends Writeable.Reader[KnnQueryBuilder] {
-    override def read(in: StreamInput): KnnQueryBuilder = {
-      in.readFloat() // boost
-      in.readOptionalString() // query name
-      val query = decodeB64[NearestNeighborsQuery](in.readString())
-      new KnnQueryBuilder(query)
     }
   }
 
@@ -110,6 +110,19 @@ object KnnQueryBuilder {
     }
   }
 
+  def getMapping(context: QueryShardContext, field: String): Mapping = {
+    import VectorMapper._
+    val mft: MappedFieldType = context.fieldMapper(field)
+    mft match {
+      case ft: FieldType => ft.mapping
+      case null =>
+        throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${field}]")
+      case _ =>
+        throw new ElastiknnRuntimeException(
+          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
+    }
+  }
+
   private def incompatible(m: Mapping, q: NearestNeighborsQuery): Exception = {
     val msg = s"Query [${ElasticsearchCodec.encode(q).noSpaces}] is not compatible with mapping [${ElasticsearchCodec.encode(m).noSpaces}]"
     new IllegalArgumentException(msg)
@@ -118,6 +131,8 @@ object KnnQueryBuilder {
 }
 
 final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+
+  import KnnQueryBuilder._
 
   override def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(KnnQueryBuilder.encodeB64(query))
@@ -130,20 +145,8 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
     case _                => this
   }
 
-  override def doToQuery(context: QueryShardContext): Query = KnnQueryBuilder(query, getMapping(context), context.getIndexReader)
-
-  private def getMapping(context: QueryShardContext): Mapping = {
-    import VectorMapper._
-    val mft: MappedFieldType = context.fieldMapper(query.field)
-    mft match {
-      case ft: FieldType => ft.mapping
-      case null =>
-        throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${query.field}]")
-      case _ =>
-        throw new ElastiknnRuntimeException(
-          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
-    }
-  }
+  override def doToQuery(context: QueryShardContext): Query =
+    KnnQueryBuilder(query, getMapping(context, query.field), context.getIndexReader)
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
 
