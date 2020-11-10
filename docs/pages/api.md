@@ -799,9 +799,9 @@ It's common to filter for a subset of documents based on some property and _then
 For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`, and only run `elastiknn_nearest_neighbors` on that subset.
 To do this, you can use the `elastiknn_nearest_neighbors` query in a [function score query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
 or in a [query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
-Both are covered below:
+The function score query is usually simpler, but both are covered below.
 
-#### Function Score Query
+#### Using a Function Score Query
 
 ```json
 GET /my-index/_search
@@ -813,14 +813,18 @@ GET /my-index/_search
       "query": {
         "term": { "color": "blue" }                  # 1
       },
-      "elastiknn_nearest_neighbors": {
-        "field": "vec",
-        "similarity": "angular",
-        "model": "exact",
-        "vec": {
-          "values": [0.1, 0.2, 0.3, ...]
+      "functions": [                                 # 2
+        {
+          "elastiknn_nearest_neighbors": {           # 3
+            "field": "vec",
+            "similarity": "angular",
+            "model": "exact",
+            "vec": {
+              "values": [0.1, 0.2, 0.3, ...]
+            }
+          }
         }
-      }
+      ]
     }
   }
 }
@@ -828,13 +832,11 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Term query will limit to only run on documents containing `"color": "blue"`.|
-|2|The window size controls how many of the docs that matched the term query will be considered for the nearest neighbors query.|
-|3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
-|4|Ignore the score from the term query.|
-|5|Use the score from the rescore query.|
+|1|Term query will limit the functions to only run on documents matching `"color": "blue"`.|
+|2|List of functions which are applied to the matching documents.|
+|3|`elastiknn_nearest_neighbors` query that is evaluated on matching documents. The query produces the similarity score, which, by default, is multiplied by the term query score. If you'd like to change this behavior, see the `score_mode`, `boost_mode`, and `weight` parameters in the Elasticsearch [function score docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html).|
 
-#### Query Rescorer 
+#### Using a Query Rescorer 
 
 ```json
 GET /my-index/_search
