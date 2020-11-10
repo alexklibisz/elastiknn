@@ -195,26 +195,52 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
            |{
            |  "properties": {
            |    "vec": ${ElasticsearchCodec.mapping(mapping).noSpaces},
-           |    "color": {
-           |      "type": "keyword"
-           |    }
+           |    "color": { "type": "keyword" }
            |  }
            |}
            |""".stripMargin
-      val rawQuery =
+
+      val termQuery =
+        s"""
+           |{
+           |  "size": $numBlue,
+           |  "query": { "term": { "color": "blue" } }
+           |}
+           |""".stripMargin
+
+      val functionScoreQueryReplace =
         s"""
            |{
            |  "size": $numBlue,
            |  "query": {
            |    "function_score": {
-           |      "query": {
-           |        "term": { "color": "blue" }
-           |      },
+           |      "query": { "term": { "color": "blue" } },
+           |      "boost_mode": "replace",
            |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)}
            |    }
            |  }
            |}
            |""".stripMargin
+
+      val functionScoreQuerySumWeight3 =
+        s"""
+           |{
+           |  "size": $numBlue,
+           |  "query": {
+           |    "function_score": {
+           |      "query": { "term": { "color": "blue" } },
+           |      "boost_mode": "sum",
+           |      "functions": [
+           |        {
+           |          "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)},
+           |          "weight": 3
+           |        }
+           |      ]
+           |    }
+           |  }
+           |}
+           |""".stripMargin
+
       for {
         _ <- deleteIfExists(index)
         _ <- eknn.createIndex(index)
@@ -228,10 +254,33 @@ class NearestNeighborsQuerySpec extends AsyncFunSpec with Matchers with Inspecto
           eknn.execute(bulk(reqs))
         }
         _ <- eknn.execute(refreshIndex(index))
-        res <- eknn.execute(search(index).source(rawQuery))
+        // Simple term query that just returns all docs with "color": "blue".
+        termRes <- eknn.execute(search(index).source(termQuery)).map(_.result)
+
+        // Function score query that runs KNN on docs matching "color": "blue" and returns the KNN score.
+        fsReplaceRes <- eknn.execute(search(index).source(functionScoreQueryReplace)).map(_.result)
+
+        // Function score query that runs KNN on docs matching "color": "blue" and returns the terms score + 3 * KNN score.
+        // The previous two queries are used to check the results of this query.
+        fsSumWeightedRes <- eknn.execute(search(index).source(functionScoreQuerySumWeight3)).map(_.result)
       } yield {
-        res.result.hits.hits.length shouldBe numBlue
-        res.result.hits.hits.map(_.id).toSet shouldBe corpus.filter(_._3 == "blue").map(_._1).toSet
+        val blueIds = corpus.filter(_._3 == "blue").map(_._1).toSet
+
+        termRes.hits.hits.length shouldBe numBlue
+        termRes.hits.hits.map(_.id).toSet shouldBe blueIds
+
+        fsReplaceRes.hits.hits.length shouldBe numBlue
+        fsReplaceRes.hits.hits.map(_.id).toSet shouldBe blueIds
+
+        fsSumWeightedRes.hits.hits.length shouldBe numBlue
+        fsSumWeightedRes.hits.hits.map(_.id).toSet shouldBe blueIds
+
+        val termScoreById = termRes.hits.hits.map(h => (h.id -> h.score)).toMap
+        val fsReplaceScoreById = fsReplaceRes.hits.hits.map(h => (h.id -> h.score)).toMap
+        forAll(fsSumWeightedRes.hits.hits.toVector) { h =>
+          val expected: Double = (termScoreById(h.id) + 3 * fsReplaceScoreById(h.id))
+          h.score.toDouble shouldBe expected +- 0.001
+        }
       }
     }
   }
