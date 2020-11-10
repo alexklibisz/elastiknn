@@ -797,10 +797,44 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
 For example, if your docs contain a `color` keyword, you might want to find all of the docs with `"color": "blue"`, and only run `elastiknn_nearest_neighbors` on that subset.
-To do this, you can use the `elastiknn_nearest_neighbors` query in a  
-[query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
+To do this, you can use the `elastiknn_nearest_neighbors` query in a [function score query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
+or in a [query rescorer](https://www.elastic.co/guide/en/elasticsearch/reference/7.x/filter-search-results.html#query-rescorer).
+Both are covered below:
 
-Consider this example:
+#### Function Score Query
+
+```json
+GET /my-index/_search
+
+{
+  "size": 10,
+  "query": {
+    "function_score": {
+      "query": {
+        "term": { "color": "blue" }                  # 1
+      },
+      "elastiknn_nearest_neighbors": {
+        "field": "vec",
+        "similarity": "angular",
+        "model": "exact",
+        "vec": {
+          "values": [0.1, 0.2, 0.3, ...]
+        }
+      }
+    }
+  }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|Term query will limit to only run on documents containing `"color": "blue"`.|
+|2|The window size controls how many of the docs that matched the term query will be considered for the nearest neighbors query.|
+|3|`elastiknn_nearest_neighbors` query that evaluates L2 similarity for the "vec" field in any document containing `"color": "blue"`.|
+|4|Ignore the score from the term query.|
+|5|Use the score from the rescore query.|
+
+#### Query Rescorer 
 
 ```json
 GET /my-index/_search

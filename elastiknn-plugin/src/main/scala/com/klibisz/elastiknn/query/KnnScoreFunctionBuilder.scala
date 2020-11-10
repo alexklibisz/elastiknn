@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.query
 
+import java.io.{ByteArrayOutputStream, DataOutputStream}
 import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
@@ -7,7 +8,7 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnIllegalArgumentExceptio
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.{Explanation, Query, ScoreMode, Weight}
-import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
+import org.elasticsearch.common.io.stream.{DataOutputStreamOutput, StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
@@ -16,24 +17,62 @@ import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScoreF
 
 import scala.util.{Failure, Success, Try}
 
+final case class KnnScoreFunctionBuilder(knnQueryBuilder: KnnQueryBuilder, in: StreamInput)
+    extends ScoreFunctionBuilder[KnnScoreFunctionBuilder](in) {
+
+  override def doWriteTo(out: StreamOutput): Unit =
+    out.writeString(KnnQueryBuilder.encodeB64(knnQueryBuilder.query))
+
+  override def getName: String = KnnScoreFunctionBuilder.NAME
+
+  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
+
+  override def doEquals(other: KnnScoreFunctionBuilder): Boolean =
+    other.knnQueryBuilder.query == knnQueryBuilder.query
+
+  override def doHashCode(): Int = Objects.hash(knnQueryBuilder)
+
+  override def doToFunction(context: QueryShardContext): ScoreFunction =
+    KnnScoreFunctionBuilder.ScoreFunction(knnQueryBuilder, context).get
+}
+
 object KnnScoreFunctionBuilder {
 
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
   object Reader extends Writeable.Reader[KnnScoreFunctionBuilder] {
     override def read(in: StreamInput): KnnScoreFunctionBuilder = {
-      in.readOptionalFloat() // read weight
+
+      val streamInputWithWeight = {
+        val w = in.readOptionalFloat()
+        val bout = new ByteArrayOutputStream()
+        val dout = new DataOutputStream(bout)
+        val doso = new DataOutputStreamOutput(dout)
+        doso.writeOptionalFloat(w.floatValue())
+        doso.flush()
+        StreamInput.wrap(bout.toByteArray)
+      }
+
       val s = in.readString()
       val query = KnnQueryBuilder.decodeB64[NearestNeighborsQuery](s)
       val knnQueryBuilder = KnnQueryBuilder(query)
-      new KnnScoreFunctionBuilder(knnQueryBuilder)
+      new KnnScoreFunctionBuilder(knnQueryBuilder, streamInputWithWeight)
     }
   }
 
   object Parser extends ScoreFunctionParser[KnnScoreFunctionBuilder] {
     override def fromXContent(parser: XContentParser): KnnScoreFunctionBuilder = {
-      val knnQueryBuilder = KnnQueryBuilder.Parser.fromXContent(parser)
-      new KnnScoreFunctionBuilder(knnQueryBuilder)
+      val streamInputWithWeight = {
+        val w = 1f
+        val bout = new ByteArrayOutputStream()
+        val dout = new DataOutputStream(bout)
+        val doso = new DataOutputStreamOutput(dout)
+        doso.writeOptionalFloat(w)
+        doso.flush()
+        StreamInput.wrap(bout.toByteArray)
+      }
+      val knnqb = KnnQueryBuilder.Parser.fromXContent(parser)
+      new KnnScoreFunctionBuilder(knnqb, streamInputWithWeight)
     }
   }
 
@@ -59,7 +98,7 @@ object KnnScoreFunctionBuilder {
     override def needsScores(): Boolean = false
 
     override def doEquals(other: function.ScoreFunction): Boolean = other match {
-      case f: KnnScoreFunctionBuilder.ScoreFunction => weight == f.weight
+      case f: KnnScoreFunctionBuilder.ScoreFunction => weight.equals(f.weight)
       case _                                        => false
     }
 
@@ -78,25 +117,4 @@ object KnnScoreFunctionBuilder {
       }
     }
   }
-
-}
-
-final case class KnnScoreFunctionBuilder(knnQueryBuilder: KnnQueryBuilder) extends ScoreFunctionBuilder[KnnScoreFunctionBuilder] {
-  override def doWriteTo(out: StreamOutput): Unit = {
-    out.writeString(KnnQueryBuilder.encodeB64(knnQueryBuilder.query))
-  }
-
-  override def getName: String = KnnScoreFunctionBuilder.NAME
-
-  override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = {
-    ()
-  }
-
-  override def doEquals(other: KnnScoreFunctionBuilder): Boolean =
-    other.knnQueryBuilder.query == knnQueryBuilder.query
-
-  override def doHashCode(): Int = Objects.hash(knnQueryBuilder)
-
-  override def doToFunction(context: QueryShardContext): ScoreFunction =
-    KnnScoreFunctionBuilder.ScoreFunction(knnQueryBuilder, context).get
 }
