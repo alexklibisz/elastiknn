@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.io.{ByteArrayOutputStream, DataOutputStream}
 import java.util.Objects
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
@@ -8,7 +7,7 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnIllegalArgumentExceptio
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.{Explanation, Query, ScoreMode, Weight}
-import org.elasticsearch.common.io.stream.{DataOutputStreamOutput, StreamInput, StreamOutput, Writeable}
+import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
@@ -17,8 +16,10 @@ import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScoreF
 
 import scala.util.{Failure, Success, Try}
 
-final case class KnnScoreFunctionBuilder(knnQueryBuilder: KnnQueryBuilder, in: StreamInput)
-    extends ScoreFunctionBuilder[KnnScoreFunctionBuilder](in) {
+final case class KnnScoreFunctionBuilder(knnQueryBuilder: KnnQueryBuilder, weight: Float)
+    extends ScoreFunctionBuilder[KnnScoreFunctionBuilder] {
+
+  this.setWeight(weight)
 
   override def doWriteTo(out: StreamOutput): Unit =
     out.writeString(KnnQueryBuilder.encodeB64(knnQueryBuilder.query))
@@ -42,37 +43,18 @@ object KnnScoreFunctionBuilder {
 
   object Reader extends Writeable.Reader[KnnScoreFunctionBuilder] {
     override def read(in: StreamInput): KnnScoreFunctionBuilder = {
-
-      val streamInputWithWeight = {
-        val w = in.readOptionalFloat()
-        val bout = new ByteArrayOutputStream()
-        val dout = new DataOutputStream(bout)
-        val doso = new DataOutputStreamOutput(dout)
-        doso.writeOptionalFloat(w.floatValue())
-        doso.flush()
-        StreamInput.wrap(bout.toByteArray)
-      }
-
+      val weight = in.readOptionalFloat()
       val s = in.readString()
       val query = KnnQueryBuilder.decodeB64[NearestNeighborsQuery](s)
       val knnQueryBuilder = KnnQueryBuilder(query)
-      new KnnScoreFunctionBuilder(knnQueryBuilder, streamInputWithWeight)
+      new KnnScoreFunctionBuilder(knnQueryBuilder, weight)
     }
   }
 
   object Parser extends ScoreFunctionParser[KnnScoreFunctionBuilder] {
     override def fromXContent(parser: XContentParser): KnnScoreFunctionBuilder = {
-      val streamInputWithWeight = {
-        val w = 1f
-        val bout = new ByteArrayOutputStream()
-        val dout = new DataOutputStream(bout)
-        val doso = new DataOutputStreamOutput(dout)
-        doso.writeOptionalFloat(w)
-        doso.flush()
-        StreamInput.wrap(bout.toByteArray)
-      }
       val knnqb = KnnQueryBuilder.Parser.fromXContent(parser)
-      new KnnScoreFunctionBuilder(knnqb, streamInputWithWeight)
+      new KnnScoreFunctionBuilder(knnqb, 1f)
     }
   }
 
