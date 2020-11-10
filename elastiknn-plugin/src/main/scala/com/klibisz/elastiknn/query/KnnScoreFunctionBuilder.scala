@@ -76,7 +76,7 @@ object KnnScoreFunctionBuilder {
     }
   }
 
-  class ScoreFunction private (val weight: Weight) extends function.ScoreFunction(CombineFunction.REPLACE) {
+  class ScoreFunction private (val weight: Weight) extends function.ScoreFunction(CombineFunction.MULTIPLY) {
 
     override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
       val scorer = weight.scorer(ctx)
