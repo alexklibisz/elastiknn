@@ -1,3 +1,6 @@
+- Added support for [Function Score Queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
+  See the [Common Patterns](https://elastiknn.com/api/#common-patterns) section of the docs.
+---
 - Improved the Python ElastiknnModel's handling of empty query responses (i.e. no results). 
   Previously it threw an exception. Now it will just not populate the ID and distance arrays for that particular query.
 ---
