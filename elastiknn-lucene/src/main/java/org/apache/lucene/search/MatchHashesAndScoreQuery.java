@@ -182,7 +182,9 @@ public class MatchHashesAndScoreQuery extends Query {
                     @Override
                     public float score() {
                         int docID = docID();
-                        return (float) scoreFunction.score(docID, counter.get(docID));
+                        // TODO: how does it get to this state? This error did come up once in some local testing.
+                        if (docID == DocIdSetIterator.NO_MORE_DOCS) return 0f;
+                        else return (float) scoreFunction.score(docID, counter.get(docID));
                     }
 
                     @Override
