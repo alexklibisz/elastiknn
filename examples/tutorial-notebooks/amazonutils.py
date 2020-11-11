@@ -34,7 +34,7 @@ def iter_vectors_reduced(fname, dims=1024, samples=10000):
   return f
 
 def display_hits(res):
-    print(f"Found {res['hits']['total']['value']} hits in {res['took']} ms")
+    print(f"Found {res['hits']['total']['value']} hits in {res['took']} ms. Showing top {len(res['hits']['hits'])}.")
     print("")
     for hit in res['hits']['hits']:
         s = hit['_source']    
