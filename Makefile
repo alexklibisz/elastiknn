@@ -77,11 +77,12 @@ compile: compile/gradle
 run/cluster: .mk/run-cluster
 
 run/gradle:
-	$(gradle) :plugin:run $(shell cat .esopts | xargs)
+	$(gradle) :plugin:run --data-dir=/tmp/elastiknn -Dtests.heap.size=4G -Dtests.es.node.processors=1 \
+		-Dtests.es.thread_pool.search.size=1 -Drun.distribution=basic
 
 run/debug:
-	cd elastiknn-testing && $(dc) down
-	$(gradle) :plugin:run $(shell cat .esopts | xargs) --debug-jvm
+	$(gradle) :plugin:run --data-dir=/tmp/elastiknn -Dtests.heap.size=4G -Dtests.es.node.processors=1 \
+ 		-Dtests.es.thread_pool.search.size=1 -Drun.distribution=basic --debug-jvm
 
 run/kibana:
 	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.9.2

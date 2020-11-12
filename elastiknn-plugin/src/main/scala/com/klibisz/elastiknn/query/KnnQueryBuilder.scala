@@ -3,15 +3,11 @@ package com.klibisz.elastiknn.query
 import java.util.Objects
 
 import com.google.common.io.BaseEncoding
-import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.models.{SparseIndexedSimilarityFunction, Cache => ModelCache}
 import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
-import com.klibisz.elastiknn.mapper.VectorMapper
 import io.circe.Json
-import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
@@ -19,7 +15,6 @@ import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query._
 
 object KnnQueryBuilder {
@@ -53,86 +48,9 @@ object KnnQueryBuilder {
     }
   }
 
-  def apply(query: NearestNeighborsQuery, mapping: Mapping, indexReader: IndexReader): Query = {
-    import NearestNeighborsQuery._
-    import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF}
-
-    (query, mapping) match {
-
-      case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        ExactQuery(f, v, ESF.Jaccard)
-
-      case (Exact(f, Similarity.Hamming, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
-        ExactQuery(f, v, ESF.Hamming)
-
-      case (Exact(f, Similarity.L1, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
-        ExactQuery(f, v, ESF.L1)
-
-      case (Exact(f, Similarity.L2, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
-        ExactQuery(f, v, ESF.L2)
-
-      case (Exact(f, Similarity.Angular, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
-        ExactQuery(f, v, ESF.Angular)
-
-      case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard, indexReader)
-
-      case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming, indexReader)
-
-      case (JaccardLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.JaccardLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard, indexReader)
-
-      case (HammingLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.HammingLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming, indexReader)
-
-      case (AngularLsh(f, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.AngularLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
-
-      case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat, l: Float), m: Mapping.L2Lsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values, probes), ESF.L2, indexReader)
-
-      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.Angular, indexReader)
-
-      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.L2, indexReader)
-
-      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        HashingQuery(f, v, candidates, l, ModelCache(m).hash(v.values), ESF.L1, indexReader)
-
-      case _ => throw incompatible(mapping, query)
-    }
-  }
-
-  def getMapping(context: QueryShardContext, field: String): Mapping = {
-    import VectorMapper._
-    val mft: MappedFieldType = context.fieldMapper(field)
-    mft match {
-      case ft: FieldType => ft.mapping
-      case null =>
-        throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${field}]")
-      case _ =>
-        throw new ElastiknnRuntimeException(
-          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
-    }
-  }
-
-  private def incompatible(m: Mapping, q: NearestNeighborsQuery): Exception = {
-    val msg = s"Query [${ElasticsearchCodec.encode(q).noSpaces}] is not compatible with mapping [${ElasticsearchCodec.encode(m).noSpaces}]"
-    new IllegalArgumentException(msg)
-  }
-
 }
 
 final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
-
-  import KnnQueryBuilder._
 
   override def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(KnnQueryBuilder.encodeB64(query))
@@ -146,7 +64,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   }
 
   override def doToQuery(context: QueryShardContext): Query =
-    KnnQueryBuilder(query, getMapping(context, query.field), context.getIndexReader)
+    ElastiknnQuery(query, context).map(_.toLuceneQuery(context.getIndexReader)).get
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
 
