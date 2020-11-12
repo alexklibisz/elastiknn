@@ -38,13 +38,12 @@ def display_hits(res):
     print("")
     for hit in res['hits']['hits']:
         s = hit['_source']    
-        print(f"Title:          {s.get('title', None)}")
-        print(f"Description:    {s.get('description', None)}"[:100] + "...")
-        print(f"Price:          {s.get('price', None)}")
-        print(f"ID:             {s.get('asin', None)}")
-        print(f"Score:          {hit.get('_score', None)}")
-
-        # print(f"Vector: {s.get('imVecElastiknn', None)}")
-
+        print(f"Title   {s.get('title', None)}"[:80] + "...")
+        if 'description' in s:
+          print(f"Desc    {s['description']}"[:80] + "...")
+        if 'price' in s:
+          print(f"Price   {s['price']}")
+        print(f"ID      {s.get('asin', None)}")
+        print(f"Score   {hit.get('_score', None)}")
         display(Image(s.get("imUrl"), width=128))
         print("")
