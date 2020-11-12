@@ -1,4 +1,4 @@
-from IPython.display import Image, display
+from IPython.display import display, HTML, Image
 from itertools import islice
 import numpy as np
 import json
@@ -37,7 +37,7 @@ def display_hits(res):
     print(f"Found {res['hits']['total']['value']} hits in {res['took']} ms. Showing top {len(res['hits']['hits'])}.")
     print("")
     for hit in res['hits']['hits']:
-        s = hit['_source']    
+        s = hit['_source']
         print(f"Title   {s.get('title', None)}"[:80] + "...")
         if 'description' in s:
           print(f"Desc    {s['description']}"[:80] + "...")
