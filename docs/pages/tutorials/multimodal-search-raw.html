@@ -1,18 +1,17 @@
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Multi-Modal-Search-on-the-Amazon-Products-Dataset">Multi-Modal Search on the Amazon Products Dataset<a class="anchor-link" href="#Multi-Modal-Search-on-the-Amazon-Products-Dataset">&#182;</a></h1><h2 id="Introduction">Introduction<a class="anchor-link" href="#Introduction">&#182;</a></h2><p>This tutorial will demonstrate how to implement multi-modal search on an e-commerce dataset using native Elasticsearch functionality, as well as features only available in the Elastiknn plugin.</p>
-<p>We'll work with data rom the <a href="http://jmcauley.ucsd.edu/data/amazon/links.html"><em>Amazon Products Dataset</em></a>, which contains product metadata, reviews, and image vectors for 9.4 million Amazon products. We'll focus specifically on the <em>clothing, shoes, and jewelry</em> category, containing about 1.5 million products. This dataset was collected by researchers at UCSD. The image vectors were computed using a convolutional neural network. For more information, see the paper <em>Justifying recommendations using distantly-labeled reviews and fine-grained aspects</em> by Jianmo Ni, Jiacheng Li, and Julian McAuley.</p>
-<p>To demonstrate multi-modal search, we'll first search for products using keywords, then use nearest neighbors queries to find image vectors with high angular similarity (i.e., similar appearance), and then combine the keyword and nearest-neighbor searches.</p>
+<h1 id="Multimodal-Search-on-the-Amazon-Products-Dataset">Multimodal Search on the Amazon Products Dataset<a class="anchor-link" href="#Multimodal-Search-on-the-Amazon-Products-Dataset">&#182;</a></h1><h2 id="Introduction">Introduction<a class="anchor-link" href="#Introduction">&#182;</a></h2><p>This tutorial will demonstrate how to implement multimodal search on an e-commerce dataset using native Elasticsearch functionality, as well as features only available in the Elastiknn plugin.</p>
+<p>We'll work with data from the <a href="http://jmcauley.ucsd.edu/data/amazon/links.html"><em>Amazon Products Dataset</em></a>, which contains product metadata, reviews, and image vectors for 9.4 million Amazon products. We'll focus specifically on the <em>clothing, shoes, and jewelry</em> category, containing about 1.5 million products. This dataset was collected by researchers at UCSD. The image vectors were computed using a convolutional neural network. For more information, see the paper <em>Justifying recommendations using distantly-labeled reviews and fine-grained aspects</em> by Jianmo Ni, Jiacheng Li, and Julian McAuley.</p>
+<p>To demonstrate multimodal search, we'll first search for products using keywords, then use nearest neighbors queries to find image vectors with high angular similarity (indicating similar appearance), and then combine the keyword and nearest-neighbor searches.</p>
 <p>The tutorial is implemented using a Jupyter notebook. The source can be found in the <code>examples</code> directory in the <a href="https://github.com/alexklibisz/elastiknn">Elastiknn github project.</a></p>
 <hr>
 <p><strong>Caveats</strong></p>
 <ol>
-<li>This tutorial assumes you are comfortable with Python, the Elasticsearch JSON API, and the nearest neighbor search. To modify and run it on your own, you'll need to <a href="https://elastiknn.com/installation/">install Elastiknn</a>.</li>
+<li>This tutorial assumes you are comfortable with Python, the Elasticsearch JSON API, and nearest neighbor search. To modify and run it on your own, you'll need to <a href="https://elastiknn.com/installation/">install Elastiknn</a>.</li>
 <li>The purpose of this tutorial is not to offer a direct performance comparison. The query times are displayed, but they can vary pretty wildly across runs. The JVM is a tricky beast and any performance comparisons require many more samples. See the <a href="https://elastiknn.com/performance/">Elastiknn performance docs</a> for more details.</li>
-<li>The purpose of this tutorial is also not necessarily to convince you that I've improved the search results by using image vectors. That's a larger problem that would, at the very least, require investigating how the vectors were computed. Rather, the purpose is to show the mechanics and patterns of integrating traditional keyword search with vector search on a dataset of non-trivial size.  </li>
+<li>The purpose of this tutorial is also not necessarily to convince you that I've improved the search results by using image vectors. That's a larger problem that would, at the very least, require investigating how the vectors were computed. Rather, the purpose is to show the mechanics and patterns of integrating traditional keyword search with nearest neighbor search on a dataset of non-trivial size.  </li>
 </ol>
-<hr>
 
 </div>
 </div>
@@ -20,6 +19,7 @@
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Download-the-Data">Download the Data<a class="anchor-link" href="#Download-the-Data">&#182;</a></h2><p>Download two files:</p>
 <ol>
 <li>meta_Home_and_Kitchen.json.gz - contains the product metadata, about 270mb.</li>
@@ -75,6 +75,7 @@ File ‘image_features_Clothing_Shoes_and_Jewelry.b’ already there; not retrie
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Explore-the-Data">Explore the Data<a class="anchor-link" href="#Explore-the-Data">&#182;</a></h2><p>Let's have a look at the data. We'll first import some helpers from the <code>amazonutils</code> module and several other common libraries.</p>
 
 </div>
@@ -286,7 +287,7 @@ height=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Let's use the <code>iter_vectors</code> function to iterate over product IDs and image vectors. Each vector is just a list of 4096 floats, generated using a deep convolutional neural network. There is little value in inspecting the individual vectors, so we'll just show the vector length and first few values for each one.</p>
+<p>Let's use the <code>iter_vectors</code> function to iterate over product IDs and image vectors. Each vector is just a list of 4096 floats, generated using a deep convolutional neural network. There is little value in inspecting the individual vectors, so we'll just show the vector length and first few values.</p>
 
 </div>
 </div>
@@ -445,6 +446,7 @@ B000FZ1AO0 256 [2.1886000633239746, 1.9733999967575073, 12.249600410461426]
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Connect-to-Elasticsearch">Connect to Elasticsearch<a class="anchor-link" href="#Connect-to-Elasticsearch">&#182;</a></h2>
 </div>
 </div>
@@ -503,7 +505,8 @@ B000FZ1AO0 256 [2.1886000633239746, 1.9733999967575073, 12.249600410461426]
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Create-the-Elasticsearch-Index">Create the Elasticsearch Index<a class="anchor-link" href="#Create-the-Elasticsearch-Index">&#182;</a></h2><p>To recap, each product in our dataset has a dictionary of metadata and a 128-dimensional image vector.</p>
+<hr>
+<h2 id="Create-the-Elasticsearch-Index">Create the Elasticsearch Index<a class="anchor-link" href="#Create-the-Elasticsearch-Index">&#182;</a></h2><p>To recap, each product in our dataset has a dictionary of metadata and a 256-dimensional image vector.</p>
 <p>Let's create an index and define a mapping that represents this.
 The mapping has these properties:</p>
 <table>
@@ -546,7 +549,7 @@ The mapping has these properties:</p>
 </tbody>
 </table>
 <p>We're including two vectors: one using the <code>dense_vector</code> datatype that comes with Elasticsearch (specificially X-Pack), the other using the <code>elastiknn_dense_float_vector</code> datatype provided by Elastiknn.</p>
-<p>I've chosen to use Angular similarity for finding similar vectors (i.e. similarly-looking products). I made this choice by experimenting with L2 and Angular similarity and seeing qualitatively better results with Angular similarity. The similarity function that works best for your vectors has a lot to do with how the vectors were computed. In this case, I don't know a lot about how the vectors were computed, so a bit of guess-and-check was required.</p>
+<p>I've chosen to use Angular similarity for finding similar vectors (i.e. similarly-looking products). I made this choice by experimenting with L2 and Angular similarity and seeing better results with Angular similarity. The similarity function that works best for your vectors has a lot to do with how the vectors were computed. In this case, I don't know a lot about how the vectors were computed, so a bit of guess-and-check was required.</p>
 
 </div>
 </div>
@@ -638,9 +641,10 @@ The mapping has these properties:</p>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Index-the-Products">Index the Products<a class="anchor-link" href="#Index-the-Products">&#182;</a></h2><p>Now that we've created a new index with an appropriate mapping, we can index (store) the products.</p>
-<p>We'll first iterate over the product data, using the <code>asin</code> as the document ID and storing everything except the vectors. Then we'll iterate over the vectors separately to add a vector to each doc.</p>
-<p>We'll call <code>refresh</code> and <code>forcemerge</code> after the initial product indexing and the vector updates. This moves all the docs into a single Lucene segment, which helps ensure you get roughly the same query results each time you re-build the index.</p>
+<p>We'll first iterate over the product data, using the <code>asin</code> property as the document ID and storing everything except the vectors. Then we'll iterate over the vectors separately to add a vector to each doc.</p>
+<p>We'll call <code>refresh</code> and <code>forcemerge</code> after the initial product indexing and after the vector updates. This moves all the docs into a single Lucene segment, which helps ensure you get roughly the same query results each time you re-build the index.</p>
 <p>The product indexing takes about 5 minutes and vector indexing about 45 minutes on my laptop.</p>
 
 </div>
@@ -825,6 +829,7 @@ The mapping has these properties:</p>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Start-searching-with-a-keyword-query">Start searching with a keyword query<a class="anchor-link" href="#Start-searching-with-a-keyword-query">&#182;</a></h2><p>Imagine you're shopping for a men's wrist watch on Amazon.</p>
 <p>You'll start by matching a simple keyword query, <em><strong>men's watch</strong></em>, against the title and description.</p>
 
@@ -833,7 +838,7 @@ The mapping has these properties:</p>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[32]:</div>
+<div class="prompt input_prompt">In&nbsp;[50]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -863,10 +868,10 @@ The mapping has these properties:</p>
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 21 ms. Showing top 5.
+<pre>Found 10000 hits in 24 ms. Showing top 5.
 
-Title   Men&#39;s Watch...
-Desc    None...
+Title   Men&#39;s Watch
+Desc    None
 Price   519.97
 ID      B004N43FEM
 Score   14.299339
@@ -897,8 +902,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Montreal Men&#39;s Watch [Watch] Lacoste...
-Desc    None...
+Title   Montreal Men&#39;s Watch [Watch] Lacoste
+Desc    None
 Price   89.99
 ID      B008MNEF8K
 Score   14.05599
@@ -929,8 +934,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Big Display Watch - Men&#39;s Watch...
-Desc    None...
+Title   Big Display Watch - Men&#39;s Watch
+Desc    None
 Price   9.99
 ID      B007W1QEXC
 Score   14.05599
@@ -961,8 +966,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Classic Men&#39;s Watch [Watch] Seiko...
-Desc    None...
+Title   Classic Men&#39;s Watch [Watch] Seiko
+Desc    None
 Price   None
 ID      B000RHH6WQ
 Score   14.05599
@@ -993,8 +998,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Guess Men&#39;s Mens Watch Watch U11507G4...
-Desc    None...
+Title   Guess Men&#39;s Mens Watch Watch U11507G4
+Desc    None
 Price   None
 ID      B00305A9YY
 Score   13.507851
@@ -1036,6 +1041,7 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Find-similar-looking-products-using-native-Elasticsearch-vector-functionality">Find similar-looking products using native Elasticsearch vector functionality<a class="anchor-link" href="#Find-similar-looking-products-using-native-Elasticsearch-vector-functionality">&#182;</a></h2><p>You really like the top result (ID <code>B004N43FEM</code>) and want to explore some similar-looking options.</p>
 <p>We'll start by using native Elasticsearch functionality to do an exact nearest neighbors query. This compares a given vector against all vectors in the index.</p>
 <p>This query consists of three steps:</p>
@@ -1051,7 +1057,7 @@ width=128
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[39]:</div>
+<div class="prompt input_prompt">In&nbsp;[51]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">product_id</span> <span class="o">=</span> <span class="s2">&quot;B004N43FEM&quot;</span>
@@ -1092,10 +1098,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 622 ms. Showing top 5.
+<pre>Found 10000 hits in 664 ms. Showing top 5.
 
-Title   Men&#39;s Watch...
-Desc    None...
+Title   Men&#39;s Watch
+Desc    None
 Price   519.97
 ID      B004N43FEM
 Score   2.0
@@ -1126,8 +1132,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   GUESS Stainless Steel Waterpro Bracelet Watch...
-Desc    None...
+Title   GUESS Stainless Steel Waterpro Bracelet Watch
+Desc    None
 Price   None
 ID      B000WUZIVY
 Score   1.8572302
@@ -1158,8 +1164,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Henley Gents Black Imitaton Chrono Sports Watch...
-Desc    None...
+Title   Henley Gents Black Imitaton Chrono Sports Watch
+Desc    None
 Price   35.95
 ID      B006497126
 Score   1.8562803
@@ -1190,8 +1196,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SGEE89P1 Stainless Steel Watch...
-Desc    None...
+Title   Seiko Men&#39;s SGEE89P1 Stainless Steel Watch
+Desc    None
 Price   None
 ID      B006KX74H8
 Score   1.8523066
@@ -1222,8 +1228,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SSC225 Sport Solar Analog Display Japanese Quartz Black Watc...
-Desc    None...
+Title   Seiko Men&#39;s SSC225 Sport Solar Analog Display Japanese Quartz Black Watch
+Desc    None
 Price   210.0
 ID      B00I6MB45E
 Score   1.8414404
@@ -1265,6 +1271,7 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Find-similar-looking-products-using-Elastiknn's-exact-nearest-neighbors-query">Find similar-looking products using Elastiknn's exact nearest neighbors query<a class="anchor-link" href="#Find-similar-looking-products-using-Elastiknn's-exact-nearest-neighbors-query">&#182;</a></h2><p>Let's implement the same nearest_neighbors query using Elastiknn. You'll notice two differences compared to the previous query:</p>
 <ol>
 <li>We reference the query vector using its document ID and the field containing the vector. This avoids a round trip request to fetch the vector.</li>
@@ -1277,7 +1284,7 @@ width=128
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[43]:</div>
+<div class="prompt input_prompt">In&nbsp;[54]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -1313,10 +1320,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 965 ms. Showing top 5.
+<pre>Found 10000 hits in 993 ms. Showing top 5.
 
-Title   Men&#39;s Watch...
-Desc    None...
+Title   Men&#39;s Watch
+Desc    None
 Price   519.97
 ID      B004N43FEM
 Score   2.0
@@ -1347,8 +1354,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   GUESS Stainless Steel Waterpro Bracelet Watch...
-Desc    None...
+Title   GUESS Stainless Steel Waterpro Bracelet Watch
+Desc    None
 Price   None
 ID      B000WUZIVY
 Score   1.8572302
@@ -1379,8 +1386,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Henley Gents Black Imitaton Chrono Sports Watch...
-Desc    None...
+Title   Henley Gents Black Imitaton Chrono Sports Watch
+Desc    None
 Price   35.95
 ID      B006497126
 Score   1.8562803
@@ -1411,8 +1418,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SGEE89P1 Stainless Steel Watch...
-Desc    None...
+Title   Seiko Men&#39;s SGEE89P1 Stainless Steel Watch
+Desc    None
 Price   None
 ID      B006KX74H8
 Score   1.8523066
@@ -1443,8 +1450,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SSC225 Sport Solar Analog Display Japanese Quartz Black Watc...
-Desc    None...
+Title   Seiko Men&#39;s SSC225 Sport Solar Analog Display Japanese Quartz Black Watch
+Desc    None
 Price   210.0
 ID      B00I6MB45E
 Score   1.8414404
@@ -1486,17 +1493,19 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Find-similar-looking-products-(faster)-using-Elastiknn's-approximate-query">Find similar-looking products (faster) using Elastiknn's approximate query<a class="anchor-link" href="#Find-similar-looking-products-(faster)-using-Elastiknn's-approximate-query">&#182;</a></h2><p>Both of the previous queries take &gt; 500ms. Each query scores <em>every</em> vector in the index, so the runtime only increases as the index grows.</p>
 <p>To address this, Elastiknn offers approximate nearest neighbors queries based on the <a href="https://en.wikipedia.org/wiki/Locality-sensitive_hashing">Locality Sensitive Hashing</a> technique.</p>
 <p>We used the angular LSH model (i.e. <code>"model": "lsh", "similarity": "angular"</code>) when defining the mapping (right before indexing the data). Now we can use the same model and similarity to run an approximate nearest neighbors query. This query takes a <code>"candidates"</code> parameter, which is the number of approximate matches that will be re-ranked using the exact similarity score.</p>
-<p>Using the approximate query with 100 candidates yields reasonable results in well under 200 ms. You can tweak the mapping and query parameters to fine-tune the latency/quality tradeoff. The <a href="https://elastiknn.com/api/">API docs</a> include notes on how the parameters generally affect latency/quality, and the <a href="https://elastiknn.com/performance/">Performance docs</a> include suggested parameter settings for several datasets.</p>
+<p>Using the approximate query with 100 candidates yields reasonable results in under 150 ms.</p>
+<p>You can tweak the mapping and query parameters to fine-tune the speed/recall tradeoff. The <a href="https://elastiknn.com/api/">API docs</a> include notes on how the parameters generally affect speed/recall, and the <a href="https://elastiknn.com/performance/">Performance docs</a> include suggested parameter settings for several datasets.</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[27]:</div>
+<div class="prompt input_prompt">In&nbsp;[60]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -1510,7 +1519,7 @@ width=128
       <span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="s2">&quot;imVecElastiknn&quot;</span><span class="p">,</span>
       <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;lsh&quot;</span><span class="p">,</span>
       <span class="s2">&quot;similarity&quot;</span><span class="p">:</span> <span class="s2">&quot;angular&quot;</span><span class="p">,</span>
-      <span class="s2">&quot;candidates&quot;</span><span class="p">:</span> <span class="mi">50</span>
+      <span class="s2">&quot;candidates&quot;</span><span class="p">:</span> <span class="mi">100</span>
     <span class="p">}</span>
   <span class="p">}</span>
 <span class="p">}</span>
@@ -1533,10 +1542,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 50 hits in 150 ms. Showing top 5.
+<pre>Found 100 hits in 140 ms. Showing top 5.
 
-Title   Men&#39;s Watch...
-Desc    None...
+Title   Men&#39;s Watch
+Desc    None
 Price   519.97
 ID      B004N43FEM
 Score   2.0
@@ -1567,8 +1576,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Henley Gents Black Imitaton Chrono Sports Watch...
-Desc    None...
+Title   Henley Gents Black Imitaton Chrono Sports Watch
+Desc    None
 Price   35.95
 ID      B006497126
 Score   1.8562803
@@ -1599,8 +1608,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SNAE65 Sportura Chronograph Alarm Watch...
-Desc    None...
+Title   Seiko Men&#39;s SNAE65 Sportura Chronograph Alarm Watch
+Desc    None
 Price   249.0
 ID      B0057PA46S
 Score   1.8403854
@@ -1631,8 +1640,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Relic by Fossil Brady Chronograph Black Dial Mens Watch ZR66029...
-Desc    None...
+Title   Relic by Fossil Brady Chronograph Black Dial Mens Watch ZR66029
+Desc    None
 Price   39.95
 ID      B005D0RVGS
 Score   1.8385626
@@ -1663,8 +1672,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Seiko Men&#39;s SSA008 Stainless Steel Analog with Black Dial Watch...
-Desc    None...
+Title   Seiko Men&#39;s SSA008 Stainless Steel Analog with Black Dial Watch
+Desc    None
 Price   229.0
 ID      B0074LAXE6
 Score   1.8342296
@@ -1706,6 +1715,7 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Combine-keyword-and-nearest-neighbors-queries-using-native-Elasticsearch">Combine keyword and nearest neighbors queries using native Elasticsearch<a class="anchor-link" href="#Combine-keyword-and-nearest-neighbors-queries-using-native-Elasticsearch">&#182;</a></h2><p>The previous queries returned some nice results, but you decide you really want this watch to be blue.</p>
 <p>To support this, we can combine a keyword query for "blue" with a nearest neighbors query for the original image vector.</p>
 <p>Native Elasticsearch lets us do this by modifying the <code>query</code> clause in the <code>script_score</code> query.</p>
@@ -1715,7 +1725,7 @@ width=128
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[20]:</div>
+<div class="prompt input_prompt">In&nbsp;[61]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -1754,10 +1764,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 50 ms. Showing top 5.
+<pre>Found 10000 hits in 45 ms. Showing top 5.
 
-Title   Men&#39;s Solar Stainless Steel Case and Bracelet Chronograph Black Dial Blu...
-Desc    None...
+Title   Men&#39;s Solar Stainless Steel Case and Bracelet Chronograph Black Dial Blue Hour Markers
+Desc    None
 Price   231.94
 ID      B008VGQLTY
 Score   1.7925661
@@ -1788,8 +1798,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Isobrite T100 Eclipse Watch Green, Blue &amp;amp; Orange Tritium...
-Desc    None...
+Title   Isobrite T100 Eclipse Watch Green, Blue &amp;amp; Orange Tritium
+Desc    None
 Price   449.0
 ID      B00DEGAJEO
 Score   1.7646891
@@ -1820,8 +1830,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Haurex Italy Men&#39;s 0A351UBB Aggressive Chrono Blue Dial Watch...
-Desc    None...
+Title   Haurex Italy Men&#39;s 0A351UBB Aggressive Chrono Blue Dial Watch
+Desc    None
 Price   None
 ID      B003OCF7MW
 Score   1.7613895
@@ -1852,8 +1862,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Isobrite T100 Eclipse Watch Blue &amp;amp; Orange Tritium...
-Desc    None...
+Title   Isobrite T100 Eclipse Watch Blue &amp;amp; Orange Tritium
+Desc    None
 Price   449.0
 ID      B00DEG5AJI
 Score   1.7577422
@@ -1884,8 +1894,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Swiss Legend Men&#39;s 21046-BB-01-BBLAS Sprinter Analog Display Swiss Quart...
-Desc    None...
+Title   Swiss Legend Men&#39;s 21046-BB-01-BBLAS Sprinter Analog Display Swiss Quartz Blue Watch
+Desc    None
 Price   68.71
 ID      B00IS3J6ZG
 Score   1.757721
@@ -1927,6 +1937,7 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-exact-query">Combine keyword and nearest neighbors queries using Elastiknn's exact query<a class="anchor-link" href="#Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-exact-query">&#182;</a></h2><p>We can do the same thing using a function score query containing an <code>elastiknn_nearest_neighbors</code> function. This function takes the exact same parameters as an <code>elastiknn_nearest_neighbors</code> query.</p>
 <p>Note that the function score query gives you quite a bit more flexibility. Specifically, you can tweak the <code>boost_mode</code> parameter to control how the keyword and nearest neighbor queries are combined and tweak the <code>weight</code> to scale the nearest neighbor query score.</p>
 <p>There are still some caveats, which are covered in the <a href="https://elastiknn.com/api/#using-a-function-score-query">API docs</a>.</p>
@@ -1936,7 +1947,7 @@ width=128
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[29]:</div>
+<div class="prompt input_prompt">In&nbsp;[62]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -1991,10 +2002,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 59 ms. Showing top 5.
+<pre>Found 10000 hits in 54 ms. Showing top 5.
 
-Title   Men&#39;s Solar Stainless Steel Case and Bracelet Chronograph Black Dial Blu...
-Desc    None...
+Title   Men&#39;s Solar Stainless Steel Case and Bracelet Chronograph Black Dial Blue Hour Markers
+Desc    None
 Price   231.94
 ID      B008VGQLTY
 Score   3.5851321
@@ -2025,8 +2036,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Isobrite T100 Eclipse Watch Green, Blue &amp;amp; Orange Tritium...
-Desc    None...
+Title   Isobrite T100 Eclipse Watch Green, Blue &amp;amp; Orange Tritium
+Desc    None
 Price   449.0
 ID      B00DEGAJEO
 Score   3.5293782
@@ -2057,8 +2068,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Haurex Italy Men&#39;s 0A351UBB Aggressive Chrono Blue Dial Watch...
-Desc    None...
+Title   Haurex Italy Men&#39;s 0A351UBB Aggressive Chrono Blue Dial Watch
+Desc    None
 Price   None
 ID      B003OCF7MW
 Score   3.522779
@@ -2089,8 +2100,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Isobrite T100 Eclipse Watch Blue &amp;amp; Orange Tritium...
-Desc    None...
+Title   Isobrite T100 Eclipse Watch Blue &amp;amp; Orange Tritium
+Desc    None
 Price   449.0
 ID      B00DEG5AJI
 Score   3.5154846
@@ -2121,8 +2132,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Swiss Legend Men&#39;s 21046-BB-01-BBLAS Sprinter Analog Display Swiss Quart...
-Desc    None...
+Title   Swiss Legend Men&#39;s 21046-BB-01-BBLAS Sprinter Analog Display Swiss Quartz Blue Watch
+Desc    None
 Price   68.71
 ID      B00IS3J6ZG
 Score   3.515442
@@ -2164,6 +2175,7 @@ width=128
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<hr>
 <h2 id="Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-approximate-query">Combine keyword and nearest neighbors queries using Elastiknn's approximate query<a class="anchor-link" href="#Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-approximate-query">&#182;</a></h2><p>The term "blue" occurs very frequently in a catalog of clothing, shoes, and jewelry. The queries above matched 10k docs for the term, and then evaluated exact nearest neighbors on those docs. In most cases, including this one, the exact query will be sufficiently fast when combined with a filter. If you encounter a case where that's not true, you can experiment with an approxiamte query, demonstrated below. The results won't always be faster, as there's some overhead in computing and matching hashes.</p>
 
 </div>
@@ -2171,7 +2183,7 @@ width=128
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[44]:</div>
+<div class="prompt input_prompt">In&nbsp;[64]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
@@ -2227,10 +2239,10 @@ width=128
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Found 10000 hits in 109 ms. Showing top 5.
+<pre>Found 10000 hits in 107 ms. Showing top 5.
 
-Title   Fossil Men&#39;s Blue Watch BQ9325...
-Desc    None...
+Title   Fossil Men&#39;s Blue Watch BQ9325
+Desc    None
 Price   None
 ID      B000RZAE7C
 Score   2.2666667
@@ -2261,8 +2273,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   National Geographic Men&#39;s NG712GSSU Pioneer Series Deep Blue Watch...
-Desc    None...
+Title   National Geographic Men&#39;s NG712GSSU Pioneer Series Deep Blue Watch
+Desc    None
 Price   None
 ID      B000WCGPFK
 Score   2.1333334
@@ -2293,8 +2305,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Claude Bernard Men&#39;s 10203 3B BUIN Aquarider Blue Chronograph Tachymeter...
-Desc    None...
+Title   Claude Bernard Men&#39;s 10203 3B BUIN Aquarider Blue Chronograph Tachymeter Rubber Watch
+Desc    None
 Price   None
 ID      B006ZFF874
 Score   2.1333334
@@ -2325,8 +2337,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   Geneva Light Blue Silicon Link Band Quartz Men&#39;s Watch...
-Desc    None...
+Title   Geneva Light Blue Silicon Link Band Quartz Men&#39;s Watch
+Desc    None
 Price   10.37
 ID      B00F7LLOQG
 Score   2.0666666
@@ -2357,8 +2369,8 @@ width=128
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Title   TechnoMarine Men&#39;s 110021 Cruise Sport Chronograph Black and Blue Dial W...
-Desc    None...
+Title   TechnoMarine Men&#39;s 110021 Cruise Sport Chronograph Black and Blue Dial Watch
+Desc    None
 Price   None
 ID      B003NRTBDO
 Score   2.0666666

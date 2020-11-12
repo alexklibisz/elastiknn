@@ -38,9 +38,10 @@ def display_hits(res):
     print("")
     for hit in res['hits']['hits']:
         s = hit['_source']
-        print(f"Title   {s.get('title', None)}"[:80] + "...")
+        print(f"Title   {s.get('title', None)}")
         if 'description' in s:
-          print(f"Desc    {s['description']}"[:80] + "...")
+          desc = str(s.get('description', None))
+          print(f"Desc    {desc[:80] + ('...' if len(desc) > 80 else '')}")
         if 'price' in s:
           print(f"Price   {s['price']}")
         print(f"ID      {s.get('asin', None)}")
