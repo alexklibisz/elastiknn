@@ -10,10 +10,10 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentP
 import org.elasticsearch.index.query.QueryShardContext
 import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScoreFunctionParser}
 
-final case class KnnScoreFunctionBuilder(query: NearestNeighborsQuery, weight: Float)
+final class KnnScoreFunctionBuilder(val query: NearestNeighborsQuery, val weight: Float)
     extends ScoreFunctionBuilder[KnnScoreFunctionBuilder] {
 
-  this.setWeight(weight)
+  setWeight(weight)
 
   override def doWriteTo(out: StreamOutput): Unit =
     out.writeString(KnnQueryBuilder.encodeB64(query))
@@ -22,9 +22,9 @@ final case class KnnScoreFunctionBuilder(query: NearestNeighborsQuery, weight: F
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doEquals(other: KnnScoreFunctionBuilder): Boolean = other.query == query
+  override def doEquals(other: KnnScoreFunctionBuilder): Boolean = other.query == query && other.weight == weight
 
-  override def doHashCode(): Int = Objects.hash(query)
+  override def doHashCode(): Int = Objects.hash(query, weight.asInstanceOf[java.lang.Float])
 
   override def doToFunction(context: QueryShardContext): ScoreFunction = {
     ElastiknnQuery(query, context).map(_.toScoreFunction(context)).get
@@ -50,65 +50,4 @@ object KnnScoreFunctionBuilder {
       new KnnScoreFunctionBuilder(knnqb.query, 1f)
     }
   }
-
-//  class ScoreFunction private (val query: NearestNeighborsQuery) extends function.ScoreFunction(CombineFunction.REPLACE) {
-//
-//    override def getLeafScoreFunction(ctx: LeafReaderContext): LeafScoreFunction = {
-//
-//      query match {
-//        case NearestNeighborsQuery.Exact(field, similarity, vec) =>
-//          ???
-//          similarity match {
-//            case Similarity.Jaccard => ???
-//            case Similarity.Hamming => ???
-//            case Similarity.L1      => ???
-//            case Similarity.L2      => ???
-//            case Similarity.Angular => ???
-//          }
-//
-//        case NearestNeighborsQuery.SparseIndexed(field, similarity, vec) => ???
-//        case query: NearestNeighborsQuery.ApproximateQuery               => ???
-//      }
-////      new LeafScoreFunction {
-////        override def score(docId: Int, subQueryScore: Float): Double = ???
-////
-////        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = ???
-////      }
-////
-////      val scorer = weight.scorer(ctx)
-////      val iterator = scorer.iterator()
-////      new LeafScoreFunction {
-////        override def score(docId: Int, subQueryScore: Float): Double = {
-////          iterator.advance(docId)
-////          val s = scorer.score()
-////          println(s"Score for ${docId} is $s")
-////          s
-////        }
-////        override def explainScore(docId: Int, subQueryScore: Explanation): Explanation = {
-////          Explanation.`match`(
-////            score(docId, subQueryScore.getValue.floatValue()).toFloat,
-////            s"$NAME score function"
-////          )
-////        }
-////      }
-//    }
-//
-//    override def needsScores(): Boolean = false
-//
-//    override def doEquals(other: function.ScoreFunction): Boolean = other match {
-//      case f: KnnScoreFunctionBuilder.ScoreFunction => query.equals(f.query)
-//      case _                                        => false
-//    }
-//
-//    override def doHashCode(): Int = Objects.hash(query)
-//  }
-//
-//  object ScoreFunction {
-//    def apply(query: NearestNeighborsQuery, context: QueryShardContext): Try[ScoreFunction] = {
-//      query.vec match {
-//        case _: Vec.Indexed => Failure(new ElastiknnIllegalArgumentException(s"Score functions with indexed vectors are not yet supported"))
-//        case _              => ???
-//      }
-//    }
-//  }
 }

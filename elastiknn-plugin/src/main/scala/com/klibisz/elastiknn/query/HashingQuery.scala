@@ -4,34 +4,40 @@ import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq, HashingFunction}
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
 import org.apache.lucene.document.{Field, FieldType}
-import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
+import org.apache.lucene.index.{IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{MatchHashesAndScoreQuery, Query}
+import org.elasticsearch.common.lucene.search.function.ScoreFunction
+import org.elasticsearch.index.query.QueryShardContext
 
-object HashingQuery {
-
-  def apply[V <: Vec, S <: StoredVec](field: String,
-                                      query: V,
-                                      candidates: Int,
-                                      limit: Float,
-                                      hashes: Array[HashAndFreq],
-                                      exactFunction: ExactSimilarityFunction[V, S],
-                                      indexReader: IndexReader)(implicit codec: StoredVec.Codec[V, S]): Query = {
+class HashingQuery[V <: Vec, S <: StoredVec](field: String,
+                                             queryVec: V,
+                                             candidates: Int,
+                                             limit: Float,
+                                             hashes: Array[HashAndFreq],
+                                             simFunc: ExactSimilarityFunction[V, S])(implicit codec: StoredVec.Codec[V, S])
+    extends ElastiknnQuery[V] {
+  override def toLuceneQuery(queryShardContext: QueryShardContext): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
         val reader = new StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = reader(docId)
-          exactFunction(query, storedVec)
+          simFunc(queryVec, storedVec)
       }
     new MatchHashesAndScoreQuery(
       field,
       hashes,
       candidates,
       limit,
-      indexReader,
+      queryShardContext.getIndexReader,
       scoreFunction
     )
   }
+
+  override def toScoreFunction(queryShardContext: QueryShardContext): ScoreFunction = ???
+}
+
+object HashingQuery {
 
   def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec, F <: HashingFunction[M, V, S]](
       field: String,
