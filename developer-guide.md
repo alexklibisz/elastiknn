@@ -14,7 +14,7 @@ There might be other software which is missing. If so, please submit an issue or
 
 ### Run a local Elasticsearch instance with the plugin installed
 
-Once you have those installed, clone the project and run:
+Once you have the prerequisites installed, clone the project and run:
 
 ```
 make run/gradle
