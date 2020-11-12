@@ -44,5 +44,7 @@ def display_hits(res):
         print(f"ID:             {s.get('asin', None)}")
         print(f"Score:          {hit.get('_score', None)}")
 
+        # print(f"Vector: {s.get('imVecElastiknn', None)}")
+
         display(Image(s.get("imUrl"), width=128))
         print("")
