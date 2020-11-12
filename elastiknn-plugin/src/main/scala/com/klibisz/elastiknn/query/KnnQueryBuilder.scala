@@ -64,7 +64,7 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
   }
 
   override def doToQuery(context: QueryShardContext): Query =
-    ElastiknnQuery(query, context).map(_.toLuceneQuery(context)).get
+    ElastiknnQuery(query, context).map(_.toLuceneQuery(context.getIndexReader)).get
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query
 

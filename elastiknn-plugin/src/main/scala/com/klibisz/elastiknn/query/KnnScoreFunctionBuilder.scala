@@ -27,7 +27,7 @@ final class KnnScoreFunctionBuilder(val query: NearestNeighborsQuery, val weight
   override def doHashCode(): Int = Objects.hash(query, weight.asInstanceOf[java.lang.Float])
 
   override def doToFunction(context: QueryShardContext): ScoreFunction = {
-    ElastiknnQuery(query, context).map(_.toScoreFunction(context)).get
+    ElastiknnQuery(query, context).map(_.toScoreFunction(context.getIndexReader)).get
   }
 }
 

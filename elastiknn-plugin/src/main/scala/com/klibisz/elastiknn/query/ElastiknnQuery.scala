@@ -5,6 +5,7 @@ import com.klibisz.elastiknn.api.NearestNeighborsQuery._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.Cache
+import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
 import org.elasticsearch.index.mapper.MappedFieldType
@@ -14,9 +15,9 @@ import scala.util._
 
 trait ElastiknnQuery[V <: Vec] {
 
-  def toLuceneQuery(queryShardContext: QueryShardContext): Query
+  def toLuceneQuery(indexReader: IndexReader): Query
 
-  def toScoreFunction(queryShardContext: QueryShardContext): ScoreFunction
+  def toScoreFunction(indexReader: IndexReader): ScoreFunction
 
 }
 
