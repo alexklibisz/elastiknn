@@ -41,7 +41,7 @@ Elastiknn currently consists of several subprojects managed by Make and Gradle:
 
 The `lucene` and `models` sub-projects are implemented in Java for a few reasons:
 
-1. It makes it easier to ask questions about Lucene.
+1. It makes it easier to ask questions on the Lucene issue tracker and mailing list.
 2. They are the most CPU-bound parts of the codebase. While Scala's abstractions are nicer than Java's, they sometimes 
    have a surprising performance cost (e.g., boxing).
 3. It makes them more likely to be useful to other JVM developers. In particular the `models` project, which can be used
@@ -88,7 +88,7 @@ Now you should be able to set and hit breakpoints in IntelliJ.
 
 Use `make run/cluster` to run a local cluster with one master node and one data node (using docker-compose).
 There are a couple parts of the codebase that deal with serializing queries for use in a distributed environment.
-Running this small local cluster will exercise those code paths.
+Running this small local cluster exercises those code paths.
 
 ### Benchmarking and Profiling
 
