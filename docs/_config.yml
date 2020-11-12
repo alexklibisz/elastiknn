@@ -6,7 +6,7 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://elastiknn.com" # the base hostname & protocol for your site, e.g. http://example.com
 
 theme: just-the-docs
-color_scheme: light
+color_scheme: wider
 
 footer_content: "Copyright &copy; 2019-2020 <a href=\"http://alex.klibisz.com\" target=\"_blank\">Alex Klibisz</a>."
 
