@@ -1,4 +1,5 @@
-- Addressed a perplexing edge case that was causing an out of bounds exception in the MatchHashesAndScoreQuery. 
+- Fixed the function score query implementation. The first pass was kind of buggy for exact queries and totally wrong for approximate queries.
+- Addressed a perplexing edge case that was causing an out-of-bounds exception in the MatchHashesAndScoreQuery. 
 ---
 - Added support for [Function Score Queries](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html)
   See the [Common Patterns](https://elastiknn.com/api/#common-patterns) section of the docs.

@@ -836,6 +836,15 @@ GET /my-index/_search
 |2|List of functions which are applied to the matching documents.|
 |3|`elastiknn_nearest_neighbors` query that is evaluated on matching documents. The query produces the similarity score, which, by default, is multiplied by the term query score. If you'd like to change this behavior, see the `score_mode`, `boost_mode`, and `weight` parameters in the Elasticsearch [function score docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html).|
 
+**Caveats**
+
+This does not yet support passing indexed vectors.
+
+When using `"model": "lsh"`, the `"candidates"` parameter is ignored and vectors are not re-scored with the exact 
+similarity like they are with a `elastiknn_nearest_neighbors` query.
+Instead, the score is: `max similarity score * proportion of matching hashes`.
+This is a necessary consequence of the fact that score functions take a doc ID and must immediately return a score.
+
 #### Using a Query Rescorer 
 
 ```json
@@ -872,7 +881,9 @@ GET /my-index/_search
 |4|Ignore the score from the term query.|
 |5|Use the score from the rescore query.|
 
-**Some important things to consider with this kind of query**
+**Caveats**
+
+This does not yet support passing indexed vectors.
 
 Elasticsearch has a configurable limit for the number of docs that are matched and passed to the `rescore` query.
 The default is 10,000. 
