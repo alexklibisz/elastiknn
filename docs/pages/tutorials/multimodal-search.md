@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Multimodal Search
+title: Multimodal Search on the Amazon Products Dataset
 parent: Tutorials
+permalink: /tutorials/multimodal-search-amazon-products-dataset/
 ---
 
 <!-- 
