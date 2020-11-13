@@ -1,3 +1,5 @@
+- Bumped Elasticsearch version to 7.9.3.
+---
 - Fixed the function score query implementation. The first pass was kind of buggy for exact queries and totally wrong for approximate queries.
 - Addressed a perplexing edge case that was causing an out-of-bounds exception in the MatchHashesAndScoreQuery. 
 ---

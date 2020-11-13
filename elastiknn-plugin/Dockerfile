@@ -1,4 +1,4 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:7.9.2-amd64
+FROM docker.elastic.co/elasticsearch/elasticsearch:7.9.3-amd64
 
 RUN yum -y install epel-release htop
 

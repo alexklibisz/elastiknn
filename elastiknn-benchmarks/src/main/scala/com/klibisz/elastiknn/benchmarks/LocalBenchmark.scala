@@ -48,9 +48,7 @@ object LocalBenchmark extends App {
           "results",
           "results/aggregate.csv",
           bucket,
-          Some(s3Url),
-          Some("https://api.airtable.com/v0/appmy9gAptPsjo4M7/Results"),
-          sys.env.get("AIRTABLE_API_KEY")
+          Some(s3Url)
         ))
     } yield ()
     pipeline.exitCode
