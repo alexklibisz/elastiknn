@@ -85,7 +85,7 @@ run/debug:
  		-Dtests.es.thread_pool.search.size=1 -Drun.distribution=basic --debug-jvm
 
 run/kibana:
-	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.9.2
+	docker run --network host -e ELASTICSEARCH_HOSTS=http://localhost:9200 -p 5601:5601 -d --rm kibana:7.9.3
 	docker ps | grep kibana
 
 run/demo: .mk/gradle-publish-local .mk/example-demo-sbt-docker-stage .mk/example-demo-sbt-docker-stage .mk/vm-max-map-count
