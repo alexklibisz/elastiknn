@@ -20,12 +20,7 @@ import zio.stream.ZSink
   */
 object Aggregate extends App {
 
-  final case class Params(resultsPrefix: String = "",
-                          aggregateKey: String = "",
-                          bucket: String = "",
-                          s3Url: Option[String] = None,
-                          airtableUrl: Option[String] = None,
-                          airtableToken: Option[String] = None)
+  final case class Params(resultsPrefix: String = "", aggregateKey: String = "", bucket: String = "", s3Url: Option[String] = None)
 
   private val parser = new scopt.OptionParser[Params]("Aggregate results into a single file") {
     override def showUsageOnError: Option[Boolean] = Some(true)
