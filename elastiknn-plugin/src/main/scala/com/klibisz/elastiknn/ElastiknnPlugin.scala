@@ -42,7 +42,6 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
           new InternalEngine(
             new EngineConfig(
               config.getShardId,
-              config.getAllocationId,
               config.getThreadPool,
               config.getIndexSettings,
               config.getWarmer,
