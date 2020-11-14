@@ -54,11 +54,14 @@ def main():
             shardstr = "Single Shard" if shards == 1 else f"{shards} Shards"
             print(f"#### {shardstr}")
 
-            colors = itertools.cycle(list('bgrcmykw'))
+            # colors = itertools.cycle(list('bgrcmykw'))
+            # colors = itertools.cycle(['tab:cyan', 'm', 'y', ])
+            # plt.figure(figsize=(10, 7))
+            plt.style.use('dark_background')
 
-            plt.title(f"{dataset} - {shardstr}")
-            plt.xlabel("Recall")
-            plt.ylabel("Queries/Second")
+            plt.title(f"{dataset} - {shardstr}", size=17)
+            plt.xlabel("Recall", size=13)
+            plt.ylabel("Queries/Second", size=13)
             plt.xlim(0, 1.05)
             plt.grid(True, linestyle='--', linewidth=0.5)
 
@@ -67,11 +70,11 @@ def main():
             for ((algo, k), algodf) in dsetdf.groupby(['algorithm', 'k']):
                 paretodf = pareto_frontier(algodf, "recall", "queriesPerSecond")
                 label = f"{algo} {k}"
-                color = next(colors)
+                # color = next(colors)
                 marker = 'x' if algo == "Exact" else 'o'
-                size = 20 if algo == "Exact" else 10
-                plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
-                plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=marker)
+                size = 40 if algo == "Exact" else 25
+                plt.plot(paretodf["recall"], paretodf["queriesPerSecond"])
+                plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, s=size, marker=marker)
                 paretos.append((label, paretodf))
 
             plt.legend(loc='lower left')
@@ -79,6 +82,7 @@ def main():
             # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
             buf = BytesIO()
             plt.savefig(buf, format="svg")
+            plt.savefig(f"plots/{dataset}-{shards}.png", format="png", transparent=True, dpi=300, pad_inches=0)
             plt.clf()
             buf.seek(0)
             print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
