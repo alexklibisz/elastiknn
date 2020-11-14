@@ -3,8 +3,10 @@ package com.klibisz.elastiknn.models;
 import com.klibisz.elastiknn.storage.BitBuffer;
 
 import static com.klibisz.elastiknn.models.Utils.dot;
+import static com.klibisz.elastiknn.models.Utils.magnitude;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
 
+import java.util.Arrays;
 import java.util.Random;
 
 public class AngularLshModel implements HashingModel.DenseFloat {
@@ -34,11 +36,20 @@ public class AngularLshModel implements HashingModel.DenseFloat {
 
     @Override
     public HashAndFreq[] hash(float[] values) {
+
+        // Normalize the vector.
+        float[] valuesNormalized = values;
+        double magnitude = magnitude(values);
+        if (magnitude < 0.99 || magnitude > 1.01) {
+            valuesNormalized = Arrays.copyOf(values, values.length);
+            for (int i = 0; i < valuesNormalized.length; i++) valuesNormalized[i] /= magnitude;
+        }
+
         HashAndFreq[] hashes = new HashAndFreq[L];
         for (int ixL = 0; ixL < L; ixL++) {
             BitBuffer.IntBuffer buf = new BitBuffer.IntBuffer(writeInt(ixL));
             for (int ixk = 0; ixk < k; ixk++) {
-                float dot = dot(planes[ixL * k + ixk], values);
+                float dot = dot(planes[ixL * k + ixk], valuesNormalized);
                 if (dot > 0) buf.putOne();
                 else buf.putZero();
             }
