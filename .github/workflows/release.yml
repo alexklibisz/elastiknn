@@ -1,4 +1,3 @@
-# Placeholder for running a release when a PR is merged and the version file has changed.
 name: Release
 on:
   push:
@@ -6,34 +5,34 @@ on:
       - master
 
 jobs:
-  release:
-    runs-on: ubuntu-18.04
+
+  check:
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - name: Check if release exists for this version
+    - name: Check if release exists for this version.
       run: |
         curl -s -o /dev/null -w "%{http_code}" https://github.com/alexklibisz/elastiknn/releases/tag/$(cat version) > status
-        echo "::set-env name=GET_RELEASE::$(cat status)"
-        rm status
-    - name: Will release run?
-      if: env.GET_RELEASE == '404'
-      run: echo Yes
+        echo "RELEASE_STATUS=$(cat status)" >> $GITHUB_ENV
+        printenv | grep RELEASE_STATUS
 
-    # Language Setup
+  release:
+    runs-on: ubuntu-20.04
+    if: env.RELEASE_STATUS == '404'
+    steps:
+    - uses: actions/checkout@v2
     - name: Setup Python
       run: |
         python3 --version
         sudo apt-get install -y python3-setuptools
-
     - name: Setup Java
       uses: actions/setup-java@v1
       with:
         java-version: 14
-
     - name: Setup Ruby
       uses: actions/setup-ruby@v1
       with:
         ruby-version: '2.6'
+      run: gem install bundler
 
     # Has to run after installing languages.
     - name: Setup Environment
@@ -47,24 +46,18 @@ jobs:
       run: ./.github/scripts/setup-env.sh
 
     - name: Publish Site
-      run: |
-        gem install bundler
-        make publish/site
+      run: make publish/site
 
     - name: Publish Docs
-      if: env.GET_RELEASE == '404'
       run: make publish/docs
 
     - name: Release Python
-      if: env.GET_RELEASE == '404'
       run: make publish/release/python
 
     - name: Release Scala
-      if: env.GET_RELEASE == '404'
       run: make publish/release/sonatype
 
     - name: Release Plugin
-      if: env.GET_RELEASE == '404'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: make publish/release/plugin
