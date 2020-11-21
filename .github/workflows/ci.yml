@@ -36,6 +36,7 @@ jobs:
       uses: actions/setup-ruby@v1
       with:
         ruby-version: '2.6'
+      run: gem install bundler
 
     # Needs to run after language setup.
     - name: Setup Environment
@@ -93,9 +94,7 @@ jobs:
 
       # Site and Docs
     - name: Compile Site and Docs
-      run: |
-        gem install bundler
-        make compile/site compile/docs
+      run: make compile/site compile/docs
 
     # Snapshot Releases
     - name: Set Version (PR)
