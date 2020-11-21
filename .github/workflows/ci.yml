@@ -16,7 +16,29 @@ jobs:
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: echo "$GITHUB_CONTEXT"
-  build:
+
+  # test-jvm:
+  #   runs-on: ubuntu-20.04
+
+  # test-python:
+  #   runs-on: ubuntu-20.04
+
+  test-site:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.6'
+      run: gem install bundler
+    - name: Compile Site
+      run: make compile/site
+
+  # snapshots:
+  #   runs-on: ubuntu-20.04
+
+  test:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
@@ -31,12 +53,6 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 14
-
-    - name: Setup Ruby
-      uses: actions/setup-ruby@v1
-      with:
-        ruby-version: '2.6'
-      run: gem install bundler
 
     # Needs to run after language setup.
     - name: Setup Environment
@@ -91,10 +107,6 @@ jobs:
     - name: Docker logs (on failure)
       if: ${{ failure() }}
       run: cd elastiknn-testing && docker-compose logs
-
-      # Site and Docs
-    - name: Compile Site and Docs
-      run: make compile/site compile/docs
 
     # Snapshot Releases
     - name: Set Version (PR)
