@@ -48,7 +48,7 @@ tasks:
       - requirements
     cmds:
       - rm -rf dist
-      - "venv/bin/python setup.py --version {{ .VERSION }} sdist bdist_wheel"
+      - venv/bin/python setup.py --version {{ .VERSION }} sdist bdist_wheel
       - ls dist
 
   publish-snapshot:
@@ -57,6 +57,4 @@ tasks:
     cmds:
       - task: publish-local
         force: True
-      - "venv/bin/python -m twine upload -r testpypi --verbose dist/*"
-
-      
+      - venv/bin/python -m twine upload -r testpypi --verbose dist/*
