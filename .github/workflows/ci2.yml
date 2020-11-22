@@ -71,6 +71,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Task
         run: sudo snap install task --classic
+      - name: Install Scala
+        uses: olafurpg/setup-scala@v10
       - name: Cache SBT
         uses: actions/cache@v1
         with:
