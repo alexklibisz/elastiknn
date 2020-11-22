@@ -1,8 +1,5 @@
 version: '3'
 
-vars: 
-  CMD_GRADLE: "./gradlew --console=plain"
-
 tasks:
 
   clean: "{{ .CMD_GRADLE }} clean"
@@ -21,7 +18,7 @@ tasks:
       - "**/*.java"
       - "**/*.scala"
     cmds:
-      - "{{ .CMD_GRADLE }} assemble publishToMavenLocal"
+      - "{{ .CMD_GRADLE }} publishToMavenLocal"
 
   run-gradle:
     cmds:
@@ -36,23 +33,6 @@ tasks:
       - task: run-gradle
         vars: 
           DEBUG: "--debug-jvm"
-
-  vm-max-map-count: sudo sysctl -w vm.max_map_count=262144
-
-  run-cluster:
-    dir: elastiknn-testing
-    deps:
-      - publish-local
-      - vm-max-map-count
-      - stop-cluster
-    cmds:
-      - docker-compose up --detach --build --force-recreate
-      - python3 cluster_ready.py
-
-  stop-cluster:
-    dir: elastiknn-testing
-    cmds:
-      - docker-compose down
 
   release:
     status:

@@ -15,6 +15,30 @@ jobs:
       - name: Show Github Context
         run: echo "${{ toJson(github) }}"
   
+  test-jvm:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - name: Cache Gradle
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Install Task
+        run: sudo snap install task --classic
+      - name: Compile
+        run: task jvm:compile
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Cluster Logs
+        run: task cluster:logs
+
   build-jekyll-site:
     runs-on: ubuntu-20.04
     steps:
