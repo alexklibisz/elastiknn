@@ -71,6 +71,17 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Task
         run: sudo snap install task --classic
+      - name: Install Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - name: Cache Gradle
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
       - name: Install Scala
         uses: olafurpg/setup-scala@v10
       - name: Cache SBT
@@ -84,7 +95,9 @@ jobs:
           path: ~/.ivy2/cache
           key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
       - name: Build SBT client example
-        run: cd examples/scala-sbt-client-usage && sbt -batch run
+        run: |
+          task jvm:publish-local
+          cd examples/scala-sbt-client-usage && sbt -batch run
 
   build-jekyll-site:
     runs-on: ubuntu-20.04
