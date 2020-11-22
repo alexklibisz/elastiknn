@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+
+  install-bundler:
+    status:
+      - bundle --version
+    cmds:
+      - gem install bundler
+
+  dev: 
+    deps:
+      - install-bundler
+    cmds:
+      - bundle install
+      - bundle exec jekyll serve
+
+  compile:
+    sources:
+      - "**/*.md"
+      - "**/*.html"
+    deps:
+      - install-bundler
+    cmds:
+      - bundle install
+      - bundle exec jekyll build
+
+  publish:
+    deps:
+      - compile
+    cmds:
+      - "rsync -av --delete --exclude docs _site/ {{ .SITE_SSH_ALIAS }}:elastiknn.com"

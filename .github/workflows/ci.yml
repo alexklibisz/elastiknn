@@ -1,135 +1,124 @@
-name: CI
+name: "CI"
 
 on:
   pull_request:
-    branches: 
+    branches:
       - master
   push:
     branches:
       - master
 
 jobs:
-  context:
-    runs-on: ubuntu-18.04
+  show-github-context:
+    runs-on: ubuntu-20.04
+    env:
+      GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
-    - name: Show GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: echo "$GITHUB_CONTEXT"
-  build:
-    runs-on: ubuntu-18.04
+      - run: echo $GITHUB_CONTEXT
+  
+  test-jvm:
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - run: sudo snap install task --classic
+      - name: Compile
+        run: task jvm:compile
+      - name: Publish Local
+        run: task jvm:publish-libraries-local
+      - name: Docs
+        run: task jvm:docs
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task jvm:test
+      - name: Cluster Logs
+        if: failure()
+        run: task cluster:logs
+      
+  test-python:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - run: sudo snap install task --classic
+      - name: Publish Local
+        run: task jvm:publish-libraries-local
+      - name: Docs
+        run: task jvm:docs
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task py:test
+      - name: Cluster Logs
+        run: task cluster:logs
 
-    # Language Setup
-    - name: Setup Python
-      run: |
-        python3 --version
-        sudo apt-get install -y python3-setuptools
+  build-examples:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo snap install task --classic
+      - uses: olafurpg/setup-scala@v10
+        with:
+          java-version: 14
+      - name: Build SBT client example
+        run: |
+          task jvm:publish-libraries-local
+          cd examples/scala-sbt-client-usage && sbt -batch run
 
-    - name: Setup Java
-      uses: actions/setup-java@v1
-      with:
-        java-version: 14
+  build-jekyll-site:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+      - run: sudo snap install task --classic
+      - name: Compile Jekyll Site
+        run: "task docs:compile"
 
-    - name: Setup Ruby
-      uses: actions/setup-ruby@v1
-      with:
-        ruby-version: '2.6'
-
-    # Needs to run after language setup.
-    - name: Setup Environment
-      env:
-        GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-        GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
-        PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
-        SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: ./.github/scripts/setup-env.sh
-
-    # Caching Setup
-    - name: Cache Gradle
-      uses: actions/cache@v1
-      with:
-        path: ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-    - name: Cache Pip
-      uses: actions/cache@v1
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip
-    - name: Cache SBT ivy cache
-      uses: actions/cache@v1
-      with:
-        path: ~/.ivy2/cache
-        key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
-    - name: Cache SBT
-      uses: actions/cache@v1
-      with:
-        path: ~/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-
-    # Actual Build
-    - name: Compile JVM
-      run: make compile/gradle
-    - name: Start Testing Cluster
-      run: make run/cluster
-    - name: Run Examples
-      run: make examples
-    - name: Test JVM
-      run: make test/gradle
-    - name: Test Python
-      run: make test/python
-    - name: Docker logs (on failure)
-      if: ${{ failure() }}
-      run: cd elastiknn-testing && docker-compose logs
-
-      # Site and Docs
-    - name: Compile Site and Docs
-      run: |
-        gem install bundler
-        make compile/site compile/docs
-
-    # Snapshot Releases
-    - name: Set Version (PR)
-      if: github.event_name == 'pull_request'
-      run: |
-        echo $(cat version)-dev${{ github.run_number }} > version-python
-        echo $(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT > version-sonatype
-    - name: Set Version (Master)
-      if: github.event_name == 'push'
-      run: |
-        echo $(cat version)-dev${{ github.run_number }} > version-python
-        echo $(cat version)-MASTER${{ github.run_number }}-SNAPSHOT > version-sonatype
-    - name: Publish Python Libraries to PyPi
-      run: |
-        cp version-python version
-        make publish/snapshot/python
-    - name: Publish Scala Libraries to Sonatype
-      run: |
-        cp version-sonatype version
-        make publish/snapshot/sonatype
-    - name: Install hub CLI
-      run: sudo snap install hub --classic
-    - name: Delete Existing Snapshot Releases (Master)
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: github.event_name == 'push'
-      run: ./.github/scripts/delete-snapshot-releases.sh
-    - name: Publish Plugin Zip to Github
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        cp version-sonatype version
-        make publish/snapshot/plugin
-
-    # Cleanup
-    - name: Clean
-      run: make clean
+  # Ideally the snapshot release would run only if the tests pass, but right now
+  # there's no way to make a job conditional on another job.
+  publish-snapshots:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Release Credentials
+        env:
+          GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
+          GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
+          PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
+          SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
+        run: ./.github/scripts/setup-env.sh
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - run: |
+          sudo snap install task --classic
+          sudo snap install hub --classic
+          python3 -m pip install setuptools
+      - name: Publish to PyPi
+        run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+      - name: Publish JVM Libraries from PR
+        if: github.event_name == 'pull_request'
+        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      - name: Publish JVM Libraries from Master
+        if: github.event_name == 'push'
+        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+      - name: Publish Plugin from PR
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      - name: Publish Plugin from Master
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+      

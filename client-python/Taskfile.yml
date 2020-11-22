@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  venv:
+    cmds:
+      - python3 -m pip install virtualenv
+      - python3 -m virtualenv venv
+    generates:
+      - venv
+    status:
+      - test -d venv
+
+  clean:
+    cmds: 
+      - rm -rf venv
+
+  requirements:
+    deps:
+      - venv
+    sources:
+      - venv/bin/*
+      - setup.py
+      - requirements*txt
+    cmds:
+      - venv/bin/pip install -r requirements.txt
+      - venv/bin/pip install -r requirements-build.txt
+
+  test:
+    deps:
+      - requirements
+    sources:
+      - elastiknn/**/*.py
+      - setup.py
+    cmds:
+      - venv/bin/python -m pytest -v -s -o log_cli=True
+
+  docs:
+    deps:
+      - requirements
+    sources:
+      - elastiknn/**/*.py
+      - setup.py
+    cmds:
+      - venv/bin/pdoc3 --html elastiknn - c show_type_annotations=True -o pdoc
+    
+  publish-local:
+    deps:
+      - requirements
+    cmds:
+      - rm -rf dist
+      - venv/bin/python setup.py --version {{ .VERSION }} sdist bdist_wheel
+      - ls dist
+
+  publish-snapshot:
+    deps:
+      - requirements
+    cmds:
+      - task: publish-local
+        force: True
+      - venv/bin/python -m twine upload -r testpypi --verbose dist/*

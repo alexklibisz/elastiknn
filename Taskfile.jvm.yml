@@ -1,0 +1,53 @@
+version: '3'
+
+tasks:
+
+  clean: "{{ .CMD_GRADLE }} clean"
+
+  compile:
+    sources:
+      - build.gradle
+      - "**/*.java"
+      - "**/*.scala"
+    cmds:
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+
+  test: "{{ .CMD_GRADLE }} test"
+
+  docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
+
+  publish-libraries-local: "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+    
+  publish-libraries-snapshot: "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
+
+  publish-plugin-loal: "{{ .CMD_GRADLE }} assemble"
+
+  publish-plugin-snapshot:
+    deps:
+      - publish-plugin-loal
+    cmds:
+      - echo {{ .VERSION }} > release.md
+      - echo "" >> release.md
+      - hub release delete {{ .VERSION }} || true
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+
+  run-gradle:
+    cmds:
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR }} -Dtests.heap.size={{ .HEAP }} -Dtests.es.node.processors={{ .THREADS }} -Dtests.es.thread_pool.search.size={{ .THREADS }} {{ .DEBUG }}"
+    vars:
+      DATA_DIR: "/tmp/elastiknn"
+      THREADS: 1
+      HEAP: 4G
+
+  run-debug:
+    cmds:
+      - task: run-gradle
+        vars: 
+          DEBUG: "--debug-jvm"
+
+  release:
+    status:
+      - curl -f -w "%{http-code}" -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    cmds:
+      - echo {{ .VERSION }}
+
