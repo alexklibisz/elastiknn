@@ -10,6 +10,9 @@ includes:
   py: 
     taskfile: client-python/Taskfile.yml
     dir: client-python
+  docs:
+    taskfile: docs/Taskfile.yml
+    dir: docs
   
 tasks:
 
@@ -24,3 +27,5 @@ tasks:
       - "javac -version"
       - "python3 --version"
       - "docker-compose --version"
+      - "ruby --version"
+      - "gem --version"

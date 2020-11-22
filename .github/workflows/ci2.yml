@@ -14,3 +14,15 @@ jobs:
     steps:
       - name: Show Github Context
         run: echo "${{ toJson(github) }}"
+  
+  build-jekyll-site:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+      - name: Install Task
+        run: sudo snap install task --classic
+      - name: Compile Jekyll Site
+        run: "task docs:compile"
