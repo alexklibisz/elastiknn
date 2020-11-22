@@ -25,17 +25,6 @@ tasks:
       - venv/bin/pip install -r requirements.txt
       - venv/bin/pip install -r requirements-build.txt
 
-  publish-local:
-    deps:
-      - requirements
-    sources:
-      - elastiknn/**/*.py
-      - setup.py
-    cmds:
-      - rm -rf dist
-      - venv/bin/python setup.py sdist bdist_wheel
-      - ls dist
-    
   test:
     deps:
       - requirements
@@ -54,3 +43,22 @@ tasks:
     cmds:
       - venv/bin/pdoc3 --html elastiknn - c show_type_annotations=True -o pdoc
     
+  publish-local:
+    deps:
+      - requirements
+    cmds:
+      - rm -rf dist
+      - "venv/bin/python setup.py --version {{ .VERSION }} sdist bdist_wheel"
+      - ls dist
+
+  publish-snapshot:
+    deps:
+      - requirements
+    cmds:
+      - task: publish-local
+        force: True
+        vars:
+          VERSION: "{{ .VERSION }}-dev{{ now | unixEpoch }}"
+      - "venv/bin/python -m twine upload -r testpypi --verbose dist/*"
+
+      
