@@ -12,8 +12,7 @@ jobs:
   show-github-context:
     runs-on: ubuntu-20.04
     steps:
-      - name: Show Github Context
-        run: echo "${{ toJson(github) }}"
+      - run: echo "${{ toJson(github) }}"
   
   test-jvm:
     runs-on: ubuntu-20.04
@@ -22,8 +21,7 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 14
-      - name: Install Task
-        run: sudo snap install task --classic
+      - run: sudo snap install task --classic
       - name: Compile
         run: task jvm:compile
       - name: Publish Local
@@ -45,8 +43,7 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 14
-      - name: Install Task
-        run: sudo snap install task --classic
+      - run: sudo snap install task --classic
       - name: Publish Local
         run: task jvm:publish-libraries-local
       - name: Docs
@@ -62,10 +59,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - name: Install Task
-        run: sudo snap install task --classic
-      - name: Install Scala
-        uses: olafurpg/setup-scala@v10
+      - run: sudo snap install task --classic
+      - uses: olafurpg/setup-scala@v10
         with:
           java-version: 14
       - name: Build SBT client example
@@ -77,18 +72,16 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - name: Install Ruby
-        uses: actions/setup-ruby@v1
+      - uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.6'
-      - name: Install Task
-        run: sudo snap install task --classic
+      - run: sudo snap install task --classic
       - name: Compile Jekyll Site
         run: "task docs:compile"
 
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
-  snapshot-pr:
+  snapshot:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -112,9 +105,9 @@ jobs:
         run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
       - name: Publish JVM Libraries from PR
         if: github.event_name == 'pull_request'
-        run: task jvm:publish-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish JVM Libraries from Master
         if: github.event_name == 'push'
-        run: task jvm:publish-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
         
       
