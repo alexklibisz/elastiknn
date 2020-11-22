@@ -18,6 +18,7 @@ jobs:
   build-jekyll-site:
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v2
       - name: Install Ruby
         uses: actions/setup-ruby@v1
         with:
