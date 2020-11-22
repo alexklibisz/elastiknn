@@ -28,8 +28,6 @@ object Execute extends App {
                           bucket: String = "",
                           s3Url: Option[String] = None,
                           esUrl: String = "http://localhost:9200",
-                          shards: Int = 1,
-                          parallelQueries: Int = 1,
                           numQueries: Int = 10000,
                           warmupQueries: Int = 200,
                           minWarmupRounds: Int = 10,
@@ -61,14 +59,6 @@ object Execute extends App {
     opt[String]("esUrl")
       .text("elasticsearch URL, e.g. http://localhost:9200")
       .action((s, c) => c.copy(esUrl = s))
-      .optional()
-    opt[Int]("shards")
-      .text("number of shards in the elasticsearch index")
-      .action((i, c) => c.copy(shards = i))
-      .optional()
-    opt[Int]("parallelQueries")
-      .text("number of queries to execute in parallel")
-      .action((i, c) => c.copy(shards = i))
       .optional()
     opt[Int]("numQueries")
       .text("number of queries to execute")
@@ -175,13 +165,7 @@ object Execute extends App {
     test.copy(queryResults = withRecalls)
   }
 
-  private def run(experiment: Experiment,
-                  shards: Int,
-                  parallelQueries: Int,
-                  numQueries: Int,
-                  warmupQueries: Int,
-                  minWarmupRounds: Int,
-                  maxWarmupRounds: Int) = {
+  private def run(experiment: Experiment, numQueries: Int, warmupQueries: Int, minWarmupRounds: Int, maxWarmupRounds: Int) = {
     import experiment._
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
@@ -190,7 +174,7 @@ object Execute extends App {
           for {
             // The exact result is specific to the given value of `k`.
             // So check each time for an existing result and recompute if it doesn't exist.
-            exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k)
+            exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k, shards, parallelQueries)
             exactRes <- log.locally(LogAnnotation.Name(List(exactMapping, exactQuery).map(_.toString))) {
               exactOpt match {
                 case Some(res) => log.info(s"Found exact result").map(_ => res)
@@ -214,7 +198,7 @@ object Execute extends App {
               }
             }
 
-            testOpt <- resultsClient.find(dataset, testMapping, testQuery, k)
+            testOpt <- resultsClient.find(dataset, testMapping, testQuery, k, shards, parallelQueries)
             _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
               testOpt match {
                 case Some(_) => log.info(s"Found test result")
@@ -273,7 +257,7 @@ object Execute extends App {
       _ <- searchBackend.blockUntilReady()
 
       // Run the experiment.
-      _ <- run(experiment, shards, parallelQueries, numQueries, warmupQueries, minWarmupRounds, maxWarmupRounds)
+      _ <- run(experiment, numQueries, warmupQueries, minWarmupRounds, maxWarmupRounds)
 
     } yield ()
 
