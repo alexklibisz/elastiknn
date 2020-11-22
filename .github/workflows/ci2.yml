@@ -1,0 +1,16 @@
+name: "CI 2"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  show-github-context:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Show Github Context
+        run: echo "${{ toJson(github) }}"
