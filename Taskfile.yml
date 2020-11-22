@@ -6,16 +6,34 @@ vars:
 tasks:
 
   clean:
-    deps: [jvm-clean]
+    deps: 
+      - jvm-clean
+      - py-clean
+
+  check-installs:
+    cmds:
+      - "task --version"
+      - "javac -version"
+      - "python3 --version"
+      - "docker-compose --version"
 
   jvm-clean: "{{ .CMD_GRADLE }} clean"
 
   jvm-compile:
-    sources: ["**/*.java", "**/*.scala"]
+    sources:
+      - "**/*.java"
+      - "**/*.scala"
     cmds:
       - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
 
   jvm-test: "{{ .CMD_GRADLE }} test"
+
+  jvm-publish-local:
+    sources:
+      - "**/*.java"
+      - "**/*.scala"
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble publishToMavenLocal"
 
   es-run-gradle:
     cmds:
@@ -30,4 +48,62 @@ tasks:
       - task: es-run-gradle
         vars: {DEBUG: "--debug-jvm"}
 
+  es-vm-max-map-count: sudo sysctl -w vm.max_map_count=262144
+
+  es-run-cluster:
+    dir: elastiknn-testing
+    deps:
+      - jvm-publish-local
+      - es-stop-cluster
+    cmds:
+      - docker-compose up --detach --build --force-recreate
+      - python3 cluster_ready.py
+
+  es-stop-cluster:
+    dir: elastiknn-testing
+    cmds:
+      - docker-compose down
+
+  py-venv:
+    dir: client-python
+    cmds:
+      - python3 -m pip install virtualenv
+      - python3 -m virtualenv venv
+    status:
+      - test -d venv
+
+  py-clean:
+    dir: client-python
+    cmds: 
+      - rm -rf venv
+
+  py-requirements:
+    dir: client-python
+    deps:
+      - py-venv
+    sources:
+      - setup.py
+      - requirements*txt
+    cmds:
+      - venv/bin/pip install -r requirements.txt
+      - venv/bin/pip install -r requirements-build.txt
+
+  py-publish-local:
+    dir: client-python
+    deps:
+      - py-requirements
+    sources:
+      - elastiknn/**/*.py
+      - setup.py
+    cmds:
+      - rm -rf dist
+      - venv/bin/python setup.py sdist bdist_wheel
+      - ls dist
+    
+  py-test:
+    dir: client-python
+    deps:
+      - py-requirements
+    cmds:
+      - venv/bin/python -m pytest -v -s -o log_cli=True
 
