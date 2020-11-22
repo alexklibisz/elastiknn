@@ -111,8 +111,12 @@ jobs:
         run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish Plugin from Master
         if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       
