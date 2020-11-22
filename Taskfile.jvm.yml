@@ -28,7 +28,7 @@ tasks:
     cmds:
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
+      - hub release delete {{ .VERSION }} || true
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run-gradle:
