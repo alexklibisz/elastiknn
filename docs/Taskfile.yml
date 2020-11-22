@@ -12,6 +12,7 @@ tasks:
     deps:
       - install-bundler
     cmds:
+      - bundle install
       - bundle exec jekyll serve
 
   compile:
@@ -21,4 +22,5 @@ tasks:
     deps:
       - install-bundler
     cmds:
+      - bundle install
       - bundle exec jekyll build
