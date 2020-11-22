@@ -36,6 +36,26 @@ jobs:
         run: task jvm:compile
       - name: Run Cluster
         run: task cluster:run
+      - name: Test
+        run: task jvm:test
+      - name: Cluster Logs
+        run: task cluster:logs
+  
+  test-python:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache Pip
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task py:test
       - name: Cluster Logs
         run: task cluster:logs
 
