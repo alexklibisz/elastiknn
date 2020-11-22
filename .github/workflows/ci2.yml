@@ -81,7 +81,7 @@ jobs:
 
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
-  snapshot:
+  publish-snapshots:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -109,5 +109,10 @@ jobs:
       - name: Publish JVM Libraries from Master
         if: github.event_name == 'push'
         run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
-        
+      - name: Publish Plugin from PR
+        if: github.event_name == 'pull_request'
+        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      - name: Publish Plugin from Master
+        if: github.event_name == 'push'
+        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       

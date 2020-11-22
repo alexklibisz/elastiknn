@@ -16,13 +16,20 @@ tasks:
 
   docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
 
-  publish-libraries-local:
-    cmds:
-      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+  publish-libraries-local: "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+    
+  publish-libraries-snapshot: "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
 
-  publish-libraries-snapshot:
+  publish-plugin-loal: "{{ .CMD_GRADLE }} assemble"
+
+  publish-plugin-snapshot:
+    deps:
+      - publish-plugin-loal
     cmds:
-      - "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
+      - echo {{ .VERSION }} > release.md
+      - echo "" >> release.md
+      - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run-gradle:
     cmds:
