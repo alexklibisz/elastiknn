@@ -33,7 +33,9 @@ package object benchmarks {
                               exactMapping: Mapping,
                               exactQuery: NearestNeighborsQuery,
                               testMapping: Mapping,
-                              testQueries: Seq[Query]) {
+                              testQueries: Seq[Query],
+                              shards: Int = 1,
+                              parallelQueries: Int = 1) {
     def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
   }
 
