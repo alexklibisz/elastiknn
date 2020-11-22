@@ -27,7 +27,7 @@ jobs:
       - name: Compile
         run: task jvm:compile
       - name: Publish Local
-        run: task jvm:publish-local
+        run: task jvm:publish-libraries-local
       - name: Docs
         run: task jvm:docs
       - name: Run Cluster
@@ -48,7 +48,7 @@ jobs:
       - name: Install Task
         run: sudo snap install task --classic
       - name: Publish Local
-        run: task jvm:publish-local
+        run: task jvm:publish-libraries-local
       - name: Docs
         run: task jvm:docs
       - name: Run Cluster
@@ -70,7 +70,7 @@ jobs:
           java-version: 14
       - name: Build SBT client example
         run: |
-          task jvm:publish-local
+          task jvm:publish-libraries-local
           cd examples/scala-sbt-client-usage && sbt -batch run
 
   build-jekyll-site:
@@ -90,7 +90,6 @@ jobs:
   # there's no way to make a job conditional on another job.
   snapshot-pr:
     runs-on: ubuntu-20.04
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v2
       - name: Setup Release Credentials
@@ -110,13 +109,12 @@ jobs:
           sudo snap install hub --classic
           python3 -m pip install setuptools
       - name: Publish to PyPi
-        run: task py:publish-snapshot
-
-  # snapshot-master:
-  #   runs-on: ubuntu-20.04
-  #   if: github.event_name == 'push'
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-java@v1
-  #       with:
-  #         java-version: 14
+        run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+      - name: Publish JVM Libraries from PR
+        if: github.event_name == 'pull_request'
+        run: task jvm:publish-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      - name: Publish JVM Libraries from Master
+        if: github.event_name == 'push'
+        run: task jvm:publish-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+        
+      

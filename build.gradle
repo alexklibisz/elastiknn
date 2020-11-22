@@ -23,7 +23,10 @@ buildscript {
 allprojects {
 
     setGroup('com.klibisz.elastiknn')
-    setVersion(rootProject.file('version').getText().strip())
+
+    // Use -Pversion=foo123 to override the version. Otherwise uses the version file.
+    if (version != 'unspecified') setVersion(version)
+    else setVersion(rootProject.file('version').getText().strip())
 
     repositories {
         jcenter()

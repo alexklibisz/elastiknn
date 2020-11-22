@@ -16,12 +16,13 @@ tasks:
 
   docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
 
-  publish-local:
-    sources:
-      - "**/*.java"
-      - "**/*.scala"
+  publish-libraries-local:
     cmds:
-      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication"
+      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+
+  publish-libraries-snapshot:
+    cmds:
+      - "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
 
   run-gradle:
     cmds:
