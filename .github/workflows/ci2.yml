@@ -23,13 +23,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 14
-      - name: Cache Gradle
-        uses: actions/cache@v1
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
       - name: Install Task
         run: sudo snap install task --classic
       - name: Compile
@@ -49,13 +42,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 14
-      - name: Cache Pip
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip
       - name: Install Task
         run: sudo snap install task --classic
       - name: Run Cluster
@@ -75,27 +61,10 @@ jobs:
         uses: olafurpg/setup-scala@v10
         with:
           java-version: 14
-      - name: Cache Gradle
-        uses: actions/cache@v1
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      - name: Cache SBT
-        uses: actions/cache@v1
-        with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-      - name: Cache SBT Ivy Cache
-        uses: actions/cache@v1
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
       - name: Build SBT client example
         run: |
           task jvm:publish-local
-          # cd examples/scala-sbt-client-usage && sbt -batch run
+          cd examples/scala-sbt-client-usage && sbt -batch run
 
   build-jekyll-site:
     runs-on: ubuntu-20.04
