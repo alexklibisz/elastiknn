@@ -32,7 +32,6 @@ jobs:
       uses: actions/setup-ruby@v1
       with:
         ruby-version: '2.6'
-      run: gem install bundler
 
     # Has to run after installing languages.
     - name: Setup Environment
@@ -46,7 +45,9 @@ jobs:
       run: ./.github/scripts/setup-env.sh
 
     - name: Publish Site
-      run: make publish/site
+      run: |
+        gem install bundler
+        make publish/site
 
     - name: Publish Docs
       run: make publish/docs
