@@ -1,0 +1,62 @@
+version: '3'
+
+vars: 
+  CMD_GRADLE: "./gradlew --console=plain"
+
+tasks:
+
+  clean: "{{ .CMD_GRADLE }} clean"
+
+  compile:
+    sources:
+      - "**/*.java"
+      - "**/*.scala"
+    cmds:
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+
+  test: "{{ .CMD_GRADLE }} test"
+
+  publish-local:
+    sources:
+      - "**/*.java"
+      - "**/*.scala"
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble publishToMavenLocal"
+
+  run-gradle:
+    cmds:
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR }} -Dtests.heap.size={{ .HEAP }} -Dtests.es.node.processors={{ .THREADS }} -Dtests.es.thread_pool.search.size={{ .THREADS }} {{ .DEBUG }}"
+    vars:
+      DATA_DIR: "/tmp/elastiknn"
+      THREADS: 1
+      HEAP: 4G
+
+  run-debug:
+    cmds:
+      - task: run-gradle
+        vars: 
+          DEBUG: "--debug-jvm"
+
+  vm-max-map-count: sudo sysctl -w vm.max_map_count=262144
+
+  run-cluster:
+    dir: elastiknn-testing
+    deps:
+      - publish-local
+      - vm-max-map-count
+      - stop-cluster
+    cmds:
+      - docker-compose up --detach --build --force-recreate
+      - python3 cluster_ready.py
+
+  stop-cluster:
+    dir: elastiknn-testing
+    cmds:
+      - docker-compose down
+
+  release:
+    status:
+      - curl -f -w "%{http-code}" -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    cmds:
+      - echo {{ .VERSION }}
+
