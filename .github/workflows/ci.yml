@@ -11,8 +11,10 @@ on:
 jobs:
   show-github-context:
     runs-on: ubuntu-20.04
+    env:
+      GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
-      - run: echo "${{ toJson(github) }}"
+      - run: echo $GITHUB_CONTEXT
   
   test-jvm:
     runs-on: ubuntu-20.04
