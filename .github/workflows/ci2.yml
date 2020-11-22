@@ -97,7 +97,7 @@ jobs:
       - name: Build SBT client example
         run: |
           task jvm:publish-local
-          cd examples/scala-sbt-client-usage && sbt -batch run
+          # cd examples/scala-sbt-client-usage && sbt -batch run
 
   build-jekyll-site:
     runs-on: ubuntu-20.04
