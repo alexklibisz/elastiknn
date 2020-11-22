@@ -57,8 +57,6 @@ tasks:
     cmds:
       - task: publish-local
         force: True
-        vars:
-          VERSION: "{{ .VERSION }}-dev{{ now | unixEpoch }}"
       - "venv/bin/python -m twine upload -r testpypi --verbose dist/*"
 
       
