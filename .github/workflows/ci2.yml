@@ -65,6 +65,25 @@ jobs:
       - name: Cluster Logs
         run: task cluster:logs
 
+  build-examples:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Task
+        run: sudo snap install task --classic
+      - name: Cache SBT
+        uses: actions/cache@v1
+        with:
+          path: ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Cache SBT Ivy Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.ivy2/cache
+          key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
+      - name: Build SBT client example
+        run: cd examples/scala-sbt-client-usage && sbt -batch run
+
   build-jekyll-site:
     runs-on: ubuntu-20.04
     steps:
