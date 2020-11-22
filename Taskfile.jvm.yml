@@ -6,12 +6,15 @@ tasks:
 
   compile:
     sources:
+      - build.gradle
       - "**/*.java"
       - "**/*.scala"
     cmds:
       - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
 
   test: "{{ .CMD_GRADLE }} test"
+
+  docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
 
   publish-local:
     sources:
