@@ -24,3 +24,9 @@ tasks:
     cmds:
       - bundle install
       - bundle exec jekyll build
+
+  publish:
+    deps:
+      - compile
+    cmds:
+      - "rsync -av --delete --exclude docs _site/ {{ .SITE_SSH_ALIAS }}:elastiknn.com"
