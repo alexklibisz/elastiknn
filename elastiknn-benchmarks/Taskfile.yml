@@ -18,6 +18,7 @@ tasks:
 
   imgs:driver:push:
     deps:
+      - ecr-login
       - assemble
     cmds:
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.driver .
@@ -25,6 +26,7 @@ tasks:
 
   imgs:elastiknn:push:
     deps:
+      - ecr-login
       - assemble
     cmds:
       - cd {{ .PROJECT_ROOT }}/elastiknn-plugin && docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn .
@@ -33,6 +35,7 @@ tasks:
   imgs:datasets:push:
     dir: python
     deps:
+      - ecr-login
       - assemble
     cmds:
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.datasets .
@@ -57,4 +60,7 @@ tasks:
       - imgs:driver:push
       - imgs:elastiknn:push
     cmds:
-      - envsubst < datasets-workflow.yaml | argo submit -
+      - envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml
+      - argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml
+
+  argo:delete: argo delete --all
