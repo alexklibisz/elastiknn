@@ -40,4 +40,6 @@ jobs:
       - name: Publish to Sonatype
         run: task jvm:publish-libraries-release
       - name: Publish to Github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvm:publish-plugin-release
