@@ -20,15 +20,35 @@ tasks:
     
   publish-libraries-snapshot: "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
 
-  publish-plugin-loal: "{{ .CMD_GRADLE }} assemble"
+  publish-libraries-release: 
+    status:
+      - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    env: 
+      # TODO: make this a parameter like -Pversion above.
+      SONATYPE_URL: https://oss.sonatype.org/service/local/staging/deploy/maven2
+    cmds:
+      - "{{ .CMD_GRADLE }} publish"
+
+  publish-plugin-local: "{{ .CMD_GRADLE }} assemble"
 
   publish-plugin-snapshot:
     deps:
-      - publish-plugin-loal
+      - publish-plugin-local
     cmds:
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - hub release delete {{ .VERSION }} || true
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+
+  publish-plugin-release:
+    status:
+      - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    deps:
+      - publish-plugin-local
+    cmds:
+      - echo {{ .VERSION }} > release.md
+      - echo "" >> release.md
+      - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run-gradle:
@@ -45,9 +65,4 @@ tasks:
         vars: 
           DEBUG: "--debug-jvm"
 
-  release:
-    status:
-      - curl -f -w "%{http-code}" -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
-    cmds:
-      - echo {{ .VERSION }}
-
+  

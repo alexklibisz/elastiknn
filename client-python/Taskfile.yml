@@ -52,9 +52,18 @@ tasks:
       - ls dist
 
   publish-snapshot:
-    deps:
-      - requirements
     cmds:
       - task: publish-local
         force: True
       - venv/bin/python -m twine upload -r testpypi --verbose dist/*
+
+  release:
+    status:
+      - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
+    cmds:
+      - task: publish-local
+        force: True
+      - task: docs
+        force: True
+      - venv/bin/python -m twine upload -r pypi --verbose dist/*
+      
