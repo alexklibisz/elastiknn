@@ -120,5 +120,7 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+        run: |
+          ./.github/scripts/delete-snapshot-releases.sh
+          task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       

@@ -38,7 +38,7 @@ tasks:
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
       - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_MAIN_DIR }}/{{ .VERSION }}
-      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIn_DIR }}/docs
+      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs
 
   publish-plugin-local:
     sources:
@@ -49,9 +49,9 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
 
   publish-plugin-snapshot:
-    deps:
-      - publish-plugin-local
     cmds:
+      - task: publish-plugin-local
+        force: True
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - hub release delete {{ .VERSION }} || true
@@ -60,9 +60,9 @@ tasks:
   publish-plugin-release:
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
-    deps:
-      - publish-plugin-local
     cmds:
+      - task: publish-plugin-local
+        force: True
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - cat changelog.md | python .github/scripts/latestchanges.py >> release.md

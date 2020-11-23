@@ -1,3 +1,5 @@
+- No substantive changes. Just testing out new release setup.
+---
 - Bumped Elasticsearch version to 7.9.3.
 ---
 - Fixed the function score query implementation. The first pass was kind of buggy for exact queries and totally wrong for approximate queries.
