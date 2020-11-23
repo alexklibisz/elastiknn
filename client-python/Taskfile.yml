@@ -41,7 +41,8 @@ tasks:
       - elastiknn/**/*.py
       - setup.py
     cmds:
-      - venv/bin/pdoc3 --html elastiknn - c show_type_annotations=True -o pdoc
+      - rm -rf pdoc
+      - venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
     
   publish-local:
     deps:
@@ -57,7 +58,18 @@ tasks:
         force: True
       - venv/bin/python -m twine upload -r testpypi --verbose dist/*
 
-  release:
+  publish-docs:
+    status:
+      - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc/index.html
+    cmds:
+      - task: docs
+        force: True
+      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
+      - rsync -av --delete client-python/pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc
+      - rsync -av --delete client-python/pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs/pdoc
+    
+
+  publish-release:
     status:
       - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
     cmds:

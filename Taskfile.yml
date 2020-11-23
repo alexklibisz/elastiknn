@@ -6,6 +6,8 @@ vars:
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
   CMD_GRADLE: "./gradlew --console=plain"
   SITE_SSH_ALIAS: elastiknn-site
+  SITE_MAIN_DIR: elastiknn.com
+  SITE_ARCH_DIR: archive.elastiknn.com
 
 includes:
   jvm: Taskfile.jvm.yml
