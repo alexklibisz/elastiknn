@@ -213,8 +213,7 @@ resource "null_resource" "kubectl_config_provisioner" {
  */
 resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
-    chart = "cluster-autoscaler"
-    repository = "https://kubernetes-charts.banzaicloud.com"
+    chart = "https://github.com/kubernetes/autoscaler/releases/download/cluster-autoscaler-chart-9.0.0/cluster-autoscaler-9.0.0.tgz"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [

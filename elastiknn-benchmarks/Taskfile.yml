@@ -13,24 +13,24 @@ tasks:
 
   assemble:
     cmds:
-      # TODO: why doesn't dir: work here?
+      # TODO: why doesn't dir: {{ .PROJECT_ROOT }} work here?
       - cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} assemble :benchmarks:shadowJar
 
-  driver-push:
+  imgs:driver:push:
     deps:
       - assemble
     cmds:
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.driver .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.driver
 
-  elastiknn-push:
+  imgs:elastiknn:push:
     deps:
       - assemble
     cmds:
       - cd {{ .PROJECT_ROOT }}/elastiknn-plugin && docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn
 
-  datasets-push:
+  imgs:datasets:push:
     dir: python
     deps:
       - assemble
@@ -38,8 +38,23 @@ tasks:
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.datasets .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.datasets
 
-  push:
+  imgs:push:
     deps:
-      - driver-push
-      - elastiknn-push
-      - datasets-push
+      - imgs:driver:push
+      - imgs:elastiknn:push
+      - imgs:datasets:push
+
+  argo:datasets:run:
+    dir: deploy
+    deps:
+      - imgs:datasets:push
+    cmds:
+      - envsubst < datasets-workflow.yaml | argo submit -
+
+  argo:benchmark:run:
+    dir: deploy
+    deps:
+      - imgs:driver:push
+      - imgs:elastiknn:push
+    cmds:
+      - envsubst < datasets-workflow.yaml | argo submit -
