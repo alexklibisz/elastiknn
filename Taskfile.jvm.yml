@@ -29,7 +29,13 @@ tasks:
     cmds:
       - "{{ .CMD_GRADLE }} publish"
 
-  publish-plugin-local: "{{ .CMD_GRADLE }} assemble"
+  publish-plugin-local:
+    sources:
+      - build.gradle
+      - "**/*.java"
+      - "**/*.scala"
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
 
   publish-plugin-snapshot:
     deps:
