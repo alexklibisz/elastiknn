@@ -208,3 +208,6 @@ benchmarks/argo/submit/datasets: .mk/benchmarks-docker-push
 benchmarks/adhoc:
 	cd elastiknn-benchmarks/deploy \
 	&& envsubst < adhoc-pod.yaml | kubectl apply -f -
+
+
+

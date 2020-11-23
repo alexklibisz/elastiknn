@@ -26,7 +26,10 @@ tasks:
       - bundle exec jekyll build
 
   publish:
-    deps:
-      - compile
+    status:
+      - curl -f -o /dev/null https://{{ .SITE_MAIN_DIR }}/{{ .VERSION }}.html
     cmds:
-      - "rsync -av --delete --exclude docs _site/ {{ .SITE_SSH_ALIAS }}:elastiknn.com"
+      - task: compile
+        force: True
+      - echo {{ .VERSION }} > _site/{{ .VERSION }}.html
+      - rsync -av --delete --exclude docs _site/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}
