@@ -65,8 +65,8 @@ tasks:
       - task: docs
         force: True
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
-      - rsync -av --delete client-python/pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc
-      - rsync -av --delete client-python/pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs/pdoc
+      - rsync -av --delete pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc
+      - rsync -av --delete pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs/pdoc
     
 
   publish-release:
