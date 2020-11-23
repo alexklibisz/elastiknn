@@ -1,0 +1,45 @@
+version: '3'
+
+vars:
+  ECR_PREFIX:
+    sh: echo $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  ECR_BENCHMARKS_PREFIX: "{{ .ECR_PREFIX }}/elastiknn-benchmarks-cluster"
+
+tasks:
+
+  ecr-login: $(aws ecr get-login --no-include-email)
+
+  foo: echo {{ .ECR_PREFIX }}
+
+  assemble:
+    cmds:
+      # TODO: why doesn't dir: work here?
+      - cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} assemble :benchmarks:shadowJar
+
+  driver-push:
+    deps:
+      - assemble
+    cmds:
+      - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.driver .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.driver
+
+  elastiknn-push:
+    deps:
+      - assemble
+    cmds:
+      - cd {{ .PROJECT_ROOT }}/elastiknn-plugin && docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn
+
+  datasets-push:
+    dir: python
+    deps:
+      - assemble
+    cmds:
+      - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.datasets .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.datasets
+
+  push:
+    deps:
+      - driver-push
+      - elastiknn-push
+      - datasets-push
