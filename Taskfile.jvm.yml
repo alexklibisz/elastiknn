@@ -2,25 +2,36 @@ version: '3'
 
 tasks:
 
-  clean: "{{ .CMD_GRADLE }} clean"
+  clean:
+    desc: Clean all JVM artifacts
+    cmds:
+      - "{{ .CMD_GRADLE }} clean"
 
   compile:
+    desc: Compile all JVM source code using Gradle
     sources:
       - build.gradle
-      - "**/*.java"
-      - "**/*.scala"
+      - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScaladocs"
 
-  test: "{{ .CMD_GRADLE }} test"
+  test:
+    desc: Run JVM tests using Gradle
+    cmds:
+      - "{{ .CMD_GRADLE }} test"
 
-  docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
-
-  publish-libraries-local: "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+  libraries:publish:local:
+    desc: Publish a local release of JVM libraries
+    cmds:
+      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
     
-  publish-libraries-snapshot: "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
+  libraries:publish:snapshot:
+    desc: Publish a snapshot release of JVM libraries to Sonatype
+    cmds:
+      - "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
 
-  publish-libraries-release: 
+  libraries:publish:release:
+    desc: Publish an official release of JVM libraries to Sonatype
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     env: 
@@ -29,54 +40,53 @@ tasks:
     cmds:
       - "{{ .CMD_GRADLE }} publish"
 
-  publish-docs:
+  docs:publish:
+    desc: Publish documentation to the website
     status:
       - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/scaladoc/index.html
     cmds:
-      - task: docs
-        force: True
+      - "{{ .CMD_GRADLE }} unifiedScaladocs"
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
       - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_MAIN_DIR }}/{{ .VERSION }}
       - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs
 
-  publish-plugin-local:
+  plugin:publish:local:
+    desc: Publish a local snapshot of the plugin
     sources:
       - build.gradle
-      - "**/*.java"
-      - "**/*.scala"
+      - "elastiknn-*/**"
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
 
-  publish-plugin-snapshot:
+  plugin:publish:snapshot:
+    desc: Publish a snapshot release to Github
     cmds:
       - task: publish-plugin-local
         force: True
       - echo {{ .VERSION }} > release.md
-      - echo "" >> release.md
+      - echo "_Snapshot release_" >> release.md
       - hub release delete {{ .VERSION }} || true
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
-  publish-plugin-release:
+  plugin:publish:release:
+    desc: Publish an official release to Github
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - task: publish-plugin-local
-        force: True
+      - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
+    desc: Run Elasticsearch using gradle
     cmds:
-      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR }} -Dtests.heap.size={{ .HEAP }} -Dtests.es.node.processors={{ .THREADS }} -Dtests.es.thread_pool.search.size={{ .THREADS }} {{ .DEBUG }}"
-    vars:
-      DATA_DIR: "/tmp/elastiknn"
-      THREADS: 1
-      HEAP: 4G
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
 
   run:debug:
+    desc: Run Elasticsearch in debug mode using gradle
     cmds:
       - task: run-gradle
         vars: 
