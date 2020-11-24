@@ -13,7 +13,12 @@ tasks:
       - build.gradle
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScaladocs"
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+
+  docs:
+    desc: Generate JVM docs using Gradle
+    cmds:
+      - "{{ .CMD_GRADLE }} unifiedScaladocs"
 
   test:
     desc: Run JVM tests using Gradle
@@ -62,8 +67,7 @@ tasks:
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - task: publish-plugin-local
-        force: True
+      - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "_Snapshot release_" >> release.md
       - hub release delete {{ .VERSION }} || true
