@@ -202,6 +202,8 @@ resource "null_resource" "kubectl_config_provisioner" {
         command = <<EOT
         aws eks --region ${var.region} wait cluster-active --name ${local.cluster_name}
         aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}
+        helm repo add autoscaler https://kubernetes.github.io/autoscaler
+        helm repo update
         EOT
     }
 }
@@ -211,8 +213,7 @@ resource "null_resource" "kubectl_config_provisioner" {
  */
 resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
-    chart = "cluster-autoscaler"
-    repository = "https://kubernetes-charts.storage.googleapis.com"
+    chart = "https://github.com/kubernetes/autoscaler/releases/download/cluster-autoscaler-chart-9.0.0/cluster-autoscaler-9.0.0.tgz"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [

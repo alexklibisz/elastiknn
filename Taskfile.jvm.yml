@@ -68,7 +68,7 @@ tasks:
       - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
-  run-gradle:
+  run:gradle:
     cmds:
       - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR }} -Dtests.heap.size={{ .HEAP }} -Dtests.es.node.processors={{ .THREADS }} -Dtests.es.thread_pool.search.size={{ .THREADS }} {{ .DEBUG }}"
     vars:
@@ -76,7 +76,7 @@ tasks:
       THREADS: 1
       HEAP: 4G
 
-  run-debug:
+  run:debug:
     cmds:
       - task: run-gradle
         vars: 

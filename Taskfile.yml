@@ -3,6 +3,8 @@ version: '3'
 vars:
   VERSION:
     sh: cat version
+  PROJECT_ROOT:
+    sh: pwd
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
   CMD_GRADLE: "./gradlew --console=plain"
   SITE_SSH_ALIAS: elastiknn-site
@@ -19,14 +21,15 @@ includes:
   docs:
     taskfile: docs/Taskfile.yml
     dir: docs
+  benchmarks:
+    taskfile: elastiknn-benchmarks/Taskfile.yml
+    dir: elastiknn-benchmarks
   
 tasks:
-
   clean:
     deps: 
       - jvm:clean
       - py:clean
-
   check-installs:
     cmds:
       - "task --version"

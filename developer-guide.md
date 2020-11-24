@@ -8,7 +8,7 @@ If you're reading this, there's a chance you'd like to contribute to Elastiknn. 
 
 ### Prerequisites
 
-You need at least the following software installed: git, make, Java 14, Python3, docker, and docker-compose.
+You need at least the following software installed: git, Java 14, Python3, docker, docker-compose, and [task](https://taskfile.dev).
 I'm assuming you're running on a Linux or OSX operating system. I have no idea if any of this will work on Windows.
 There might be other software which is missing. If so, please submit an issue or PR.
 
@@ -17,7 +17,7 @@ There might be other software which is missing. If so, please submit an issue or
 Once you have the prerequisites installed, clone the project and run:
 
 ```
-make run/gradle
+task jvm:run:gradle
 ```
 
 This starts a local instance of Elasticsearch with the plugin installed. 
@@ -28,7 +28,7 @@ You should see the usual Elasticsearch JSON response containing the version, clu
 
 ### Project Structure
 
-Elastiknn currently consists of several subprojects managed by Make and Gradle:
+Elastiknn currently consists of several subprojects managed by Task and Gradle:
 
 - client-python - Python client.
 - elastiknn-api4s - Gradle project containing Scala case classes that model the Elastiknn API.
@@ -47,13 +47,12 @@ The `lucene` and `models` sub-projects are implemented in Java for a few reasons
 3. It makes them more likely to be useful to other JVM developers. In particular the `models` project, which can be used
    to hash vectors and compute similarities in any JVM app.
 
-### Build tools: Make and Gradle
+### Build tools: Task and Gradle
 
 Gradle manages the plugin and all of the JVM (i.e. Java and Scala) subprojects.
 
-Make is used (arguably _abused_) to define command aliases with simple dependencies.
-Make makes it relatively easy to run tests, generate docs, publish artifacts, etc. all from one file.
-If anyone knows of a less hacky way to do this, I'm all ears.
+Task is used to define command aliases with simple dependencies.
+This makes it relatively easy to run tests, generate docs, publish artifacts, etc. all from one file.
 
 ### IDE
 
@@ -63,16 +62,16 @@ IntelliJ should immediately recognize the Gradle project when you open the `elas
 
 PyCharm can be a bit of a different story. 
 You should first create a virtual environment in `client-python/venv`.
-You can do this by running `make test/python`. Even if the tests fail, it will still create the virtual environment.
+You can do this by running `task py:venv`. Even if the tests fail, it will still create the virtual environment.
 Then you should setup PyCharm to use the interpreter in `client-python/venv`. 
 
 ### Testing
 
 Elastiknn has a fairly thorough test suite.
 
-To run it, you'll first need to run `make run/cluster` or `make run/gradle` to start a local Elasticsearch server.
+To run it, you'll first need to run `task cluster:run` or `task jvm:run:gradle` to start a local Elasticsearch server.
 
-Then, run `make test/gradle` to run the Gradle test suite, or `make test/python` to run the smaller Python test suite.
+Then, run `task jvm:test` to run the Gradle test suite, or `task py:test` to run the smaller Python test suite.
 
 ### Debugging
 
@@ -80,13 +79,13 @@ You can attach IntelliJ's debugger to a local Elasticsearch process.
 This can be immensely helpful when dealing with bugs or just figuring out how the code is structured.
 
 First, open your project in IntelliJ and run the `Debug Elasticsearch` target (usually in the upper right corner).
-Then just run `make run/debug` in your terminal.
+Then just run `task jvm:run:debug` in your terminal.
 
 Now you should be able to set and hit breakpoints in IntelliJ.
 
 ### Local Cluster
 
-Use `make run/cluster` to run a local cluster with one master node and one data node (using docker-compose).
+Use `task cluster:run` to run a local cluster with one master node and one data node (using docker-compose).
 There are a couple parts of the codebase that deal with serializing queries for use in a distributed environment.
 Running this small local cluster exercises those code paths.
 

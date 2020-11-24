@@ -1,0 +1,66 @@
+version: '3'
+
+vars:
+  ECR_PREFIX:
+    sh: echo $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  ECR_BENCHMARKS_PREFIX: "{{ .ECR_PREFIX }}/elastiknn-benchmarks-cluster"
+
+tasks:
+
+  ecr-login: $(aws ecr get-login --no-include-email)
+
+  foo: echo {{ .ECR_PREFIX }}
+
+  assemble:
+    cmds:
+      # TODO: why doesn't dir: {{ .PROJECT_ROOT }} work here?
+      - cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} assemble :benchmarks:shadowJar
+
+  imgs:driver:push:
+    deps:
+      - ecr-login
+      - assemble
+    cmds:
+      - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.driver .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.driver
+
+  imgs:elastiknn:push:
+    deps:
+      - ecr-login
+      - assemble
+    cmds:
+      - cd {{ .PROJECT_ROOT }}/elastiknn-plugin && docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn
+
+  imgs:datasets:push:
+    dir: python
+    deps:
+      - ecr-login
+      - assemble
+    cmds:
+      - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.datasets .
+      - docker push {{ .ECR_BENCHMARKS_PREFIX }}.datasets
+
+  imgs:push:
+    deps:
+      - imgs:driver:push
+      - imgs:elastiknn:push
+      - imgs:datasets:push
+
+  argo:datasets:run:
+    dir: deploy
+    deps:
+      - imgs:datasets:push
+    cmds:
+      - envsubst < datasets-workflow.yaml | argo submit -
+
+  argo:benchmark:run:
+    dir: deploy
+    deps:
+      - imgs:driver:push
+      - imgs:elastiknn:push
+    cmds:
+      - envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml
+      - argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml
+
+  argo:delete: argo delete --all
