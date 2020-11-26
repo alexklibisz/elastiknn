@@ -10,11 +10,9 @@ tasks:
       - "**/*.java"
       - "**/*.scala"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScalaDocs"
 
   test: "{{ .CMD_GRADLE }} test"
-
-  docs: "{{ .CMD_GRADLE }} unifiedScaladocs"
 
   publish-libraries-local: "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
     
@@ -33,7 +31,7 @@ tasks:
     status:
       - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/scaladoc/index.html
     cmds:
-      - task: docs
+      - task: compile
         force: True
       - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
       - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}
@@ -69,12 +67,9 @@ tasks:
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
+    desc: Run Elasticsearch using gradle
     cmds:
-      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR }} -Dtests.heap.size={{ .HEAP }} -Dtests.es.node.processors={{ .THREADS }} -Dtests.es.thread_pool.search.size={{ .THREADS }} {{ .DEBUG }}"
-    vars:
-      DATA_DIR: "/tmp/elastiknn"
-      THREADS: 1
-      HEAP: 4G
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
 
   run:debug:
     cmds:

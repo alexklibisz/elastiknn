@@ -8,12 +8,7 @@ tasks:
     cmds:
       - python3 -m pip install docker-compose
 
-  assemble:
-    sources:
-      - "**/*.scala"
-      - "**/*.java"
-    cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+  assemble: "{{ .CMD_GRADLE }} assemble"
 
   run:
     dir: elastiknn-testing
@@ -25,6 +20,13 @@ tasks:
       - sudo sysctl -w vm.max_map_count=262144
       - docker-compose up --detach --build --force-recreate
       - python3 cluster_ready.py
+
+  minio:run:
+    dir: elastiknn-testing
+    deps:
+      - install-docker-compose
+    cmds:
+      - docker-compose up -d minio
 
   logs:
     dir: elastiknn-testing

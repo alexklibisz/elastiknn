@@ -11,24 +11,17 @@ object LocalBenchmark extends App {
   private val k = 100
 
   private val experiments =
-    Seq(
+    Seq(1, 2, 4, 5).map { shards =>
       Experiment(
         Dataset.AnnbFashionMnist,
         Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
         NearestNeighborsQuery.Exact(field, Similarity.L2),
         Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
-        Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000, 3), k)),
-        shards = 1
-      ),
-      Experiment(
-        Dataset.AnnbFashionMnist,
-        Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
-        NearestNeighborsQuery.Exact(field, Similarity.L2),
-        Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
-        Seq(Query(NearestNeighborsQuery.L2Lsh(field, 250, 3), k)),
-        shards = 4
+        // Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
+        Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000 / shards, 3), k)),
+        shards = shards
       )
-    )
+    }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = {
     val s3Url = "http://localhost:9000"

@@ -100,7 +100,7 @@ object Execute extends App {
   ) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val index = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
+    val index = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping, shards, parallelQueries))}".toLowerCase
 
     for {
 
