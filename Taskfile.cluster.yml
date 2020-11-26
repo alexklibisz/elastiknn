@@ -3,6 +3,7 @@ version: '3'
 tasks:
 
   install-docker-compose:
+    desc: Install docker-compose using pip.
     status:
       - docker-compose --version
     cmds:
@@ -11,13 +12,14 @@ tasks:
   assemble: "{{ .CMD_GRADLE }} assemble"
 
   run:
+    desc: Run local docker-compose cluster.
     dir: elastiknn-testing
     deps:
       - install-docker-compose
-      - assemble
       - stop
     cmds:
       - sudo sysctl -w vm.max_map_count=262144
+      - task: assemble
       - docker-compose up --detach --build --force-recreate
       - python3 cluster_ready.py
 
@@ -29,11 +31,13 @@ tasks:
       - docker-compose up -d minio
 
   logs:
+    desc: Print logs from local docker-compose cluster.
     dir: elastiknn-testing
     cmds:
       - docker-compose logs
 
   stop:
+    desc: Stop local docker-compose cluster.
     dir: elastiknn-testing
     cmds:
       - docker-compose down

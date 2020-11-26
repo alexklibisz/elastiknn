@@ -26,10 +26,10 @@ jobs:
       - run: sudo snap install task --classic
       - name: Compile
         run: task jvm:compile
-      - name: Publish Local
-        run: task jvm:publish-libraries-local
       - name: Docs
         run: task jvm:docs
+      - name: Publish Local
+        run: task jvm:libraries:publish:local
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -46,10 +46,10 @@ jobs:
         with:
           java-version: 14
       - run: sudo snap install task --classic
-      - name: Publish Local
-        run: task jvm:publish-libraries-local
       - name: Docs
-        run: task jvm:docs
+        run: task py:docs
+      - name: Publish Local
+        run: task jvm:libraries:publish:local
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -67,7 +67,7 @@ jobs:
           java-version: 14
       - name: Build SBT client example
         run: |
-          task jvm:publish-libraries-local
+          task jvm:libraries:publish:local
           cd examples/scala-sbt-client-usage && sbt -batch run
 
   build-jekyll-site:
@@ -107,20 +107,20 @@ jobs:
         run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
       - name: Publish JVM Libraries from PR
         if: github.event_name == 'pull_request'
-        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish JVM Libraries from Master
         if: github.event_name == 'push'
-        run: task jvm:publish-libraries-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+        run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:publish-plugin-snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish Plugin from Master
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:publish-plugin-snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       

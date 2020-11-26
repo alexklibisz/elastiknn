@@ -32,14 +32,14 @@ jobs:
       - name: Publish Python Docs
         run: task py:publish-docs
       - name: Publish JVM Docs
-        run: task jvm:publish-docs
+        run: task jvm:docs:publish
       - name: Publish Site
         run: task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
       - name: Publish to Sonatype
-        run: task jvm:publish-libraries-release
+        run: task jvm:libraries:publish:release
       - name: Publish to Github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:publish-plugin-release
+        run: task jvm:plugin:publish:release
