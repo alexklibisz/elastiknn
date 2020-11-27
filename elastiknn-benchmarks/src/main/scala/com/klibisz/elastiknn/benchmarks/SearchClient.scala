@@ -20,10 +20,7 @@ trait SearchClient {
   def blockUntilReady(): ZIO[Clock, Throwable, Unit]
   def indexExists(index: String): Task[Boolean]
   def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long]
-  def search(index: String,
-             queries: Stream[Throwable, NearestNeighborsQuery],
-             k: Int,
-             par: Int): ZStream[Logging with Clock, Throwable, QueryResult]
+  def search(index: String, queries: Stream[Throwable, NearestNeighborsQuery], k: Int): ZStream[Logging with Clock, Throwable, QueryResult]
   def deleteIndex(index: String): Task[Unit]
   def close(): Task[Unit]
 }
@@ -56,52 +53,47 @@ object SearchClient {
             def buildIndex(index: String,
                            mapping: Mapping,
                            shards: Int,
-                           vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long] = {
-              {
-                for {
-                  _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
-                  _ <- indexExists(index)
-                  _ <- execute(
-                    createIndex(index)
-                      .replicas(0)
-                      .shards(shards)
-                      .indexSetting("refresh_interval", "-1")
-                      .indexSetting("elastiknn", true))
-                  _ <- execute(ElastiknnRequests.putMapping(index, "vec", "id", mapping))
-                  n <- vectors
-                    .grouped(200)
-                    .zipWithIndex
-                    .foldM(0L) {
-                      case (n, (vecs, batchIndex)) =>
-                        val ids = vecs.indices.map(i => s"$batchIndex-$i")
-                        for {
-                          (dur, _) <- Task.fromFuture(_ => client.index(index, "vec", vecs, "id", ids)).timed
-                          _ <- if (batchIndex % 100 == 0)
-                            log.debug(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
-                          else ZIO.succeed(())
-                        } yield n + vecs.length
-                    }
-                  _ <- execute(refreshIndex(index))
-                  _ <- log.info(s"Merging index [$index] into 1 segment")
-                  (dur, _) <- execute(forceMerge(index).maxSegments(1)).timed
-                  _ <- log.info(s"Merged index [$index] in [${dur.toSeconds}] seconds")
-                  _ <- execute(refreshIndex(index))
-                } yield n
-              }
-            }
+                           vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long] =
+              for {
+                _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
+                _ <- indexExists(index)
+                _ <- execute(
+                  createIndex(index)
+                    .replicas(0)
+                    .shards(shards)
+                    .indexSetting("refresh_interval", "-1")
+                    .indexSetting("elastiknn", true))
+                _ <- execute(ElastiknnRequests.putMapping(index, "vec", "id", mapping))
+                n <- vectors
+                  .grouped(200)
+                  .zipWithIndex
+                  .foldM(0L) {
+                    case (n, (vecs, batchIndex)) =>
+                      val ids = vecs.indices.map(i => s"$batchIndex-$i")
+                      for {
+                        (dur, _) <- Task.fromFuture(_ => client.index(index, "vec", vecs, "id", ids)).timed
+                        _ <- if (batchIndex % 100 == 0)
+                          log.debug(s"Indexed batch [$batchIndex] with [${vecs.length}] vectors in [${dur.toMillis}] ms")
+                        else ZIO.succeed(())
+                      } yield n + vecs.length
+                  }
+                _ <- execute(refreshIndex(index))
+                _ <- log.info(s"Merging index [$index] into 1 segment")
+                (dur, _) <- execute(forceMerge(index).maxSegments(1)).timed
+                _ <- log.info(s"Merged index [$index] in [${dur.toSeconds}] seconds")
+                _ <- execute(refreshIndex(index))
+              } yield n
 
             def search(index: String,
                        queries: Stream[Throwable, NearestNeighborsQuery],
-                       k: Int,
-                       par: Int): ZStream[Logging with Clock, Throwable, QueryResult] = {
-              queries.zipWithIndex.mapMPar(par) {
+                       k: Int): ZStream[Logging with Clock, Throwable, QueryResult] =
+              queries.zipWithIndex.mapMPar(1) {
                 case (query, i) =>
                   for {
                     (dur, res) <- ZIO.fromFuture(_ => client.nearestNeighbors(index, query, k, "id")).timed
                     _ <- if (i % 100 == 0) log.debug(s"Completed query [$i] in [$index] in [${dur.toMillis}] ms") else ZIO.succeed(())
                   } yield QueryResult(res.result.hits.hits.map(_.score), res.result.took)
               }
-            }
 
             def deleteIndex(index: String): Task[Unit] = execute(ElasticDsl.deleteIndex(index)).map(_ => ())
 

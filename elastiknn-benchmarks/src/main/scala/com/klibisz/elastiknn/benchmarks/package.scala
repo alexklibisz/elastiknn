@@ -29,13 +29,7 @@ package object benchmarks {
 
   final case class Query(nnq: NearestNeighborsQuery, k: Int)
 
-  final case class Experiment(dataset: Dataset,
-                              exactMapping: Mapping,
-                              exactQuery: NearestNeighborsQuery,
-                              testMapping: Mapping,
-                              testQueries: Seq[Query],
-                              shards: Int = 1,
-                              parallelQueries: Int = 1) {
+  final case class Experiment(dataset: Dataset, mapping: Mapping, queries: Seq[Query], shards: Int = 1) {
     def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
   }
 
@@ -49,11 +43,10 @@ package object benchmarks {
                                    query: NearestNeighborsQuery,
                                    k: Int,
                                    shards: Int,
-                                   parallelQueries: Int,
                                    durationMillis: Long,
                                    queriesPerSecond: Float,
                                    queryResults: Array[QueryResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $parallelQueries, $durationMillis, ...)"
+    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $durationMillis, ...)"
   }
 
   /**
@@ -66,7 +59,6 @@ package object benchmarks {
                                    mapping: Mapping,
                                    shards: Int,
                                    query: NearestNeighborsQuery,
-                                   parallelQueries: Int,
                                    recall: Float,
                                    queriesPerSecond: Float)
 
@@ -80,7 +72,6 @@ package object benchmarks {
       "mapping",
       "shards",
       "query",
-      "parallelQueries",
       "recall",
       "queriesPerSecond"
     )
@@ -104,7 +95,6 @@ package object benchmarks {
         mapping = b.mapping,
         shards = b.shards,
         query = b.query.withVec(Vec.Empty()),
-        parallelQueries = b.parallelQueries,
         recall = (b.queryResults.map(_.recall).sum / b.queryResults.length).toFloat,
         queriesPerSecond = b.queriesPerSecond
       )
@@ -126,48 +116,60 @@ package object benchmarks {
     def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
 
       case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
-        for {
-          tables <- Seq(50, 75, 100)
-          hashesPerTable <- Seq(2, 3, 4)
-          width <- 5 to 8
-        } yield
+        Seq(
           Experiment(
             dataset,
             Mapping.DenseFloat(dataset.dims),
-            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
-            for {
-              candidates <- Seq(1000, 5000)
-              probes <- Seq(0, 3, 6, 9)
-            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+            Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100))
           )
+        ) ++ {
+          for {
+            tables <- Seq(50, 75, 100)
+            hashesPerTable <- Seq(2, 3, 4)
+            width <- 5 to 8
+          } yield
+            Experiment(
+              dataset,
+              Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+              for {
+                candidates <- Seq(1000, 5000)
+                probes <- Seq(0, 3, 6, 9)
+              } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+            )
+        }
 
       case Dataset.AnnbSift =>
-        for {
-          tables <- Seq(50, 75, 100)
-          hashesPerTable <- Seq(2, 3, 4)
-          width <- Seq(1, 2, 3)
-        } yield
+        Seq(
           Experiment(
             dataset,
             Mapping.DenseFloat(dataset.dims),
-            NearestNeighborsQuery.Exact(vecName, Similarity.L2),
-            Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
-            for {
-              candidates <- Seq(1000, 5000, 10000)
-              probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
-            } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
-          )
+            Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100))
+          )) ++ {
+          for {
+            tables <- Seq(50, 75, 100)
+            hashesPerTable <- Seq(2, 3, 4)
+            width <- Seq(1, 2, 3)
+          } yield
+            Experiment(
+              dataset,
+              Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+              for {
+                candidates <- Seq(1000, 5000, 10000)
+                probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
+              } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+            )
+        }
 
       case Dataset.AnnbGlove100 =>
+        val exact = Seq(
+          Experiment(dataset, Mapping.DenseFloat(dataset.dims), Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.Angular), 100)))
+        )
         val projections = for {
           tables <- Seq(50, 100, 125)
           hashesPerTable <- Seq(6, 9)
         } yield
           Experiment(
             dataset,
-            Mapping.DenseFloat(dataset.dims),
-            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
             Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
             for {
               candidates <- Seq(1000, 5000)
@@ -179,14 +181,12 @@ package object benchmarks {
         } yield
           Experiment(
             dataset,
-            Mapping.DenseFloat(dataset.dims),
-            NearestNeighborsQuery.Exact(vecName, Similarity.Angular),
             Mapping.PermutationLsh(dataset.dims, k, repeating = rep),
             for {
               candidates <- Seq(1000, 5000, 10000)
             } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
           )
-        projections ++ permutations
+        exact ++ projections ++ permutations
 
       case _ => Seq.empty
     }

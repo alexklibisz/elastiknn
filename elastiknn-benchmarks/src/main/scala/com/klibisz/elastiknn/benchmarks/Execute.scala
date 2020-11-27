@@ -92,7 +92,6 @@ object Execute extends App {
       eknnQuery: NearestNeighborsQuery,
       k: Int,
       shards: Int,
-      parallelQueries: Int,
       numQueries: Int,
       warmupQueries: Int,
       minWarmupRounds: Int,
@@ -100,7 +99,7 @@ object Execute extends App {
   ) = {
 
     // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val index = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping, shards, parallelQueries))}".toLowerCase
+    val index = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping, shards))}".toLowerCase
 
     for {
 
@@ -122,7 +121,7 @@ object Execute extends App {
 
       // Warmup. Run up to maxWarmupRounds, or until the duration stops decreasing.
       warmupQueries <- datasetClient.streamTest(dataset, Some(warmupQueries)).map(eknnQuery.withVec).run(ZSink.collectAll)
-      warmupSearches = searchClient.search(index, Stream.fromChunk(warmupQueries), k, parallelQueries)
+      warmupSearches = searchClient.search(index, Stream.fromChunk(warmupQueries), k)
       _ <- ZIO.iterate((0, Vector.empty[Long])) {
         case (r, dd) =>
           r < minWarmupRounds || (r < maxWarmupRounds && ((dd.length < 2) || (dd.takeRight(2) != dd.takeRight(2).sorted)))
@@ -137,10 +136,10 @@ object Execute extends App {
       // Actual benchmark.
       _ <- log.info(s"Completed warmup and starting benchmark")
       queryStream = datasetClient.streamTest(dataset, Some(numQueries)).map(eknnQuery.withVec)
-      resultsStream = searchClient.search(index, queryStream, k, parallelQueries)
-      (dur, results) <- resultsStream.run(ZSink.collectAll).timed
+      resultsStream = searchClient.search(index, queryStream, k)
+      (dur, results) <- resultsStream.run(ZSink.collectAll).map(_.toArray).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
-
+      distances <- datasetClient.streamDistances(dataset).run(ZSink.collectAll).map(_.toArray)
     } yield
       BenchmarkResult(
         dataset = dataset,
@@ -148,75 +147,40 @@ object Execute extends App {
         query = eknnQuery,
         k = k,
         shards = shards,
-        parallelQueries = parallelQueries,
         durationMillis = dur.toMillis,
         queriesPerSecond = results.length * 1f / dur.toSeconds,
-        queryResults = results.toArray
+        queryResults = results.zip(distances).map {
+          case (res, dists) =>
+            val lowerBound = dists.min
+            val gteq = res.scores.count(_ >= lowerBound)
+            res.copy(recall = gteq * 1f / res.scores.length)
+        }
       )
-  }
-
-  private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
-    val withRecalls = exact.queryResults.zip(test.queryResults).map {
-      case (ex, ts) =>
-        val lowerBound = ex.scores.min
-        val testGreaterCount = ts.scores.count(_ >= lowerBound)
-        ts.copy(recall = testGreaterCount * 1f / ts.scores.length)
-    }
-    test.copy(queryResults = withRecalls)
   }
 
   private def run(experiment: Experiment, numQueries: Int, warmupQueries: Int, minWarmupRounds: Int, maxWarmupRounds: Int) = {
     import experiment._
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
-      testEffects = experiment.testQueries.map {
-        case Query(testQuery, k) =>
+      testEffects = experiment.queries.map {
+        case Query(query, k) =>
           for {
-            // The exact result is specific to the given value of `k`.
-            // So check each time for an existing result and recompute if it doesn't exist.
-            exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k, shards, parallelQueries)
-            exactRes <- log.locally(LogAnnotation.Name(List(exactMapping, exactQuery).map(_.toString))) {
-              exactOpt match {
-                case Some(res) => log.info(s"Found exact result").map(_ => res)
-                case None =>
-                  for {
-                    _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                    result <- indexAndSearch(dataset,
-                                             exactMapping,
-                                             exactQuery,
-                                             k,
-                                             shards,
-                                             parallelQueries,
-                                             numQueries,
-                                             warmupQueries,
-                                             minWarmupRounds,
-                                             maxWarmupRounds)
-                    withRecalls = setRecalls(result, result)
-                    _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $withRecalls")
-                    _ <- resultsClient.save(withRecalls)
-                  } yield withRecalls
-              }
-            }
-
-            testOpt <- resultsClient.find(dataset, testMapping, testQuery, k, shards, parallelQueries)
-            _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
-              testOpt match {
+            resultOpt <- resultsClient.find(dataset, mapping, query, k, shards)
+            _ <- log.locally(LogAnnotation.Name(List(mapping, query).map(_.toString))) {
+              resultOpt match {
                 case Some(_) => log.info(s"Found test result")
                 case _ =>
                   for {
                     result <- indexAndSearch(dataset,
-                                             testMapping,
-                                             testQuery,
+                                             mapping,
+                                             query,
                                              k,
                                              shards,
-                                             parallelQueries,
                                              numQueries,
                                              warmupQueries,
                                              minWarmupRounds,
                                              maxWarmupRounds)
-                    withRecalls = setRecalls(exactRes, result)
-                    _ <- log.info(s"Saving test result [$withRecalls]")
-                    _ <- resultsClient.save(withRecalls)
+                    _ <- resultsClient.save(result)
                   } yield ()
               }
             }
