@@ -18,6 +18,7 @@ from botocore.exceptions import ClientError
 from elastiknn.api import Vec
 from elastiknn.utils import ndarray_to_sparse_bool_vectors
 from imagehash import phash
+from tqdm import tqdm
 
 
 def exists(s3, bucket: str, key: str) -> bool:
@@ -34,8 +35,8 @@ def rounded_dense_float(values: List[float], n: int = 7) -> Vec.DenseFloat:
     return Vec.DenseFloat(values = [f(v) for v in values])
 
 
-def write_vec(fp, id: str, vec: Vec.Base):
-    s = id + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n'
+def write_vec(fp, vec: Vec.Base):
+    s = json.dumps(vec.to_dict(), separators=(',', ':')) + '\n'
     fp.write(s)
 
 
@@ -45,7 +46,11 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
     s3 = boto3.client('s3')
     train_key = f"{output_s3_prefix}/train.json.gz"
     test_key = f"{output_s3_prefix}/test.json.gz"
-    if exists(s3, output_s3_bucket, train_key) and exists(s3, output_s3_bucket, test_key):
+    dist_key = f"{output_s3_prefix}/dist.json.gz"
+
+    if exists(s3, output_s3_bucket, train_key) \
+            and exists(s3, output_s3_bucket, test_key) \
+            and exists(s3, output_s3_bucket, dist_key):
         return
 
     hdf5_file = f"{local_data_dir}/vecs.hdf5"
@@ -56,41 +61,42 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
 
     train_file = f"{local_data_dir}/train.json.gz"
     test_file = f"{local_data_dir}/test.json.gz"
+    dist_file = f"{local_data_dir}/distances.json.gz"
 
     hdf5_fp = h5py.File(hdf5_file, 'r')
     is_sparse = hdf5_fp['train'].dtype == bool
 
-    max_scaler = 1
+    train = hdf5_fp['train'][...]
+    test = hdf5_fp['test'][...]
+    distances = hdf5_fp['distances'][...]
+
     if scale_by_max:
-        for arr in hdf5_fp['train']:
-            max_scaler = max(max(arr), max_scaler)
+        max_scaler = train.max()
+        train /= max_scaler
+        test /= max_scaler
 
-    t0 = time()
-
-    def write(iter_arr, fp, n=0):
-        i = n
+    def write(iter_arr, fp):
         for arr in iter_arr:
             if is_sparse:
                 vec = Vec.SparseBool([x for x, b in enumerate(arr) if b], len(arr))
-            elif scale_by_max:
-                vec = rounded_dense_float(list(arr / max_scaler))
             else:
                 vec = rounded_dense_float(list(arr))
-            write_vec(fp, str(i), vec)
-            print(f"Processed {i}: {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
-            i += 1
-        return i
+            write_vec(fp, vec)
 
     with gzip.open(train_file, "wt") as gzfp:
-        n = write(hdf5_fp['train'], gzfp, 0)
+        write(tqdm(train, desc="train"), gzfp)
 
     with gzip.open(test_file, "wt") as gzfp:
-        write(hdf5_fp['test'], gzfp, n)
+        write(tqdm(test, desc="test"), gzfp)
 
-    print(f"Copying {train_file} to s3://{output_s3_bucket}/{train_key}")
-    s3.upload_file(train_file, output_s3_bucket, train_key)
-    print(f"Copying {test_file} to s3://{output_s3_bucket}/{test_key}")
-    s3.upload_file(test_file, output_s3_bucket, test_key)
+    with gzip.open(dist_file, "wt") as gzfp:
+        for arr in tqdm(distances, desc="distances"):
+            lst = list(map(float, arr))
+            gzfp.write(json.dumps(lst) + '\n')
+
+    for (loc, key) in [(train_file, train_key), (test_file, test_key), (dist_file, dist_key)]:
+        print(f"Copying {loc} to s3://{output_s3_bucket}/{key}")
+        s3.upload_file(loc, output_s3_bucket, key)
 
 
 def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,

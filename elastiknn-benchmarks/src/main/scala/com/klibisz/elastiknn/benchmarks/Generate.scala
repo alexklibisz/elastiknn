@@ -1,7 +1,12 @@
 package com.klibisz.elastiknn.benchmarks
 
+import java.io.File
+import java.nio.file.Files
+
 import com.amazonaws.services.s3.model.PutObjectResult
 import com.klibisz.elastiknn.benchmarks.codecs._
+import io.circe.Encoder
+import io.circe.generic.semiauto
 import io.circe.syntax._
 import zio._
 import zio.blocking.Blocking
@@ -10,8 +15,8 @@ import zio.console._
 import scala.util.Random
 
 /**
-  * Produce multiple Experiments for downstream processing.
-  * Write each experiment to S3 and write the keys to a file, also in s3.
+  * Produce multiple Experiments for downstream processing. Write each experiment to S3.
+  * Write a local file, where each line contains an experiment key and the number of shards required by that experiment.
   */
 object Generate extends App {
 
@@ -19,7 +24,7 @@ object Generate extends App {
     * Parameters for running the Enqueue App.
     * See parser for descriptions of each parameter.
     */
-  case class Params(experimentsPrefix: String = "", keysKey: String = "", bucket: String = "", s3Url: Option[String] = None)
+  case class Params(experimentsPrefix: String = "", manifestPath: String = "", bucket: String = "", s3Url: Option[String] = None)
 
   private val parser = new scopt.OptionParser[Params]("Generate a list of benchmark experiments") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -27,10 +32,6 @@ object Generate extends App {
     opt[String]("experimentsPrefix")
       .text("s3 prefix where experiments are stored")
       .action((s, c) => c.copy(experimentsPrefix = s))
-      .required()
-    opt[String]("keysKey")
-      .text("s3 key where JSON file containing generated experiment keys is stored")
-      .action((s, c) => c.copy(keysKey = s))
       .required()
     opt[String]("bucket")
       .text("bucket for all s3 data")
@@ -40,6 +41,15 @@ object Generate extends App {
       .text("URL accessed by the s3 client")
       .action((s, c) => c.copy(s3Url = Some(s)))
       .optional()
+    opt[String]("manifestPath")
+      .text("local path containing information needed to setup infrastructure for each generated experiment")
+      .action((s, c) => c.copy(manifestPath = s))
+      .required()
+  }
+
+  private case class Output(experimentKey: String, shards: Int)
+  private object Output {
+    implicit val encoder: Encoder[Output] = semiauto.deriveEncoder[Output]
   }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
@@ -51,18 +61,19 @@ object Generate extends App {
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
-        (keys, effects) = experiments.foldLeft((Vector.empty[String], Vector.empty[Task[PutObjectResult]])) {
-          case ((keys, effects), exp) =>
+        (outputs, effects) = experiments.foldLeft((Vector.empty[Output], Vector.empty[Task[PutObjectResult]])) {
+          case ((outputs, effects), exp) =>
             val body = exp.asJson.noSpaces
             val hash = exp.md5sum.toLowerCase
             val key = s"$experimentsPrefix/$hash"
+            val output = Output(key, exp.shards)
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
-            (keys :+ key, effects :+ effect)
+            (outputs :+ output, effects :+ effect)
         }
         _ <- ZIO.collectAllParN(16)(effects)
         // Shuffle the keys so that you don't get several pods running exact search for the same dataset simultaneously.
-        keysShuffled = new Random(0).shuffle(keys)
-        _ <- blocking.effectBlocking(s3Client.putObject(bucket, keysKey, keysShuffled.asJson.noSpaces))
+        outputsShuffled = new Random(0).shuffle(outputs)
+        _ <- blocking.effectBlocking(Files.writeString(new File(manifestPath).toPath, outputsShuffled.asJson.noSpaces))
       } yield ()
       val layer = Blocking.live ++ Console.live
       logic.provideLayer(layer).exitCode

@@ -12,8 +12,6 @@ spec:
       - name: awsSecretAccessKey
       - name: bucket
         value: elastiknn-benchmarks
-      - name: shards
-        value: 1
       - name: esJvmMemory
         value: 8G
       - name: esTotalMemory
@@ -22,24 +20,24 @@ spec:
     - name: main
       parallelism: 20
       steps:
-        - - name: generate-experiments
-            template: generate-experiments
-        - - name: enqueue-experiments
-            template: enqueue-experiments
+        - - name: generate
+            template: generate
         - - name: apply-configmap
             template: apply-configmap
-        - - name: execute-elasticsearch
-            template: execute-elasticsearch
+        - - name: execute
+            template: execute
+            withParam: "{{steps.generate.outputs.parameters.experiments}}"
             arguments:
               parameters:
-                - name: experiment
-                  value: "{{item}}"
-            withParam: "{{steps.enqueue-experiments.outputs.parameters.experiments}}"
-        - - name: aggregate-results
-            template: aggregate-results
+                - name: experimentKey
+                  value: "{{item.experimentKey}}"
+                - name: shards
+                  value: "{{item.shards}}"
+        - - name: aggregate
+            template: aggregate
 
     # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
-    - name: generate-experiments
+    - name: generate
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
@@ -49,19 +47,8 @@ spec:
           - experiments
           - --bucket
           - "{{workflow.parameters.bucket}}"
-          - --keysKey
-          - experiments/{{workflow.name}}.json
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "{{workflow.parameters.awsAccessKeyId}}"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "{{workflow.parameters.awsSecretAccessKey}}"
-
-    # Cli app copies experiments to disk so argo can generate a pod for each of the experiments.
-    - name: enqueue-experiments
-      container:
-        image: amazon/aws-cli
-        args: ["s3", "cp", "--quiet", "s3://elastiknn-benchmarks/experiments/{{workflow.name}}.json", "/tmp/{{workflow.name}}.json"]
+          - --manifestPath
+          - /tmp/manifest.json
         env:
           - name: AWS_ACCESS_KEY_ID
             value: "{{workflow.parameters.awsAccessKeyId}}"
@@ -71,7 +58,7 @@ spec:
         parameters:
           - name: experiments
             valueFrom:
-              path: /tmp/{{workflow.name}}.json
+              path: /tmp/manifest.json
 
     # Create a configmap mounted by the Elasticsearch sidecar containers.
     - name: apply-configmap
@@ -87,12 +74,8 @@ spec:
               discovery.type: single-node
               cluster.name: "no-cluster"
               network.host: 0.0.0.0
-              node.processors: {{workflow.parameters.shards}}
-              thread_pool.search.size: {{workflow.parameters.shards}}
+              thread_pool.search.size: ${ES_SHARDS}
             jvm.options: |
-              # Memory allocated to JVM.
-              -Xms{{workflow.parameters.esJvmMemory}}
-              -Xmx{{workflow.parameters.esJvmMemory}}
               # G1GC garbage collection
               13-:-XX:+UseG1GC
               13-:-XX:G1ReservePercent=25
@@ -106,25 +89,26 @@ spec:
               -XX:ErrorFile=logs/hs_err_pid%p.log
               # JDK 9+ GC logging
               9-:-Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m
-              # Informationa bout JIT optimization and inlining. See: https://www.baeldung.com/jvm-method-inlining
+              # Information about JIT optimization and inlining. See: https://www.baeldung.com/jvm-method-inlining
               # -XX:+PrintCompilation
               # -XX:+UnlockDiagnosticVMOptions
               # -XX:+PrintInlining
               # VisualVM profiling
-              -Dcom.sun.management.jmxremote.ssl=false
-              -Dcom.sun.management.jmxremote.authenticate=false
-              -Dcom.sun.management.jmxremote.local.only=false
-              -Dcom.sun.management.jmxremote.port=8097
-              -Dcom.sun.management.jmxremote.rmi.port=8097
-              -Djava.rmi.server.hostname=localhost
+              # -Dcom.sun.management.jmxremote.ssl=false
+              # -Dcom.sun.management.jmxremote.authenticate=false
+              # -Dcom.sun.management.jmxremote.local.only=false
+              # -Dcom.sun.management.jmxremote.port=8097
+              # -Dcom.sun.management.jmxremote.rmi.port=8097
+              # -Djava.rmi.server.hostname=localhost
 
-    - name: execute-elasticsearch
+    - name: execute
+      inputs:
+        parameters:
+          - name: experimentKey
+          - name: shards
       retryStrategy:
         limit: 2
         retryPolicy: "Always"
-      inputs:
-        parameters:
-          - name: experiment
       volumes:
         - name: esdata
           emptyDir:
@@ -141,10 +125,10 @@ spec:
           - name: elastiknn
             resources:
               requests:
-                cpu: "{{workflow.parameters.shards}}"
+                cpu: "{{inputs.parameters.shards}}"
                 memory: "{{workflow.parameters.esTotalMemory}}"
               limits:
-                cpu: "{{workflow.parameters.shards}}"
+                cpu: "{{inputs.parameters.shards}}"
                 memory: "{{workflow.parameters.esTotalMemory}}"
       container:
         image: "{{workflow.parameters.driverImage}}"
@@ -152,7 +136,7 @@ spec:
         args:
           - com.klibisz.elastiknn.benchmarks.Execute
           - --experimentKey
-          - "{{inputs.parameters.experiment}}"
+          - "{{inputs.parameters.experimentKey}}"
           - --datasetsPrefix
           - "data/processed"
           - --resultsPrefix
@@ -167,8 +151,6 @@ spec:
           - "15"
           - --maxWarmupRounds
           - "100"
-          - --shards
-          - "{{workflow.parameters.shards}}"
         env:
           - name: AWS_ACCESS_KEY_ID
             value: "{{workflow.parameters.awsAccessKeyId}}"
@@ -191,6 +173,13 @@ spec:
         - name: elastiknn
           image: "{{workflow.parameters.elastiknnImage}}"
           imagePullPolicy: "Always"
+          env:
+            - name: ES_JAVA_OPTS
+              value: >-
+                -Xms{{workflow.parameters.esJvmMemory}}
+                -Xmx{{workflow.parameters.esJvmMemory}}
+            - name: ES_SHARDS
+              value: "{{inputs.parameters.shards}}"
           ports:
             - name: jmx
               containerport: 8097
@@ -208,7 +197,7 @@ spec:
               subPath: jvm.options
               readOnly: true
 
-    - name: aggregate-results
+    - name: aggregate
       container:
         image: "{{workflow.parameters.driverImage}}"
         imagePullPolicy: "Always"
