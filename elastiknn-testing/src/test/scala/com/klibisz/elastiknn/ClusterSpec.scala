@@ -2,7 +2,8 @@ package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
-import org.scalatest.{AsyncFunSuite, Matchers}
+import org.scalatest.funsuite.AsyncFunSuite
+import org.scalatest.matchers.should.Matchers
 
 class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient {
 

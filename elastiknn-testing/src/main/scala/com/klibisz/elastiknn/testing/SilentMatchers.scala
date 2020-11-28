@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.testing
 
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 
 trait SilentMatchers {
 

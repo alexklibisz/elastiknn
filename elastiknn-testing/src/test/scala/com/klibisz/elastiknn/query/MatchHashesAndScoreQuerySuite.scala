@@ -8,10 +8,12 @@ import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
 import org.scalatest._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ArrayBuffer
 
-class MatchHashesAndScoreQuerySuite extends FunSuite with Matchers with LuceneSupport {
+class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   val ft: FieldType = VectorMapper.denseFloatVector.luceneFieldType
 
