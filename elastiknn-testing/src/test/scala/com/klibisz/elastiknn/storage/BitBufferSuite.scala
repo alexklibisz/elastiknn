@@ -1,10 +1,11 @@
 package com.klibisz.elastiknn.storage
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
 
-class BitBufferSuite extends FunSuite with Matchers {
+class BitBufferSuite extends AnyFunSuite with Matchers {
 
   test("IntBuffer manual test") {
     val ib = new BitBuffer.IntBuffer

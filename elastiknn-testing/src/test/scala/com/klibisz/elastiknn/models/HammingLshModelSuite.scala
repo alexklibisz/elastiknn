@@ -1,11 +1,12 @@
 package com.klibisz.elastiknn.models
 
-import org.scalatest.{FunSuite, Matchers}
 import java.util.Random
 
 import com.klibisz.elastiknn.api._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class HammingLshModelSuite extends FunSuite with Matchers {
+class HammingLshModelSuite extends AnyFunSuite with Matchers {
 
   test("correct number of hashes when L * k < dims") {
     new util.Random()

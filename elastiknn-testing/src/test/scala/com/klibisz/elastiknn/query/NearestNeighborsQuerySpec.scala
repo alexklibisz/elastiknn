@@ -10,7 +10,9 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.XContentFactory
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
-import org.scalatest.{AsyncFunSpec, Inspectors, Matchers, _}
+import org.scalatest._
+import org.scalatest.funspec.AsyncFunSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Future
 import scala.util.Random

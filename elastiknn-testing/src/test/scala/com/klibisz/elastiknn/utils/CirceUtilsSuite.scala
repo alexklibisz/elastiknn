@@ -3,10 +3,12 @@ package com.klibisz.elastiknn.utils
 import java.util
 
 import io.circe.{Json, JsonObject}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+
 import scala.collection.JavaConverters._
 
-class CirceUtilsSuite extends FunSuite with Matchers with CirceUtils {
+class CirceUtilsSuite extends AnyFunSuite with Matchers with CirceUtils {
 
   val map = new java.util.HashMap[String, Object] {
     put("foo", Integer.valueOf(1))
