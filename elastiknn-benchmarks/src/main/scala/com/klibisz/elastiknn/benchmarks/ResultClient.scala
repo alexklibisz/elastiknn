@@ -26,14 +26,14 @@ object ResultClient {
     def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, shards: Int): String = {
 
       def mappingString(mapping: Mapping): String = mapping match {
-        case Mapping.SparseBool(_)                   => s"m_sparsebool"
-        case Mapping.SparseIndexed(_)                => s"m_sparseindexed"
-        case Mapping.JaccardLsh(_, l, k)             => s"m_jaccardlsh/L_$l/k_$k"
-        case Mapping.HammingLsh(_, l, k)             => s"m_hamminglsh/L_$l/k_$k"
+        case Mapping.SparseBool(_)                   => s"m_sparsebool/shards_${shards}"
+        case Mapping.SparseIndexed(_)                => s"m_sparseindexed/shards_${shards}"
+        case Mapping.JaccardLsh(_, l, k)             => s"m_jaccardlsh/shards_${shards}/L_$l/k_$k"
+        case Mapping.HammingLsh(_, l, k)             => s"m_hamminglsh/shards_${shards}/L_$l/k_$k"
         case Mapping.DenseFloat(_)                   => s"m_densefloat"
-        case Mapping.AngularLsh(_, l, k)             => s"m_angularlsh/L_$l/k_$k"
-        case Mapping.L2Lsh(_, l, k, w)               => s"m_l2lsh/L_$l/k_$k"
-        case Mapping.PermutationLsh(_, k, repeating) => s"m_permutaitonlsh/k_$k/repeating_$repeating"
+        case Mapping.AngularLsh(_, l, k)             => s"m_angularlsh/shards_${shards}/L_$l/k_$k"
+        case Mapping.L2Lsh(_, l, k, w)               => s"m_l2lsh/shards_${shards}/L_$l/k_$k"
+        case Mapping.PermutationLsh(_, k, repeating) => s"m_permutationlsh/shards_${shards}/k_$k/repeating_$repeating"
       }
 
       def queryString(query: NearestNeighborsQuery): String =
@@ -45,15 +45,15 @@ object ResultClient {
           case nnq: NearestNeighborsQuery.ApproximateQuery =>
             nnq match {
               case NearestNeighborsQuery.JaccardLsh(_, candidates, _, limit) =>
-                s"q_jaccardlsh/candidates_$candidates/limit_$limit/k_${k}/shards_${shards}"
+                s"q_jaccardlsh/candidates_$candidates/limit_$limit/k_${k}"
               case NearestNeighborsQuery.HammingLsh(_, candidates, _, limit) =>
-                s"q_hamminglsh/candidates_$candidates/limit_$limit/k_${k}/shards_${shards}"
+                s"q_hamminglsh/candidates_$candidates/limit_$limit/k_${k}"
               case NearestNeighborsQuery.AngularLsh(_, candidates, _, limit) =>
-                s"q_angularlsh/candidates_$candidates/limit_$limit/k_${k}/shards_${shards}"
+                s"q_angularlsh/candidates_$candidates/limit_$limit/k_${k}"
               case NearestNeighborsQuery.L2Lsh(_, candidates, probes, _, limit) =>
-                s"q_l2lsh/candidates_$candidates/probes_$probes/limit_$limit/k_${k}/shards_${shards}"
+                s"q_l2lsh/candidates_$candidates/probes_$probes/limit_$limit/k_${k}"
               case NearestNeighborsQuery.PermutationLsh(_, similarity, candidates, _, limit) =>
-                s"q_permutationlsh/sim_$similarity/candidates_$candidates/limit_$limit/k_${k}/shards_${shards}"
+                s"q_permutationlsh/sim_$similarity/candidates_$candidates/limit_$limit/k_${k}"
             }
         }
 

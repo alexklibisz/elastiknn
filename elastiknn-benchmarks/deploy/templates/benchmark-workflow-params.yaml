@@ -3,4 +3,3 @@ elastiknnImage: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/el
 awsAccessKeyId: ${AWS_ACCESS_KEY_ID}
 awsSecretAccessKey: ${AWS_SECRET_ACCESS_KEY}
 bucket: elastiknn-benchmarks
-shards: "1"

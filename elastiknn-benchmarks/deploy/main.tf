@@ -32,6 +32,7 @@ locals {
     k8s_service_account_namespace = "kube-system"
     k8s_default_namespace = "default"
     k8s_service_account_name = "cluster-service-account"
+    benchmarks_bucket = "elastiknn-benchmarks"
 }
 
 module "vpc" {
@@ -202,8 +203,6 @@ resource "null_resource" "kubectl_config_provisioner" {
         command = <<EOT
         aws eks --region ${var.region} wait cluster-active --name ${local.cluster_name}
         aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}
-        helm repo add autoscaler https://kubernetes.github.io/autoscaler
-        helm repo update
         EOT
     }
 }

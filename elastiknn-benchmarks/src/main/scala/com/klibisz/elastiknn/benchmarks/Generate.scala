@@ -54,26 +54,24 @@ object Generate extends App {
   private val vecName: String = "vec"
 
   /**
-    * Alias to gridsearch method for multiple datasets.
-    */
-  def gridsearch(datasets: Dataset*): Seq[Experiment] = datasets.flatMap(gridsearch)
-
-  /**
     * Returns reasonable Experiments for doing a gridsearch over parameters for the given dataset.
     */
-  def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
+  def gridsearch(dataset: Dataset, shards: Seq[Int] = Seq(1)): Seq[Experiment] = dataset match {
 
     case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
-      val exact = Seq(
+      val exact = shards.map { s =>
         Experiment(
           dataset,
           Mapping.DenseFloat(dataset.dims),
-          Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100))
-        ))
+          Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100)),
+          shards = s
+        )
+      }
       val lsh = for {
         tables <- Seq(50, 75, 100)
         hashesPerTable <- Seq(2, 3, 4)
         width <- 5 to 8
+        s <- shards
       } yield
         Experiment(
           dataset,
@@ -81,7 +79,8 @@ object Generate extends App {
           for {
             candidates <- Seq(1000, 5000)
             probes <- Seq(0, 3, 6, 9)
-          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates / s, probes), 100),
+          shards = s
         )
       exact ++ lsh
 
@@ -138,25 +137,44 @@ object Generate extends App {
     case _ => Seq.empty
   }
 
-  def knownOptimal(dataset: Dataset, shards: Seq[Int] = Seq(1)): Seq[Experiment] = dataset match {
-    case Dataset.AnnbFashionMnist =>
-      shards.map { s =>
-        Experiment(
-          dataset,
-          Mapping.L2Lsh(dataset.dims, 50, 4, 6),
-          Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 6), 100)),
-          shards = s
-        )
-      }
-
-    case _ => Seq.empty
-  }
+//  def knownOptimal(dataset: Dataset, shards: Seq[Int] = Seq(1)): Seq[Experiment] = dataset match {
+//    case Dataset.AnnbFashionMnist =>
+//      shards.flatMap { s =>
+//        Seq(
+//          Experiment(
+//            dataset,
+//            Mapping.DenseFloat(dataset.dims),
+//            Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100)),
+//            shards = s
+//          ),
+//          Experiment(
+//            dataset,
+//            Mapping.L2Lsh(dataset.dims, 75, 4, 7),
+//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 0), 100)),
+//            shards = s
+//          ),
+//          Experiment(
+//            dataset,
+//            Mapping.L2Lsh(dataset.dims, 50, 4, 6),
+//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 6), 100)),
+//            shards = s
+//          ),
+//          Experiment(
+//            dataset,
+//            Mapping.L2Lsh(dataset.dims, 50, 4, 7),
+//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 9), 100)),
+//            shards = s
+//          )
+//        )
+//      }
+//    case _ => Seq.empty
+//  }
 
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = gridsearch(Dataset.AnnbFashionMnist) ++ knownOptimal(Dataset.AnnbFashionMnist, Seq(1, 4, 8))
+      val experiments = gridsearch(Dataset.AnnbFashionMnist, Seq(1, 4, 8))
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)

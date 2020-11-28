@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: elastiknn-benchmark-
+  generateName: benchmark-
 spec:
   entrypoint: main
   arguments:
@@ -74,6 +74,7 @@ spec:
               discovery.type: single-node
               cluster.name: "no-cluster"
               network.host: 0.0.0.0
+              node.processors: ${ES_SHARDS}
               thread_pool.search.size: ${ES_SHARDS}
             jvm.options: |
               # G1GC garbage collection

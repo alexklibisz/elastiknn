@@ -11,7 +11,7 @@ object LocalBenchmark extends App {
   private val k = 100
 
   private val experiments =
-    Seq(1, 2, 4, 5).map { shards =>
+    Seq(1, 2, 4, 6, 8).map { shards =>
       Experiment(
         Dataset.AnnbFashionMnist,
         Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),

@@ -1,5 +1,6 @@
 images:
-  tag: v2.8.0
+  tag: v2.11.7
+  pullPolicy: IfNotPresent
 useDefaultArtifactRepo: true
 minio:
   install: true

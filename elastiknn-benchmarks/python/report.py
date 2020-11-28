@@ -61,7 +61,7 @@ def main():
 
         for ((algo, k, shards), groupdf) in dsetdf.groupby(['algorithm', 'k', 'shards']):
             paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
-            label = f"{algo} k={k} shards={shards}"
+            label = f"{algo}, {k} neighbors, {shards} shards"
             color = next(colors)
             marker = 'x' if algo == "Exact" else 'o'
             size = 20 if algo == "Exact" else 10
