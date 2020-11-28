@@ -50,47 +50,42 @@ def main():
 
         print(f"### {dataset}")
 
-        for (shards, sharddf) in dsetdf.groupby("shards"):
-            shardstr = "Single Shard" if shards == 1 else f"{shards} Shards"
-            print(f"#### {shardstr}")
+        colors = itertools.cycle(list('bgrcmykw'))
+        plt.title(f"{dataset}")
+        plt.xlabel("Recall")
+        plt.ylabel("Queries/Second")
+        plt.xlim(0, 1.05)
+        plt.grid(True, linestyle='--', linewidth=0.5)
 
-            colors = itertools.cycle(list('bgrcmykw'))
+        paretos = []
 
-            plt.title(f"{dataset} - {shardstr}")
-            plt.xlabel("Recall")
-            plt.ylabel("Queries/Second")
-            plt.xlim(0, 1.05)
-            plt.grid(True, linestyle='--', linewidth=0.5)
+        for ((algo, k, shards), groupdf) in dsetdf.groupby(['algorithm', 'k', 'shards']):
+            paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
+            label = f"{algo} k={k} shards={shards}"
+            color = next(colors)
+            marker = 'x' if algo == "Exact" else 'o'
+            size = 20 if algo == "Exact" else 10
+            plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
+            plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=marker)
+            paretos.append((label, paretodf))
 
-            paretos = []
+        plt.legend(loc='lower left')
 
-            for ((algo, k), algodf) in dsetdf.groupby(['algorithm', 'k']):
-                paretodf = pareto_frontier(algodf, "recall", "queriesPerSecond")
-                label = f"{algo} {k}"
-                color = next(colors)
-                marker = 'x' if algo == "Exact" else 'o'
-                size = 20 if algo == "Exact" else 10
-                plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
-                plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=marker)
-                paretos.append((label, paretodf))
+        # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
+        buf = BytesIO()
+        plt.savefig(buf, format="svg")
+        plt.clf()
+        buf.seek(0)
+        print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
 
-            plt.legend(loc='lower left')
-
-            # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
-            buf = BytesIO()
-            plt.savefig(buf, format="svg")
-            plt.clf()
-            buf.seek(0)
-            print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
-
-            for (label, df) in paretos:
-                print(f"**{label}**\n")
-                rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
-                df2 = df\
-                    .rename(index=str, columns=rename)\
-                    .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]\
-                    .to_markdown(index=False)
-                print(f"{df2}\n")
+        for (label, df) in paretos:
+            print(f"**{label}**\n")
+            rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
+            df2 = df\
+                .rename(index=str, columns=rename)\
+                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]\
+                .to_markdown(index=False)
+            print(f"{df2}\n")
 
         print("---")
 

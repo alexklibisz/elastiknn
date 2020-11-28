@@ -137,9 +137,9 @@ object Execute extends App {
       _ <- log.info(s"Completed warmup and starting benchmark")
       queryStream = datasetClient.streamTest(dataset, Some(numQueries)).map(eknnQuery.withVec)
       resultsStream = searchClient.search(index, queryStream, k)
-      (dur, results) <- resultsStream.run(ZSink.collectAll).map(_.toArray).timed
+      (dur, results) <- resultsStream.run(ZSink.collectAll).timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
-      distances <- datasetClient.streamDistances(dataset).run(ZSink.collectAll).map(_.toArray)
+      distances <- datasetClient.streamDistances(dataset).run(ZSink.collectAll)
     } yield
       BenchmarkResult(
         dataset = dataset,
@@ -149,12 +149,15 @@ object Execute extends App {
         shards = shards,
         durationMillis = dur.toMillis,
         queriesPerSecond = results.length * 1f / dur.toSeconds,
-        queryResults = results.zip(distances).map {
-          case (res, dists) =>
-            val lowerBound = dists.min
-            val gteq = res.scores.count(_ >= lowerBound)
-            res.copy(recall = gteq * 1f / res.scores.length)
-        }
+        queryResults = results
+          .zip(distances)
+          .map {
+            case (res, dists) =>
+              val lowerBound = dists.min
+              val gteq = res.scores.count(_ >= lowerBound)
+              res.copy(recall = gteq * 1f / res.scores.length)
+          }
+          .toArray
       )
   }
 

@@ -18,7 +18,7 @@ spec:
         value: 12G
   templates:
     - name: main
-      parallelism: 20
+      parallelism: 40
       steps:
         - - name: generate
             template: generate

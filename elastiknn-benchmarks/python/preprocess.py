@@ -18,6 +18,7 @@ from botocore.exceptions import ClientError
 from elastiknn.api import Vec
 from elastiknn.utils import ndarray_to_sparse_bool_vectors
 from imagehash import phash
+from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 
 
@@ -68,12 +69,16 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
 
     train = hdf5_fp['train'][...]
     test = hdf5_fp['test'][...]
-    distances = hdf5_fp['distances'][...]
 
     if scale_by_max:
         max_scaler = train.max()
         train /= max_scaler
         test /= max_scaler
+
+    knn = NearestNeighbors(n_neighbors=100, algorithm='brute', metric=hdf5_fp.attrs['distance'])
+    knn.fit(train)
+    (distances, _) = knn.kneighbors(test, return_distance=True)
+    distances = 1 / (1 + distances)
 
     def write(iter_arr, fp):
         for arr in iter_arr:

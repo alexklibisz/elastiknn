@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 
 import com.amazonaws.services.s3.model.PutObjectResult
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity}
 import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.Encoder
 import io.circe.generic.semiauto
@@ -11,8 +12,6 @@ import io.circe.syntax._
 import zio._
 import zio.blocking.Blocking
 import zio.console._
-
-import scala.util.Random
 
 /**
   * Produce multiple Experiments for downstream processing. Write each experiment to S3.
@@ -52,13 +51,112 @@ object Generate extends App {
     implicit val encoder: Encoder[Output] = semiauto.deriveEncoder[Output]
   }
 
+  private val vecName: String = "vec"
+
+  /**
+    * Alias to gridsearch method for multiple datasets.
+    */
+  def gridsearch(datasets: Dataset*): Seq[Experiment] = datasets.flatMap(gridsearch)
+
+  /**
+    * Returns reasonable Experiments for doing a gridsearch over parameters for the given dataset.
+    */
+  def gridsearch(dataset: Dataset): Seq[Experiment] = dataset match {
+
+    case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
+      val exact = Seq(
+        Experiment(
+          dataset,
+          Mapping.DenseFloat(dataset.dims),
+          Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100))
+        ))
+      val lsh = for {
+        tables <- Seq(50, 75, 100)
+        hashesPerTable <- Seq(2, 3, 4)
+        width <- 5 to 8
+      } yield
+        Experiment(
+          dataset,
+          Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+          for {
+            candidates <- Seq(1000, 5000)
+            probes <- Seq(0, 3, 6, 9)
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+        )
+      exact ++ lsh
+
+    case Dataset.AnnbSift =>
+      val exact = Seq(
+        Experiment(
+          dataset,
+          Mapping.DenseFloat(dataset.dims),
+          Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100))
+        ))
+      val lsh = for {
+        tables <- Seq(50, 75, 100)
+        hashesPerTable <- Seq(2, 3, 4)
+        width <- Seq(1, 2, 3)
+      } yield
+        Experiment(
+          dataset,
+          Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
+          for {
+            candidates <- Seq(1000, 5000, 10000)
+            probes <- 0 to math.pow(hashesPerTable, 3).toInt.min(9) by 3
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
+        )
+      exact ++ lsh
+
+    case Dataset.AnnbGlove100 =>
+      val exact = Seq(
+        Experiment(dataset, Mapping.DenseFloat(dataset.dims), Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.Angular), 100)))
+      )
+      val projections = for {
+        tables <- Seq(50, 100, 125)
+        hashesPerTable <- Seq(6, 9)
+      } yield
+        Experiment(
+          dataset,
+          Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
+          for {
+            candidates <- Seq(1000, 5000)
+          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
+        )
+      val permutations = for {
+        k <- Seq(10, 25, 50, 75)
+        rep <- Seq(false)
+      } yield
+        Experiment(
+          dataset,
+          Mapping.PermutationLsh(dataset.dims, k, repeating = rep),
+          for {
+            candidates <- Seq(1000, 5000, 10000)
+          } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
+        )
+      exact ++ projections ++ permutations
+
+    case _ => Seq.empty
+  }
+
+  def knownOptimal(dataset: Dataset, shards: Seq[Int] = Seq(1)): Seq[Experiment] = dataset match {
+    case Dataset.AnnbFashionMnist =>
+      shards.map { s =>
+        Experiment(
+          dataset,
+          Mapping.L2Lsh(dataset.dims, 50, 4, 6),
+          Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 6), 100)),
+          shards = s
+        )
+      }
+
+    case _ => Seq.empty
+  }
+
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      // val experiments = Experiment.gridsearch(Dataset.AnnbFashionMnist, Dataset.AnnbSift, Dataset.AnnbSift)
-      val experiments = Experiment.gridsearch(Dataset.AnnbFashionMnist)
-
+      val experiments = gridsearch(Dataset.AnnbFashionMnist) ++ knownOptimal(Dataset.AnnbFashionMnist, Seq(1, 4, 8))
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
@@ -72,9 +170,7 @@ object Generate extends App {
             (outputs :+ output, effects :+ effect)
         }
         _ <- ZIO.collectAllParN(16)(effects)
-        // Shuffle the keys so that you don't get several pods running exact search for the same dataset simultaneously.
-        outputsShuffled = new Random(0).shuffle(outputs)
-        _ <- blocking.effectBlocking(Files.writeString(new File(manifestPath).toPath, outputsShuffled.asJson.noSpaces))
+        _ <- blocking.effectBlocking(Files.writeString(new File(manifestPath).toPath, outputs.asJson.noSpaces))
       } yield ()
       val layer = Blocking.live ++ Console.live
       logic.provideLayer(layer).exitCode
