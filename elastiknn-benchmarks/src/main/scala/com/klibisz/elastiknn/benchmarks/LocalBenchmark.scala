@@ -11,12 +11,20 @@ object LocalBenchmark extends App {
   private val k = 100
 
   private val experiments =
-    Seq(1, 2, 4, 6, 8).map { shards =>
-      Experiment(
-        Dataset.AnnbFashionMnist,
-        Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
-        Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000 / shards, 3), k)),
-        shards = shards
+    Seq(1, 2, 4, 6, 8).flatMap { shards =>
+      Seq(
+        Experiment(
+          Dataset.AnnbFashionMnist,
+          Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
+          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 1000 / shards, 3), k)),
+          shards = shards
+        ),
+        Experiment(
+          Dataset.AnnbSift,
+          Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 2),
+          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 5000 / shards, 0), k)),
+          shards = shards
+        )
       )
     }
 
