@@ -31,7 +31,7 @@ locals {
     cluster_name = "${local.project_name}-cluster"
     k8s_service_account_namespace = "kube-system"
     k8s_default_namespace = "default"
-    k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
+    k8s_service_account_name = "cluster-service-account"
 }
 
 module "vpc" {
@@ -213,14 +213,17 @@ resource "null_resource" "kubectl_config_provisioner" {
  */
 resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
-    chart = "https://github.com/kubernetes/autoscaler/releases/download/cluster-autoscaler-chart-9.0.0/cluster-autoscaler-9.0.0.tgz"
+    chart = "cluster-autoscaler"
+    repository = "https://kubernetes.github.io/autoscaler"
+    # chart = "https://github.com/kubernetes/autoscaler/releases/download/cluster-autoscaler-chart-9.0.0/cluster-autoscaler-9.0.0.tgz"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
             region = var.region,
             accountId = data.aws_caller_identity.current.account_id,
-            clusterName = local.cluster_name
+            clusterName = local.cluster_name,
+            accountName = local.k8s_service_account_name
         })
     ]
 }
@@ -237,24 +240,6 @@ resource "helm_release" "node-termination-handler" {
     values = [
         templatefile("templates/node-termination-handler-values.yaml", {})
     ]
-}
-
-/*
- * Storage class for high performance storage.
- */
-resource "kubernetes_storage_class" "storage-10-iops" {
-    depends_on = [null_resource.kubectl_config_provisioner]
-    metadata {
-        name = "storage-10-iops"
-    }
-    storage_provisioner = "kubernetes.io/aws-ebs"
-    allow_volume_expansion = false
-    parameters = {
-        type = "io1"
-        iopsPerGB = "10"
-    }
-    // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
-    volume_binding_mode = "WaitForFirstConsumer"
 }
 
 /*
@@ -338,11 +323,6 @@ resource "aws_ecr_repository" "datasets" {
     name = "${local.cluster_name}.datasets"
     image_tag_mutability = "MUTABLE"
 }
-
-/*
- * TODO: IAM user for containers to read/write S3 bucket.
- */
-
 
 /*
  * Outputs from setup.
