@@ -32,6 +32,7 @@ class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with Elastic
       _ <- eknn.execute(refreshIndex(index))
       _ <- eknn.execute(forceMerge(index).maxSegments(1))
       _ <- eknn.execute(closeIndex(index))
+      _ <- deleteIfExists(index)
     } yield Assertions.succeed
   }
 
@@ -45,6 +46,7 @@ class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with Elastic
       _ <- eknn.execute(refreshIndex(index))
       _ <- eknn.execute(forceMerge(index).maxSegments(1))
       _ <- eknn.execute(closeIndex(index))
+      _ <- deleteIfExists(index)
     } yield Assertions.succeed
   }
 
@@ -58,6 +60,7 @@ class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with Elastic
       _ <- eknn.execute(refreshIndex(index))
       _ <- eknn.execute(forceMerge(index).maxSegments(1))
       _ <- eknn.execute(freezeIndex(index))
+      _ <- deleteIfExists(index)
     } yield Assertions.succeed
   }
 
@@ -71,6 +74,7 @@ class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with Elastic
       _ <- eknn.execute(refreshIndex(index))
       _ <- eknn.execute(forceMerge(index).maxSegments(1))
       _ <- eknn.execute(freezeIndex(index))
+      _ <- deleteIfExists(index)
     } yield Assertions.succeed
   }
 
