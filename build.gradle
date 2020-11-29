@@ -293,6 +293,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
         testRuntime 'org.pegdown:pegdown:1.4.2'
+        testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
