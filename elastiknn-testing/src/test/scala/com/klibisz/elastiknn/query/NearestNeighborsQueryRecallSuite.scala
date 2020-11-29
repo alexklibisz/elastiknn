@@ -7,7 +7,8 @@ import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import org.scalatest.{AsyncFunSuite, Matchers}
+import org.scalatest.funsuite.AsyncFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash

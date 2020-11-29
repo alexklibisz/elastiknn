@@ -1,11 +1,12 @@
 package com.klibisz.elastiknn.search
 
 import org.apache.lucene.search.KthGreatest
-import org.scalatest._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class KthGreatestSuite extends FunSuite with Matchers {
+class KthGreatestSuite extends AnyFunSuite with Matchers {
 
   test("bad args") {
     an[IllegalArgumentException] shouldBe thrownBy {

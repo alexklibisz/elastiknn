@@ -8,11 +8,12 @@ import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.MatchHashesAndScoreQuery
-import org.scalatest._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
 
-class PermutationLshModelSuite extends FunSuite with Matchers with LuceneSupport {
+class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   val ft = VectorMapper.denseFloatVector.luceneFieldType
 
