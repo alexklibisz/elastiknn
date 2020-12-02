@@ -306,6 +306,24 @@ resource "kubernetes_role_binding" "argo-workflows" {
 }
 
 /*
+ * Storage class for optimized IO.
+ */
+resource "kubernetes_storage_class" "storage-10-iops" {
+    depends_on = [null_resource.kubectl_config_provisioner]
+    metadata {
+        name = "storage-10-iops"
+    }
+    storage_provisioner = "kubernetes.io/aws-ebs"
+    allow_volume_expansion = false
+    parameters = {
+        type = "io1"
+        iopsPerGB = "10"
+    }
+    // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
+    volume_binding_mode = "WaitForFirstConsumer"
+}
+
+/*
  * ECR Repositories for custom application images.
  */
 resource "aws_ecr_repository" "driver" {
