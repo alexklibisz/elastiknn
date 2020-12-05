@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
+
 import io.circe.Codec
 import io.circe.generic.semiauto._
 import org.apache.commons.codec.digest.DigestUtils
@@ -27,89 +28,62 @@ package object benchmarks {
     case object AnnbSift extends Dataset(128)
   }
 
-  final case class Query(nnq: NearestNeighborsQuery, k: Int)
-
-  final case class Experiment(dataset: Dataset, mapping: Mapping, queries: Seq[Query], shards: Int = 1) {
-    def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
-  }
-
-  final case class QueryResult(scores: Seq[Float], duration: Long, recall: Double = Double.NaN)
-
-  /**
-    * This gets serialized and persisted.
-    */
-  final case class BenchmarkResult(dataset: Dataset,
-                                   mapping: Mapping,
-                                   query: NearestNeighborsQuery,
-                                   k: Int,
-                                   shards: Int,
-                                   durationMillis: Long,
-                                   queriesPerSecond: Float,
-                                   queryResults: Array[QueryResult]) {
-    override def toString: String = s"Result($dataset, $mapping, $query, $k, $shards, $durationMillis, ...)"
-  }
-
-  /**
-    * This gets constructed from a BenchmarkResult and used as a row in a CSV.
-    */
-  final case class AggregateResult(dataset: String,
-                                   similarity: String,
-                                   algorithm: String,
-                                   k: Int,
-                                   mapping: Mapping,
-                                   shards: Int,
-                                   query: NearestNeighborsQuery,
-                                   recall: Float,
-                                   queriesPerSecond: Float)
-
-  object AggregateResult {
-
-    val header = Seq(
-      "dataset",
-      "similarity",
-      "algorithm",
-      "k",
-      "mapping",
-      "shards",
-      "query",
-      "recall",
-      "queriesPerSecond"
-    )
-
-    private def algorithmName(q: NearestNeighborsQuery): String = {
+  final case class Query(nnq: NearestNeighborsQuery, k: Int) {
+    def algorithmName: String = {
       import NearestNeighborsQuery._
-      q match {
+      nnq match {
         case _: Exact                                                 => "Exact"
         case _: SparseIndexed                                         => "Sparse Indexed"
         case _: HammingLsh | _: JaccardLsh | _: AngularLsh | _: L2Lsh => "LSH"
         case _: PermutationLsh                                        => "Permutation LSH"
       }
     }
-
-    def apply(b: BenchmarkResult): AggregateResult = {
-      new AggregateResult(
-        dataset = b.dataset.name,
-        similarity = b.query.similarity.toString,
-        algorithm = algorithmName(b.query),
-        k = b.k,
-        mapping = b.mapping,
-        shards = b.shards,
-        query = b.query.withVec(Vec.Empty()),
-        recall = (b.queryResults.map(_.recall).sum / b.queryResults.length).toFloat,
-        queriesPerSecond = b.queriesPerSecond
-      )
-    }
   }
 
+  final case class QueryResult(scores: Seq[Float], duration: Long)
+
+  final case class Experiment(dataset: Dataset,
+                              mapping: Mapping,
+                              queries: Seq[Query],
+                              shards: Int = 1,
+                              replicas: Int = 0,
+                              parallelQueries: Int = 1,
+                              esNodes: Int = 1,
+                              esCoresPerNode: Int = 1,
+                              esMemoryGb: Int = 4,
+                              warmupQueries: Int = 200,
+                              minWarmupRounds: Int = 10,
+                              maxWarmupRounds: Int = 10) {
+    def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
+  }
+
+  final case class BenchmarkResult(dataset: Dataset,
+                                   similarity: Similarity,
+                                   algorithm: String,
+                                   mapping: Mapping,
+                                   query: NearestNeighborsQuery,
+                                   k: Int,
+                                   shards: Int,
+                                   replicas: Int,
+                                   parallelQueries: Int,
+                                   esNodes: Int,
+                                   esCoresPerNode: Int,
+                                   esMemoryGb: Int,
+                                   warmupQueries: Int,
+                                   minWarmupRounds: Int,
+                                   maxWarmupRounds: Int,
+                                   recall: Float,
+                                   queriesPerSecond: Float,
+                                   durationMillis: Long)
+
   object codecs {
+    import ElasticsearchCodec._
     private implicit val mappingCodec: Codec[Mapping] = ElasticsearchCodec.mapping
     private implicit val nnqCodec: Codec[NearestNeighborsQuery] = ElasticsearchCodec.nearestNeighborsQuery
     implicit val queryCodec: Codec[Query] = deriveCodec
     implicit val datasetCodec: Codec[Dataset] = deriveCodec
     implicit val experimentCodec: Codec[Experiment] = deriveCodec
-    implicit val singleResultCodec: Codec[QueryResult] = deriveCodec
     implicit val resultCodec: Codec[BenchmarkResult] = deriveCodec
-    implicit val aggregateResultCodec: Codec[AggregateResult] = deriveCodec
   }
 
 }

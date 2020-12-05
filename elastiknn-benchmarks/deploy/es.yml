@@ -1,7 +1,7 @@
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
-  name: quickstart
+  generateName: quickstart-
 spec:
   version: 7.9.3
   image: 788008650827.dkr.ecr.us-east-1.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
@@ -10,45 +10,15 @@ spec:
       selfSignedCertificate:
         disabled: true
   nodeSets:
-  - name: master
-    count: 1
+  - name: default
+    count: 3
     config:
-      node.store.allow_mmap: false
-      node.master: true
-      node.ingest: false
-      node.ml: false
-      node.data: false
+      thread_pool.search.size: 8
       xpack.security.authc:
         anonymous:
           username: anonymous
           roles: superuser
           authz_exception: false
-    podTemplate:
-      spec:
-        nodeSelector:
-          beta.kubernetes.io/instance-type: c5.4xlarge
-        containers:
-          - name: elasticsearch
-            env:
-              - name: ES_JAVA_OPTS
-                value: >-
-                  -XX:MinRAMPercentage=60
-                  -XX:MaxRAMPercentage=60
-#                  -XX:+UseG1GC
-#                  -XX:G1ReservePercent=25
-#                  -XX:InitiatingHeapOccupancyPercent=30
-            resources:
-              requests:
-                cpu: 1
-                memory: 1Gi
-              limits:
-                cpu: 1
-                memory: 1Gi
-
-  - name: data
-    count: 2
-    config:
-      node.master: false
     volumeClaimTemplates:
       - metadata:
           name: elasticsearch-data
@@ -57,7 +27,7 @@ spec:
             - ReadWriteOnce
           resources:
             requests:
-              storage: 10Gi
+              storage: 20Gi
           storageClassName: storage-10-iops
     podTemplate:
       spec:
@@ -77,9 +47,9 @@ spec:
                 value: >-
                   -XX:MinRAMPercentage=60
                   -XX:MaxRAMPercentage=60
-#                  -XX:+UseG1GC
-#                  -XX:G1ReservePercent=25
-#                  -XX:InitiatingHeapOccupancyPercent=30
+                  -XX:+UseG1GC
+                  -XX:G1ReservePercent=25
+                  -XX:InitiatingHeapOccupancyPercent=30
             resources:
               requests:
                 cpu: 8

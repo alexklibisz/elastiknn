@@ -20,7 +20,10 @@ trait SearchClient {
   def blockUntilReady(): ZIO[Clock, Throwable, Unit]
   def indexExists(index: String): Task[Boolean]
   def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long]
-  def search(index: String, queries: Stream[Throwable, NearestNeighborsQuery], k: Int): ZStream[Logging with Clock, Throwable, QueryResult]
+  def search(index: String,
+             queries: Stream[Throwable, NearestNeighborsQuery],
+             k: Int,
+             par: Int): ZStream[Logging with Clock, Throwable, QueryResult]
   def deleteIndex(index: String): Task[Unit]
   def close(): Task[Unit]
 }
@@ -86,8 +89,9 @@ object SearchClient {
 
             def search(index: String,
                        queries: Stream[Throwable, NearestNeighborsQuery],
-                       k: Int): ZStream[Logging with Clock, Throwable, QueryResult] =
-              queries.zipWithIndex.mapMPar(1) {
+                       k: Int,
+                       par: Int): ZStream[Logging with Clock, Throwable, QueryResult] =
+              queries.zipWithIndex.mapMPar(par) {
                 case (query, i) =>
                   for {
                     (dur, res) <- ZIO.fromFuture(_ => client.nearestNeighbors(index, query, k, "id")).timed

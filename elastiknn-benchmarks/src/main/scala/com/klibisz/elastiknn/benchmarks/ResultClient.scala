@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 trait ResultClient {
-  def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int, shards: Int): IO[Throwable, Option[BenchmarkResult]]
+  def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]]
   def save(result: BenchmarkResult): IO[Throwable, Unit]
   def all(): Stream[Throwable, BenchmarkResult]
 }
@@ -65,12 +65,8 @@ object ResultClient {
     ZLayer.fromServices[AmazonS3, Blocking.Service, ResultClient] {
       case (client, blocking) =>
         new ResultClient {
-          override def find(dataset: Dataset,
-                            mapping: Mapping,
-                            query: NearestNeighborsQuery,
-                            k: Int,
-                            shards: Int): IO[Throwable, Option[BenchmarkResult]] = {
-            val key = genKey(dataset, mapping, query, k, shards)
+          override def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]] = {
+            val key = genKey(experiment.dataset, experiment.mapping, query.nnq, query.k, experiment.shards)
             for {
               ex <- blocking.effectBlocking(client.doesObjectExist(bucket, key))
               res: Option[BenchmarkResult] <- if (ex) {

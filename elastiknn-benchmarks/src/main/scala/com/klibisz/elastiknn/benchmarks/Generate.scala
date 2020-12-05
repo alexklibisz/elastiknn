@@ -46,10 +46,13 @@ object Generate extends App {
       .required()
   }
 
-  private case class Output(experimentKey: String, shards: Int)
-  private object Output {
-    implicit val encoder: Encoder[Output] = semiauto.deriveEncoder[Output]
-  }
+  private case class ArgoBenchmarkStepParams(experimentKey: String,
+                                             esClusterName: String,
+                                             esNodeCount: Int,
+                                             esCoreCountPerNode: Int,
+                                             esMemGB: Int,
+                                             driverCoreCount: Int)
+  private implicit val encoder: Encoder[ArgoBenchmarkStepParams] = semiauto.deriveEncoder[ArgoBenchmarkStepParams]
 
   private val vecName: String = "vec"
 
@@ -82,7 +85,9 @@ object Generate extends App {
           } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates / s, probes), 100),
           shards = s
         )
-      exact ++ lsh
+      (exact ++ lsh).flatMap { exp =>
+        Seq(exp, exp.copy(shards = 3, replicas = 2, esNodes = 3, esCoresPerNode = 3, esMemoryGb = 4, parallelQueries = 10))
+      }
 
     case Dataset.AnnbSift =>
       val exact = Seq(
@@ -137,39 +142,6 @@ object Generate extends App {
     case _ => Seq.empty
   }
 
-//  def knownOptimal(dataset: Dataset, shards: Seq[Int] = Seq(1)): Seq[Experiment] = dataset match {
-//    case Dataset.AnnbFashionMnist =>
-//      shards.flatMap { s =>
-//        Seq(
-//          Experiment(
-//            dataset,
-//            Mapping.DenseFloat(dataset.dims),
-//            Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.L2), 100)),
-//            shards = s
-//          ),
-//          Experiment(
-//            dataset,
-//            Mapping.L2Lsh(dataset.dims, 75, 4, 7),
-//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 0), 100)),
-//            shards = s
-//          ),
-//          Experiment(
-//            dataset,
-//            Mapping.L2Lsh(dataset.dims, 50, 4, 6),
-//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 6), 100)),
-//            shards = s
-//          ),
-//          Experiment(
-//            dataset,
-//            Mapping.L2Lsh(dataset.dims, 50, 4, 7),
-//            Seq(Query(NearestNeighborsQuery.L2Lsh(vecName, 1000 / s, 9), 100)),
-//            shards = s
-//          )
-//        )
-//      }
-//    case _ => Seq.empty
-//  }
-
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) =>
       import params._
@@ -178,12 +150,13 @@ object Generate extends App {
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
-        (outputs, effects) = experiments.foldLeft((Vector.empty[Output], Vector.empty[Task[PutObjectResult]])) {
+        (outputs, effects) = experiments.foldLeft((Vector.empty[ArgoBenchmarkStepParams], Vector.empty[Task[PutObjectResult]])) {
           case ((outputs, effects), exp) =>
+            import exp._
             val body = exp.asJson.noSpaces
             val hash = exp.md5sum.toLowerCase
             val key = s"$experimentsPrefix/$hash"
-            val output = Output(key, exp.shards)
+            val output = ArgoBenchmarkStepParams(key, hash, esNodes, esCoresPerNode, esMemoryGb, math.max(parallelQueries / 2, 1))
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
             (outputs :+ output, effects :+ effect)
         }

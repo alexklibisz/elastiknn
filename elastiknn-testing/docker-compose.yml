@@ -42,6 +42,7 @@ services:
       - cluster.initial_master_nodes=elasticsearch_master
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
+      - thread_pool.search.size=8
       - bootstrap.memory_lock=true
       - ES_JAVA_OPTS=-Xms4G -Xmx4G
     ulimits:

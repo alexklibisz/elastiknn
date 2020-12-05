@@ -1,217 +1,268 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Workflow
+kind: CronWorkflow
 metadata:
   generateName: benchmark-
 spec:
-  entrypoint: main
-  arguments:
-    parameters:
-      - name: driverImage
-      - name: elastiknnImage
-      - name: awsAccessKeyId
-      - name: awsSecretAccessKey
-      - name: bucket
-        value: elastiknn-benchmarks
-      - name: esJvmMemory
-        value: 8G
-      - name: esTotalMemory
-        value: 12G
-  templates:
-    - name: main
-      parallelism: 40
-      steps:
-        - - name: generate
-            template: generate
-        - - name: apply-configmap
-            template: apply-configmap
-        - - name: execute
-            template: execute
-            withParam: "{{steps.generate.outputs.parameters.experiments}}"
+  schedule: "* * 31 2 *"
+  workflowSpec:
+    entrypoint: main
+    arguments:
+      parameters:
+        - name: driverImage
+        - name: elastiknnImage
+        - name: bucket
+          value: elastiknn-benchmarks
+        # TODO: setup auth to just use an IAM role.
+        - name: awsAccessKeyId
+        - name: awsSecretAccessKey
+    templates:
+      - name: main
+        parallelism: 40
+        steps:
+          - - name: generate
+              template: generate
+          - - name: benchmark
+              template: benchmark-steps
+              withParam: "{{steps.generate.outputs.parameters.experiments}}"
+              arguments:
+                parameters:
+                  - name: experimentKey
+                    value: "{{item.experimentKey}}"
+                  - name: esClusterName
+                    value: "{{item.esClusterName}}"
+                  - name: esNodeCount
+                    value: "{{item.esNodeCount}}"
+                  - name: esCoreCountPerNode
+                    value: "{{item.esCoreCountPerNode}}"
+                  - name: esMemGB
+                    value: "{{item.esMemGB}}"
+                  - name: driverCoreCount
+                    valeu: "{{item.driverCoreCount}}"
+          - - name: aggregate
+              template: aggregate
+
+      # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
+      - name: generate
+        container:
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Generate
+            - --experimentsPrefix
+            - experiments
+            - --bucket
+            - "{{workflow.parameters.bucket}}"
+            - --manifestPath
+            - /tmp/manifest.json
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+        outputs:
+          parameters:
+            - name: experiments
+              valueFrom:
+                path: /tmp/manifest.json
+
+      - name: benchmark-steps
+        inputs:
+          parameters:
+            - name: experimentKey         # Where to find the full experiment definition.
+            - name: esClusterName         # Globally unique name of the ES cluster for this experiment.
+            - name: esNodeCount           # How many ES nodes to spin up.
+            - name: esCoreCountPerNode    # Cores and search threads per ES pod.
+            - name: esMemGB               # Memory per ES pod.
+            - name: driverCoreCount       # Cores for the driver pod.
+        steps:
+          - name: benchmark-create-es-cluster
+            template: benchmark-create-es-cluster
             arguments:
               parameters:
-                - name: experimentKey
-                  value: "{{item.experimentKey}}"
-                - name: shards
-                  value: "{{item.shards}}"
-        - - name: aggregate
-            template: aggregate
+                - esNodeCount
 
-    # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
-    - name: generate
-      container:
-        image: "{{workflow.parameters.driverImage}}"
-        imagePullPolicy: "Always"
-        args:
-          - com.klibisz.elastiknn.benchmarks.Generate
-          - --experimentsPrefix
-          - experiments
-          - --bucket
-          - "{{workflow.parameters.bucket}}"
-          - --manifestPath
-          - /tmp/manifest.json
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "{{workflow.parameters.awsAccessKeyId}}"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "{{workflow.parameters.awsSecretAccessKey}}"
-      outputs:
-        parameters:
-          - name: experiments
-            valueFrom:
-              path: /tmp/manifest.json
+      - name: benchmark-create-es-cluster
+        inputs:
+          parameters:
+            - name: esNodeCount
+            - name: esClusterName
+            - name: esCoreCountPerNode
+            - name: esMemGB
+        resource:
+          action: create
+          manifest: |
+            apiVersion: elasticsearch.k8s.elastic.co/v1
+            kind: Elasticsearch
+            metadata:
+              name: {{inputs.parameters.esClusterName}}
+            spec:
+              version: 7.9.3
+              image: {{workflow.parameters.elastiknnImage}}
+              http:
+                  tls:
+                    selfSignedCertificate:
+                      disabled: true
+              nodeSets:
+              - name: default
+                count: {{inputs.parameters.esNodeCount}}
+                config:
+                  thread_pool.search.size: {{inputs.parameters.esCoreCountPerNode}}
+                  xpack.security.authc:
+                    anonymous:
+                      username: anonymous
+                      roles: superuser
+                      authz_exception: false
+                volumeClaimTemplates:
+                  - metadata:
+                      name: elasticsearch-data
+                    spec:
+                      accessModes:
+                        - ReadWriteOnce
+                      resources:
+                        requests:
+                          storage: 20Gi
+                      storageClassName: storage-10-iops
+                podTemplate:
+                  spec:
+                    nodeSelector:
+                      beta.kubernetes.io/instance-type: c5.4xlarge
+                    initContainers:
+                      - name: set-max-map-count
+                        image: busybox:1.32.0
+                        imagePullPolicy: IfNotPresent
+                        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+                        securityContext:
+                          privileged: true
+                    containers:
+                      - name: elasticsearch
+                        env:
+                          - name: ES_JAVA_OPTS
+                            value: >-
+                              -XX:MinRAMPercentage=60
+                              -XX:MaxRAMPercentage=60
+                              -XX:+UseG1GC
+                              -XX:G1ReservePercent=25
+                              -XX:InitiatingHeapOccupancyPercent=30
+                        resources:
+                          requests:
+                            cpu: {{inputs.parameters.esNodeCount}}
+                            memory: {{inputs.parameters.esMemGB}}Gi
+                          limits:
+                            cpu: {{inputs.parameters.esNodeCount}}
+                            memory: {{inputs.parameters.esMemGB}}Gi
 
-    # Create a configmap mounted by the Elasticsearch sidecar containers.
-    - name: apply-configmap
-      resource:
-        action: apply
-        manifest: |
-          apiVersion: v1
-          kind: ConfigMap
-          metadata:
-            name: esconfig
-          data:
-            elasticsearch.yml: |
-              discovery.type: single-node
-              cluster.name: "no-cluster"
-              network.host: 0.0.0.0
-              node.processors: ${ES_SHARDS}
-              thread_pool.search.size: ${ES_SHARDS}
-            jvm.options: |
-              # G1GC garbage collection
-              13-:-XX:+UseG1GC
-              13-:-XX:G1ReservePercent=25
-              13-:-XX:InitiatingHeapOccupancyPercent=30
-              # Temp directory
-              -Djava.io.tmpdir=/tmp
-              # Head dump settings
-              -XX:+HeapDumpOnOutOfMemoryError
-              -XX:HeapDumpPath=data
-              # specify an alternative path for JVM fatal error logs
-              -XX:ErrorFile=logs/hs_err_pid%p.log
-              # JDK 9+ GC logging
-              9-:-Xlog:gc*,gc+age=trace,safepoint:file=logs/gc.log:utctime,pid,tags:filecount=32,filesize=64m
-              # Information about JIT optimization and inlining. See: https://www.baeldung.com/jvm-method-inlining
-              # -XX:+PrintCompilation
-              # -XX:+UnlockDiagnosticVMOptions
-              # -XX:+PrintInlining
-              # VisualVM profiling
-              # -Dcom.sun.management.jmxremote.ssl=false
-              # -Dcom.sun.management.jmxremote.authenticate=false
-              # -Dcom.sun.management.jmxremote.local.only=false
-              # -Dcom.sun.management.jmxremote.port=8097
-              # -Dcom.sun.management.jmxremote.rmi.port=8097
-              # -Djava.rmi.server.hostname=localhost
+      - name: benchmark-delete-es-cluster
 
-    - name: execute
-      inputs:
-        parameters:
-          - name: experimentKey
-          - name: shards
-      retryStrategy:
-        limit: 2
-        retryPolicy: "Always"
-      volumes:
-        - name: esdata
-          emptyDir:
-            medium: Memory
-        - name: esconfig
-          configMap:
-            name: esconfig
-      # Sets the correct permissions for mounted volume.
-      securityContext:
-        fsGroup: 1000
-      # Needed because you can't use parameters in the resources context for some reason.
-      podSpecPatch: |
-        containers:
+      - name: execute
+        inputs:
+          parameters:
+            - name: experimentKey
+            - name: shards
+        retryStrategy:
+          limit: 2
+          retryPolicy: "Always"
+        volumes:
+          - name: esdata
+            emptyDir:
+              medium: Memory
+          - name: esconfig
+            configMap:
+              name: esconfig
+        # Sets the correct permissions for mounted volume.
+        securityContext:
+          fsGroup: 1000
+        # Needed because you can't use parameters in the resources context for some reason.
+        podSpecPatch: |
+          containers:
+            - name: elastiknn
+              resources:
+                requests:
+                  cpu: "{{inputs.parameters.shards}}"
+                  memory: "{{workflow.parameters.esTotalMemory}}"
+                limits:
+                  cpu: "{{inputs.parameters.shards}}"
+                  memory: "{{workflow.parameters.esTotalMemory}}"
+        container:
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Execute
+            - --experimentKey
+            - "{{inputs.parameters.experimentKey}}"
+            - --datasetsPrefix
+            - "data/processed"
+            - --resultsPrefix
+            - "results/raw"
+            - --bucket
+            - "{{workflow.parameters.bucket}}"
+            - --numQueries
+            - "10000"
+            - --warmupQueries
+            - "200"
+            - --minWarmupRounds
+            - "15"
+            - --maxWarmupRounds
+            - "100"
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+            - name: JAVA_OPTS
+              value: >-
+                -XX:MinRAMPercentage=10
+                -XX:MaxRAMPercentage=90
+                -XX:+HeapDumpOnOutOfMemoryError
+                -XX:+ExitOnOutOfMemoryError
+          resources:
+            requests:
+              cpu: 1
+              memory: 2G
+            limits:
+              cpu: 1
+              memory: 2G
+        sidecars:
           - name: elastiknn
-            resources:
-              requests:
-                cpu: "{{inputs.parameters.shards}}"
-                memory: "{{workflow.parameters.esTotalMemory}}"
-              limits:
-                cpu: "{{inputs.parameters.shards}}"
-                memory: "{{workflow.parameters.esTotalMemory}}"
-      container:
-        image: "{{workflow.parameters.driverImage}}"
-        imagePullPolicy: "Always"
-        args:
-          - com.klibisz.elastiknn.benchmarks.Execute
-          - --experimentKey
-          - "{{inputs.parameters.experimentKey}}"
-          - --datasetsPrefix
-          - "data/processed"
-          - --resultsPrefix
-          - "results/raw"
-          - --bucket
-          - "{{workflow.parameters.bucket}}"
-          - --numQueries
-          - "10000"
-          - --warmupQueries
-          - "200"
-          - --minWarmupRounds
-          - "15"
-          - --maxWarmupRounds
-          - "100"
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "{{workflow.parameters.awsAccessKeyId}}"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "{{workflow.parameters.awsSecretAccessKey}}"
-          - name: JAVA_OPTS
-            value: >-
-              -XX:MinRAMPercentage=10
-              -XX:MaxRAMPercentage=90
-              -XX:+HeapDumpOnOutOfMemoryError
-              -XX:+ExitOnOutOfMemoryError
-        resources:
-          requests:
-            cpu: 1
-            memory: 2G
-          limits:
-            cpu: 1
-            memory: 2G
-      sidecars:
-        - name: elastiknn
-          image: "{{workflow.parameters.elastiknnImage}}"
+            image: "{{workflow.parameters.elastiknnImage}}"
+            imagePullPolicy: "Always"
+            env:
+              - name: ES_JAVA_OPTS
+                value: >-
+                  -Xms{{workflow.parameters.esJvmMemory}}
+                  -Xmx{{workflow.parameters.esJvmMemory}}
+              - name: ES_SHARDS
+                value: "{{inputs.parameters.shards}}"
+            ports:
+              - name: jmx
+                containerport: 8097
+                protocol: TCP
+            volumeMounts:
+              - name: esdata
+                mountPath: /usr/share/elasticsearch/data
+                readOnly: false
+              - name: esconfig
+                mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+                subPath: elasticsearch.yml
+                readOnly: true
+              - name: esconfig
+                mountPath: /usr/share/elasticsearch/config/jvm.options
+                subPath: jvm.options
+                readOnly: true
+
+      - name: aggregate
+        container:
+          image: "{{workflow.parameters.driverImage}}"
           imagePullPolicy: "Always"
           env:
-            - name: ES_JAVA_OPTS
-              value: >-
-                -Xms{{workflow.parameters.esJvmMemory}}
-                -Xmx{{workflow.parameters.esJvmMemory}}
-            - name: ES_SHARDS
-              value: "{{inputs.parameters.shards}}"
-          ports:
-            - name: jmx
-              containerport: 8097
-              protocol: TCP
-          volumeMounts:
-            - name: esdata
-              mountPath: /usr/share/elasticsearch/data
-              readOnly: false
-            - name: esconfig
-              mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
-              subPath: elasticsearch.yml
-              readOnly: true
-            - name: esconfig
-              mountPath: /usr/share/elasticsearch/config/jvm.options
-              subPath: jvm.options
-              readOnly: true
-
-    - name: aggregate
-      container:
-        image: "{{workflow.parameters.driverImage}}"
-        imagePullPolicy: "Always"
-        env:
-          - name: AWS_ACCESS_KEY_ID
-            value: "{{workflow.parameters.awsAccessKeyId}}"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "{{workflow.parameters.awsSecretAccessKey}}"
-        args:
-          - com.klibisz.elastiknn.benchmarks.Aggregate
-          - --bucket
-          - elastiknn-benchmarks
-          - --resultsPrefix
-          - results/raw
-          - --aggregateKey
-          - results/aggregate.csv
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Aggregate
+            - --bucket
+            - elastiknn-benchmarks
+            - --resultsPrefix
+            - results/raw
+            - --aggregateKey
+            - results/aggregate.csv

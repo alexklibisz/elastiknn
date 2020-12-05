@@ -11,8 +11,15 @@ object LocalBenchmark extends App {
   private val k = 100
 
   private val experiments =
-    Seq(1, 2, 4, 6, 8).flatMap { shards =>
+//    Seq(1, 2, 4, 8)
+    Seq(8).flatMap { shards =>
       Seq(
+        Experiment(
+          Dataset.AnnbFashionMnist,
+          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+          Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
+          shards = shards
+        ),
         Experiment(
           Dataset.AnnbFashionMnist,
           Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 50, 4, 7),
@@ -41,9 +48,7 @@ object LocalBenchmark extends App {
             datasetsPrefix = "data/processed",
             resultsPrefix = "results",
             bucket = bucket,
-            s3Url = Some(s3Url),
-            minWarmupRounds = 5,
-            maxWarmupRounds = 5
+            s3Url = Some(s3Url)
           ))
       } yield ()
     }
