@@ -81,7 +81,6 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
     knn = NearestNeighbors(n_neighbors=100, algorithm='brute', metric=metric)
     knn.fit(train)
     (distances, _) = knn.kneighbors(test, return_distance=True)
-    distances = 1 / (1 + distances)
 
     def write(iter_arr, fp):
         for arr in iter_arr:

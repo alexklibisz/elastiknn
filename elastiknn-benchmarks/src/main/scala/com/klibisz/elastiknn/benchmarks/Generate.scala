@@ -80,17 +80,15 @@ object Generate extends App {
         tables <- Seq(50, 75, 100)
         hashesPerTable <- Seq(2, 3, 4)
         width <- 5 to 8
-      } yield {
-        val queries = for {
-          candidates <- Seq(1000, 5000)
-          probes <- Seq(0, 3, 6, 9)
-        } yield NearestNeighborsQuery.L2Lsh(vecName, candidates, probes)
+      } yield
         Experiment(
           dataset,
           Mapping.L2Lsh(dataset.dims, L = tables, k = hashesPerTable, w = width),
-          queries.map(q => Query(q, 100))
+          for {
+            candidates <- Seq(1000, 5000)
+            probes <- Seq(0, 3, 6, 9)
+          } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
         )
-      }
       exact ++ lsh // ++ exact.map(parallelize) ++ lsh.map(parallelize)
 
 //    case Dataset.AnnbSift =>

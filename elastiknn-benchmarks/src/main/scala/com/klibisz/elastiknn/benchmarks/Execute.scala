@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.benchmarks
 import java.net.URI
 
 import com.amazonaws.services.s3.AmazonS3
+import com.klibisz.elastiknn.api.Similarity
 import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.parser._
 import zio._
@@ -111,12 +112,19 @@ object Execute extends App {
       (dur, results) <- resultsStream.runCollect.timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
     } yield {
+      // Same method for computing recall as ann-benchmarks.
+      // https://github.com/erikbern/ann-benchmarks/blob/master/ann_benchmarks/plotting/metrics.py#L13
+      def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
+        case Similarity.L2 => dists.map(d => 1 / (1 + d)).min - 5e-3
+        case _             => ???
+      }
+
       val recalls = results
         .zip(distances)
         .map {
           case (res, dists) =>
-            val lowerBound = dists.min
-            val gteq = res.scores.count(_ >= lowerBound)
+            val lb = lowerBound(dists)
+            val gteq = res.scores.count(_ >= lb)
             gteq * 1f / res.scores.length
         }
 
