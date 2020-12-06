@@ -1,7 +1,7 @@
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
-  generateName: quickstart-
+  name: quickstart
 spec:
   version: 7.9.3
   image: 788008650827.dkr.ecr.us-east-1.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn

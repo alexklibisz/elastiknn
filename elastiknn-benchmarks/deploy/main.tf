@@ -287,6 +287,7 @@ resource "helm_release" "argo-workflows" {
     }
 }
 
+# Bind the argo-workflows role to the default service account.
 resource "kubernetes_role_binding" "argo-workflows" {
     depends_on = [null_resource.kubectl_config_provisioner]
     metadata {
@@ -305,6 +306,26 @@ resource "kubernetes_role_binding" "argo-workflows" {
     }
 }
 
+# Bind the elastic-operator-edit role to the default service account.
+resource "kubernetes_role_binding" "elastic-operator-edit-default" {
+    depends_on = [null_resource.elastic_operator_provisioner]
+    metadata {
+        name = "elastic-operator-edit-default"
+        namespace = local.k8s_default_namespace
+    }
+    role_ref {
+        api_group = "rbac.authorization.k8s.io"
+        kind = "ClusterRole"
+        name = "elastic-operator-edit"
+    }
+    subject {
+        kind = "ServiceAccount"
+        name = "default"
+        namespace = local.k8s_default_namespace
+    }
+}
+
+
 /*
  * Storage class for optimized IO.
  */
@@ -321,6 +342,18 @@ resource "kubernetes_storage_class" "storage-10-iops" {
     }
     // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
     volume_binding_mode = "WaitForFirstConsumer"
+}
+
+resource "null_resource" "elastic_operator_provisioner" {
+    depends_on = [null_resource.kubectl_config_provisioner]
+    triggers = {
+        kubectl_config = module.eks.kubeconfig
+    }
+    provisioner "local-exec" {
+        command = <<EOT
+        kubectl apply -f https://download.elastic.co/downloads/eck/1.3.0/all-in-one.yaml
+        EOT
+    }
 }
 
 /*

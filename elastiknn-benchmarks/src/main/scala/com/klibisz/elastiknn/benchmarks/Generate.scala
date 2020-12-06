@@ -46,14 +46,6 @@ object Generate extends App {
       .required()
   }
 
-  private case class ArgoBenchmarkStepParams(experimentKey: String,
-                                             esClusterName: String,
-                                             esNodeCount: Int,
-                                             esCoreCountPerNode: Int,
-                                             esMemGB: Int,
-                                             driverCoreCount: Int)
-  private implicit val encoder: Encoder[ArgoBenchmarkStepParams] = semiauto.deriveEncoder[ArgoBenchmarkStepParams]
-
   private val vecName: String = "vec"
 
   /**
@@ -86,7 +78,7 @@ object Generate extends App {
           shards = s
         )
       (exact ++ lsh).flatMap { exp =>
-        Seq(exp, exp.copy(shards = 3, replicas = 2, esNodes = 3, esCoresPerNode = 3, esMemoryGb = 4, parallelQueries = 10))
+        Seq(exp, exp.copy(esNodes = 3, shards = 3, replicas = 2, esCoresPerNode = 3, esMemoryGb = 4, parallelQueries = 10))
       }
 
     case Dataset.AnnbSift =>
@@ -142,6 +134,14 @@ object Generate extends App {
     case _ => Seq.empty
   }
 
+  private case class ArgoBenchmarkStepParams(experimentKey: String,
+                                             esClusterName: String,
+                                             esNodeCount: Int,
+                                             esCoreCountPerNode: Int,
+                                             esMemGB: Int,
+                                             driverCoreCount: Int)
+  private implicit val encoder: Encoder[ArgoBenchmarkStepParams] = semiauto.deriveEncoder[ArgoBenchmarkStepParams]
+
   override def run(args: List[String]): URIO[Console, ExitCode] = parser.parse(args, Params()) match {
     case Some(params) =>
       import params._
@@ -156,7 +156,8 @@ object Generate extends App {
             val body = exp.asJson.noSpaces
             val hash = exp.md5sum.toLowerCase
             val key = s"$experimentsPrefix/$hash"
-            val output = ArgoBenchmarkStepParams(key, hash, esNodes, esCoresPerNode, esMemoryGb, math.max(parallelQueries / 2, 1))
+            val esClusterName = s"es${outputs.length}-${hash.take(6)}"
+            val output = ArgoBenchmarkStepParams(key, esClusterName, esNodes, esCoresPerNode, esMemoryGb, math.max(parallelQueries / 3, 1))
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
             (outputs :+ output, effects :+ effect)
         }

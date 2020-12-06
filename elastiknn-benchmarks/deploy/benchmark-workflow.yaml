@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
-  generateName: benchmark-
+  name: benchmark
 spec:
   schedule: "* * 31 2 *"
   workflowSpec:
@@ -9,15 +9,19 @@ spec:
     arguments:
       parameters:
         - name: driverImage
+          value: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
         - name: elastiknnImage
+          value: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
         - name: bucket
           value: elastiknn-benchmarks
         # TODO: setup auth to just use an IAM role.
         - name: awsAccessKeyId
+          value: ${AWS_ACCESS_KEY_ID}
         - name: awsSecretAccessKey
+          value: ${AWS_SECRET_ACCESS_KEY}
     templates:
       - name: main
-        parallelism: 40
+        parallelism: 1
         steps:
           - - name: generate
               template: generate
@@ -37,7 +41,7 @@ spec:
                   - name: esMemGB
                     value: "{{item.esMemGB}}"
                   - name: driverCoreCount
-                    valeu: "{{item.driverCoreCount}}"
+                    value: "{{item.driverCoreCount}}"
           - - name: aggregate
               template: aggregate
 
@@ -75,17 +79,32 @@ spec:
             - name: esMemGB               # Memory per ES pod.
             - name: driverCoreCount       # Cores for the driver pod.
         steps:
-          - name: benchmark-create-es-cluster
-            template: benchmark-create-es-cluster
-            arguments:
-              parameters:
-                - esNodeCount
+          - - name: benchmark-create-es-cluster
+              template: benchmark-create-es-cluster
+              arguments:
+                parameters:
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
+                  - name: esNodeCount
+                    value: "{{inputs.parameters.esNodeCount}}"
+                  - name: esCoreCountPerNode
+                    value: "{{inputs.parameters.esCoreCountPerNode}}"
+                  - name: esMemGB
+                    value: "{{inputs.parameters.esMemGB}}"
+          - - name: benchmark-run
+              template: benchmark-run
+          - - name: benchmark-delete-es-cluster
+              template: benchmark-delete-es-cluster
+              arguments:
+                parameters:
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
 
       - name: benchmark-create-es-cluster
         inputs:
           parameters:
-            - name: esNodeCount
             - name: esClusterName
+            - name: esNodeCount
             - name: esCoreCountPerNode
             - name: esMemGB
         resource:
@@ -94,19 +113,19 @@ spec:
             apiVersion: elasticsearch.k8s.elastic.co/v1
             kind: Elasticsearch
             metadata:
-              name: {{inputs.parameters.esClusterName}}
+              name: "{{inputs.parameters.esClusterName}}"
             spec:
               version: 7.9.3
-              image: {{workflow.parameters.elastiknnImage}}
+              image: "{{workflow.parameters.elastiknnImage}}"
               http:
-                  tls:
-                    selfSignedCertificate:
-                      disabled: true
+                tls:
+                  selfSignedCertificate:
+                    disabled: true
               nodeSets:
               - name: default
                 count: {{inputs.parameters.esNodeCount}}
                 config:
-                  thread_pool.search.size: {{inputs.parameters.esCoreCountPerNode}}
+                  thread_pool.search.size: "{{inputs.parameters.esCoreCountPerNode}}"
                   xpack.security.authc:
                     anonymous:
                       username: anonymous
@@ -145,109 +164,33 @@ spec:
                               -XX:InitiatingHeapOccupancyPercent=30
                         resources:
                           requests:
-                            cpu: {{inputs.parameters.esNodeCount}}
-                            memory: {{inputs.parameters.esMemGB}}Gi
+                            cpu: "{{inputs.parameters.esNodeCount}}"
+                            memory: "{{inputs.parameters.esMemGB}}Gi"
                           limits:
-                            cpu: {{inputs.parameters.esNodeCount}}
-                            memory: {{inputs.parameters.esMemGB}}Gi
+                            cpu: "{{inputs.parameters.esNodeCount}}"
+                            memory: "{{inputs.parameters.esMemGB}}Gi"
+
+      - name: benchmark-run
+        container:
+          image: busybox
+          command: [ sleep ]
+          args: [ "99" ]
+          resources: # limit the resources
+            limits:
+              memory: 32Mi
+              cpu: 100m
 
       - name: benchmark-delete-es-cluster
-
-      - name: execute
         inputs:
           parameters:
-            - name: experimentKey
-            - name: shards
-        retryStrategy:
-          limit: 2
-          retryPolicy: "Always"
-        volumes:
-          - name: esdata
-            emptyDir:
-              medium: Memory
-          - name: esconfig
-            configMap:
-              name: esconfig
-        # Sets the correct permissions for mounted volume.
-        securityContext:
-          fsGroup: 1000
-        # Needed because you can't use parameters in the resources context for some reason.
-        podSpecPatch: |
-          containers:
-            - name: elastiknn
-              resources:
-                requests:
-                  cpu: "{{inputs.parameters.shards}}"
-                  memory: "{{workflow.parameters.esTotalMemory}}"
-                limits:
-                  cpu: "{{inputs.parameters.shards}}"
-                  memory: "{{workflow.parameters.esTotalMemory}}"
-        container:
-          image: "{{workflow.parameters.driverImage}}"
-          imagePullPolicy: "Always"
-          args:
-            - com.klibisz.elastiknn.benchmarks.Execute
-            - --experimentKey
-            - "{{inputs.parameters.experimentKey}}"
-            - --datasetsPrefix
-            - "data/processed"
-            - --resultsPrefix
-            - "results/raw"
-            - --bucket
-            - "{{workflow.parameters.bucket}}"
-            - --numQueries
-            - "10000"
-            - --warmupQueries
-            - "200"
-            - --minWarmupRounds
-            - "15"
-            - --maxWarmupRounds
-            - "100"
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              value: "{{workflow.parameters.awsAccessKeyId}}"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "{{workflow.parameters.awsSecretAccessKey}}"
-            - name: JAVA_OPTS
-              value: >-
-                -XX:MinRAMPercentage=10
-                -XX:MaxRAMPercentage=90
-                -XX:+HeapDumpOnOutOfMemoryError
-                -XX:+ExitOnOutOfMemoryError
-          resources:
-            requests:
-              cpu: 1
-              memory: 2G
-            limits:
-              cpu: 1
-              memory: 2G
-        sidecars:
-          - name: elastiknn
-            image: "{{workflow.parameters.elastiknnImage}}"
-            imagePullPolicy: "Always"
-            env:
-              - name: ES_JAVA_OPTS
-                value: >-
-                  -Xms{{workflow.parameters.esJvmMemory}}
-                  -Xmx{{workflow.parameters.esJvmMemory}}
-              - name: ES_SHARDS
-                value: "{{inputs.parameters.shards}}"
-            ports:
-              - name: jmx
-                containerport: 8097
-                protocol: TCP
-            volumeMounts:
-              - name: esdata
-                mountPath: /usr/share/elasticsearch/data
-                readOnly: false
-              - name: esconfig
-                mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
-                subPath: elasticsearch.yml
-                readOnly: true
-              - name: esconfig
-                mountPath: /usr/share/elasticsearch/config/jvm.options
-                subPath: jvm.options
-                readOnly: true
+            - name: esClusterName
+        resource:
+          action: delete
+          manifest: |
+            kind: Elasticsearch
+            apiVersion: elasticsearch.k8s.elastic.co/v1
+            metadata:
+              name: "{{inputs.parameters.esClusterName}}"
 
       - name: aggregate
         container:
@@ -266,3 +209,100 @@ spec:
             - results/raw
             - --aggregateKey
             - results/aggregate.csv
+
+
+#      - name: execute
+#        inputs:
+#          parameters:
+#            - name: experimentKey
+#            - name: shards
+#        retryStrategy:
+#          limit: 2
+#          retryPolicy: "Always"
+#        volumes:
+#          - name: esdata
+#            emptyDir:
+#              medium: Memory
+#          - name: esconfig
+#            configMap:
+#              name: esconfig
+#        # Sets the correct permissions for mounted volume.
+#        securityContext:
+#          fsGroup: 1000
+#        # Needed because you can't use parameters in the resources context for some reason.
+#        podSpecPatch: |
+#          containers:
+#            - name: elastiknn
+#              resources:
+#                requests:
+#                  cpu: "{{inputs.parameters.shards}}"
+#                  memory: "{{workflow.parameters.esTotalMemory}}"
+#                limits:
+#                  cpu: "{{inputs.parameters.shards}}"
+#                  memory: "{{workflow.parameters.esTotalMemory}}"
+#        container:
+#          image: "{{workflow.parameters.driverImage}}"
+#          imagePullPolicy: "Always"
+#          args:
+#            - com.klibisz.elastiknn.benchmarks.Execute
+#            - --experimentKey
+#            - "{{inputs.parameters.experimentKey}}"
+#            - --datasetsPrefix
+#            - "data/processed"
+#            - --resultsPrefix
+#            - "results/raw"
+#            - --bucket
+#            - "{{workflow.parameters.bucket}}"
+#            - --numQueries
+#            - "10000"
+#            - --warmupQueries
+#            - "200"
+#            - --minWarmupRounds
+#            - "15"
+#            - --maxWarmupRounds
+#            - "100"
+#          env:
+#            - name: AWS_ACCESS_KEY_ID
+#              value: "{{workflow.parameters.awsAccessKeyId}}"
+#            - name: AWS_SECRET_ACCESS_KEY
+#              value: "{{workflow.parameters.awsSecretAccessKey}}"
+#            - name: JAVA_OPTS
+#              value: >-
+#                -XX:MinRAMPercentage=10
+#                -XX:MaxRAMPercentage=90
+#                -XX:+HeapDumpOnOutOfMemoryError
+#                -XX:+ExitOnOutOfMemoryError
+#          resources:
+#            requests:
+#              cpu: 1
+#              memory: 2G
+#            limits:
+#              cpu: 1
+#              memory: 2G
+#        sidecars:
+#          - name: elastiknn
+#            image: "{{workflow.parameters.elastiknnImage}}"
+#            imagePullPolicy: "Always"
+#            env:
+#              - name: ES_JAVA_OPTS
+#                value: >-
+#                  -Xms{{workflow.parameters.esJvmMemory}}
+#                  -Xmx{{workflow.parameters.esJvmMemory}}
+#              - name: ES_SHARDS
+#                value: "{{inputs.parameters.shards}}"
+#            ports:
+#              - name: jmx
+#                containerport: 8097
+#                protocol: TCP
+#            volumeMounts:
+#              - name: esdata
+#                mountPath: /usr/share/elasticsearch/data
+#                readOnly: false
+#              - name: esconfig
+#                mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+#                subPath: elasticsearch.yml
+#                readOnly: true
+#              - name: esconfig
+#                mountPath: /usr/share/elasticsearch/config/jvm.options
+#                subPath: jvm.options
+#                readOnly: true

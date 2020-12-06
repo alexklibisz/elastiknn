@@ -11,8 +11,7 @@ object LocalBenchmark extends App {
   private val k = 100
 
   private val experiments =
-//    Seq(1, 2, 4, 8)
-    Seq(8).flatMap { shards =>
+    Seq(1, 4).flatMap { shards =>
       Seq(
         Experiment(
           Dataset.AnnbFashionMnist,

@@ -74,7 +74,9 @@ package object benchmarks {
                                    maxWarmupRounds: Int,
                                    recall: Float,
                                    queriesPerSecond: Float,
-                                   durationMillis: Long)
+                                   durationMillis: Long) {
+    lazy val md5sum: String = DigestUtils.md5Hex(codecs.resultCodec(this).noSpaces).toLowerCase
+  }
 
   object codecs {
     import ElasticsearchCodec._

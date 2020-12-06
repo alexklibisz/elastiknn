@@ -79,6 +79,7 @@ object Execute extends App {
   private def warmup(experiment: Experiment, query: Query) = {
     import experiment._
     for {
+      _ <- log.info(s"Starting warmup")
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
       datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
       warmupQueries <- datasetClient.streamTest(experiment.dataset).take(experiment.warmupQueries).map(query.nnq.withVec).runCollect
@@ -95,6 +96,7 @@ object Execute extends App {
             _ <- log.info(s"Completed warmup [$round] of [$maxWarmupRounds] in [${dur.toMillis}] ms")
           } yield (round + 1, dd :+ dur.toMillis)
       }
+      _ <- log.info(s"Completed warmup")
     } yield ()
   }
 
@@ -143,7 +145,7 @@ object Execute extends App {
     for {
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
       missingQueries <- ZIO.foldLeft(experiment.queries)(Vector.empty[Query]) {
-        case (acc, query) => resultsClient.find(experiment, query).map(_.fold(acc)(_ => acc :+ query))
+        case (acc, query) => resultsClient.find(experiment, query).map(_.fold(acc :+ query)(_ => acc))
       }
       _ <- if (missingQueries.isEmpty) ZIO.succeed(()) else index(experiment)
       _ <- ZIO.foreach(missingQueries) { query =>
