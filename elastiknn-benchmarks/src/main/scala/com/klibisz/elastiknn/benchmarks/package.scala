@@ -55,6 +55,23 @@ package object benchmarks {
                               minWarmupRounds: Int = 10,
                               maxWarmupRounds: Int = 10) {
     def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
+
+    override def toString: String =
+      s"""
+        |Experiment(
+        | dataset = ${dataset},
+        | mapping = ${mapping},
+        | queries = ${queries},
+        | shards = ${shards}
+        | replicas = ${replicas}
+        | parallelQueries = ${parallelQueries}
+        | esNodes = ${esNodes}
+        | esCoresPerNode = ${esCoresPerNode}
+        | esMemoryGb = ${esMemoryGb}
+        | warmupQueries = ${warmupQueries}
+        | minWarmupRounds = ${minWarmupRounds}
+        | maxWarmupRounds = ${maxWarmupRounds}
+        |)""".stripMargin
   }
 
   final case class BenchmarkResult(dataset: Dataset,

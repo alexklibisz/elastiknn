@@ -21,7 +21,7 @@ spec:
           value: ${AWS_SECRET_ACCESS_KEY}
     templates:
       - name: main
-        parallelism: 1
+        parallelism: 5
         steps:
           - - name: generate
               template: generate
@@ -93,6 +93,14 @@ spec:
                     value: "{{inputs.parameters.esMemGB}}"
           - - name: benchmark-run
               template: benchmark-run
+              arguments:
+                parameters:
+                  - name: experimentKey
+                    value: "{{inputs.parameters.experimentKey}}"
+                  - name: driverCoreCount
+                    value: "{{inputs.parameters.driverCoreCount}}"
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
           - - name: benchmark-delete-es-cluster
               template: benchmark-delete-es-cluster
               arguments:
@@ -171,14 +179,50 @@ spec:
                             memory: "{{inputs.parameters.esMemGB}}Gi"
 
       - name: benchmark-run
+        inputs:
+          parameters:
+            - name: experimentKey
+            - name: esClusterName
+            - name: driverCoreCount
+        podSpecPatch: |
+          containers:
+            - name: main
+              resources:
+                requests:
+                  cpu: {{inputs.parameters.driverCoreCount}}
+                  memory: 2Gi
+                limits:
+                  cpu: {{inputs.parameters.driverCoreCount}}
+                  memory: 3Gi
+        retryStrategy:
+          limit: 2
+          retryPolicy: "Always"
         container:
-          image: busybox
-          command: [ sleep ]
-          args: [ "99" ]
-          resources: # limit the resources
-            limits:
-              memory: 32Mi
-              cpu: 100m
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Execute
+            - --experimentKey
+            - "{{inputs.parameters.experimentKey}}"
+            - --datasetsPrefix
+            - "data/processed"
+            - --resultsPrefix
+            - "results/raw"
+            - --bucket
+            - "{{workflow.parameters.bucket}}"
+            - --esUrl
+            - "http://{{inputs.parameters.esClusterName}}-es-http.default.svc.cluster.local:9200"
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+            - name: JAVA_OPTS
+              value: >-
+                -XX:MinRAMPercentage=10
+                -XX:MaxRAMPercentage=90
+                -XX:+HeapDumpOnOutOfMemoryError
+                -XX:+ExitOnOutOfMemoryError
 
       - name: benchmark-delete-es-cluster
         inputs:
@@ -209,7 +253,6 @@ spec:
             - results/raw
             - --aggregateKey
             - results/aggregate.csv
-
 
 #      - name: execute
 #        inputs:

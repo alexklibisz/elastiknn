@@ -11,24 +11,19 @@ tasks:
 
   foo: echo {{ .ECR_PREFIX }}
 
-  assemble:
-    cmds:
-      # TODO: why doesn't dir: {{ .PROJECT_ROOT }} work here?
-      - cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} assemble :benchmarks:shadowJar
-
   imgs:driver:push:
     deps:
       - ecr-login
-      - assemble
     cmds:
+      - "cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} :benchmarks:shadowJar"
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.driver .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.driver
 
   imgs:elastiknn:push:
     deps:
       - ecr-login
-      - assemble
     cmds:
+      - "cd {{ .PROJECT_ROOT }} && {{ .CMD_GRADLE }} :plugin:assemble"
       - cd {{ .PROJECT_ROOT }}/elastiknn-plugin && docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.elastiknn
 
@@ -36,16 +31,15 @@ tasks:
     dir: python
     deps:
       - ecr-login
-      - assemble
     cmds:
       - docker build -t {{ .ECR_BENCHMARKS_PREFIX }}.datasets .
       - docker push {{ .ECR_BENCHMARKS_PREFIX }}.datasets
 
   imgs:push:
-    deps:
-      - imgs:driver:push
-      - imgs:elastiknn:push
-      - imgs:datasets:push
+    cmds:
+      - task: imgs:driver:push
+      - task: imgs:elastiknn:push
+      - task: imgs:datasets:push
 
   argo:datasets:run:
     dir: deploy
@@ -60,7 +54,11 @@ tasks:
       - imgs:driver:push
       - imgs:elastiknn:push
     cmds:
-      - envsubst < templates/benchmark-workflow-params.yaml > /tmp/params.yaml
-      - argo submit benchmark-workflow.yaml --parameter-file /tmp/params.yaml
+      - argo lint benchmark-cronworkflow.yaml
+      - envsubst < benchmark-cronworkflow.yaml | kubectl apply -f -
+      - argo submit --from=CronWorkflow/benchmark --watch
 
-  argo:delete: argo delete --all
+  argo:delete:
+    cmds:
+      - argo delete --all
+      - kubectl delete elasticsearch --all

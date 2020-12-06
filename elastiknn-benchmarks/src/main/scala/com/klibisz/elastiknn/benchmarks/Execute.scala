@@ -79,7 +79,7 @@ object Execute extends App {
   private def warmup(experiment: Experiment, query: Query) = {
     import experiment._
     for {
-      _ <- log.info(s"Starting warmup")
+      _ <- log.info(s"Starting warmup for query [$query]")
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
       datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
       warmupQueries <- datasetClient.streamTest(experiment.dataset).take(experiment.warmupQueries).map(query.nnq.withVec).runCollect
@@ -102,6 +102,7 @@ object Execute extends App {
 
   private def search(experiment: Experiment, query: Query) =
     for {
+      _ <- log.info(s"Starting query [${query}]")
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
       datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
       distances <- datasetClient.streamDistances(experiment.dataset).runCollect
@@ -143,6 +144,7 @@ object Execute extends App {
 
   private def run(experiment: Experiment) =
     for {
+      _ <- log.info(s"Starting experiment [$experiment]")
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
       missingQueries <- ZIO.foldLeft(experiment.queries)(Vector.empty[Query]) {
         case (acc, query) => resultsClient.find(experiment, query).map(_.fold(acc :+ query)(_ => acc))
@@ -178,10 +180,9 @@ object Execute extends App {
       // Load the experiment.
       _ <- log.info(params.toString)
       experiment <- readExperiment(bucket, experimentKey)
-      _ <- log.info(s"Running experiment: $experiment")
 
       // Wait for cluster ready.
-      _ <- log.info("Waiting for cluster")
+      _ <- log.info(s"Waiting for cluster at [${esUrl}]")
       searchBackend <- ZIO.access[Has[SearchClient]](_.get)
       _ <- searchBackend.blockUntilReady()
 
