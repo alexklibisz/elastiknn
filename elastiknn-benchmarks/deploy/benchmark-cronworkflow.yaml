@@ -21,7 +21,7 @@ spec:
           value: ${AWS_SECRET_ACCESS_KEY}
     templates:
       - name: main
-        parallelism: 5
+        parallelism: 30
         steps:
           - - name: generate
               template: generate
@@ -197,6 +197,8 @@ spec:
         retryStrategy:
           limit: 2
           retryPolicy: "Always"
+        nodeSelector:
+          beta.kubernetes.io/instance-type: c5.4xlarge
         container:
           image: "{{workflow.parameters.driverImage}}"
           imagePullPolicy: "Always"

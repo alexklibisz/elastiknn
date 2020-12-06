@@ -43,7 +43,7 @@ object SearchClient {
 
             def blockUntilReady(): ZIO[Clock, Throwable, Unit] = {
               val check = clusterHealth.waitForStatus(HealthStatus.Yellow).timeout("90s")
-              val sched = Schedule.recurs(10) && Schedule.spaced(Duration(10, TimeUnit.SECONDS))
+              val sched = Schedule.recurs(20) && Schedule.spaced(Duration(10, TimeUnit.SECONDS))
               execute(check).retry(sched).map(_ => ())
             }
 

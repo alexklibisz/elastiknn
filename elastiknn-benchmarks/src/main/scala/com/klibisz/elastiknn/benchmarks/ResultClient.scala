@@ -14,7 +14,7 @@ import scala.collection.JavaConverters._
 
 trait ResultClient {
   def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]]
-  def save(result: BenchmarkResult): IO[Throwable, Unit]
+  def save(experiment: Experiment, query: Query, result: BenchmarkResult): IO[Throwable, Unit]
   def all(): Stream[Throwable, BenchmarkResult]
 }
 
@@ -22,12 +22,15 @@ object ResultClient {
 
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, Has[ResultClient]] = {
 
+    def keyGen(exp: Experiment, query: Query): String =
+      s"${keyPrefix}/${exp.copy(queries = Seq(query)).uuid}.json"
+
     ZLayer.fromServices[AmazonS3, Blocking.Service, ResultClient] {
       case (client, blocking) =>
         new ResultClient {
           override def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]] = {
             // This is a bit subtle. Use the given experiment with just this specific query to generate the key.
-            val key = s"${keyPrefix}/${experiment.copy(queries = Seq(query)).md5sum}.json"
+            val key = keyGen(experiment, query)
             for {
               ex <- blocking.effectBlocking(client.doesObjectExist(bucket, key))
               res: Option[BenchmarkResult] <- if (ex) {
@@ -39,8 +42,8 @@ object ResultClient {
             } yield res
           }
 
-          override def save(result: BenchmarkResult): IO[Throwable, Unit] = {
-            val key = s"${keyPrefix}/${result.md5sum}.json"
+          override def save(experiment: Experiment, query: Query, result: BenchmarkResult): IO[Throwable, Unit] = {
+            val key = keyGen(experiment, query)
             for {
               bucketExists <- blocking.effectBlocking(client.doesBucketExistV2(bucket))
               _ <- if (bucketExists) ZIO.succeed(()) else blocking.effectBlocking(client.createBucket(bucket))

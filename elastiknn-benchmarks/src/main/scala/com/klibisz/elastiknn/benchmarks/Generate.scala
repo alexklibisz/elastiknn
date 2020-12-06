@@ -56,13 +56,14 @@ object Generate extends App {
 
     case Dataset.AnnbMnist | Dataset.AnnbFashionMnist =>
       def parallelize(exp: Experiment): Experiment = {
-        val (esNodes, shards, replicas, esCoresPerNode, parallelQueries) = (3, 3, 2, 3, 10)
+        val (esNodes, shards, replicas, esCoresPerNode, parallelQueries) = (3, 3, 2, 3, 20)
         val queries = exp.queries.map {
           case Query(nnq: ApproximateQuery, k) => Query(nnq.withCandidates(nnq.candidates / shards), k)
           case query: Query                    => query
         }
         exp.copy(
           queries = queries,
+          shards = shards,
           esNodes = esNodes,
           replicas = replicas,
           esCoresPerNode = esCoresPerNode,
@@ -89,7 +90,8 @@ object Generate extends App {
             probes <- Seq(0, 3, 6, 9)
           } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
         )
-      exact ++ lsh // ++ exact.map(parallelize) ++ lsh.map(parallelize)
+
+      exact ++ lsh ++ exact.map(parallelize) ++ lsh.map(parallelize)
 
 //    case Dataset.AnnbSift =>
 //      val exact = Seq(
@@ -157,6 +159,31 @@ object Generate extends App {
       import params._
       val s3Client = S3Utils.client(s3Url)
       val experiments = gridsearch(Dataset.AnnbFashionMnist)
+//      val experiments = Seq(
+//        Experiment(
+//          Dataset.AnnbFashionMnist,
+//          Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 75, 4, 7),
+//          Seq(
+//            Query(NearestNeighborsQuery.L2Lsh("vec", 2000, 0), 100),
+//            Query(NearestNeighborsQuery.L2Lsh("vec", 2000, 3), 100)
+//          )
+//        ), {
+//          val (esNodes, shards, replicas, esCoresPerNode, parallelQueries) = (3, 3, 2, 3, 20)
+//          Experiment(
+//            Dataset.AnnbFashionMnist,
+//            Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 75, 4, 7),
+//            Seq(
+//              Query(NearestNeighborsQuery.L2Lsh("vec", 2000 / shards, 0), 100),
+//              Query(NearestNeighborsQuery.L2Lsh("vec", 2000 / shards, 3), 100)
+//            ),
+//            shards = shards,
+//            esNodes = esNodes,
+//            replicas = replicas,
+//            esCoresPerNode = esCoresPerNode,
+//            parallelQueries = parallelQueries
+//          )
+//        }
+//      )
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
@@ -164,9 +191,9 @@ object Generate extends App {
           case ((outputs, effects), exp) =>
             import exp._
             val body = exp.asJson.noSpaces
-            val hash = exp.md5sum.toLowerCase
-            val key = s"$experimentsPrefix/$hash"
-            val esClusterName = s"es${outputs.length}of${experiments.length}-${hash.take(6)}"
+            val hash = exp.uuid.toLowerCase
+            val key = s"$experimentsPrefix/$hash.json"
+            val esClusterName = s"es${outputs.length + 1}of${experiments.length}-${hash.take(6)}"
             val output = ArgoBenchmarkStepParams(key, esClusterName, esNodes, esCoresPerNode, esMemoryGb, math.max(parallelQueries / 3, 1))
             val effect = blocking.effectBlocking(s3Client.putObject(bucket, key, body))
             (outputs :+ output, effects :+ effect)

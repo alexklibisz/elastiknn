@@ -54,7 +54,7 @@ package object benchmarks {
                               warmupQueries: Int = 200,
                               minWarmupRounds: Int = 10,
                               maxWarmupRounds: Int = 10) {
-    def md5sum: String = DigestUtils.md5Hex(codecs.experimentCodec(this).noSpaces).toLowerCase
+    def uuid: String = DigestUtils.sha256Hex(this.hashCode.toString).toLowerCase
 
     override def toString: String =
       s"""

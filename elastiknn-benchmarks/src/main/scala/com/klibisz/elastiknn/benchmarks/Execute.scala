@@ -64,16 +64,20 @@ object Execute extends App {
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
+  implicit class ExperimentSyntax(exp: Experiment) {
+    def index: String = exp.copy(queries = Seq.empty).uuid
+  }
+
   private def index(experiment: Experiment) =
     for {
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
-      indexExists <- searchClient.indexExists(experiment.md5sum)
+      indexExists <- searchClient.indexExists(experiment.index)
       _ <- if (indexExists) ZIO.succeed(())
       else
         for {
           datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
           corpusStream = datasetClient.streamTrain(experiment.dataset)
-          _ <- searchClient.buildIndex(experiment.md5sum, experiment.mapping, experiment.shards, corpusStream)
+          _ <- searchClient.buildIndex(experiment.index, experiment.mapping, experiment.shards, corpusStream)
         } yield ()
     } yield ()
 
@@ -84,7 +88,7 @@ object Execute extends App {
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
       datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
       warmupQueries <- datasetClient.streamTest(experiment.dataset).take(experiment.warmupQueries).map(query.nnq.withVec).runCollect
-      warmupSearches = searchClient.search(experiment.md5sum, Stream.fromChunk(warmupQueries), query.k, 1)
+      warmupSearches = searchClient.search(experiment.index, Stream.fromChunk(warmupQueries), query.k, 1)
       _ <- ZIO.iterate((0, Vector.empty[Long])) {
         case (r, dd) =>
           r < minWarmupRounds || (r < maxWarmupRounds && ((dd.length < 2) || (dd.takeRight(2) != dd
@@ -108,14 +112,14 @@ object Execute extends App {
       datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
       distances <- datasetClient.streamDistances(experiment.dataset).runCollect
       queryStream = datasetClient.streamTest(experiment.dataset).map(query.nnq.withVec)
-      resultsStream = searchClient.search(experiment.md5sum, queryStream, query.k, experiment.parallelQueries)
+      resultsStream = searchClient.search(experiment.index, queryStream, query.k, experiment.parallelQueries)
       (dur, results) <- resultsStream.runCollect.timed
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
     } yield {
       // Same method for computing recall as ann-benchmarks.
       // https://github.com/erikbern/ann-benchmarks/blob/master/ann_benchmarks/plotting/metrics.py#L13
       def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
-        case Similarity.L2 => dists.map(d => 1 / (1 + d)).min - 5e-3
+        case Similarity.L2 => dists.map(d => 1 / (1 + d)).min
         case _             => ???
       }
 
@@ -154,14 +158,17 @@ object Execute extends App {
     for {
       _ <- log.info(s"Starting experiment [$experiment]")
       resultsClient <- ZIO.access[Has[ResultClient]](_.get)
+      searchClient <- ZIO.access[Has[SearchClient]](_.get)
       missingQueries <- ZIO.foldLeft(experiment.queries)(Vector.empty[Query]) {
         case (acc, query) => resultsClient.find(experiment, query).map(_.fold(acc :+ query)(_ => acc))
       }
-      _ <- if (missingQueries.isEmpty) ZIO.succeed(()) else index(experiment)
+      _ <- log.info(s"Found results for [${experiment.queries.length - missingQueries.length}] of [${experiment.queries.length}] queries.")
+      _ <- if (missingQueries.isEmpty) ZIO.succeed(())
+      else searchClient.blockUntilReady().flatMap(_ => index(experiment))
       _ <- ZIO.foreach(missingQueries) { query =>
         warmup(experiment, query)
           .flatMap(_ => search(experiment, query))
-          .flatMap(resultsClient.save)
+          .flatMap(resultsClient.save(experiment, query, _))
       }
     } yield ()
 
@@ -184,19 +191,9 @@ object Execute extends App {
         searchClientLayer
 
     val steps = for {
-
-      // Load the experiment.
       _ <- log.info(params.toString)
       experiment <- readExperiment(bucket, experimentKey)
-
-      // Wait for cluster ready.
-      _ <- log.info(s"Waiting for cluster at [${esUrl}]")
-      searchBackend <- ZIO.access[Has[SearchClient]](_.get)
-      _ <- searchBackend.blockUntilReady()
-
-      // Run the experiment.
       _ <- run(experiment)
-
     } yield ()
 
     steps.provideLayer(layer)
