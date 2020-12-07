@@ -58,18 +58,32 @@ def main():
         plt.grid(True, linestyle='--', linewidth=0.5)
 
         paretos = []
+        configs = []
 
-        for ((algo, k, shards), groupdf) in dsetdf.groupby(['algorithm', 'k', 'shards']):
+        for i, ((algo, k, parallelQueries, shards, replicas, esNodes, esCoresPerNode, esMemoryGb), groupdf) \
+            in enumerate(dsetdf.groupby(['algorithm', 'k', 'parallelQueries', 'shards', 'replicas', 'esNodes', 'esCoresPerNode', 'esMemoryGb'])):
+
+            label = f"Config {i}: {algo}, {'single node' if esNodes == 1 else 'cluster'}"
+            configs.append({
+                "Config": i,
+                "Algo": algo,
+                "Parallel queries": parallelQueries,
+                "Shards": shards,
+                "Replicas": replicas,
+                "Nodes": esNodes,
+                "Cores/Node": esCoresPerNode,
+                "Mem/Node": f"{esMemoryGb}GB"
+            })
+
             paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
-            label = f"{algo}, {k} neighbors, {shards} shards"
             color = next(colors)
-            marker = 'x' if algo == "Exact" else 'o'
+            mark = 'x' if algo == "Exact" else 'o'
             size = 20 if algo == "Exact" else 10
             plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
-            plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=marker)
+            plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=mark)
             paretos.append((label, paretodf))
 
-        plt.legend(loc='lower left')
+        plt.legend(loc='upper left')
 
         # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
         buf = BytesIO()
@@ -78,14 +92,18 @@ def main():
         buf.seek(0)
         print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
 
-        for (label, df) in paretos:
+        print(f"**Configurations**\n")
+        print(f"\n{pd.DataFrame(configs).to_markdown(index=False)}\n")
+
+        for ((label, df), config) in zip(paretos, configs):
             print(f"**{label}**\n")
+            # dfcfg = pd.DataFrame([config])
+            # print(f"{dfcfg.to_markdown(index=False)}\n")
             rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
-            df2 = df\
+            dfres = df\
                 .rename(index=str, columns=rename)\
-                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]\
-                .to_markdown(index=False)
-            print(f"{df2}\n")
+                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]
+            print(f"{dfres.to_markdown(index=False)}\n")
 
         print("---")
 
