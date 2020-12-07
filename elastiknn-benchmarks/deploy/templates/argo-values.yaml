@@ -1,5 +1,6 @@
 images:
-  tag: v2.11.7
+  namespace: ${imageNamespace}
+  tag: v${version}
   pullPolicy: IfNotPresent
 useDefaultArtifactRepo: true
 minio:

@@ -7,17 +7,9 @@
  * - https://www.terraform.io/docs/providers/helm/index.html
  */
 
-/*
- * Networking (VPC, subnets, availability zones).
- */
-variable "region" {
-    default = "us-east-1"
-    description = "AWS region"
-}
-
 provider "aws" {
     version = ">=2.28.1"
-    region = var.region
+    region = local.aws_region
 }
 
 # Access list of AWS availability zones in the provider's region.
@@ -27,12 +19,15 @@ data "aws_availability_zones" "available" {}
 data "aws_caller_identity" "current" {}
 
 locals {
+    aws_account_id = data.aws_caller_identity.current.account_id
+    aws_region = "us-east-1"
     project_name = "elastiknn-benchmarks"
     cluster_name = "${local.project_name}-cluster"
     k8s_service_account_namespace = "kube-system"
     k8s_default_namespace = "default"
     k8s_service_account_name = "cluster-service-account"
     benchmarks_bucket = "elastiknn-benchmarks"
+    argo_version = "2.11.7"
 }
 
 module "vpc" {
@@ -201,8 +196,8 @@ resource "null_resource" "kubectl_config_provisioner" {
     }
     provisioner "local-exec" {
         command = <<EOT
-        aws eks --region ${var.region} wait cluster-active --name ${local.cluster_name}
-        aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}
+        aws eks --region ${local.aws_region} wait cluster-active --name ${local.cluster_name}
+        aws eks --region ${local.aws_region} update-kubeconfig --name ${local.cluster_name}
         EOT
     }
 }
@@ -214,12 +209,11 @@ resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
     repository = "https://kubernetes.github.io/autoscaler"
-    # chart = "https://github.com/kubernetes/autoscaler/releases/download/cluster-autoscaler-chart-9.0.0/cluster-autoscaler-9.0.0.tgz"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
-            region = var.region,
+            region = local.aws_region,
             accountId = data.aws_caller_identity.current.account_id,
             clusterName = local.cluster_name,
             accountName = local.k8s_service_account_name
@@ -235,7 +229,10 @@ resource "helm_release" "node-termination-handler" {
     chart = "aws-node-termination-handler"
     repository = "https://aws.github.io/eks-charts"
     namespace = local.k8s_service_account_namespace
-    depends_on = [null_resource.kubectl_config_provisioner]
+    depends_on = [
+        null_resource.kubectl_config_provisioner,
+        aws_ecr_repository.external-argoexec
+    ]
     values = [
         templatefile("templates/node-termination-handler-values.yaml", {})
     ]
@@ -247,7 +244,7 @@ resource "helm_release" "node-termination-handler" {
  * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
 resource "kubernetes_cluster_role" "argo-workflows" {
-    depends_on = [null_resource.kubectl_config_provisioner]
+    depends_on = [null_resource.kubectl_config_provisioner, null_resource.push-external-images]
     metadata {
         name = "argo-workflows"
     }
@@ -275,9 +272,13 @@ resource "helm_release" "argo-workflows" {
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
-        templatefile("templates/argo-values.yaml", {})
+        templatefile("templates/argo-values.yaml", {
+            version = local.argo_version,
+            imageNamespace = "${local.aws_account_id}.dkr.ecr.us-east-1.amazonaws.com/argoproj"
+        })
     ]
     // Hacky way to copy the secret needed for using artifacts.
+    // TODO: is there a way to just enable this for all namespaces?
     provisioner "local-exec" {
         command = <<EOT
         kubectl -n ${local.k8s_service_account_namespace} wait --for=condition=ready --timeout=60s pod --all
@@ -371,6 +372,49 @@ resource "aws_ecr_repository" "datasets" {
     image_tag_mutability = "MUTABLE"
 }
 
+resource "aws_ecr_repository" "external-workflow-controller" {
+    name = "argoproj/workflow-controller"
+    image_tag_mutability = "IMMUTABLE"
+}
+
+resource "aws_ecr_repository" "external-argocli" {
+    name = "argoproj/argocli"
+    image_tag_mutability = "IMMUTABLE"
+}
+
+resource "aws_ecr_repository" "external-argoexec" {
+    name = "argoproj/argoexec"
+    image_tag_mutability = "IMMUTABLE"
+}
+
+/*
+ * Push some images into ECR repo to avoid hitting dockerhub pull limit.
+ */
+resource "null_resource" "push-external-images" {
+    depends_on = [
+        aws_ecr_repository.external-workflow-controller,
+        aws_ecr_repository.external-argocli,
+        aws_ecr_repository.external-argoexec
+    ]
+    provisioner "local-exec" {
+        command = <<EOT
+
+        docker pull argoproj/argoexec:v${local.argo_version}
+        docker tag argoproj/argoexec:v${local.argo_version} ${aws_ecr_repository.external-argoexec.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-argoexec.repository_url}:v${local.argo_version}
+
+        docker pull argoproj/workflow-controller:v${local.argo_version}
+        docker tag argoproj/workflow-controller:v${local.argo_version} ${aws_ecr_repository.external-workflow-controller.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-workflow-controller.repository_url}:v${local.argo_version}
+
+        docker pull argoproj/argocli:v${local.argo_version}
+        docker tag argoproj/argocli:v${local.argo_version} ${aws_ecr_repository.external-argocli.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-argocli.repository_url}:v${local.argo_version}
+
+        EOT
+    }
+}
+
 /*
  * Outputs from setup.
  */
@@ -402,11 +446,6 @@ output "cluster_security_group_id" {
 output "kubectl_config" {
     description = "kubectl config as generated by the module."
     value       = module.eks.kubeconfig
-}
-
-output "region" {
-    description = "AWS region"
-    value       = var.region
 }
 
 output "cluster_name" {
