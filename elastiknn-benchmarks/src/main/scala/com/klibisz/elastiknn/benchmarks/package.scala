@@ -54,6 +54,7 @@ package object benchmarks {
                               warmupQueries: Int = 200,
                               minWarmupRounds: Int = 10,
                               maxWarmupRounds: Int = 10) {
+
     def uuid: String = DigestUtils.sha256Hex(this.hashCode.toString).toLowerCase
 
     override def toString: String =

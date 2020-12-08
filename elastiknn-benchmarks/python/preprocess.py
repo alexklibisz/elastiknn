@@ -41,28 +41,27 @@ def write_vec(fp, vec: Vec.Base):
     fp.write(s)
 
 
-def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str,
-         scale_by_max: bool = False):
+def annb(name: str, hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str,
+         output_s3_prefix: str, scale_by_max: bool = False):
 
     s3 = boto3.client('s3')
     train_key = f"{output_s3_prefix}/train.json.gz"
     test_key = f"{output_s3_prefix}/test.json.gz"
     dist_key = f"{output_s3_prefix}/dist.json.gz"
 
-    if exists(s3, output_s3_bucket, train_key) \
-            and exists(s3, output_s3_bucket, test_key) \
-            and exists(s3, output_s3_bucket, dist_key):
-        return
+    # if exists(s3, output_s3_bucket, train_key) \
+    #         and exists(s3, output_s3_bucket, test_key) \
+    #         and exists(s3, output_s3_bucket, dist_key):
+    #     return
 
-    hdf5_file = f"{local_data_dir}/vecs.hdf5"
+    hdf5_file = f"{local_data_dir}/vecs-{name}.hdf5"
+    train_file = f"{local_data_dir}/train-{name}.json.gz"
+    test_file = f"{local_data_dir}/test-{name}.json.gz"
+    dist_file = f"{local_data_dir}/dist-{name}.json.gz"
 
     if not os.path.exists(hdf5_file):
         print(f"Downloading s3://{hdf5_s3_bucket}/{hdf5_s3_key} to {hdf5_file}")
         s3.download_file(Bucket=hdf5_s3_bucket, Key=hdf5_s3_key, Filename=hdf5_file)
-
-    train_file = f"{local_data_dir}/train.json.gz"
-    test_file = f"{local_data_dir}/test.json.gz"
-    dist_file = f"{local_data_dir}/distances.json.gz"
 
     hdf5_fp = h5py.File(hdf5_file, 'r')
     is_sparse = hdf5_fp['train'].dtype == bool
@@ -78,8 +77,7 @@ def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_b
     metric = hdf5_fp.attrs['distance']
     if metric == 'angular':
         metric = 'cosine'
-    knn = NearestNeighbors(n_neighbors=100, algorithm='brute', metric=metric)
-    knn.fit(train)
+    knn = NearestNeighbors(n_neighbors=100, algorithm='brute', metric=metric).fit(train)
     (distances, _) = knn.kneighbors(test, return_distance=True)
 
     def write(iter_arr, fp):
@@ -246,6 +244,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbdeep1b":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/deep-image-96-angular.hdf5",
             local_data_dir,
@@ -254,6 +253,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbfashionmnist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/fashion-mnist-784-euclidean.hdf5",
             local_data_dir,
@@ -263,6 +263,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbgist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/gist-960-euclidean.hdf5",
             local_data_dir,
@@ -271,6 +272,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbglove25":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/glove-25-angular.hdf5",
             local_data_dir,
@@ -279,6 +281,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbglove100":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/glove-100-angular.hdf5",
             local_data_dir,
@@ -287,6 +290,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbkosarak":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/kosarak-jaccard.hdf5",
             local_data_dir,
@@ -295,6 +299,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbmnist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/mnist-784-euclidean.hdf5",
             local_data_dir,
@@ -304,6 +309,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbnyt":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/nytimes-256-angular.hdf5",
             local_data_dir,
@@ -312,6 +318,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbsift":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/sift-128-euclidean.hdf5",
             local_data_dir,

@@ -65,7 +65,9 @@ object Execute extends App {
     } yield exp
 
   implicit class ExperimentSyntax(exp: Experiment) {
-    def index: String = exp.copy(queries = Seq.empty).uuid
+    // This index name is the UUID of the experiment with all properties which don't matter for indexing zeroed out.
+    val index: String =
+      exp.copy(queries = Seq.empty, minWarmupRounds = 0, maxWarmupRounds = 0, warmupQueries = 0, parallelQueries = 0).uuid
   }
 
   private def index(experiment: Experiment) =
@@ -117,7 +119,6 @@ object Execute extends App {
       _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
     } yield {
       // Same method for computing recall as ann-benchmarks.
-      // https://github.com/erikbern/ann-benchmarks/blob/master/ann_benchmarks/plotting/metrics.py#L13
       def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
         case Similarity.L2 => dists.map(d => 1 / (1 + d)).min
         case _             => ???
