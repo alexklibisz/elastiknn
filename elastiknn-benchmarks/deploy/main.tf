@@ -398,6 +398,7 @@ resource "null_resource" "push-external-images" {
     ]
     provisioner "local-exec" {
         command = <<EOT
+        $(aws ecr get-login --no-include-email)
 
         docker pull argoproj/argoexec:v${local.argo_version}
         docker tag argoproj/argoexec:v${local.argo_version} ${aws_ecr_repository.external-argoexec.repository_url}:v${local.argo_version}

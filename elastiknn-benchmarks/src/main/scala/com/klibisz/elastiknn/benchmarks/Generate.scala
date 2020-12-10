@@ -106,8 +106,8 @@ object Generate extends App {
           ))
         val lsh = for {
           tables <- Seq(50, 75, 100)
-          hashesPerTable <- Seq(2, 3, 4)
-          width <- Seq(1, 2, 3)
+          hashesPerTable <- Seq(3, 4)
+          width <- Seq(1, 2)
         } yield
           Experiment(
             dataset,
@@ -118,7 +118,7 @@ object Generate extends App {
             } yield Query(NearestNeighborsQuery.L2Lsh(vecName, candidates, probes), 100)
           )
         val par = parallelize(6, 2, 3, 6, 4, 20) _
-        lsh.map(par)
+        exact ++ exact.map(par) ++ lsh ++ lsh.map(par)
 
       //    case Dataset.AnnbGlove100 =>
       //      val exact = Seq(
@@ -164,7 +164,7 @@ object Generate extends App {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = gridsearch(Dataset.AnnbSift).take(4)
+      val experiments = gridsearch(Dataset.AnnbSift)
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)
