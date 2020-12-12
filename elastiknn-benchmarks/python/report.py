@@ -101,11 +101,11 @@ def main():
             plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
             plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=mark)
 
-        plt.legend(loc='upper left')
+        plt.legend(loc=(1.05, 0))
 
         # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
         buf = BytesIO()
-        plt.savefig(buf, format="svg")
+        plt.savefig(buf, format="svg", bbox_inches='tight')
         plt.clf()
         buf.seek(0)
         print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
