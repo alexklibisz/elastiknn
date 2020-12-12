@@ -112,19 +112,6 @@ def main():
 
         print(f"**Configurations**\n")
         print(f"\n{pd.DataFrame(configs).to_markdown(index=False)}\n")
-
-        # for ((label, df), config) in zip(paretos, configs):
-        #     print(f"**{label}**\n")
-        #     rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
-        #     dfres = df\
-        #         .rename(index=str, columns=rename)\
-        #         .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]
-        #     buf = BytesIO()
-        #     buf.write(dfres.to_csv(index=False).encode())
-        #     buf.seek(0)
-        #     dfstr = b64encode(buf.read()).decode()
-        #     print(f'<a href="data:text/plain;base64,{dfstr}" download="foo.csv">Download</a>\n')
-
         print("---")
 
 
