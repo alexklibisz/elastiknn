@@ -1,7 +1,5 @@
 .gradle
 build
-.mk/*
-!.mk/.keep
 target
 release.md
 *.csv

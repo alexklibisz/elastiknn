@@ -1,11 +1,13 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api._
-import org.scalatest.{Assertions, FunSuite, Matchers}
+import org.scalatest._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
 
-class L2LshSuite extends FunSuite with Matchers {
+class L2LshSuite extends AnyFunSuite with Matchers {
 
   implicit val rng = new Random(0)
 

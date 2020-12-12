@@ -2,9 +2,11 @@ package com.klibisz.elastiknn.api
 
 import io.circe
 import io.circe.{DecodingFailure, Json}
-import org.scalatest.{Assertion, FunSuite, Matchers}
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ElasticsearchCodecSuite extends FunSuite with Matchers {
+class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
 
   implicit class CodecMatcher(s: String) {
     def shouldDecodeTo[T: ElasticsearchCodec](obj: T): Assertion = {

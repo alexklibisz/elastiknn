@@ -1,2 +1,0 @@
-jupyter==1.0.0
--e ../../client-python/

@@ -6,11 +6,12 @@ import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.codecs.lucene86.Lucene86Codec
 import org.apache.lucene.document.Document
-import org.scalatest._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
 
-class MatchHashesAndScoreQueryPerformanceSuite extends FunSuite with Matchers with LuceneSupport {
+class MatchHashesAndScoreQueryPerformanceSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
 //  // Hacky way to give you some time for setting up the Profiler :)
 //  import java.nio.file.{Files, Path}
