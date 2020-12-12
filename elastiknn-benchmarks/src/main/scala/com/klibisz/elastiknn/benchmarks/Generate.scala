@@ -49,6 +49,8 @@ object Generate extends App {
 
   private val vecName: String = "vec"
 
+  def gridsearch(datasets: Dataset*): Seq[Experiment] = datasets.flatMap(gridsearch)
+
   /**
     * Returns reasonable Experiments for doing a gridsearch over parameters for the given dataset.
     */
@@ -120,33 +122,32 @@ object Generate extends App {
         val par = parallelize(6, 2, 3, 6, 4, 20) _
         exact ++ exact.map(par) ++ lsh ++ lsh.map(par)
 
-      //    case Dataset.AnnbGlove100 =>
-      //      val exact = Seq(
-      //        Experiment(dataset, Mapping.DenseFloat(dataset.dims), Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.Angular), 100)))
-      //      )
-      //      val projections = for {
-      //        tables <- Seq(50, 100, 125)
-      //        hashesPerTable <- Seq(6, 9)
-      //      } yield
-      //        Experiment(
-      //          dataset,
-      //          Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
-      //          for {
-      //            candidates <- Seq(1000, 5000)
-      //          } yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
-      //        )
-      //      val permutations = for {
-      //        k <- Seq(10, 25, 50, 75)
-      //        rep <- Seq(false)
-      //      } yield
-      //        Experiment(
-      //          dataset,
-      //          Mapping.PermutationLsh(dataset.dims, k, repeating = rep),
-      //          for {
-      //            candidates <- Seq(1000, 5000, 10000)
-      //          } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
-      //        )
-      //      exact ++ projections ++ permutations
+      case Dataset.AnnbGlove100 =>
+        val exact = Seq(
+          Experiment(dataset, Mapping.DenseFloat(dataset.dims), Seq(Query(NearestNeighborsQuery.Exact(vecName, Similarity.Angular), 100)))
+        )
+        val projections = for {
+          tables <- Seq(50, 100, 125)
+          hashesPerTable <- Seq(6, 9)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.AngularLsh(dataset.dims, tables, hashesPerTable),
+            for (candidates <- Seq(1000, 5000)) yield Query(NearestNeighborsQuery.AngularLsh(vecName, candidates), 100)
+          )
+        val permutations = for {
+          k <- Seq(10, 25, 50, 75)
+          rep <- Seq(false)
+        } yield
+          Experiment(
+            dataset,
+            Mapping.PermutationLsh(dataset.dims, k, repeating = rep),
+            for {
+              candidates <- Seq(1000, 5000, 10000)
+            } yield Query(NearestNeighborsQuery.PermutationLsh(vecName, Similarity.Angular, candidates), 100)
+          )
+        val par = parallelize(6, 2, 3, 6, 4, 20) _
+        exact ++ projections ++ permutations ++ exact.map(par) ++ projections.map(par) ++ permutations.map(par)
 
       case _ => Seq.empty
     }
@@ -164,7 +165,7 @@ object Generate extends App {
     case Some(params) =>
       import params._
       val s3Client = S3Utils.client(s3Url)
-      val experiments = gridsearch(Dataset.AnnbSift)
+      val experiments = gridsearch(Dataset.AnnbGlove100, Dataset.AnnbSift, Dataset.AnnbFashionMnist)
       val logic: ZIO[Console with Blocking, Throwable, Unit] = for {
         _ <- putStrLn(s"Saving ${experiments.length} experiments to S3")
         blocking <- ZIO.access[Blocking](_.get)

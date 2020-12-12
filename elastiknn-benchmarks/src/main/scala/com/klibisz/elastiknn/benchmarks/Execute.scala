@@ -120,8 +120,9 @@ object Execute extends App {
     } yield {
       // Same method for computing recall as ann-benchmarks.
       def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
-        case Similarity.L2 => dists.map(d => 1 / (1 + d)).min
-        case _             => ???
+        case Similarity.L2      => dists.map(d => 1 / (1 + d)).min
+        case Similarity.Angular => dists.map(2 - _).min
+        case _                  => Double.MaxValue
       }
 
       val recalls = results

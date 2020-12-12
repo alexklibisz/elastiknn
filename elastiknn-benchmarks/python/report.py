@@ -11,6 +11,7 @@ import json
 import pandas as pd
 from sys import argv
 from io import BytesIO
+from base64 import b64encode
 import matplotlib.pyplot as plt
 from pareto import eps_sort
 
@@ -57,31 +58,48 @@ def main():
         plt.xlim(0, 1.05)
         plt.grid(True, linestyle='--', linewidth=0.5)
 
-        paretos = []
         configs = []
 
         for i, ((algo, k, parallelQueries, shards, replicas, esNodes, esCoresPerNode, esMemoryGb), groupdf) \
             in enumerate(dsetdf.groupby(['algorithm', 'k', 'parallelQueries', 'shards', 'replicas', 'esNodes', 'esCoresPerNode', 'esMemoryGb'])):
 
             label = f"Config {i}: {algo}, {'single node' if esNodes == 1 else 'cluster'}"
+
+            # Compute the pareto table.
+            paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
+
+            # Encode it as a downloadable CSV.
+            fname = f"elastiknn-{dataset}-config{i}-{algo}-{'single-node' if esNodes == 1 else 'cluster'}.csv".replace(' ', '-').lower()
+            rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
+            paretostr = paretodf \
+                .rename(index=str, columns=rename) \
+                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())] \
+                .to_csv(index=False)
+            buf = BytesIO()
+            buf.write(paretostr.encode())
+            buf.seek(0)
+            paretob64 = b64encode(buf.read()).decode()
+            linkstr = f'<a href="data:text/plain;base64,{paretob64}" download="{fname}">Download</a>'
+
+            # Save row of configs to be shown all together as a table.
             configs.append({
                 "Config": i,
                 "Algo": algo,
-                "Parallel queries": parallelQueries,
+                "Parallel Queries": parallelQueries,
                 "Shards": shards,
                 "Replicas": replicas,
                 "Nodes": esNodes,
-                "Cores/Node": esCoresPerNode,
-                "Mem/Node": f"{esMemoryGb}GB"
+                "Cores / Node": esCoresPerNode,
+                "Mem / Node": f"{esMemoryGb}GB",
+                "Pareto Settings": linkstr
             })
 
-            paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
+            # Plot the pareto.
             color = next(colors)
             mark = 'x' if algo == "Exact" else 'o'
             size = 20 if algo == "Exact" else 10
             plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
             plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=mark)
-            paretos.append((label, paretodf))
 
         plt.legend(loc='upper left')
 
@@ -95,15 +113,17 @@ def main():
         print(f"**Configurations**\n")
         print(f"\n{pd.DataFrame(configs).to_markdown(index=False)}\n")
 
-        for ((label, df), config) in zip(paretos, configs):
-            print(f"**{label}**\n")
-            # dfcfg = pd.DataFrame([config])
-            # print(f"{dfcfg.to_markdown(index=False)}\n")
-            rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
-            dfres = df\
-                .rename(index=str, columns=rename)\
-                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]
-            print(f"{dfres.to_markdown(index=False)}\n")
+        # for ((label, df), config) in zip(paretos, configs):
+        #     print(f"**{label}**\n")
+        #     rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
+        #     dfres = df\
+        #         .rename(index=str, columns=rename)\
+        #         .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]
+        #     buf = BytesIO()
+        #     buf.write(dfres.to_csv(index=False).encode())
+        #     buf.seek(0)
+        #     dfstr = b64encode(buf.read()).decode()
+        #     print(f'<a href="data:text/plain;base64,{dfstr}" download="foo.csv">Download</a>\n')
 
         print("---")
 
