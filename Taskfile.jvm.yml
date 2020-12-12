@@ -87,7 +87,7 @@ tasks:
   run:gradle:
     desc: Run Elasticsearch using gradle
     cmds:
-      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Drun.license_type=trial -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
 
   run:debug:
     desc: Run Elasticsearch in debug mode using gradle

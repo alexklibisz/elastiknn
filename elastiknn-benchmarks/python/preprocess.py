@@ -49,11 +49,6 @@ def annb(name: str, hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, 
     test_key = f"{output_s3_prefix}/test.json.gz"
     dist_key = f"{output_s3_prefix}/dist.json.gz"
 
-    # if exists(s3, output_s3_bucket, train_key) \
-    #         and exists(s3, output_s3_bucket, test_key) \
-    #         and exists(s3, output_s3_bucket, dist_key):
-    #     return
-
     hdf5_file = f"{local_data_dir}/vecs-{name}.hdf5"
     train_file = f"{local_data_dir}/train-{name}.json.gz"
     test_file = f"{local_data_dir}/test-{name}.json.gz"
