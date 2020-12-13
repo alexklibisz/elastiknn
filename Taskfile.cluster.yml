@@ -23,6 +23,13 @@ tasks:
       - docker-compose up --detach --build --force-recreate
       - python3 cluster_ready.py
 
+  minio:run:
+    dir: elastiknn-testing
+    deps:
+      - install-docker-compose
+    cmds:
+      - docker-compose up -d minio
+
   logs:
     desc: Print logs from local docker-compose cluster.
     dir: elastiknn-testing

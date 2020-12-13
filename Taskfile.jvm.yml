@@ -13,7 +13,7 @@ tasks:
       - build.gradle
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava"
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScalaDocs"
 
   docs:
     desc: Generate JVM docs using Gradle
@@ -29,7 +29,7 @@ tasks:
     desc: Publish a local release of JVM libraries
     cmds:
       - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
-    
+
   libraries:publish:snapshot:
     desc: Publish a snapshot release of JVM libraries to Sonatype
     cmds:
@@ -92,7 +92,7 @@ tasks:
   run:debug:
     desc: Run Elasticsearch in debug mode using gradle
     cmds:
-      - task: run-gradle
+      - task: run:gradle
         vars: 
           DEBUG: "--debug-jvm"
 

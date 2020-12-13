@@ -5,6 +5,7 @@ import com.klibisz.elastiknn.api.NearestNeighborsQuery._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{Cache, SparseIndexedSimilarityFunction}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF}
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
@@ -45,9 +46,9 @@ object ElastiknnQuery {
   def apply(query: NearestNeighborsQuery, queryShardContext: QueryShardContext): Try[ElastiknnQuery[_]] =
     apply(query, getMapping(queryShardContext, query.field))
 
-  def apply(query: NearestNeighborsQuery, mapping: Mapping): Try[ElastiknnQuery[_]] = {
-    import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF}
-    implicit def toSuccess[A <: Vec](q: ElastiknnQuery[A]): Try[ElastiknnQuery[A]] = Success(q)
+  private implicit def toSuccess[A <: Vec](q: ElastiknnQuery[A]): Try[ElastiknnQuery[A]] = Success(q)
+
+  def apply(query: NearestNeighborsQuery, mapping: Mapping): Try[ElastiknnQuery[_]] =
     (query, mapping) match {
 
       case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
@@ -99,5 +100,4 @@ object ElastiknnQuery {
 
       case _ => Failure(incompatible(query, mapping))
     }
-  }
 }

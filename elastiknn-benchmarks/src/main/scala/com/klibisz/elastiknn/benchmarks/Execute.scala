@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.benchmarks
 import java.net.URI
 
 import com.amazonaws.services.s3.AmazonS3
-import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.api.Similarity
 import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.parser._
 import zio._
@@ -13,8 +13,6 @@ import zio.console._
 import zio.logging._
 import zio.logging.slf4j.Slf4jLogger
 import zio.stream._
-
-import scala.util.hashing.MurmurHash3
 
 /**
   * Executes a single experiment containing one exact mapping, one test mapping, and many test queries.
@@ -27,11 +25,7 @@ object Execute extends App {
                           recompute: Boolean = false,
                           bucket: String = "",
                           s3Url: Option[String] = None,
-                          esUrl: String = "http://localhost:9200",
-                          numQueries: Int = 10000,
-                          warmupQueries: Int = 200,
-                          minWarmupRounds: Int = 10,
-                          maxWarmupRounds: Int = 100)
+                          esUrl: String = "http://localhost:9200")
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -60,22 +54,6 @@ object Execute extends App {
       .text("elasticsearch URL, e.g. http://localhost:9200")
       .action((s, c) => c.copy(esUrl = s))
       .optional()
-    opt[Int]("numQueries")
-      .text("number of queries to execute")
-      .action((i, c) => c.copy(numQueries = i))
-      .optional()
-    opt[Int]("warmupQueries")
-      .text("number of queries to execute in the warmup phase")
-      .action((i, c) => c.copy(warmupQueries = i))
-      .optional()
-    opt[Int]("minWarmupRounds")
-      .text("run warmup queries at least this many times")
-      .action((i, c) => c.copy(minWarmupRounds = i))
-      .optional()
-    opt[Int]("maxWarmupRounds")
-      .text("run warmup queries at most this many times, or stop after the speed has stopped improving")
-      .action((i, c) => c.copy(maxWarmupRounds = i))
-      .optional()
   }
 
   private def readExperiment(bucket: String, key: String) =
@@ -86,46 +64,38 @@ object Execute extends App {
       exp <- ZIO.fromEither(decode[Experiment](body))
     } yield exp
 
-  private def indexAndSearch(
-      dataset: Dataset,
-      eknnMapping: Mapping,
-      eknnQuery: NearestNeighborsQuery,
-      k: Int,
-      shards: Int,
-      parallelQueries: Int,
-      numQueries: Int,
-      warmupQueries: Int,
-      minWarmupRounds: Int,
-      maxWarmupRounds: Int
-  ) = {
+  implicit class ExperimentSyntax(exp: Experiment) {
+    // This index name is the UUID of the experiment with all properties which don't matter for indexing zeroed out.
+    val index: String =
+      exp.copy(queries = Seq.empty, minWarmupRounds = 0, maxWarmupRounds = 0, warmupQueries = 0, parallelQueries = 0).uuid
+  }
 
-    // Index name is a function of dataset, mapping and holdout so we can check if it already exists and avoid re-indexing.
-    val index = s"ix-${dataset.name}-${MurmurHash3.orderedHash(Seq(dataset, eknnMapping))}".toLowerCase
-
+  private def index(experiment: Experiment) =
     for {
-
       searchClient <- ZIO.access[Has[SearchClient]](_.get)
-      datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
-
-      // Check if the index already exists.
-      _ <- log.info(s"Checking for index $index with mapping $eknnMapping")
-      exists <- searchClient.indexExists(index)
-
-      // Create the index if doesn't exist.
-      _ <- if (exists) log.info(s"Found index [$index]")
+      indexExists <- searchClient.indexExists(experiment.index)
+      _ <- if (indexExists) ZIO.succeed(())
       else
         for {
-          _ <- log.info(s"Creating index [$index] with mapping [$eknnMapping] and [$shards] shards")
-          (dur, n) <- searchClient.buildIndex(index, eknnMapping, shards, datasetClient.streamTrain(dataset)).timed
-          _ <- log.info(s"Indexed [$n] vectors in [${dur.getSeconds}] seconds")
+          datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
+          corpusStream = datasetClient.streamTrain(experiment.dataset)
+          _ <- searchClient.buildIndex(experiment.index, experiment.mapping, experiment.shards, corpusStream)
         } yield ()
+    } yield ()
 
-      // Warmup. Run up to maxWarmupRounds, or until the duration stops decreasing.
-      warmupQueries <- datasetClient.streamTest(dataset, Some(warmupQueries)).map(eknnQuery.withVec).run(ZSink.collectAll)
-      warmupSearches = searchClient.search(index, Stream.fromChunk(warmupQueries), k, parallelQueries)
+  private def warmup(experiment: Experiment, query: Query) = {
+    import experiment._
+    for {
+      _ <- log.info(s"Starting warmup for query [$query]")
+      searchClient <- ZIO.access[Has[SearchClient]](_.get)
+      datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
+      warmupQueries <- datasetClient.streamTest(experiment.dataset).take(experiment.warmupQueries).map(query.nnq.withVec).runCollect
+      warmupSearches = searchClient.search(experiment.index, Stream.fromChunk(warmupQueries), query.k, 1)
       _ <- ZIO.iterate((0, Vector.empty[Long])) {
         case (r, dd) =>
-          r < minWarmupRounds || (r < maxWarmupRounds && ((dd.length < 2) || (dd.takeRight(2) != dd.takeRight(2).sorted)))
+          r < minWarmupRounds || (r < maxWarmupRounds && ((dd.length < 2) || (dd.takeRight(2) != dd
+            .takeRight(2)
+            .sorted)))
       } {
         case (round, dd) =>
           for {
@@ -133,98 +103,76 @@ object Execute extends App {
             _ <- log.info(s"Completed warmup [$round] of [$maxWarmupRounds] in [${dur.toMillis}] ms")
           } yield (round + 1, dd :+ dur.toMillis)
       }
-
-      // Actual benchmark.
-      _ <- log.info(s"Completed warmup and starting benchmark")
-      queryStream = datasetClient.streamTest(dataset, Some(numQueries)).map(eknnQuery.withVec)
-      resultsStream = searchClient.search(index, queryStream, k, parallelQueries)
-      (dur, results) <- resultsStream.run(ZSink.collectAll).timed
-      _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
-
-    } yield
-      BenchmarkResult(
-        dataset = dataset,
-        mapping = eknnMapping,
-        query = eknnQuery,
-        k = k,
-        shards = shards,
-        parallelQueries = parallelQueries,
-        durationMillis = dur.toMillis,
-        queriesPerSecond = results.length * 1f / dur.toSeconds,
-        queryResults = results.toArray
-      )
-  }
-
-  private def setRecalls(exact: BenchmarkResult, test: BenchmarkResult): BenchmarkResult = {
-    val withRecalls = exact.queryResults.zip(test.queryResults).map {
-      case (ex, ts) =>
-        val lowerBound = ex.scores.min
-        val testGreaterCount = ts.scores.count(_ >= lowerBound)
-        ts.copy(recall = testGreaterCount * 1f / ts.scores.length)
-    }
-    test.copy(queryResults = withRecalls)
-  }
-
-  private def run(experiment: Experiment, numQueries: Int, warmupQueries: Int, minWarmupRounds: Int, maxWarmupRounds: Int) = {
-    import experiment._
-    for {
-      resultsClient <- ZIO.access[Has[ResultClient]](_.get)
-      testEffects = experiment.testQueries.map {
-        case Query(testQuery, k) =>
-          for {
-            // The exact result is specific to the given value of `k`.
-            // So check each time for an existing result and recompute if it doesn't exist.
-            exactOpt <- resultsClient.find(dataset, exactMapping, exactQuery, k, shards, parallelQueries)
-            exactRes <- log.locally(LogAnnotation.Name(List(exactMapping, exactQuery).map(_.toString))) {
-              exactOpt match {
-                case Some(res) => log.info(s"Found exact result").map(_ => res)
-                case None =>
-                  for {
-                    _ <- log.info(s"Found no result for mapping [$exactMapping], query [$exactQuery]")
-                    result <- indexAndSearch(dataset,
-                                             exactMapping,
-                                             exactQuery,
-                                             k,
-                                             shards,
-                                             parallelQueries,
-                                             numQueries,
-                                             warmupQueries,
-                                             minWarmupRounds,
-                                             maxWarmupRounds)
-                    withRecalls = setRecalls(result, result)
-                    _ <- log.info(s"Saving exact result for mapping [$exactMapping], query [$exactQuery]: $withRecalls")
-                    _ <- resultsClient.save(withRecalls)
-                  } yield withRecalls
-              }
-            }
-
-            testOpt <- resultsClient.find(dataset, testMapping, testQuery, k, shards, parallelQueries)
-            _ <- log.locally(LogAnnotation.Name(List(testMapping, testQuery).map(_.toString))) {
-              testOpt match {
-                case Some(_) => log.info(s"Found test result")
-                case _ =>
-                  for {
-                    result <- indexAndSearch(dataset,
-                                             testMapping,
-                                             testQuery,
-                                             k,
-                                             shards,
-                                             parallelQueries,
-                                             numQueries,
-                                             warmupQueries,
-                                             minWarmupRounds,
-                                             maxWarmupRounds)
-                    withRecalls = setRecalls(exactRes, result)
-                    _ <- log.info(s"Saving test result [$withRecalls]")
-                    _ <- resultsClient.save(withRecalls)
-                  } yield ()
-              }
-            }
-          } yield ()
-      }
-      _ <- ZIO.collectAll(testEffects)
+      _ <- log.info(s"Completed warmup")
     } yield ()
   }
+
+  private def search(experiment: Experiment, query: Query) =
+    for {
+      _ <- log.info(s"Starting query [${query}]")
+      searchClient <- ZIO.access[Has[SearchClient]](_.get)
+      datasetClient <- ZIO.access[Has[DatasetClient]](_.get)
+      distances <- datasetClient.streamDistances(experiment.dataset).runCollect
+      queryStream = datasetClient.streamTest(experiment.dataset).map(query.nnq.withVec)
+      resultsStream = searchClient.search(experiment.index, queryStream, query.k, experiment.parallelQueries)
+      (dur, results) <- resultsStream.runCollect.timed
+      _ <- log.info(s"Completed [${results.length}] searches in [${dur.toMillis / 1000f}] seconds")
+    } yield {
+      // Same method for computing recall as ann-benchmarks.
+      def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
+        case Similarity.L2      => dists.map(d => 1 / (1 + d)).min
+        case Similarity.Angular => dists.map(2 - _).min
+        case _                  => Double.MaxValue
+      }
+
+      val recalls = results
+        .zip(distances)
+        .map {
+          case (res, dists) =>
+            val lb = lowerBound(dists)
+            val gteq = res.scores.count(_ >= lb)
+            gteq * 1f / res.scores.length
+        }
+
+      BenchmarkResult(
+        dataset = experiment.dataset,
+        similarity = query.nnq.similarity,
+        algorithm = query.algorithmName,
+        mapping = experiment.mapping,
+        query = query.nnq,
+        k = query.k,
+        shards = experiment.shards,
+        replicas = experiment.replicas,
+        parallelQueries = experiment.parallelQueries,
+        esNodes = experiment.esNodes,
+        esCoresPerNode = experiment.esCoresPerNode,
+        esMemoryGb = experiment.esMemoryGb,
+        warmupQueries = experiment.warmupQueries,
+        minWarmupRounds = experiment.minWarmupRounds,
+        maxWarmupRounds = experiment.maxWarmupRounds,
+        recall = recalls.sum / results.length,
+        queriesPerSecond = results.length * 1f / dur.toSeconds,
+        durationMillis = dur.toMillis
+      )
+    }
+
+  private def run(experiment: Experiment) =
+    for {
+      _ <- log.info(s"Starting experiment [$experiment]")
+      resultsClient <- ZIO.access[Has[ResultClient]](_.get)
+      searchClient <- ZIO.access[Has[SearchClient]](_.get)
+      missingQueries <- ZIO.foldLeft(experiment.queries)(Vector.empty[Query]) {
+        case (acc, query) => resultsClient.find(experiment, query).map(_.fold(acc :+ query)(_ => acc))
+      }
+      _ <- log.info(s"Found results for [${experiment.queries.length - missingQueries.length}] of [${experiment.queries.length}] queries.")
+      _ <- if (missingQueries.isEmpty) ZIO.succeed(())
+      else searchClient.blockUntilReady().flatMap(_ => index(experiment))
+      _ <- ZIO.foreach(missingQueries) { query =>
+        warmup(experiment, query)
+          .flatMap(_ => search(experiment, query))
+          .flatMap(resultsClient.save(experiment, query, _))
+      }
+    } yield ()
 
   def apply(params: Params): ZIO[Any, Throwable, Unit] = {
     import params._
@@ -245,20 +193,9 @@ object Execute extends App {
         searchClientLayer
 
     val steps = for {
-
-      // Load the experiment.
       _ <- log.info(params.toString)
       experiment <- readExperiment(bucket, experimentKey)
-      _ <- log.info(s"Running experiment: $experiment")
-
-      // Wait for cluster ready.
-      _ <- log.info("Waiting for cluster")
-      searchBackend <- ZIO.access[Has[SearchClient]](_.get)
-      _ <- searchBackend.blockUntilReady()
-
-      // Run the experiment.
-      _ <- run(experiment, numQueries, warmupQueries, minWarmupRounds, maxWarmupRounds)
-
+      _ <- run(experiment)
     } yield ()
 
     steps.provideLayer(layer)

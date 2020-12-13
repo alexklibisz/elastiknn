@@ -2,12 +2,8 @@ package com.klibisz.elastiknn.benchmarks
 
 import java.io.File
 
-import com.klibisz.elastiknn.api.ElasticsearchCodec
-import kantan.codecs.Encoder
-import kantan.csv
 import kantan.csv._
 import kantan.csv.ops._
-import kantan.csv.generic._
 import zio._
 import zio.blocking.Blocking
 import zio.console.Console
@@ -31,8 +27,63 @@ object Aggregate extends App {
     opt[String]("s3Url").action((x, c) => c.copy(s3Url = Some(x))).optional()
   }
 
-  implicit def cellEncoder[A: ElasticsearchCodec]: Encoder[String, A, csv.codecs.type] =
-    (d: A) => implicitly[ElasticsearchCodec[A]].apply(d).noSpacesSortKeys
+  implicit object OrderBenchmarkResult extends Ordering[BenchmarkResult] {
+    override def compare(x: BenchmarkResult, y: BenchmarkResult): Int =
+      Ordering[(String, String, String)].compare(
+        (x.dataset.name, x.similarity.toString, x.algorithm),
+        (y.dataset.name, y.similarity.toString, y.algorithm)
+      )
+  }
+
+  implicit object KantanEncoder extends HeaderEncoder[BenchmarkResult] {
+    import scala.language.implicitConversions
+    import com.klibisz.elastiknn.api.ElasticsearchCodec._
+    private implicit def circeLike[T: io.circe.Encoder](t: T): String = implicitly[io.circe.Encoder[T]].apply(t).noSpacesSortKeys
+    override def header: Option[Seq[String]] =
+      Some(
+        Seq(
+          "dataset",
+          "similarity",
+          "algorithm",
+          "mapping",
+          "query",
+          "k",
+          "shards",
+          "replicas",
+          "parallelQueries",
+          "esNodes",
+          "esCoresPerNode",
+          "esMemoryGb",
+          "warmupQueries",
+          "minWarmupRounds",
+          "maxWarmupRounds",
+          "recall",
+          "queriesPerSecond",
+          "durationMillis"
+        ))
+    override def rowEncoder: RowEncoder[BenchmarkResult] =
+      (d: BenchmarkResult) =>
+        Seq[String](
+          d.dataset.name,
+          d.similarity,
+          d.algorithm,
+          d.mapping,
+          d.query,
+          d.k,
+          d.shards,
+          d.replicas,
+          d.parallelQueries,
+          d.esNodes,
+          d.esCoresPerNode,
+          d.esMemoryGb,
+          d.warmupQueries,
+          d.minWarmupRounds,
+          d.maxWarmupRounds,
+          d.recall,
+          d.queriesPerSecond,
+          d.durationMillis
+      )
+  }
 
   def apply(params: Params): ZIO[Any, Throwable, Unit] = {
     import params._
@@ -50,19 +101,11 @@ object Aggregate extends App {
 
       // Stream results from S3.
       results = resultClient.all()
-
-      // Transform them to rows.
-      aggStream = results
-        .mapMPar(10) { res =>
-          val agg = AggregateResult(res)
-          log.info(agg.toString).map(_ => agg)
-        }
-
-      rows <- aggStream.run(ZSink.collectAll).map(_.sortBy(a => (a.dataset, a.similarity, a.algorithm)))
+      rows <- results.run(ZSink.collectAll).map(_.sorted)
 
       // Write rows to CSV and upload them to S3.
       csvFile = File.createTempFile("tmp", ".csv")
-      writer = csvFile.asCsvWriter[AggregateResult](rfc.withHeader(AggregateResult.header: _*))
+      writer = csvFile.asCsvWriter[BenchmarkResult](rfc.withHeader)
       _ = rows.foreach(writer.write)
       _ = writer.close()
       _ <- log.info(s"Wrote ${rows.length} rows to csv file.")

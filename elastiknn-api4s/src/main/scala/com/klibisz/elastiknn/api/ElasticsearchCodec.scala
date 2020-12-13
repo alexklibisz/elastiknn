@@ -41,6 +41,7 @@ private object Keys {
 }
 
 /**
+  * Implementations of the ElasticsearchCodec for all members of the api package.
   * If you think this is a lot of boilerplate you should see the Json parsing in Elasticsearch.
   */
 object ElasticsearchCodec { esc =>

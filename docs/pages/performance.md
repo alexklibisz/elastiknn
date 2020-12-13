@@ -11,22 +11,26 @@ permalink: /performance/
 
 Elastiknn is benchmarked on a subset of datasets from the popular [ann-benchmarks project](https://github.com/erikbern/ann-benchmarks).
 
+Performance is evaluated as the tradeoff between recall and query throughput (queries / second).
+There are three main contributing factors:
+
+1. Cluster settings. Example, multiple shards in an index can be searched in parallel, so will generally increase throughput.
+2. Mapping settings. These control how vectors get indexed. Example: more LSH tables increase recall and decrease throughput. 
+3. Query settings. These control how queries get executed. Example: more candidates increase recall and decrease throughput. 
+
 **Method**
 
-For each dataset, run a grid-search over mappings and compatible queries.
-Report the pareto frontier for recall and queries/second.
-Present the mapping and query used for each point on the pareto frontier.
-Partition these results by the number of shards in the index, which controls parallelism at query time.
-Currently, all datasets are indexed with exactly one shard (i.e. no parallelism), merged into a single segment, with zero replicas.
+For each dataset, evaluate several mapping and query settings on several cluster settings.
+For each cluster and mapping settings, report the pareto frontier for recall and queries/second.
+Plot the pareto curve, and report the mapping and query settings as a downloadable CSV.
 
-Each run uses a single-node Elasticsearch cluster with an 8GB heap, G1 garbage collection, tmpfs storage (for faster 
-indexing, has minimal effect on queries), running on C5.4XLarge EC2 instances in an AWS EKS cluster.
+The clusters are setup using the Elastic Kubernetes operator and run on EC2 C5.4XLarge instances.
+The entire benchmark is orchestrated using Argo Workflows and can be found in the elastiknn-benchmarks directory of the repo.
 
 **Work In Progress**
 
 1. Results for the remaining ann-benchmarks datasets.
-2. Results for multiple shards and possibly multiple nodes (i.e. quantify effects of scaling out).
-3. Results for larger datasets, e.g. [Deep1B](http://sites.skoltech.ru/compvision/noimi/) and [Amazon reviews image vectors](http://jmcauley.ucsd.edu/data/amazon/links.html).
+2. Results for larger datasets, e.g. [Deep1B](http://sites.skoltech.ru/compvision/noimi/) and [Amazon reviews image vectors](http://jmcauley.ucsd.edu/data/amazon/links.html).
 
 **Caveats**
 
