@@ -1,0 +1,257 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: benchmark
+spec:
+  schedule: "* * 31 2 *"
+  workflowSpec:
+    entrypoint: main
+    arguments:
+      parameters:
+        - name: driverImage
+          value: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.driver
+        - name: elastiknnImage
+          value: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/elastiknn-benchmarks-cluster.elastiknn
+        - name: bucket
+          value: elastiknn-benchmarks
+        # TODO: setup auth to just use an IAM role.
+        - name: awsAccessKeyId
+          value: ${AWS_ACCESS_KEY_ID}
+        - name: awsSecretAccessKey
+          value: ${AWS_SECRET_ACCESS_KEY}
+    templates:
+      - name: main
+        parallelism: 30
+        steps:
+          - - name: generate
+              template: generate
+          - - name: benchmark
+              template: benchmark-steps
+              withParam: "{{steps.generate.outputs.parameters.experiments}}"
+              arguments:
+                parameters:
+                  - name: experimentKey
+                    value: "{{item.experimentKey}}"
+                  - name: esClusterName
+                    value: "{{item.esClusterName}}"
+                  - name: esNodeCount
+                    value: "{{item.esNodeCount}}"
+                  - name: esCoreCountPerNode
+                    value: "{{item.esCoreCountPerNode}}"
+                  - name: esMemGB
+                    value: "{{item.esMemGB}}"
+                  - name: driverCoreCount
+                    value: "{{item.driverCoreCount}}"
+          - - name: aggregate
+              template: aggregate
+
+      # Scala app generates experiments, writes them to s3, generates a file containing their keys, writes the file to s3.
+      - name: generate
+        container:
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Generate
+            - --experimentsPrefix
+            - experiments
+            - --bucket
+            - "{{workflow.parameters.bucket}}"
+            - --manifestPath
+            - /tmp/manifest.json
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+        outputs:
+          parameters:
+            - name: experiments
+              valueFrom:
+                path: /tmp/manifest.json
+
+      - name: benchmark-steps
+        inputs:
+          parameters:
+            - name: experimentKey         # Where to find the full experiment definition.
+            - name: esClusterName         # Globally unique name of the ES cluster for this experiment.
+            - name: esNodeCount           # How many ES nodes to spin up.
+            - name: esCoreCountPerNode    # Cores and search threads per ES pod.
+            - name: esMemGB               # Memory per ES pod.
+            - name: driverCoreCount       # Cores for the driver pod.
+        steps:
+          - - name: benchmark-create-es-cluster
+              template: benchmark-create-es-cluster
+              arguments:
+                parameters:
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
+                  - name: esNodeCount
+                    value: "{{inputs.parameters.esNodeCount}}"
+                  - name: esCoreCountPerNode
+                    value: "{{inputs.parameters.esCoreCountPerNode}}"
+                  - name: esMemGB
+                    value: "{{inputs.parameters.esMemGB}}"
+          - - name: benchmark-run
+              template: benchmark-run
+              arguments:
+                parameters:
+                  - name: experimentKey
+                    value: "{{inputs.parameters.experimentKey}}"
+                  - name: driverCoreCount
+                    value: "{{inputs.parameters.driverCoreCount}}"
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
+          - - name: benchmark-delete-es-cluster
+              template: benchmark-delete-es-cluster
+              arguments:
+                parameters:
+                  - name: esClusterName
+                    value: "{{inputs.parameters.esClusterName}}"
+
+      - name: benchmark-create-es-cluster
+        inputs:
+          parameters:
+            - name: esClusterName
+            - name: esNodeCount
+            - name: esCoreCountPerNode
+            - name: esMemGB
+        resource:
+          action: create
+          manifest: |
+            apiVersion: elasticsearch.k8s.elastic.co/v1
+            kind: Elasticsearch
+            metadata:
+              name: "{{inputs.parameters.esClusterName}}"
+            spec:
+              version: 7.9.3
+              image: "{{workflow.parameters.elastiknnImage}}"
+              http:
+                tls:
+                  selfSignedCertificate:
+                    disabled: true
+              nodeSets:
+              - name: default
+                count: {{inputs.parameters.esNodeCount}}
+                config:
+                  thread_pool.search.size: "{{inputs.parameters.esCoreCountPerNode}}"
+                  xpack.security.authc:
+                    anonymous:
+                      username: anonymous
+                      roles: superuser
+                      authz_exception: false
+                volumeClaimTemplates:
+                  - metadata:
+                      name: elasticsearch-data
+                    spec:
+                      accessModes:
+                        - ReadWriteOnce
+                      resources:
+                        requests:
+                          storage: 20Gi
+                      storageClassName: storage-10-iops
+                podTemplate:
+                  spec:
+                    nodeSelector:
+                      beta.kubernetes.io/instance-type: c5.4xlarge
+                    initContainers:
+                      - name: set-max-map-count
+                        image: busybox:1.32.0
+                        imagePullPolicy: IfNotPresent
+                        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+                        securityContext:
+                          privileged: true
+                    containers:
+                      - name: elasticsearch
+                        env:
+                          - name: ES_JAVA_OPTS
+                            value: >-
+                              -XX:MinRAMPercentage=60
+                              -XX:MaxRAMPercentage=60
+                              -XX:+UseG1GC
+                              -XX:G1ReservePercent=25
+                              -XX:InitiatingHeapOccupancyPercent=30
+                        resources:
+                          requests:
+                            cpu: "{{inputs.parameters.esNodeCount}}"
+                            memory: "{{inputs.parameters.esMemGB}}Gi"
+                          limits:
+                            cpu: "{{inputs.parameters.esNodeCount}}"
+                            memory: "{{inputs.parameters.esMemGB}}Gi"
+
+      - name: benchmark-run
+        inputs:
+          parameters:
+            - name: experimentKey
+            - name: esClusterName
+            - name: driverCoreCount
+        podSpecPatch: |
+          containers:
+            - name: main
+              resources:
+                requests:
+                  cpu: {{inputs.parameters.driverCoreCount}}
+                  memory: 2Gi
+                limits:
+                  cpu: {{inputs.parameters.driverCoreCount}}
+                  memory: 3Gi
+        retryStrategy:
+          limit: 2
+          retryPolicy: "Always"
+        nodeSelector:
+          beta.kubernetes.io/instance-type: c5.4xlarge
+        container:
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Execute
+            - --experimentKey
+            - "{{inputs.parameters.experimentKey}}"
+            - --datasetsPrefix
+            - "data/processed"
+            - --resultsPrefix
+            - "results/raw"
+            - --bucket
+            - "{{workflow.parameters.bucket}}"
+            - --esUrl
+            - "http://{{inputs.parameters.esClusterName}}-es-http.default.svc.cluster.local:9200"
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+            - name: JAVA_OPTS
+              value: >-
+                -XX:MinRAMPercentage=10
+                -XX:MaxRAMPercentage=90
+                -XX:+HeapDumpOnOutOfMemoryError
+                -XX:+ExitOnOutOfMemoryError
+
+      - name: benchmark-delete-es-cluster
+        inputs:
+          parameters:
+            - name: esClusterName
+        resource:
+          action: delete
+          manifest: |
+            kind: Elasticsearch
+            apiVersion: elasticsearch.k8s.elastic.co/v1
+            metadata:
+              name: "{{inputs.parameters.esClusterName}}"
+
+      - name: aggregate
+        container:
+          image: "{{workflow.parameters.driverImage}}"
+          imagePullPolicy: "Always"
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: "{{workflow.parameters.awsAccessKeyId}}"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "{{workflow.parameters.awsSecretAccessKey}}"
+          args:
+            - com.klibisz.elastiknn.benchmarks.Aggregate
+            - --bucket
+            - elastiknn-benchmarks
+            - --resultsPrefix
+            - results/raw
+            - --aggregateKey
+            - results/aggregate.csv

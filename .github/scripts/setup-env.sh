@@ -9,4 +9,3 @@ echo $PYPIRC_B64 | base64 --decode > $HOME/.pypirc
 echo $SSH_CONFIG_B64 | base64 --decode > $HOME/.ssh/config
 echo $SSH_IDRSA_B64 | base64 --decode > $HOME/.ssh/elastiknn-site
 chmod 400 $HOME/.ssh/elastiknn-site
-envsubst < .github/scripts/aws-credentials-template > $HOME/.aws/credentials

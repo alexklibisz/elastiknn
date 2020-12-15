@@ -7,17 +7,9 @@
  * - https://www.terraform.io/docs/providers/helm/index.html
  */
 
-/*
- * Networking (VPC, subnets, availability zones).
- */
-variable "region" {
-    default = "us-east-1"
-    description = "AWS region"
-}
-
 provider "aws" {
     version = ">=2.28.1"
-    region = var.region
+    region = local.aws_region
 }
 
 # Access list of AWS availability zones in the provider's region.
@@ -27,11 +19,15 @@ data "aws_availability_zones" "available" {}
 data "aws_caller_identity" "current" {}
 
 locals {
+    aws_account_id = data.aws_caller_identity.current.account_id
+    aws_region = "us-east-1"
     project_name = "elastiknn-benchmarks"
     cluster_name = "${local.project_name}-cluster"
     k8s_service_account_namespace = "kube-system"
     k8s_default_namespace = "default"
-    k8s_service_account_name = "cluster-autoscaler-aws-cluster-autoscaler"
+    k8s_service_account_name = "cluster-service-account"
+    benchmarks_bucket = "elastiknn-benchmarks"
+    argo_version = "2.11.7"
 }
 
 module "vpc" {
@@ -200,8 +196,8 @@ resource "null_resource" "kubectl_config_provisioner" {
     }
     provisioner "local-exec" {
         command = <<EOT
-        aws eks --region ${var.region} wait cluster-active --name ${local.cluster_name}
-        aws eks --region ${var.region} update-kubeconfig --name ${local.cluster_name}
+        aws eks --region ${local.aws_region} wait cluster-active --name ${local.cluster_name}
+        aws eks --region ${local.aws_region} update-kubeconfig --name ${local.cluster_name}
         EOT
     }
 }
@@ -212,14 +208,15 @@ resource "null_resource" "kubectl_config_provisioner" {
 resource "helm_release" "cluster-autoscaler" {
     name = "cluster-autoscaler"
     chart = "cluster-autoscaler"
-    repository = "https://kubernetes-charts.storage.googleapis.com"
+    repository = "https://kubernetes.github.io/autoscaler"
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
         templatefile("templates/autoscaler-values.yaml", {
-            region = var.region,
+            region = local.aws_region,
             accountId = data.aws_caller_identity.current.account_id,
-            clusterName = local.cluster_name
+            clusterName = local.cluster_name,
+            accountName = local.k8s_service_account_name
         })
     ]
 }
@@ -232,28 +229,13 @@ resource "helm_release" "node-termination-handler" {
     chart = "aws-node-termination-handler"
     repository = "https://aws.github.io/eks-charts"
     namespace = local.k8s_service_account_namespace
-    depends_on = [null_resource.kubectl_config_provisioner]
+    depends_on = [
+        null_resource.kubectl_config_provisioner,
+        aws_ecr_repository.external-argoexec
+    ]
     values = [
         templatefile("templates/node-termination-handler-values.yaml", {})
     ]
-}
-
-/*
- * Storage class for high performance storage.
- */
-resource "kubernetes_storage_class" "storage-10-iops" {
-    depends_on = [null_resource.kubectl_config_provisioner]
-    metadata {
-        name = "storage-10-iops"
-    }
-    storage_provisioner = "kubernetes.io/aws-ebs"
-    allow_volume_expansion = false
-    parameters = {
-        type = "io1"
-        iopsPerGB = "10"
-    }
-    // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
-    volume_binding_mode = "WaitForFirstConsumer"
 }
 
 /*
@@ -262,7 +244,7 @@ resource "kubernetes_storage_class" "storage-10-iops" {
  * Cluster role based on https://github.com/argoproj/argo/blob/master/docs/workflow-rbac.md
  */
 resource "kubernetes_cluster_role" "argo-workflows" {
-    depends_on = [null_resource.kubectl_config_provisioner]
+    depends_on = [null_resource.kubectl_config_provisioner, null_resource.push-external-images]
     metadata {
         name = "argo-workflows"
     }
@@ -290,9 +272,13 @@ resource "helm_release" "argo-workflows" {
     namespace = local.k8s_service_account_namespace
     depends_on = [null_resource.kubectl_config_provisioner]
     values = [
-        templatefile("templates/argo-values.yaml", {})
+        templatefile("templates/argo-values.yaml", {
+            version = local.argo_version,
+            imageNamespace = "${local.aws_account_id}.dkr.ecr.us-east-1.amazonaws.com/argoproj"
+        })
     ]
     // Hacky way to copy the secret needed for using artifacts.
+    // TODO: is there a way to just enable this for all namespaces?
     provisioner "local-exec" {
         command = <<EOT
         kubectl -n ${local.k8s_service_account_namespace} wait --for=condition=ready --timeout=60s pod --all
@@ -302,6 +288,16 @@ resource "helm_release" "argo-workflows" {
     }
 }
 
+resource "helm_release" "elastic-operator" {
+    name = "elastic-operator"
+    chart = "eck-operator"
+    repository = "https://helm.elastic.co"
+    namespace = "elastic-system"
+    create_namespace = true
+    depends_on = [null_resource.kubectl_config_provisioner]
+}
+
+# Bind the argo-workflows role to the default service account.
 resource "kubernetes_role_binding" "argo-workflows" {
     depends_on = [null_resource.kubectl_config_provisioner]
     metadata {
@@ -318,6 +314,44 @@ resource "kubernetes_role_binding" "argo-workflows" {
         name = "default"
         namespace = local.k8s_default_namespace
     }
+}
+
+# Bind the elastic-operator-edit role to the default service account.
+resource "kubernetes_role_binding" "elastic-operator-edit-default" {
+    depends_on = [helm_release.elastic-operator]
+    metadata {
+        name = "elastic-operator-edit-default"
+        namespace = local.k8s_default_namespace
+    }
+    role_ref {
+        api_group = "rbac.authorization.k8s.io"
+        kind = "ClusterRole"
+        name = "elastic-operator-edit"
+    }
+    subject {
+        kind = "ServiceAccount"
+        name = "default"
+        namespace = local.k8s_default_namespace
+    }
+}
+
+
+/*
+ * Storage class for optimized IO.
+ */
+resource "kubernetes_storage_class" "storage-10-iops" {
+    depends_on = [null_resource.kubectl_config_provisioner]
+    metadata {
+        name = "storage-10-iops"
+    }
+    storage_provisioner = "kubernetes.io/aws-ebs"
+    allow_volume_expansion = false
+    parameters = {
+        type = "io1"
+        iopsPerGB = "10"
+    }
+    // Seems to be needed to make sure the PVC gets created in the same zone as the node where it should be attached.
+    volume_binding_mode = "WaitForFirstConsumer"
 }
 
 /*
@@ -338,10 +372,49 @@ resource "aws_ecr_repository" "datasets" {
     image_tag_mutability = "MUTABLE"
 }
 
-/*
- * TODO: IAM user for containers to read/write S3 bucket.
- */
+resource "aws_ecr_repository" "external-workflow-controller" {
+    name = "argoproj/workflow-controller"
+    image_tag_mutability = "IMMUTABLE"
+}
 
+resource "aws_ecr_repository" "external-argocli" {
+    name = "argoproj/argocli"
+    image_tag_mutability = "IMMUTABLE"
+}
+
+resource "aws_ecr_repository" "external-argoexec" {
+    name = "argoproj/argoexec"
+    image_tag_mutability = "IMMUTABLE"
+}
+
+/*
+ * Push some images into ECR repo to avoid hitting dockerhub pull limit.
+ */
+resource "null_resource" "push-external-images" {
+    depends_on = [
+        aws_ecr_repository.external-workflow-controller,
+        aws_ecr_repository.external-argocli,
+        aws_ecr_repository.external-argoexec
+    ]
+    provisioner "local-exec" {
+        command = <<EOT
+        $(aws ecr get-login --no-include-email)
+
+        docker pull argoproj/argoexec:v${local.argo_version}
+        docker tag argoproj/argoexec:v${local.argo_version} ${aws_ecr_repository.external-argoexec.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-argoexec.repository_url}:v${local.argo_version}
+
+        docker pull argoproj/workflow-controller:v${local.argo_version}
+        docker tag argoproj/workflow-controller:v${local.argo_version} ${aws_ecr_repository.external-workflow-controller.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-workflow-controller.repository_url}:v${local.argo_version}
+
+        docker pull argoproj/argocli:v${local.argo_version}
+        docker tag argoproj/argocli:v${local.argo_version} ${aws_ecr_repository.external-argocli.repository_url}:v${local.argo_version}
+        docker push ${aws_ecr_repository.external-argocli.repository_url}:v${local.argo_version}
+
+        EOT
+    }
+}
 
 /*
  * Outputs from setup.
@@ -374,11 +447,6 @@ output "cluster_security_group_id" {
 output "kubectl_config" {
     description = "kubectl config as generated by the module."
     value       = module.eks.kubeconfig
-}
-
-output "region" {
-    description = "AWS region"
-    value       = var.region
 }
 
 output "cluster_name" {

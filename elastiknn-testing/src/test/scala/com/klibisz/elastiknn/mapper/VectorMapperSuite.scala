@@ -12,6 +12,8 @@ import io.circe.parser.parse
 import io.circe.{Json, JsonObject}
 import io.circe.syntax._
 import org.scalatest._
+import org.scalatest.funsuite.AsyncFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Future
 import scala.util.Random

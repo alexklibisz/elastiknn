@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.benchmarks
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.ListObjectsV2Request
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery}
 import com.klibisz.elastiknn.benchmarks.codecs._
 import io.circe.parser.decode
 import io.circe.syntax._
@@ -14,8 +13,8 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 trait ResultClient {
-  def find(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): IO[Throwable, Option[BenchmarkResult]]
-  def save(result: BenchmarkResult): IO[Throwable, Unit]
+  def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]]
+  def save(experiment: Experiment, query: Query, result: BenchmarkResult): IO[Throwable, Unit]
   def all(): Stream[Throwable, BenchmarkResult]
 }
 
@@ -23,51 +22,15 @@ object ResultClient {
 
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, Has[ResultClient]] = {
 
-    def genKey(dataset: Dataset, mapping: Mapping, query: NearestNeighborsQuery, k: Int): String = {
-
-      def mappingString(mapping: Mapping): String = mapping match {
-        case Mapping.SparseBool(_)                   => s"m_sparsebool"
-        case Mapping.SparseIndexed(_)                => s"m_sparseindexed"
-        case Mapping.JaccardLsh(_, l, k)             => s"m_jaccardlsh/L_$l/k_$k"
-        case Mapping.HammingLsh(_, l, k)             => s"m_hamminglsh/L_$l/k_$k"
-        case Mapping.DenseFloat(_)                   => s"m_densefloat"
-        case Mapping.AngularLsh(_, l, k)             => s"m_angularlsh/L_$l/k_$k"
-        case Mapping.L2Lsh(_, l, k, w)               => s"m_l2lsh/L_$l/k_$k"
-        case Mapping.PermutationLsh(_, k, repeating) => s"m_permutaitonlsh/k_$k/repeating_$repeating"
-      }
-
-      def queryString(query: NearestNeighborsQuery): String =
-        query match {
-          case NearestNeighborsQuery.Exact(_, similarity, _)         => s"q_exact/sim_$similarity/k_${k}"
-          case NearestNeighborsQuery.SparseIndexed(_, similarity, _) => s"q_sparseindexed/sim_$similarity/k_${k}"
-          case nnq: NearestNeighborsQuery.ApproximateQuery =>
-            nnq match {
-              case NearestNeighborsQuery.JaccardLsh(_, candidates, _, limit) =>
-                s"q_jaccardlsh/candidates_$candidates/limit_$limit/k_${k}"
-              case NearestNeighborsQuery.HammingLsh(_, candidates, _, limit) =>
-                s"q_hamminglsh/candidates_$candidates/limit_$limit/k_${k}"
-              case NearestNeighborsQuery.AngularLsh(_, candidates, _, limit) =>
-                s"q_angularlsh/candidates_$candidates/limit_$limit/k_${k}"
-              case NearestNeighborsQuery.L2Lsh(_, candidates, probes, _, limit) =>
-                s"q_l2lsh/candidates_$candidates/probes_$probes/limit_$limit/k_${k}"
-              case NearestNeighborsQuery.PermutationLsh(_, similarity, candidates, _, limit) =>
-                s"q_permutationlsh/sim_$similarity/candidates_$candidates/limit_$limit/k_${k}"
-            }
-        }
-
-      val suffix = s"${dataset.toString}/${mappingString(mapping)}/${queryString(query)}.json"
-      if (keyPrefix.nonEmpty) s"$keyPrefix/$suffix"
-      else suffix
-    }
+    def keyGen(exp: Experiment, query: Query): String =
+      s"${keyPrefix}/${exp.copy(queries = Seq(query)).uuid}.json"
 
     ZLayer.fromServices[AmazonS3, Blocking.Service, ResultClient] {
       case (client, blocking) =>
         new ResultClient {
-          override def find(dataset: Dataset,
-                            mapping: Mapping,
-                            query: NearestNeighborsQuery,
-                            k: Int): IO[Throwable, Option[BenchmarkResult]] = {
-            val key = genKey(dataset, mapping, query, k)
+          override def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]] = {
+            // This is a bit subtle. Use the given experiment with just this specific query to generate the key.
+            val key = keyGen(experiment, query)
             for {
               ex <- blocking.effectBlocking(client.doesObjectExist(bucket, key))
               res: Option[BenchmarkResult] <- if (ex) {
@@ -79,12 +42,12 @@ object ResultClient {
             } yield res
           }
 
-          override def save(result: BenchmarkResult): IO[Throwable, Unit] = {
-            val key = genKey(result.dataset, result.mapping, result.query, result.k)
+          override def save(experiment: Experiment, query: Query, result: BenchmarkResult): IO[Throwable, Unit] = {
+            val key = keyGen(experiment, query)
             for {
               bucketExists <- blocking.effectBlocking(client.doesBucketExistV2(bucket))
               _ <- if (bucketExists) ZIO.succeed(()) else blocking.effectBlocking(client.createBucket(bucket))
-              _ <- blocking.effectBlocking(client.putObject(bucket, key, result.asJson.spaces2SortKeys))
+              _ <- blocking.effectBlocking(client.putObject(bucket, key, result.asJson.noSpacesSortKeys))
             } yield ()
           }
 

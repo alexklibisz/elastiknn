@@ -1,10 +1,11 @@
 package com.klibisz.elastiknn.storage
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Random
 
-class UnsafeSerializationSuite extends FunSuite with Matchers {
+class UnsafeSerializationSuite extends AnyFunSuite with Matchers {
 
   test("arrays of ints") {
     val seed = System.currentTimeMillis()

@@ -1,0 +1,99 @@
+version: '3'
+
+tasks:
+
+  clean:
+    desc: Clean all JVM artifacts
+    cmds:
+      - "{{ .CMD_GRADLE }} clean"
+
+  compile:
+    desc: Compile all JVM source code using Gradle
+    sources:
+      - build.gradle
+      - "elastiknn-*/**"
+    cmds:
+      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScalaDocs"
+
+  docs:
+    desc: Generate JVM docs using Gradle
+    cmds:
+      - "{{ .CMD_GRADLE }} unifiedScaladocs"
+
+  test:
+    desc: Run JVM tests using Gradle
+    cmds:
+      - "{{ .CMD_GRADLE }} test"
+
+  libraries:publish:local:
+    desc: Publish a local release of JVM libraries
+    cmds:
+      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
+
+  libraries:publish:snapshot:
+    desc: Publish a snapshot release of JVM libraries to Sonatype
+    cmds:
+      - "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
+
+  libraries:publish:release:
+    desc: Publish an official release of JVM libraries to Sonatype
+    status:
+      - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    env: 
+      # TODO: make this a parameter like -Pversion above.
+      SONATYPE_URL: https://oss.sonatype.org/service/local/staging/deploy/maven2
+    cmds:
+      - "{{ .CMD_GRADLE }} publish"
+
+  docs:publish:
+    desc: Publish documentation to the website
+    status:
+      - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/scaladoc/index.html
+    cmds:
+      - "{{ .CMD_GRADLE }} unifiedScaladocs"
+      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
+      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}
+      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_MAIN_DIR }}/{{ .VERSION }}
+      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs
+
+  plugin:publish:local:
+    desc: Publish a local snapshot of the plugin
+    sources:
+      - build.gradle
+      - "elastiknn-*/**"
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
+
+  plugin:publish:snapshot:
+    desc: Publish a snapshot release to Github
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
+      - echo {{ .VERSION }} > release.md
+      - echo "_Snapshot release_" >> release.md
+      - hub release delete {{ .VERSION }} || true
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+
+  plugin:publish:release:
+    desc: Publish an official release to Github
+    status:
+      - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
+      - echo {{ .VERSION }} > release.md
+      - echo "" >> release.md
+      - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+
+  run:gradle:
+    desc: Run Elasticsearch using gradle
+    cmds:
+      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
+
+  run:debug:
+    desc: Run Elasticsearch in debug mode using gradle
+    cmds:
+      - task: run:gradle
+        vars: 
+          DEBUG: "--debug-jvm"
+
+  

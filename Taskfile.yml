@@ -1,0 +1,33 @@
+version: '3'
+
+vars:
+  VERSION:
+    sh: cat version
+  PROJECT_ROOT:
+    sh: pwd
+  GITHUB_URL: https://github.com/alexklibisz/elastiknn
+  CMD_GRADLE: "./gradlew --console=plain"
+  SITE_SSH_ALIAS: elastiknn-site
+  SITE_MAIN_DIR: elastiknn.com
+  SITE_ARCH_DIR: archive.elastiknn.com
+
+includes:
+  jvm: Taskfile.jvm.yml
+  py: 
+    taskfile: client-python/Taskfile.yml
+    dir: client-python
+  cluster:
+    taskfile: Taskfile.cluster.yml
+  docs:
+    taskfile: docs/Taskfile.yml
+    dir: docs
+  benchmarks:
+    taskfile: elastiknn-benchmarks/Taskfile.yml
+    dir: elastiknn-benchmarks
+  
+tasks:
+  clean:
+    desc: Call clean commands in included taskfiles
+    deps: 
+      - jvm:clean
+      - py:clean

@@ -1,10 +1,9 @@
 .gradle
 build
-.mk/*
-!.mk/.keep
 target
 release.md
 *.csv
+.task
 
 # Ignore Gradle GUI config
 gradle-app.setting

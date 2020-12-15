@@ -1,6 +1,6 @@
 # ann-benchmarks
 
-The actual ann-benchmarks implementation for Elastiknn will be part of the [ann-benchmarks repo](https://github.com/erikbern/ann-benchmarks). 
+The actual ann-benchmarks implementation for Elastiknn is in the [ann-benchmarks repo](https://github.com/erikbern/ann-benchmarks). 
 
 This document just contains some tips and useful commands for working with elastiknn in ann-benchmarks:
 

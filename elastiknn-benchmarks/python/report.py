@@ -11,6 +11,7 @@ import json
 import pandas as pd
 from sys import argv
 from io import BytesIO
+from base64 import b64encode
 import matplotlib.pyplot as plt
 from pareto import eps_sort
 
@@ -50,48 +51,67 @@ def main():
 
         print(f"### {dataset}")
 
-        for (shards, sharddf) in dsetdf.groupby("shards"):
-            shardstr = "Single Shard" if shards == 1 else f"{shards} Shards"
-            print(f"#### {shardstr}")
+        colors = itertools.cycle(list('bgrcmykw'))
+        plt.title(f"{dataset}")
+        plt.xlabel("Recall")
+        plt.ylabel("Queries/Second")
+        plt.xlim(0, 1.05)
+        plt.grid(True, linestyle='--', linewidth=0.5)
 
-            colors = itertools.cycle(list('bgrcmykw'))
+        configs = []
 
-            plt.title(f"{dataset} - {shardstr}")
-            plt.xlabel("Recall")
-            plt.ylabel("Queries/Second")
-            plt.xlim(0, 1.05)
-            plt.grid(True, linestyle='--', linewidth=0.5)
+        for i, ((algo, k, parallelQueries, shards, replicas, esNodes, esCoresPerNode, esMemoryGb), groupdf) \
+            in enumerate(dsetdf.groupby(['algorithm', 'k', 'parallelQueries', 'shards', 'replicas', 'esNodes', 'esCoresPerNode', 'esMemoryGb'])):
 
-            paretos = []
+            label = f"Config {i}: {algo}, {'single node' if esNodes == 1 else 'cluster'}"
 
-            for ((algo, k), algodf) in dsetdf.groupby(['algorithm', 'k']):
-                paretodf = pareto_frontier(algodf, "recall", "queriesPerSecond")
-                label = f"{algo} {k}"
-                color = next(colors)
-                marker = 'x' if algo == "Exact" else 'o'
-                size = 20 if algo == "Exact" else 10
-                plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
-                plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=marker)
-                paretos.append((label, paretodf))
+            # Compute the pareto table.
+            paretodf = pareto_frontier(groupdf, "recall", "queriesPerSecond")
 
-            plt.legend(loc='lower left')
-
-            # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
+            # Encode it as a downloadable CSV.
+            fname = f"elastiknn-{dataset}-config{i}-{algo}-{'single-node' if esNodes == 1 else 'cluster'}.csv".replace(' ', '-').lower()
+            rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
+            paretostr = paretodf \
+                .rename(index=str, columns=rename) \
+                .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())] \
+                .to_csv(index=False)
             buf = BytesIO()
-            plt.savefig(buf, format="svg")
-            plt.clf()
+            buf.write(paretostr.encode())
             buf.seek(0)
-            print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
+            paretob64 = b64encode(buf.read()).decode()
+            linkstr = f'<a href="data:text/plain;base64,{paretob64}" download="{fname}">Download</a>'
 
-            for (label, df) in paretos:
-                print(f"**{label}**\n")
-                rename = {"recall": "Recall", "queriesPerSecond": "Q/S", "mapping": "Mapping", "query": "Query"}
-                df2 = df\
-                    .rename(index=str, columns=rename)\
-                    .sort_values(["Recall", "Q/S"], ascending=False)[list(rename.values())]\
-                    .to_markdown(index=False)
-                print(f"{df2}\n")
+            # Save row of configs to be shown all together as a table.
+            configs.append({
+                "Config": i,
+                "Algo": algo,
+                "Parallel Queries": parallelQueries,
+                "Shards": shards,
+                "Replicas": replicas,
+                "Nodes": esNodes,
+                "Cores / Node": esCoresPerNode,
+                "Mem / Node": f"{esMemoryGb}GB",
+                "Pareto Settings": linkstr
+            })
 
+            # Plot the pareto.
+            color = next(colors)
+            mark = 'x' if algo == "Exact" else 'o'
+            size = 20 if algo == "Exact" else 10
+            plt.plot(paretodf["recall"], paretodf["queriesPerSecond"], color=color)
+            plt.scatter(paretodf["recall"], paretodf["queriesPerSecond"], label=label, color=color, s=size, marker=mark)
+
+        plt.legend(loc=(1.05, 0))
+
+        # Save the plot to an SVG in an in-memory buffer. Drop the first four lines of xml/svg metadata tags.
+        buf = BytesIO()
+        plt.savefig(buf, format="svg", bbox_inches='tight')
+        plt.clf()
+        buf.seek(0)
+        print(' '.join(map(str.strip, buf.read().decode().split('\n')[4:])))
+
+        print(f"**Configurations**\n")
+        print(f"\n{pd.DataFrame(configs).to_markdown(index=False)}\n")
         print("---")
 
 

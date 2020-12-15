@@ -3,11 +3,12 @@ package com.klibisz.elastiknn.models
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.testing.ExactSimilarityReference
 import com.typesafe.scalalogging.LazyLogging
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class ExactSimilarityFunctionSuite extends FunSpec with Matchers with LazyLogging {
+class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers with LazyLogging {
 
   private val reps = 1000
   private val tol = 1e-7

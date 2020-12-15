@@ -1,7 +1,8 @@
 package com.klibisz.elastiknn.testing
 
 import com.sksamuel.elastic4s.Response
-import org.scalatest.{Assertion, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.Assertion
 
 trait Elastic4sMatchers {
 

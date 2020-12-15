@@ -18,6 +18,8 @@ from botocore.exceptions import ClientError
 from elastiknn.api import Vec
 from elastiknn.utils import ndarray_to_sparse_bool_vectors
 from imagehash import phash
+from sklearn.neighbors import NearestNeighbors
+from tqdm import tqdm
 
 
 def exists(s3, bucket: str, key: str) -> bool:
@@ -34,63 +36,67 @@ def rounded_dense_float(values: List[float], n: int = 7) -> Vec.DenseFloat:
     return Vec.DenseFloat(values = [f(v) for v in values])
 
 
-def write_vec(fp, id: str, vec: Vec.Base):
-    s = id + ' ' + json.dumps(vec.to_dict(), separators=(',', ':')) + '\n'
+def write_vec(fp, vec: Vec.Base):
+    s = json.dumps(vec.to_dict(), separators=(',', ':')) + '\n'
     fp.write(s)
 
 
-def annb(hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str, output_s3_prefix: str,
-         scale_by_max: bool = False):
+def annb(name: str, hdf5_s3_bucket: str, hdf5_s3_key: str, local_data_dir: str, output_s3_bucket: str,
+         output_s3_prefix: str, scale_by_max: bool = False):
 
     s3 = boto3.client('s3')
     train_key = f"{output_s3_prefix}/train.json.gz"
     test_key = f"{output_s3_prefix}/test.json.gz"
-    if exists(s3, output_s3_bucket, train_key) and exists(s3, output_s3_bucket, test_key):
-        return
+    dist_key = f"{output_s3_prefix}/dist.json.gz"
 
-    hdf5_file = f"{local_data_dir}/vecs.hdf5"
+    hdf5_file = f"{local_data_dir}/vecs-{name}.hdf5"
+    train_file = f"{local_data_dir}/train-{name}.json.gz"
+    test_file = f"{local_data_dir}/test-{name}.json.gz"
+    dist_file = f"{local_data_dir}/dist-{name}.json.gz"
 
     if not os.path.exists(hdf5_file):
         print(f"Downloading s3://{hdf5_s3_bucket}/{hdf5_s3_key} to {hdf5_file}")
         s3.download_file(Bucket=hdf5_s3_bucket, Key=hdf5_s3_key, Filename=hdf5_file)
 
-    train_file = f"{local_data_dir}/train.json.gz"
-    test_file = f"{local_data_dir}/test.json.gz"
-
     hdf5_fp = h5py.File(hdf5_file, 'r')
     is_sparse = hdf5_fp['train'].dtype == bool
 
-    max_scaler = 1
+    train = hdf5_fp['train'][...]
+    test = hdf5_fp['test'][...]
+
     if scale_by_max:
-        for arr in hdf5_fp['train']:
-            max_scaler = max(max(arr), max_scaler)
+        max_scaler = train.max()
+        train /= max_scaler
+        test /= max_scaler
 
-    t0 = time()
+    metric = hdf5_fp.attrs['distance']
+    if metric == 'angular':
+        metric = 'cosine'
+    knn = NearestNeighbors(n_neighbors=100, algorithm='brute', metric=metric).fit(train)
+    (distances, _) = knn.kneighbors(test, return_distance=True)
 
-    def write(iter_arr, fp, n=0):
-        i = n
+    def write(iter_arr, fp):
         for arr in iter_arr:
             if is_sparse:
                 vec = Vec.SparseBool([x for x, b in enumerate(arr) if b], len(arr))
-            elif scale_by_max:
-                vec = rounded_dense_float(list(arr / max_scaler))
             else:
                 vec = rounded_dense_float(list(arr))
-            write_vec(fp, str(i), vec)
-            print(f"Processed {i}: {((i + 1) / ((time() - t0) / 60)):.1f} vecs / minute")
-            i += 1
-        return i
+            write_vec(fp, vec)
 
     with gzip.open(train_file, "wt") as gzfp:
-        n = write(hdf5_fp['train'], gzfp, 0)
+        write(tqdm(train, desc="train"), gzfp)
 
     with gzip.open(test_file, "wt") as gzfp:
-        write(hdf5_fp['test'], gzfp, n)
+        write(tqdm(test, desc="test"), gzfp)
 
-    print(f"Copying {train_file} to s3://{output_s3_bucket}/{train_key}")
-    s3.upload_file(train_file, output_s3_bucket, train_key)
-    print(f"Copying {test_file} to s3://{output_s3_bucket}/{test_key}")
-    s3.upload_file(test_file, output_s3_bucket, test_key)
+    with gzip.open(dist_file, "wt") as gzfp:
+        for arr in tqdm(distances, desc="distances"):
+            lst = list(map(float, arr))
+            gzfp.write(json.dumps(lst) + '\n')
+
+    for (loc, key) in [(train_file, train_key), (test_file, test_key), (dist_file, dist_key)]:
+        print(f"Copying {loc} to s3://{output_s3_bucket}/{key}")
+        s3.upload_file(loc, output_s3_bucket, key)
 
 
 def amazon_raw(features_s3_bucket: str, features_s3_key: str, local_data_dir: str, output_s3_bucket: str,
@@ -233,6 +239,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbdeep1b":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/deep-image-96-angular.hdf5",
             local_data_dir,
@@ -241,6 +248,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbfashionmnist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/fashion-mnist-784-euclidean.hdf5",
             local_data_dir,
@@ -250,6 +258,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbgist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/gist-960-euclidean.hdf5",
             local_data_dir,
@@ -258,6 +267,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbglove25":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/glove-25-angular.hdf5",
             local_data_dir,
@@ -266,6 +276,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbglove100":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/glove-100-angular.hdf5",
             local_data_dir,
@@ -274,6 +285,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbkosarak":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/kosarak-jaccard.hdf5",
             local_data_dir,
@@ -282,6 +294,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbmnist":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/mnist-784-euclidean.hdf5",
             local_data_dir,
@@ -291,6 +304,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbnyt":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/nytimes-256-angular.hdf5",
             local_data_dir,
@@ -299,6 +313,7 @@ def main(argv: List[str]) -> int:
         )
     elif dataset_name == "annbsift":
         annb(
+            dataset_name,
             benchmarks_bucket,
             "data/raw/annb/sift-128-euclidean.hdf5",
             local_data_dir,
