@@ -55,6 +55,7 @@ jobs:
       - name: Test
         run: task py:test
       - name: Cluster Logs
+        if: failure()
         run: task cluster:logs
 
   build-examples:
