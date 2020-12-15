@@ -23,7 +23,7 @@ trait ElastiknnRequests {
     * @param vec Vector to index.
     * @param storedIdField Field where document ID is stored.
     * @param id Document ID. Stored as the ID known by Elasticsearch, and in the document for faster retrieval.
-    * @return Instance of a [[com.sksamuel.elastic4s.requests.indexes.IndexRequest]].
+    * @return Instance of a com.sksamuel.elastic4s.requests.indexes.IndexRequest.
     */
   def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
     val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
@@ -39,8 +39,8 @@ trait ElastiknnRequests {
     * @param index Index being searched against.
     * @param query Constructed query, containing the vector, field, etc.
     * @param k Number of results to return.
-    * @param storedIdField Field containing the document ID. See [[ElastiknnRequests.index()]] method.
-    * @return Instance of [[com.sksamuel.elastic4s.requests.searches.SearchRequest]].
+    * @param storedIdField Field containing the document ID. See ElastiknnRequests.index() method.
+    * @return Instance of com.sksamuel.elastic4s.requests.searches.SearchRequest.
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): SearchRequest =
     ElasticDsl
@@ -59,7 +59,7 @@ trait ElastiknnRequests {
     * @param vecField Field where vector is stored.
     * @param storedIdField Field where ID is stored.
     * @param vecMapping Mapping for the stored vector.
-    * @return Instance of [[com.sksamuel.elastic4s.requests.mappings.PutMappingRequest]].
+    * @return Instance of com.sksamuel.elastic4s.requests.mappings.PutMappingRequest.
     */
   def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): PutMappingRequest = {
     val mappingJsonString =

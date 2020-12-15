@@ -1,3 +1,5 @@
+- Bumped Elasticsearch version to 7.10.0.
+---
 - No substantive changes. Just testing out new release setup.
 ---
 - Bumped Elasticsearch version to 7.9.3.

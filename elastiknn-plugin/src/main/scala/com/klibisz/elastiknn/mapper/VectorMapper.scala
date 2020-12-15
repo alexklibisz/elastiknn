@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.mapper
 import java.util
 import java.util.Collections
 
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.models.Cache
@@ -19,6 +20,7 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
+import org.elasticsearch.search.lookup.SearchLookup
 
 import scala.util.{Failure, Try}
 
@@ -65,16 +67,21 @@ object VectorMapper {
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
   class FieldType(typeName: String, fieldName: String, val mapping: Mapping)
-      extends MappedFieldType(fieldName, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
+      extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
     override def termQuery(value: Any, context: QueryShardContext): Query = value match {
       case b: BytesRef => new TermQuery(new Term(name(), b))
       case _ =>
-        throw new UnsupportedOperationException(
+        throw new ElastiknnUnsupportedOperationException(
           s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
     }
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
+
+    override def valueFetcher(mapperService: MapperService, searchLookup: SearchLookup, format: String): ValueFetcher = {
+      // TODO: figure out what this is and implement it.
+      throw new ElastiknnUnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support this operation yet.")
+    }
   }
 
 }

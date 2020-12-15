@@ -1,7 +1,7 @@
 buildscript {
     ext {
-        esVersion = '7.9.3'
-        luceneVersion = '8.6.2'
+        esVersion = '7.10.0'
+        luceneVersion = '8.7.0'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
         scalaFullVersion = '2.12.10'
@@ -235,6 +235,7 @@ configure(plugin, List.of(scalaProjectConfig, {
     thirdPartyAudit.enabled = false
     licenseHeaders.enabled = false
     testingConventions.enabled = false
+    loggerUsageCheck.enabled = false
 
     configurations {
         all {

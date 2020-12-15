@@ -33,7 +33,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   final def apply[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]] = execute(request)
 
   /**
-    * See [[ElastiknnRequests.putMapping()]].
+    * See ElastiknnRequests.putMapping().
     */
   def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
     execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
@@ -44,21 +44,21 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     * @param shards How many shards, 1 by default.
     * @param replicas How many replicas, 1 by default.
     * @param elastiknn Value for `index.elastiknn` setting, true by default.
-    * @return [[CreateIndexResponse]]
+    * @return CreateIndexResponse
     */
   def createIndex(index: String, shards: Int = 1, replicas: Int = 0, elastiknn: Boolean = true): F[Response[CreateIndexResponse]] =
     execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas).indexSetting("elastiknn", elastiknn))
 
   /**
     * Index a batch of vectors as new Elasticsearch docs, one doc per vector.
-    * Also see [[ElastiknnRequests.index()]].
+    * Also see ElastiknnRequests.index().
     *
     * @param index Index where vectors are stored.
     * @param vecField Field in each doc where vector is stored.
     * @param vecs Sequence of vectors to store.
     * @param storedIdField Field in each doc where ID is stored as a doc value.
     * @param ids Sequence of ids. Assumed one-to-one correspondence to given vectors.
-    * @return [[Response]] containing [[BulkResponse]] containing indexing responses.
+    * @return Response containing BulkResponse containing indexing responses.
     */
   def index(index: String, vecField: String, vecs: Seq[Vec], storedIdField: String, ids: Seq[String]): F[Response[BulkResponse]] = {
     val reqs = vecs.zip(ids).map {
@@ -68,7 +68,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   }
 
   /**
-    * See [[ElastiknnRequests.nearestNeighbors()]].
+    * See ElastiknnRequests.nearestNeighbors().
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
 
