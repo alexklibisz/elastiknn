@@ -235,6 +235,7 @@ configure(plugin, List.of(scalaProjectConfig, {
     thirdPartyAudit.enabled = false
     licenseHeaders.enabled = false
     testingConventions.enabled = false
+    loggerUsageCheck.enabled = false
 
     configurations {
         all {
