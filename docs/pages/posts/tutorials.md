@@ -1,9 +1,9 @@
 ---
 layout: default
-title: Tutorials
+title: Posts
 nav_order: 6
 has_children: true
-permalink: /tutorials/
+permalink: /posts/
 ---
 
 # Tutorials
