@@ -48,3 +48,12 @@ def display_hits(res):
         print(f"Score   {hit.get('_score', None)}")
         display(Image(s.get("imUrl"), width=128))
         print("")
+
+def display_hits_horizontal(res):
+    print(f"Found {res['hits']['total']['value']} hits in {res['took']} ms. Showing top {len(res['hits']['hits'])}.")
+    html = "<table><tr>"
+    for hit in res['hits']['hits']:
+        s = hit['_source']
+        html += f"<td><img src=\"{s.get('imUrl')}\" width=128 /><p>{s.get('asin')}, {hit.get('_score')}</p></td>"
+    html += "</tr></table>"
+    display(HTML(html))
