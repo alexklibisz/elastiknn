@@ -227,8 +227,6 @@ configure(lucene, List.of(
 
 configure(plugin, List.of(scalaProjectConfig, {
 
-    version = "${version}_es${esVersion}"
-
     apply plugin: 'elasticsearch.esplugin'
 
     dependencyLicenses.enabled = false
