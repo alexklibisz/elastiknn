@@ -71,8 +71,8 @@ tasks:
       - echo "{{ .VERSION }}" > release.md
       - echo "" >> release.md
       - echo "_snapshot release_" >> release.md
-#      - hub release delete {{ .VERSION }} || true
-#      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release delete {{ .VERSION }} || true
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
