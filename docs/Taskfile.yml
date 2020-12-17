@@ -9,6 +9,7 @@ tasks:
       - gem install bundler
 
   dev: 
+    desc: Start local development server.
     deps:
       - install-bundler
     cmds:
@@ -16,6 +17,7 @@ tasks:
       - bundle exec jekyll serve
 
   compile:
+    desc: Compile docs into a static site.
     sources:
       - "**/*.md"
       - "**/*.html"
@@ -26,6 +28,7 @@ tasks:
       - bundle exec jekyll build
 
   publish:
+    desc: Publish docs to elastiknn.com server.
     status:
       - curl -f -o /dev/null https://{{ .SITE_MAIN_DIR }}/{{ .VERSION }}.html
     cmds:
