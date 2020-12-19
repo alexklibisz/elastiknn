@@ -14,8 +14,7 @@ Thanks to the [Elastic Community](https://www.elastic.co/community/) for hosting
 
 The recording and slides are shown below. I'm hoping to procure a higher-resolution recording at some point soon. The demo is available [as a notebook in the Github repo.](https://github.com/alexklibisz/elastiknn/tree/master/examples/tutorial-notebooks)
 
-
-<iframe width="800" height="420" src="https://www.youtube.com/embed/rJ9m4WYU9Fo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/M4vqhmSZMTI" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 Here are the slides:
 
