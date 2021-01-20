@@ -12,7 +12,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class NestedVectorsSpec extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient {
+class DocsWithNestedVectorsSuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient {
 
   // https://github.com/alexklibisz/elastiknn/issues/60
   implicit val rng: Random = new Random(0)
