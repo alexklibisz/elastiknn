@@ -34,7 +34,6 @@ class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: Spars
       field,
       trueIndexTerms,
       indexReader.getDocCount(field),
-      1f,
       indexReader,
       scoreFunction
     )
@@ -99,7 +98,6 @@ object SparseIndexedQuery {
       field,
       terms,
       indexReader.getDocCount(field),
-      1f,
       indexReader,
       scoreFunction
     )

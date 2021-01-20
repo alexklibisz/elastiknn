@@ -14,7 +14,6 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafSco
 class HashingQuery[V <: Vec, S <: StoredVec](field: String,
                                              queryVec: V,
                                              candidates: Int,
-                                             limit: Float,
                                              hashes: Array[HashAndFreq],
                                              simFunc: ExactSimilarityFunction[V, S])(implicit codec: StoredVec.Codec[V, S])
     extends ElastiknnQuery[V] {
@@ -30,7 +29,6 @@ class HashingQuery[V <: Vec, S <: StoredVec](field: String,
       field,
       hashes,
       candidates,
-      limit,
       indexReader,
       scoreFunction
     )

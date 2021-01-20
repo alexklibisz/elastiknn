@@ -134,35 +134,33 @@ package object api {
     sealed trait ApproximateQuery extends NearestNeighborsQuery {
       def candidates: Int
       def withCandidates(candidates: Int): ApproximateQuery
-      def limit: Float
     }
 
-    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), limit: Float = 1f) extends ApproximateQuery {
+    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
       override def similarity: Similarity = Similarity.Jaccard
     }
 
-    final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), limit: Float = 1f) extends ApproximateQuery {
+    final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
       override def similarity: Similarity = Similarity.Hamming
     }
 
-    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty(), limit: Float = 1f) extends ApproximateQuery {
+    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
       override def similarity: Similarity = Similarity.Angular
     }
 
-    final case class L2Lsh(field: String, candidates: Int, probes: Int = 0, vec: Vec = Vec.Empty(), limit: Float = 1f)
-        extends ApproximateQuery {
+    final case class L2Lsh(field: String, candidates: Int, probes: Int = 0, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
       override def similarity: Similarity = Similarity.L2
     }
 
-    final case class PermutationLsh(field: String, similarity: Similarity, candidates: Int, vec: Vec = Vec.Empty(), limit: Float = 1f)
+    final case class PermutationLsh(field: String, similarity: Similarity, candidates: Int, vec: Vec = Vec.Empty())
         extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)

@@ -77,26 +77,26 @@ object ElastiknnQuery {
       case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
         new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
-      case (JaccardLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.JaccardLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard)
+      case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard)
 
-      case (HammingLsh(f, candidates, v: Vec.SparseBool, l: Float), m: Mapping.HammingLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming)
+      case (HammingLsh(f, candidates, v: Vec.SparseBool), m: Mapping.HammingLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming)
 
-      case (AngularLsh(f, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.AngularLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.values), ESF.Angular)
+      case (AngularLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.AngularLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.values), ESF.Angular)
 
-      case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat, l: Float), m: Mapping.L2Lsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.values, probes), ESF.L2)
+      case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.values, probes), ESF.L2)
 
-      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.values), ESF.Angular)
+      case (PermutationLsh(f, Similarity.Angular, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.values), ESF.Angular)
 
-      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.values), ESF.L2)
+      case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.values), ESF.L2)
 
-      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat, l: Float), m: Mapping.PermutationLsh) =>
-        new HashingQuery(f, v, candidates, l, Cache(m).hash(v.values), ESF.L1)
+      case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
+        new HashingQuery(f, v, candidates, Cache(m).hash(v.values), ESF.L1)
 
       case _ => Failure(incompatible(query, mapping))
     }

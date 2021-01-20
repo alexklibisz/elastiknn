@@ -84,7 +84,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
         val f: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
           (_: LeafReaderContext) => (_: Int, matches: Int) => matches * 1f
 
-        val q = new MatchHashesAndScoreQuery("vec", hq, 2, 1f, reader, f)
+        val q = new MatchHashesAndScoreQuery("vec", hq, 2, reader, f)
         val res = searcher.search(q, 2)
         res.scoreDocs.map(_.doc) shouldBe Array(0, 1)
         res.scoreDocs.map(_.score) shouldBe Array(3f, 2f)
@@ -110,7 +110,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       } {
         case (r, s) =>
           queryVecs.map { v =>
-            val q = new HashingQuery("vec", v, 200, 1f, lsh.hash(v.values), ExactSimilarityFunction.Angular)
+            val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), ExactSimilarityFunction.Angular)
             s.search(q.toLuceneQuery(r), 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
           }
       }
