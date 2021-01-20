@@ -247,7 +247,6 @@ class NearestNeighborsQuery:
         vec: Vec.Base
         similarity: Similarity = Similarity.Jaccard
         candidates: int = 1000
-        limit: float = 1.0
 
         def to_dict(self):
             return {
@@ -255,13 +254,12 @@ class NearestNeighborsQuery:
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
                 "candidates": self.candidates,
-                "vec": self.vec.to_dict(),
-                "limit": self.limit
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.JaccardLsh(field=self.field, vec=vec, similarity=self.similarity,
-                                                    candidates=self.candidates, limit=self.limit)
+                                                    candidates=self.candidates)
 
     @dataclass(frozen=True)
     class HammingLsh(Base):
@@ -269,7 +267,6 @@ class NearestNeighborsQuery:
         vec: Vec.Base
         similarity: Similarity = Similarity.Hamming
         candidates: int = 1000
-        limit: float = 1.0
 
         def to_dict(self):
             return {
@@ -277,13 +274,12 @@ class NearestNeighborsQuery:
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
                 "candidates": self.candidates,
-                "vec": self.vec.to_dict(),
-                "limit": self.limit
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.HammingLsh(field=self.field, vec=vec, similarity=self.similarity,
-                                                    candidates=self.candidates, limit=self.limit)
+                                                    candidates=self.candidates)
 
     @dataclass(frozen=True)
     class AngularLsh(Base):
@@ -291,7 +287,6 @@ class NearestNeighborsQuery:
         vec: Vec.Base
         similarity: Similarity = Similarity.Angular
         candidates: int = 1000
-        limit: float = 1.0
 
         def to_dict(self):
             return {
@@ -299,13 +294,12 @@ class NearestNeighborsQuery:
                 "model": "lsh",
                 "similarity": self.similarity.name.lower(),
                 "candidates": self.candidates,
-                "vec": self.vec.to_dict(),
-                "limit": self.limit
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.AngularLsh(field=self.field, vec=vec, similarity=self.similarity,
-                                                    candidates=self.candidates, limit=self.limit)
+                                                    candidates=self.candidates)
 
     @dataclass(frozen=True)
     class L2Lsh(Base):
@@ -314,7 +308,6 @@ class NearestNeighborsQuery:
         probes: int = 0
         similarity: Similarity = Similarity.L2
         candidates: int = 1000
-        limit: float = 1.0
 
         def to_dict(self):
             return {
@@ -323,13 +316,12 @@ class NearestNeighborsQuery:
                 "similarity": self.similarity.name.lower(),
                 "probes": self.probes,
                 "candidates": self.candidates,
-                "vec": self.vec.to_dict(),
-                "limit": self.limit
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.L2Lsh(field=self.field, vec=vec, probes=self.probes, similarity=self.similarity,
-                                               candidates=self.candidates, limit=self.limit)
+                                               candidates=self.candidates)
 
     @dataclass(frozen=True)
     class PermutationLsh(Base):
@@ -337,7 +329,6 @@ class NearestNeighborsQuery:
         vec: Vec.Base
         similarity: Similarity = Similarity.Angular
         candidates: int = 1000
-        limit: float = 1.0
 
         def to_dict(self):
             return {
@@ -345,10 +336,9 @@ class NearestNeighborsQuery:
                 "model": "permutation_lsh",
                 "similarity": self.similarity.name.lower(),
                 "candidates": self.candidates,
-                "vec": self.vec.to_dict(),
-                "limit": self.limit
+                "vec": self.vec.to_dict()
             }
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.PermutationLsh(field=self.field, vec=vec, similarity=self.similarity,
-                                                        candidates=self.candidates, limit=self.limit)
+                                                        candidates=self.candidates)
