@@ -189,7 +189,7 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       |   "total_indices": 99
       | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99), 1f)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{
@@ -200,9 +200,8 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       | "vec": {
       |   "true_indices": [1,2,3],
       |   "total_indices": 99
-      | },
-      | "limit": 0.3
+      | }
       |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99), 0.3f)
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99))
   }
 }

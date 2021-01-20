@@ -28,7 +28,6 @@ public class MatchHashesAndScoreQuery extends Query {
     private final String field;
     private final HashAndFreq[] hashAndFrequencies;
     private final int candidates;
-    private final float limit;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
     private final Logger logger;
@@ -36,7 +35,6 @@ public class MatchHashesAndScoreQuery extends Query {
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
                                     final int candidates,
-                                    final float limit,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
@@ -46,7 +44,6 @@ public class MatchHashesAndScoreQuery extends Query {
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
         this.candidates = candidates;
-        this.limit = limit;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
         this.logger = LogManager.getLogger(getClass().getName());
@@ -69,7 +66,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
-                    double counterLimit = limit < 1f ? limit * counter.capacity() : counter.capacity() + 1;
+                    double counterLimit = counter.capacity() + 1;
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hf : hashAndFrequencies) {
