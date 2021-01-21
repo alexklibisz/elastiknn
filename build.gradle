@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        esVersion = '7.10.2'
+        esVersion = '7.11.0-SNAPSHOT'
         luceneVersion = '8.7.0'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
@@ -11,6 +11,9 @@ buildscript {
         jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
+        }
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
         }
     }
     dependencies {
@@ -229,12 +232,6 @@ configure(plugin, List.of(scalaProjectConfig, {
 
     apply plugin: 'elasticsearch.esplugin'
 
-    dependencyLicenses.enabled = false
-    thirdPartyAudit.enabled = false
-    licenseHeaders.enabled = false
-    testingConventions.enabled = false
-    loggerUsageCheck.enabled = false
-
     configurations {
         all {
             // Needed to resolve scala minor version conflicts.
@@ -249,6 +246,12 @@ configure(plugin, List.of(scalaProjectConfig, {
         licenseFile rootProject.file('LICENSE.txt')
         noticeFile rootProject.file('NOTICE.txt')
     }
+
+//    tasks.named("dependencyLicenses").configure {enabled = false }
+//    tasks.named("thirdPartyAudit").configure {enabled = false }
+//    tasks.named("licenseHeaders").configure {enabled = false }
+//    tasks.named("testingConventions").configure {enabled = false }
+//    tasks.named("loggerUsageCheck").configure {enabled = false }
 
     dependencies {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?

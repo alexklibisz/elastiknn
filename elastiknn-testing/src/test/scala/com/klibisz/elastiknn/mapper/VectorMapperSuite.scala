@@ -181,11 +181,14 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       _ <- eknn.execute(bulk(ixReqs))
       _ <- eknn.execute(refreshIndex(index))
       count <- eknn.execute(count(index).query(existsQuery(vecField)))
-      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+      nbrs1 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+      nbrs2 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, Vec.Indexed(index, "v0", vecField)), 10, idField)
     } yield {
       count.result.count shouldBe corpus.length
-      nbrs.result.hits.hits.length shouldBe 10
-      nbrs.result.hits.hits.head.id shouldBe "v0"
+      nbrs1.result.hits.hits.length shouldBe 10
+      nbrs1.result.hits.hits.head.id shouldBe "v0"
+      nbrs2.result.hits.hits.length shouldBe 10
+      nbrs2.result.hits.hits.head.id shouldBe "v0"
     }
   }
 

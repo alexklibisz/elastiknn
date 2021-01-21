@@ -32,7 +32,7 @@ object ElastiknnQuery {
 
   def getMapping(context: QueryShardContext, field: String): Mapping = {
     import VectorMapper._
-    val mft: MappedFieldType = context.fieldMapper(field)
+    val mft: MappedFieldType = context.getFieldType(field)
     mft match {
       case ft: FieldType => ft.mapping
       case null =>

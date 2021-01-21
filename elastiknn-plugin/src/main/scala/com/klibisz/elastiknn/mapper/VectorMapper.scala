@@ -1,14 +1,11 @@
 package com.klibisz.elastiknn.mapper
 
-import java.util
-import java.util.Collections
-
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
+import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
-import com.klibisz.elastiknn._
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
@@ -20,8 +17,9 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.QueryShardContext
-import org.elasticsearch.search.lookup.SearchLookup
 
+import java.util
+import java.util.Collections
 import scala.util.{Failure, Try}
 
 object VectorMapper {
@@ -78,7 +76,7 @@ object VectorMapper {
     }
     override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
 
-    override def valueFetcher(mapperService: MapperService, searchLookup: SearchLookup, format: String): ValueFetcher = {
+    override def valueFetcher(context: QueryShardContext, format: String): ValueFetcher = {
       // TODO: figure out what this is and implement it.
       throw new ElastiknnUnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support this operation yet.")
     }
@@ -104,16 +102,16 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder[_] = {
+    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder = {
       val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
       val builder: Builder = new Builder(name, mapping)
-      TypeParsers.parseField(builder, name, node, parserContext)
+      // TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
       builder
     }
   }
 
-  private class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder[Builder](field, luceneFieldType) {
+  private final class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder(field) {
 
     /** Populate the given builder from the given Json. */
     private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
@@ -147,13 +145,12 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
       populate(json)
     }
 
-    override def build(context: Mapper.BuilderContext): FieldMapper = {
+    override def build(contentPath: ContentPath): FieldMapper = {
       new FieldMapper(
         field,
-        luceneFieldType,
-        new VectorMapper.FieldType(CONTENT_TYPE, context.path.pathAsText(name), mapping),
-        multiFieldsBuilder.build(this, context),
-        copyTo
+        new VectorMapper.FieldType(CONTENT_TYPE, contentPath.pathAsText(name), mapping),
+        multiFieldsBuilder.build(this, contentPath),
+        copyTo.build()
       ) {
         override def parsesArrayValue(): Boolean = true
 
@@ -191,12 +188,11 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
         }
 
-        override def mergeOptions(other: FieldMapper, conflicts: util.List[String]): Unit = {
-          // TODO: should probably do something here? This is new in 7.9.x.
-          ()
-        }
+        override def getMergeBuilder: FieldMapper.Builder = ???
       }
     }
+
+    override def getParameters: util.List[FieldMapper.Parameter[_]] = ???
   }
 
 }
