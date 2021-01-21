@@ -1,5 +1,6 @@
 buildscript {
     ext {
+        // Also need to clone elasticsearch, checkout 7.11, and run ./gradlew :libs:elasticsearch-plugin-classloader:publishToMavenLocal.
         esVersion = '7.11.0-SNAPSHOT'
         luceneVersion = '8.7.0'
         circeVersion= '0.13.0'
