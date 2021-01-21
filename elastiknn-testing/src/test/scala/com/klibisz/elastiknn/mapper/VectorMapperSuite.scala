@@ -171,8 +171,9 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     val mapping = Mapping.L2Lsh(dims, 33, 1, 1)
     val ixReqs = corpus.zipWithIndex.map {
       case (vec, i) =>
-        val source = s""" { "$idField": "v$i", "$vecField": ${vec.values.asJson.noSpaces} } """
-        IndexRequest(index, source = Some(source))
+        val id = s"v$i"
+        val source = s""" { "$idField": "$id", "$vecField": ${vec.values.asJson.noSpaces} } """
+        IndexRequest(index, id = Some(id), source = Some(source))
     }
     for {
       _ <- deleteIfExists(index)
@@ -181,11 +182,14 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       _ <- eknn.execute(bulk(ixReqs))
       _ <- eknn.execute(refreshIndex(index))
       count <- eknn.execute(count(index).query(existsQuery(vecField)))
-      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+      nbrs1 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, corpus.head), 10, idField)
+      nbrs2 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.L2Lsh(vecField, 10, 1, Vec.Indexed(index, "v0", vecField)), 10, idField)
     } yield {
       count.result.count shouldBe corpus.length
-      nbrs.result.hits.hits.length shouldBe 10
-      nbrs.result.hits.hits.head.id shouldBe "v0"
+      nbrs1.result.hits.hits.length shouldBe 10
+      nbrs1.result.hits.hits.head.id shouldBe "v0"
+      nbrs2.result.hits.hits.length shouldBe 10
+      nbrs2.result.hits.hits.head.id shouldBe "v0"
     }
   }
 
@@ -196,8 +200,9 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     val mapping = Mapping.JaccardLsh(dims, 20, 1)
     val ixReqs = corpus.zipWithIndex.map {
       case (vec, i) =>
-        val source = s""" { "$idField": "v$i", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
-        IndexRequest(index, source = Some(source))
+        val id = s"v$i"
+        val source = s""" { "$idField": "$id", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
+        IndexRequest(index, id = Some(id), source = Some(source))
     }
     for {
       _ <- deleteIfExists(index)
@@ -206,11 +211,14 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       _ <- eknn.execute(bulk(ixReqs))
       _ <- eknn.execute(refreshIndex(index))
       count <- eknn.execute(count(index).query(existsQuery(vecField)))
-      nbrs <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
+      nbrs1 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
+      nbrs2 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, Vec.Indexed(index, "v0", vecField)), 10, idField)
     } yield {
       count.result.count shouldBe corpus.length
-      nbrs.result.hits.hits.length shouldBe 10
-      nbrs.result.hits.hits.head.id shouldBe "v0"
+      nbrs1.result.hits.hits.length shouldBe 10
+      nbrs1.result.hits.hits.head.id shouldBe "v0"
+      nbrs2.result.hits.hits.length shouldBe 10
+      nbrs2.result.hits.hits.head.id shouldBe "v0"
     }
   }
 
