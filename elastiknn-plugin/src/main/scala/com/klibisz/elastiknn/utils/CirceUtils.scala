@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 
 trait CirceUtils {
 
-  private def encodeAny(a: Any): Json = a match {
+  def encodeAny(a: Any): Json = a match {
     case s: lang.String  => Json.fromString(s)
     case l: lang.Long    => Json.fromLong(l)
     case i: lang.Integer => Json.fromInt(i)

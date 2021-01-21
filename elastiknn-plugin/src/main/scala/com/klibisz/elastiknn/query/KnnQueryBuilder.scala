@@ -5,7 +5,7 @@ import java.util.Objects
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.utils.CirceUtils.javaMapEncoder
+import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import io.circe.Json
 import org.apache.lucene.search.Query
@@ -37,7 +37,7 @@ object KnnQueryBuilder {
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
       val map = parser.map()
-      val json: Json = javaMapEncoder(map)
+      val json: Json = CirceUtils.javaMapEncoder(map)
       val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
       // Account for sparse bool vecs which need to be sorted.
       val sortedVec = query.vec match {
@@ -82,9 +82,8 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new ActionListener[GetResponse] {
           override def onResponse(response: GetResponse): Unit =
             try {
-              println(response.getSourceAsString)
-              val srcMap = response.getSourceAsMap.get(ixv.field).asInstanceOf[JavaJsonMap]
-              val srcJson: Json = javaMapEncoder(srcMap)
+              val srcField: Any = response.getSourceAsMap.get(ixv.field)
+              val srcJson: Json = CirceUtils.encodeAny(srcField)
               val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
               supplier.set(copy(query.withVec(vector)))
               l.asInstanceOf[ActionListener[Any]].onResponse(null)

@@ -188,11 +188,11 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
         }
 
-        override def getMergeBuilder: FieldMapper.Builder = ???
+        override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
       }
     }
 
-    override def getParameters: util.List[FieldMapper.Parameter[_]] = ???
+    override def getParameters: util.List[FieldMapper.Parameter[_]] = util.List.of()
   }
 
 }

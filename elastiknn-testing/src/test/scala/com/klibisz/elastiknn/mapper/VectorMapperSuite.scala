@@ -171,8 +171,9 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     val mapping = Mapping.L2Lsh(dims, 33, 1, 1)
     val ixReqs = corpus.zipWithIndex.map {
       case (vec, i) =>
-        val source = s""" { "$idField": "v$i", "$vecField": ${vec.values.asJson.noSpaces} } """
-        IndexRequest(index, source = Some(source))
+        val id = s"v$i"
+        val source = s""" { "$idField": "$id", "$vecField": ${vec.values.asJson.noSpaces} } """
+        IndexRequest(index, id = Some(id), source = Some(source))
     }
     for {
       _ <- deleteIfExists(index)
