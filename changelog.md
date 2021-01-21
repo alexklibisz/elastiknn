@@ -1,3 +1,5 @@
+- Removed the `limit` option from approximate queries. This was never documented and barely used.
+---
 - Bumped Elasticsearch version to 7.10.2.
 ---
 - Bumped Elasticsearch version to 7.10.1.
