@@ -9,7 +9,20 @@ tasks:
     cmds:
       - python3 -m pip install docker-compose
 
-  assemble: "{{ .CMD_GRADLE }} assemble"
+  elasticsearch-plugin-classloader:
+    dir: /tmp
+    desc: Temporary workaround for https://github.com/elastic/elasticsearch/issues/68888
+    cmds:
+      - wget --quiet -O v7.11.0.zip https://github.com/elastic/elasticsearch/archive/v7.11.0.zip
+      - rm -rf elasticsearch-7.11.0
+      - unzip -q v7.11.0.zip
+      - "cd elasticsearch-7.11.0 && {{ .CMD_GRADLE }} -Dbuild.snapshot=false :libs:elasticsearch-plugin-classloader:publishToMavenLocal"
+
+  assemble:
+    deps:
+      - elasticsearch-plugin-classloader
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
 
   run:
     desc: Run local docker-compose cluster.
