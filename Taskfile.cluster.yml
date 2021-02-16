@@ -9,7 +9,11 @@ tasks:
     cmds:
       - python3 -m pip install docker-compose
 
-  assemble: "{{ .CMD_GRADLE }} assemble"
+  assemble:
+    deps:
+      - :jvm:elasticsearch-plugin-classloader
+    cmds:
+      - "{{ .CMD_GRADLE }} assemble"
 
   run:
     desc: Run local docker-compose cluster.

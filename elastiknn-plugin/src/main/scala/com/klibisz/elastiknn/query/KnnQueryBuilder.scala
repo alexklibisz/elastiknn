@@ -6,6 +6,7 @@ import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.utils.CirceUtils
+import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import com.klibisz.elastiknn._
 import io.circe.Json
 import org.apache.lucene.search.Query

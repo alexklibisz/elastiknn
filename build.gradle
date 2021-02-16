@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        esVersion = '7.10.2'
+        esVersion = '7.11.0'
         luceneVersion = '8.7.0'
         circeVersion= '0.13.0'
         scalaShortVersion = '2.12'
@@ -228,12 +228,6 @@ configure(lucene, List.of(
 configure(plugin, List.of(scalaProjectConfig, {
 
     apply plugin: 'elasticsearch.esplugin'
-
-    dependencyLicenses.enabled = false
-    thirdPartyAudit.enabled = false
-    licenseHeaders.enabled = false
-    testingConventions.enabled = false
-    loggerUsageCheck.enabled = false
 
     configurations {
         all {
