@@ -243,7 +243,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         licenseFile rootProject.file('LICENSE.txt')
         noticeFile rootProject.file('NOTICE.txt')
     }
-    
+
     dependencies {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
         runtime models
