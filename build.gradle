@@ -12,9 +12,6 @@ buildscript {
         maven {
             url "https://plugins.gradle.org/m2/"
         }
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-        }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
@@ -246,13 +243,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         licenseFile rootProject.file('LICENSE.txt')
         noticeFile rootProject.file('NOTICE.txt')
     }
-
-//    tasks.named("dependencyLicenses").configure {enabled = false }
-//    tasks.named("thirdPartyAudit").configure {enabled = false }
-//    tasks.named("licenseHeaders").configure {enabled = false }
-//    tasks.named("testingConventions").configure {enabled = false }
-//    tasks.named("loggerUsageCheck").configure {enabled = false }
-
+    
     dependencies {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
         runtime models
