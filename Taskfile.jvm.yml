@@ -105,7 +105,7 @@ tasks:
     dir: /tmp
     desc: Temporary workaround for https://github.com/elastic/elasticsearch/issues/68888
     cmds:
-      - wget -nc --quiet -O v7.11.0.zip https://github.com/elastic/elasticsearch/archive/v7.11.0.zip
-      - rm -rf elasticsearch-7.11.0
-      - unzip -q v7.11.0.zip
+      - wget -nc --quiet -O v7.11.1.zip https://github.com/elastic/elasticsearch/archive/v7.11.1.zip
+      - rm -rf elasticsearch-7.11.1
+      - unzip -q v7.11.1.zip
       - "cd elasticsearch-7.11.0 && {{ .CMD_GRADLE }} -Dbuild.snapshot=false :libs:elasticsearch-plugin-classloader:publishToMavenLocal"
