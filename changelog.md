@@ -1,3 +1,5 @@
+- Bumped Elasticsearch version to 7.11.1.
+---
 - Bumped Elasticsearch version to 7.11.0.
 ---
 - Fixed compatibility between shorthand vectors and indexed vector queries. See issue 201 for more details.
