@@ -28,14 +28,14 @@ Are you using Elastiknn? If so, please consider submitting a pull request to lis
 
 ## Releases
 
-|Artifact|Release|Snapshot|
-|:--|:--|:--|
-|Elasticsearch plugin zip file                                                                | [![Plugin Release][Badge-Plugin-Release]][Link-Plugin-Release]          | [![Plugin Snapshot][Badge-Plugin-Snapshot]][Link-Plugin-Snapshot]            |
-|Python HTTP client for Elastiknn                                                             | [![Python Release][Badge-Python-Release]][Link-Python-Release]          |                                                                              |
-|Java library w/ exact and approximate vector similarity models                               | [![Models Release][Badge-Models-Release]][Link-Models-Release]          | [![Models Snapshot][Badge-Models-Snapshot]][Link-Models-Snapshot]            |
-|Java library w/ Lucene queries and constructs used in Elastiknn                              | [![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]          | [![Lucene Snapshot][Badge-Lucene-Snapshot]][Link-Lucene-Snapshot]            |
-|Scala case classes and circe codecs for the Elastiknn JSON API                               | [![Api4s Release][Badge-Api4s-Release]][Link-Api4s-Release]        	    | [![Api4s Snapshot][Badge-Api4s-Snapshot]][Link-Api4s-Snapshot]               |
-|Scala HTTP client for Elastiknn, based on [elastic4s](https://github.com/sksamuel/elastic4s) | [![Elastic4s Release][Badge-Elastic4s-Release]][Link-Elastic4s-Release] | [![Elastic4s Snapshot][Badge-Elastic4s-Snapshot]][Link-Elastic4s-Snapshot]   |
+|Artifact|Release|Snapshot|Downloads|
+|:--|:--|:--|:--|
+|Elasticsearch plugin zip file                                                                | [![Plugin Release][Badge-Plugin-Release]][Link-Plugin-Release]          | [![Plugin Snapshot][Badge-Plugin-Snapshot]][Link-Plugin-Snapshot]            | ![Badge-Plugin-Downloads] |
+|Python HTTP client for Elastiknn                                                             | [![Python Release][Badge-Python-Release]][Link-Python-Release]          |                                                                              | |
+|Java library w/ exact and approximate vector similarity models                               | [![Models Release][Badge-Models-Release]][Link-Models-Release]          | [![Models Snapshot][Badge-Models-Snapshot]][Link-Models-Snapshot]            | |
+|Java library w/ Lucene queries and constructs used in Elastiknn                              | [![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]          | [![Lucene Snapshot][Badge-Lucene-Snapshot]][Link-Lucene-Snapshot]            | |
+|Scala case classes and circe codecs for the Elastiknn JSON API                               | [![Api4s Release][Badge-Api4s-Release]][Link-Api4s-Release]        	    | [![Api4s Snapshot][Badge-Api4s-Snapshot]][Link-Api4s-Snapshot]               | |
+|Scala HTTP client for Elastiknn, based on [elastic4s](https://github.com/sksamuel/elastic4s) | [![Elastic4s Release][Badge-Elastic4s-Release]][Link-Elastic4s-Release] | [![Elastic4s Snapshot][Badge-Elastic4s-Snapshot]][Link-Elastic4s-Snapshot]   | |
 
 ## Sponsors
 
@@ -56,6 +56,7 @@ YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/p
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=flat-square "Plugin Release"
 [Link-Plugin-Snapshot]: https://github.com/alexklibisz/elastiknn/releases
 [Badge-Plugin-Snapshot]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=flat-square "Plugin Snapshot"
+[Badge-Plugin-Downloads]: https://img.shields.io/github/downloads/alexklibisz/elastiknn/total?style=for-the-badge
 
 [Link-Python-Release]: https://pypi.org/project/elastiknn-client/
 [Badge-Python-Release]: https://img.shields.io/pypi/v/elastiknn-client?style=flat-square "Python Release"
@@ -79,3 +80,4 @@ YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/p
 [Badge-Elastic4s-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-elastic4s_2.12?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "client-elastic4s_2.12 snapshot"
 [Link-Elastic4s-Release]: https://search.maven.org/artifact/com.klibisz.elastiknn/client-elastic4s_2.12
 [Link-Elastic4s-Snapshot]: https://oss.sonatype.org/#nexus-search;gav~com.klibisz.elastiknn~client-elastic4s_2.12~~~
+
