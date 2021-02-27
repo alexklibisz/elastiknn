@@ -10,7 +10,6 @@ If you're looking to contribute to Elastiknn, please see developer-guide.md.
 
 ## Community
 
-- Join the Gitter channel at [gitter.im/elastiknn/community](https://gitter.im/elastiknn/community).
 - Post on the [Github issue tracker](https://github.com/alexklibisz/elastiknn/issues) if you have questions, bugs, etc.
 
 ## Users
@@ -56,7 +55,7 @@ YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/p
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=flat-square "Plugin Release"
 [Link-Plugin-Snapshot]: https://github.com/alexklibisz/elastiknn/releases
 [Badge-Plugin-Snapshot]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=flat-square "Plugin Snapshot"
-[Badge-Plugin-Downloads]: https://img.shields.io/github/downloads/alexklibisz/elastiknn/total?style=for-the-badge
+[Badge-Plugin-Downloads]: https://img.shields.io/github/downloads/alexklibisz/elastiknn/total?style=flat-square
 
 [Link-Python-Release]: https://pypi.org/project/elastiknn-client/
 [Badge-Python-Release]: https://img.shields.io/pypi/v/elastiknn-client?style=flat-square "Python Release"
