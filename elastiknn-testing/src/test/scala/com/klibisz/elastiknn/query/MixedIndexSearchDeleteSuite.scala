@@ -20,7 +20,8 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
     val corpus = Vec.DenseFloat.randoms(dims, 1000)
     val ids = corpus.indices.map(i => s"v$i")
     val mapping = Mapping.L2Lsh(dims, 50, 1, 2)
-    val query = NearestNeighborsQuery.L2Lsh(vecField, 30, 1)
+    val query = NearestNeighborsQuery.L2Lsh(vecField, 100, 1)
+    val k = 42
 
     def searchDeleteSearchReplace(): Future[Assertion] = {
       val randomIdx = rng.nextInt(corpus.length)
@@ -30,7 +31,7 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
         _ = c1.result.count shouldBe corpus.length
 
         // Search for the randomly-picked vector. It should be its own best match.
-        s1 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
+        s1 <- eknn.nearestNeighbors(index, query.withVec(vec), k, idField)
         _ = s1.result.hits.hits.headOption.map(_.id) shouldBe Some(id)
 
         // Delete the top five vectors.
@@ -41,8 +42,9 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
         _ = c2.result.count shouldBe (corpus.length - deletedIdxs.length)
 
         // Search again for the original vector. The previous last five results should be the new top five.
-        s2 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
-        _ = s2.result.hits.hits.map(_.id).take(5).toSeq shouldBe s1.result.hits.hits.map(_.id).takeRight(5).toSeq
+        s2 <- eknn.nearestNeighbors(index, query.withVec(vec), k, idField)
+        _ = s2.result.hits.hits.map(_.id).take(5).toSeq shouldBe s1.result.hits.hits.map(_.id).slice(5, 10).toSeq
+        _ = s2.result.totalHits shouldBe s1.result.totalHits - 5
 
         // Put the deleted vectors back.
         _ <- eknn.index(index, vecField, deletedIdxs.map(corpus.apply), idField, deletedIdxs.map(ids.apply))
@@ -51,15 +53,16 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
         _ = c3.result.count shouldBe corpus.length
 
         // Search again for the same original vector.
-        s3 <- eknn.nearestNeighbors(index, query.withVec(vec), 10, idField)
+        s3 <- eknn.nearestNeighbors(index, query.withVec(vec), k, idField)
         _ = s3.result.hits.hits.map(_.id).sorted shouldBe s1.result.hits.hits.map(_.id).sorted
+        _ = s3.result.totalHits shouldBe s1.result.totalHits
 
       } yield Assertions.succeed
     }
 
     for {
       _ <- deleteIfExists(index)
-      _ <- eknn.createIndex(index)
+      _ <- eknn.createIndex(index, 3, 2)
       _ <- eknn.putMapping(index, vecField, idField, mapping)
       _ <- eknn.index(index, vecField, corpus, idField, ids)
       _ <- eknn.execute(refreshIndex(index))
