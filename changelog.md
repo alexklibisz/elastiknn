@@ -1,3 +1,5 @@
+- Bumped Elasticsearch version to 7.11.2.
+---
 - Bumped Elasticsearch version to 7.11.1.
 ---
 - Bumped Elasticsearch version to 7.11.0.
