@@ -6,7 +6,7 @@ import org.elasticsearch.index.codec.CodecService
 class ElastiknnCodecService extends CodecService(null, null) {
 
   override def codec(name: String): Codec =
-    Codec.forName(ElastiknnCodecService.ELASTIKNN_87)
+    Codec.forName(ElastiknnCodecService.ELASTIKNN_88)
 
 }
 
