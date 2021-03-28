@@ -1,13 +1,10 @@
 package com.klibisz.elastiknn.query
 
-import java.util.Objects
-
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
-import com.klibisz.elastiknn._
 import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
@@ -17,6 +14,8 @@ import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
+
+import java.util.Objects
 
 object KnnQueryBuilder {
 
@@ -59,12 +58,13 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
 
   override def doXContent(builder: XContentBuilder, params: ToXContent.Params): Unit = ()
 
-  override def doRewrite(context: QueryRewriteContext): QueryBuilder = query.vec match {
-    case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
-    case _                => this
-  }
+  override def doRewrite(context: QueryRewriteContext): QueryBuilder =
+    query.vec match {
+      case ixv: Vec.Indexed => rewriteGetVector(context, ixv)
+      case _                => this
+    }
 
-  override def doToQuery(context: QueryShardContext): Query =
+  override def doToQuery(context: SearchExecutionContext): Query =
     ElastiknnQuery(query, context).map(_.toLuceneQuery(context.getIndexReader)).get
 
   override def doEquals(other: KnnQueryBuilder): Boolean = other.query == this.query

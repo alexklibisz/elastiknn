@@ -10,7 +10,7 @@ import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
 import org.elasticsearch.index.mapper.MappedFieldType
-import org.elasticsearch.index.query.QueryShardContext
+import org.elasticsearch.index.query.SearchExecutionContext
 
 import scala.language.implicitConversions
 import scala.util._
@@ -30,7 +30,7 @@ object ElastiknnQuery {
     new IllegalArgumentException(msg)
   }
 
-  def getMapping(context: QueryShardContext, field: String): Mapping = {
+  def getMapping(context: SearchExecutionContext, field: String): Mapping = {
     import VectorMapper._
     val mft: MappedFieldType = context.getFieldType(field)
     mft match {
@@ -39,11 +39,12 @@ object ElastiknnQuery {
         throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${field}]")
       case _ =>
         throw new ElastiknnRuntimeException(
-          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]")
+          s"Expected field [${mft.name}] to have type [${denseFloatVector.CONTENT_TYPE}] or [${sparseBoolVector.CONTENT_TYPE}] but had [${mft.typeName}]"
+        )
     }
   }
 
-  def apply(query: NearestNeighborsQuery, queryShardContext: QueryShardContext): Try[ElastiknnQuery[_]] =
+  def apply(query: NearestNeighborsQuery, queryShardContext: SearchExecutionContext): Try[ElastiknnQuery[_]] =
     apply(query, getMapping(queryShardContext, query.field))
 
   private implicit def toSuccess[A <: Vec](q: ElastiknnQuery[A]): Try[ElastiknnQuery[A]] = Success(q)
@@ -51,24 +52,34 @@ object ElastiknnQuery {
   def apply(query: NearestNeighborsQuery, mapping: Mapping): Try[ElastiknnQuery[_]] =
     (query, mapping) match {
 
-      case (Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
+      case (
+            Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
+            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          ) =>
         new ExactQuery(f, v, ESF.Jaccard)
 
-      case (Exact(f, Similarity.Hamming, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh) =>
+      case (
+            Exact(f, Similarity.Hamming, v: Vec.SparseBool),
+            _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          ) =>
         new ExactQuery(f, v, ESF.Hamming)
 
-      case (Exact(f, Similarity.L1, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
+      case (
+            Exact(f, Similarity.L1, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          ) =>
         new ExactQuery(f, v, ESF.L1)
 
-      case (Exact(f, Similarity.L2, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
+      case (
+            Exact(f, Similarity.L2, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          ) =>
         new ExactQuery(f, v, ESF.L2)
 
-      case (Exact(f, Similarity.Angular, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh) =>
+      case (
+            Exact(f, Similarity.Angular, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.AngularLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          ) =>
         new ExactQuery(f, v, ESF.Angular)
 
       case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
