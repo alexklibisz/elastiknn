@@ -285,6 +285,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.elasticsearch:elasticsearch:${esVersion}"
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
+        implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2-PRE0-SNAPSHOT"
         testRuntime 'org.pegdown:pegdown:1.4.2'
         testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"

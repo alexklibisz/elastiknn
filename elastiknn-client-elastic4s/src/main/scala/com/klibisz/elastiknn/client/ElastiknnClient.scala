@@ -85,7 +85,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
             h.copy(id = h.fields.get(storedIdField) match {
               case Some(List(id: String)) => id
               case _                      => ""
-            }))
+            })
+          )
           sr.copy(hits = sr.hits.copy(hits = hitsWithIds))
         }
       }
@@ -100,12 +101,11 @@ object ElastiknnClient {
   final case class StrictFailureException(message: String, cause: Throwable = None.orNull) extends RuntimeException(message, cause)
 
   def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(
-      implicit ec: ExecutionContext): ElastiknnFutureClient = {
+      implicit ec: ExecutionContext
+  ): ElastiknnFutureClient = {
     val rc: RestClient = RestClient
       .builder(new HttpHost(host, port))
-      .setRequestConfigCallback(
-        (requestConfigBuilder: RequestConfig.Builder) => requestConfigBuilder.setSocketTimeout(timeoutMillis)
-      )
+      .setRequestConfigCallback((requestConfigBuilder: RequestConfig.Builder) => requestConfigBuilder.setSocketTimeout(timeoutMillis))
       .build()
     val jc: JavaClient = new JavaClient(rc)
     new ElastiknnFutureClient {
@@ -119,7 +119,8 @@ object ElastiknnClient {
             case Left(ex) => Future.failed(ex)
             case Right(_) => Future.successful(res)
           }
-        } else future
+        }
+        else future
       }
 
       override def toString: String = s"${ElastiknnClient.getClass.getSimpleName} connected to $host:$port"
@@ -135,22 +136,26 @@ object ElastiknnClient {
         bulkResponseItems.head.error match {
           case Some(err) =>
             Some(
-              ElasticError(err.`type`,
-                           err.reason,
-                           Some(err.index_uuid),
-                           Some(err.index),
-                           Some(err.shard.toString),
-                           Seq.empty,
-                           None,
-                           None,
-                           None,
-                           Seq.empty))
+              ElasticError(
+                err.`type`,
+                err.reason,
+                Some(err.index_uuid),
+                Some(err.index),
+                Some(err.shard.toString),
+                Seq.empty,
+                None,
+                None,
+                None,
+                Seq.empty
+              )
+            )
           case None => findBulkError(bulkResponseItems.tail, acc)
         }
     if (res.isError) {
-      Left(StrictFailureException(s"Returned error response [$res] for request [$req].", res.error.asException))
-    } else if (res.status >= 300) Left(StrictFailureException(s"Returned non-200 response [$res] for request [$req]."))
-    else
+      Left(res.error.asException)
+    } else if (res.status >= 300) {
+      Left(StrictFailureException(s"Returned non-200 response [$res] for request [$req]."))
+    } else
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
           findBulkError(bulkResponse.items) match {

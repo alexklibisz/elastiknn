@@ -3,11 +3,11 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import futil.Futil
 import org.scalatest.Inspectors
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.Future
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
 
@@ -64,7 +64,7 @@ class FunctionScoreQuerySuite extends AsyncFunSuite with Matchers with Inspector
          |}
          |""".stripMargin
 
-    val functionScoreQueryReplace =
+    def functionScoreQueryReplace(q: NearestNeighborsQuery) =
       s"""
          |{
          |  "size": $numBlue,
@@ -72,7 +72,7 @@ class FunctionScoreQuerySuite extends AsyncFunSuite with Matchers with Inspector
          |    "function_score": {
          |      "query": { "term": { "color": "blue" } },
          |      "boost_mode": "replace",
-         |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)}
+         |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(q)}
          |    }
          |  }
          |}
@@ -101,7 +101,7 @@ class FunctionScoreQuerySuite extends AsyncFunSuite with Matchers with Inspector
       _ <- deleteIfExists(index)
       _ <- eknn.createIndex(index)
       _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-      _ <- Future.traverse(corpus.grouped(100)) { batch =>
+      _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
         val reqs = batch.map {
           case (id, vec, color) =>
             val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
@@ -114,7 +114,12 @@ class FunctionScoreQuerySuite extends AsyncFunSuite with Matchers with Inspector
       termRes <- eknn.execute(search(index).source(termQuery)).map(_.result)
 
       // Function score query that runs KNN on docs matching "color": "blue" and returns the KNN score.
-      fsReplaceRes <- eknn.execute(search(index).source(functionScoreQueryReplace)).map(_.result)
+      fsReplaceRes <- eknn.execute(search(index).source(functionScoreQueryReplace(query))).map(_.result)
+
+      // The function score query does not work with indexed vectors. Cause an error to verify this.
+      indexedException <- recoverToExceptionIf[Exception](
+        eknn.execute(search(index).source(functionScoreQueryReplace(query.withVec(Vec.Indexed(index, "v0", "vec")))))
+      )
 
       // Function score query that runs KNN on docs matching "color": "blue" and returns the terms score + 3 * KNN score.
       // The previous two queries are used to check the results of this query.
@@ -127,6 +132,8 @@ class FunctionScoreQuerySuite extends AsyncFunSuite with Matchers with Inspector
 
       fsReplaceRes.hits.hits.length shouldBe numBlue
       fsReplaceRes.hits.hits.map(_.id).toSet shouldBe blueIds
+
+      indexedException.getMessage should include("The score function does not support indexed vectors.")
 
       fsSumWeightedRes.hits.hits.length shouldBe numBlue
       fsSumWeightedRes.hits.hits.map(_.id).toSet shouldBe blueIds

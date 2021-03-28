@@ -1,9 +1,9 @@
 package com.klibisz.elastiknn.query
 
 import java.util.Objects
-
 import com.klibisz.elastiknn.ELASTIKNN_NAME
-import com.klibisz.elastiknn.api.NearestNeighborsQuery
+import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
+import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
@@ -47,7 +47,12 @@ object KnnScoreFunctionBuilder {
   object Parser extends ScoreFunctionParser[KnnScoreFunctionBuilder] {
     override def fromXContent(parser: XContentParser): KnnScoreFunctionBuilder = {
       val knnqb = KnnQueryBuilder.Parser.fromXContent(parser)
-      new KnnScoreFunctionBuilder(knnqb.query, 1f)
+      knnqb.query.vec match {
+        case _: Vec.Indexed =>
+          val msg = "The score function does not support indexed vectors. Provide a literal vector instead."
+          throw new ElastiknnUnsupportedOperationException(msg)
+        case _ => new KnnScoreFunctionBuilder(knnqb.query, 1f)
+      }
     }
   }
 }
