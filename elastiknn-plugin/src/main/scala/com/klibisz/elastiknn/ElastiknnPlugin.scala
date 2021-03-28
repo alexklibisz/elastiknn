@@ -15,9 +15,10 @@ import org.elasticsearch.plugins._
 
 class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with MapperPlugin with EnginePlugin {
 
-  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = Collections.singletonList(
-    new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
-  )
+  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] =
+    Collections.singletonList(
+      new QuerySpec(KnnQueryBuilder.NAME, KnnQueryBuilder.Reader, KnnQueryBuilder.Parser)
+    )
 
   override def getMappers: util.Map[String, Mapper.TypeParser] = {
     import VectorMapper._
@@ -64,10 +65,12 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
               config.getPrimaryTermSupplier,
               config.getTombstoneDocSupplier,
               config.getSnapshotCommitSupplier
-            ))
+            )
+          )
         }
       }
-    } else Optional.empty()
+    }
+    else Optional.empty()
   }
 }
 

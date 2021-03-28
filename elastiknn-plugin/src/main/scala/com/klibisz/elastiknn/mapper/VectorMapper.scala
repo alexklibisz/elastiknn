@@ -10,13 +10,13 @@ import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Query, TermQuery}
+import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
-import org.elasticsearch.index.query.QueryShardContext
+import org.elasticsearch.index.query.SearchExecutionContext
 
 import java.util
 import java.util.Collections
@@ -59,24 +59,25 @@ object VectorMapper {
           }
     }
 
-  private def incompatible(m: Mapping, v: Vec): Exception = new IllegalArgumentException(
-    s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
-  )
+  private def incompatible(m: Mapping, v: Vec): Exception =
+    new IllegalArgumentException(
+      s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
+    )
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
   class FieldType(typeName: String, fieldName: String, val mapping: Mapping)
       extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
-    override def termQuery(value: Any, context: QueryShardContext): Query = value match {
-      case b: BytesRef => new TermQuery(new Term(name(), b))
-      case _ =>
-        throw new ElastiknnUnsupportedOperationException(
-          s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]")
+    override def termQuery(value: Any, context: SearchExecutionContext): Query = {
+      value match {
+        case b: BytesRef => new TermQuery(new Term(name(), b))
+        case _ =>
+          val msg = s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]"
+          throw new ElastiknnUnsupportedOperationException(msg)
+      }
     }
-    override def existsQuery(context: QueryShardContext): Query = new DocValuesFieldExistsQuery(name())
-
-    override def valueFetcher(context: QueryShardContext, format: String): ValueFetcher = {
+    override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
       // TODO: figure out what this is and implement it.
       throw new ElastiknnUnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support this operation yet.")
     }
@@ -124,7 +125,8 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
           if (asInt.isDefined) builder.value(asInt.get)
           else if (asLong.isDefined) builder.value(asLong.get)
           else builder.value(n.toDouble)
-        } else if (json.isArray) json.asArray.foreach(_.foreach(populate))
+        }
+        else if (json.isArray) json.asArray.foreach(_.foreach(populate))
         else if (json.isObject) json.asObject.foreach {
           _.toIterable.foreach {
             case (k, v) =>

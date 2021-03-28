@@ -10,8 +10,6 @@ tasks:
       - python3 -m pip install docker-compose
 
   assemble:
-    deps:
-      - :jvm:elasticsearch-plugin-classloader
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
 

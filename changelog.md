@@ -1,3 +1,6 @@
+- Bumped Elasticsearch version to 7.12.0.
+- Improved error message for function score queries using a stored vector.
+---
 - Bumped Elasticsearch version to 7.11.2.
 ---
 - Bumped Elasticsearch version to 7.11.1.

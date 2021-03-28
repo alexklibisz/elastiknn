@@ -66,8 +66,6 @@ tasks:
 
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
-    deps:
-      - elasticsearch-plugin-classloader
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
       - echo "{{ .VERSION }}" > release.md
@@ -80,8 +78,6 @@ tasks:
     desc: Publish an official release to Github
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
-    deps:
-      - elasticsearch-plugin-classloader
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
@@ -100,13 +96,3 @@ tasks:
       - task: run:gradle
         vars: 
           DEBUG: "--debug-jvm"
-
-  elasticsearch-plugin-classloader:
-    dir: /tmp
-    desc: Temporary workaround for https://github.com/elastic/elasticsearch/issues/68888
-    cmds:
-      - rm -rf v7.11.2.zip
-      - wget -nc --quiet -O v7.11.2.zip https://github.com/elastic/elasticsearch/archive/v7.11.2.zip
-      - rm -rf elasticsearch-7.11.2
-      - unzip -q v7.11.2.zip
-      - "cd elasticsearch-7.11.2 && ./gradlew -Dbuild.snapshot=false :libs:elasticsearch-plugin-classloader:publishToMavenLocal"
