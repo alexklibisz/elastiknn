@@ -1,12 +1,12 @@
 package com.klibisz.elastiknn.query
 
 import java.util.UUID
-
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
+import futil.Futil
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -30,6 +30,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
   // Each query has an expected recall that will be checked.
   private case class Test(mapping: Mapping, queriesAndExpectedRecall: Seq[(NearestNeighborsQuery, Double)], recallTolerance: Double = 1e-2)
 
+  private val numCores = Runtime.getRuntime.availableProcessors()
   private val vecField: String = "vec"
   private val storedIdField: String = "id"
   private val dims: Int = 1024
@@ -185,11 +186,11 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
           _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
           _ <- eknn.createIndex(queriesIndex)
           _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
-          _ <- Future.traverse(testData.corpus.zipWithIndex.grouped(100)) { batch =>
+          _ <- Futil.traverseSerial(testData.corpus.zipWithIndex.grouped(100)) { batch =>
             val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
             eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
           }
-          _ <- Future.traverse(testData.queries.zipWithIndex.grouped(100)) { batch =>
+          _ <- Futil.traverseSerial(testData.queries.zipWithIndex.grouped(100)) { batch =>
             val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
             eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
           }
@@ -233,20 +234,20 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
     test(testName) {
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
-        explicitResponses1 <- Future.traverse(testData.queries) { q =>
+        explicitResponses1 <- Futil.traverseParN(numCores)(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         }
-        explicitResponses2 <- Future.sequence(testData.queries.map { q =>
+        explicitResponses2 <- Futil.traverseParN(numCores)(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
-        })
-        explicitResponses3 <- Future.sequence(testData.queries.map { q =>
+        }
+        explicitResponses3 <- Futil.traverseParN(numCores)(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
-        })
-        indexedResponses <- Future.sequence(testData.queries.zipWithIndex.map {
+        }
+        indexedResponses <- Futil.traverseParN(numCores)(testData.queries.zipWithIndex) {
           case (_, i) =>
             val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
             eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
-        })
+        }
         _ <- eknn.execute(deleteIndex(corpusIndex))
         _ <- eknn.execute(deleteIndex(queriesIndex))
       } yield {
