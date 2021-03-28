@@ -48,10 +48,11 @@ object ElasticsearchCodec { esc =>
 
   import Keys._
 
-  private def apply[A](codec: Codec[A]): ElasticsearchCodec[A] = new ESC[A] {
-    override def apply(c: HCursor): Result[A] = codec(c)
-    override def apply(a: A): Json = codec(a)
-  }
+  private def apply[A](codec: Codec[A]): ElasticsearchCodec[A] =
+    new ESC[A] {
+      override def apply(c: HCursor): Result[A] = codec(c)
+      override def apply(a: A): Json = codec(a)
+    }
 
   private def apply[A](encoder: Encoder[A], decoder: Decoder[A]): ESC[A] = apply(Codec.from(decoder, encoder))
 
@@ -100,13 +101,14 @@ object ElasticsearchCodec { esc =>
           case other   => failTypes(SIMILARITY, Seq(JACCARD, HAMMING, L1, L2, ANGULAR), other)
         }
       } yield sim
-    override def apply(a: Similarity): Json = a match {
-      case Similarity.Jaccard => JACCARD
-      case Similarity.Hamming => HAMMING
-      case Similarity.L1      => L1
-      case Similarity.L2      => L2
-      case Similarity.Angular => ANGULAR
-    }
+    override def apply(a: Similarity): Json =
+      a match {
+        case Similarity.Jaccard => JACCARD
+        case Similarity.Hamming => HAMMING
+        case Similarity.L1      => L1
+        case Similarity.L2      => L2
+        case Similarity.Angular => ANGULAR
+      }
   }
 
   implicit val denseFloatVector: ESC[Vec.DenseFloat] = {
@@ -141,12 +143,13 @@ object ElasticsearchCodec { esc =>
   }
 
   implicit val vec: ESC[api.Vec] = new ESC[api.Vec] {
-    override def apply(t: Vec): Json = t match {
-      case ixv: Vec.Indexed    => encode(ixv)
-      case sbv: Vec.SparseBool => encode(sbv)
-      case dfv: Vec.DenseFloat => encode(dfv)
-      case emp: Vec.Empty      => encode(emp)
-    }
+    override def apply(t: Vec): Json =
+      t match {
+        case ixv: Vec.Indexed    => encode(ixv)
+        case sbv: Vec.SparseBool => encode(sbv)
+        case dfv: Vec.DenseFloat => encode(dfv)
+        case emp: Vec.Empty      => encode(emp)
+      }
     // TODO: Compare performance of .orElse to alternatives that just check for specific json keys.
     override def apply(c: HCursor): Either[DecodingFailure, Vec] =
       sparseBoolVector(c).orElse(denseFloatVector(c)).orElse(indexedVector(c)).orElse(emptyVec(c))
@@ -162,22 +165,23 @@ object ElasticsearchCodec { esc =>
   implicit val mappingPermutationLsh: ESC[Mapping.PermutationLsh] = ElasticsearchCodec(deriveCodec)
 
   implicit val mapping: ESC[Mapping] = new ESC[Mapping] {
-    override def apply(t: Mapping): Json = t match {
-      case m: Mapping.SparseBool => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
-      case m: Mapping.DenseFloat => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
-      case m: Mapping.SparseIndexed =>
-        JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> SPARSE_INDEXED)))
-      case m: Mapping.JaccardLsh =>
-        JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
-      case m: Mapping.HammingLsh =>
-        JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> HAMMING)))
-      case m: Mapping.AngularLsh =>
-        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> ANGULAR)))
-      case m: Mapping.L2Lsh =>
-        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> L2)))
-      case m: Mapping.PermutationLsh =>
-        JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> PERMUTATION_LSH)))
-    }
+    override def apply(t: Mapping): Json =
+      t match {
+        case m: Mapping.SparseBool => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
+        case m: Mapping.DenseFloat => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
+        case m: Mapping.SparseIndexed =>
+          JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> SPARSE_INDEXED)))
+        case m: Mapping.JaccardLsh =>
+          JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
+        case m: Mapping.HammingLsh =>
+          JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> HAMMING)))
+        case m: Mapping.AngularLsh =>
+          JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> ANGULAR)))
+        case m: Mapping.L2Lsh =>
+          JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> L2)))
+        case m: Mapping.PermutationLsh =>
+          JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> PERMUTATION_LSH)))
+      }
 
     override def apply(c: HCursor): Either[DecodingFailure, Mapping] =
       for {
