@@ -28,11 +28,12 @@ To install it, copy the zip file URL and run `elasticsearch-plugin install <THE 
 
 ## Example Installation in a Docker Image
 
-Make a Dockerfile like below. The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `_esA.B.C`).
+Make a Dockerfile like below. The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `A.B.C.x/elastiknn-A.B.C.x`).
+`A.B.C` is the Elasticsearch version. `.x` just refers to an incremental version of Elastiknn on top of `A.B.C`.
 
 ```docker
-FROM docker.elastic.co/elasticsearch/elasticsearch:7.9.3
-RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/0.1.0-PRE50/elastiknn-0.1.0-PRE50_es7.9.3.zip
+FROM docker.elastic.co/elasticsearch/elasticsearch:7.12.0
+RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/7.12.0.0/elastiknn-7.12.0.0.zip
 ```
 
 Build and run the Dockerfile. If you have any issues please refer to the [official docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)
