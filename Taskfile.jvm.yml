@@ -39,9 +39,6 @@ tasks:
     desc: Publish an official release of JVM libraries to Sonatype
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
-    env: 
-      # TODO: make this a parameter like -Pversion above.
-      SONATYPE_URL: https://oss.sonatype.org/service/local/staging/deploy/maven2
     cmds:
       - "{{ .CMD_GRADLE }} publish"
 

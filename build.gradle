@@ -93,11 +93,6 @@ def publishConfig(String projectDescription, boolean isScala = false) {
         // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
         ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
 
-        // Sonatype settings.
-        ext."sonatypeUrl" = System.getenv().getOrDefault("SONATYPE_URL", "https://oss.sonatype.org/content/repositories/snapshots/")
-        ext."sonatypeUsername" = project.hasProperty("sonatypeUsername") ? project.getProperty("sonatypeUsername") : "wrong"
-        ext."sonatypePassword" = project.hasProperty("sonatypePassword") ? project.getProperty("sonatypePassword") : "wrong"
-
         apply plugin: 'maven-publish'
         apply plugin: 'signing'
         task sourceJar(type: Jar) {
@@ -116,7 +111,8 @@ def publishConfig(String projectDescription, boolean isScala = false) {
                     artifact tasks.sourceJar
                     artifact tasks.javadocJar
                     pom {
-                        name = "${rootProject.group}:$artifactId"
+                        groupId = "com.klibisz.elastiknn"
+                        name = "${rootProject.group}:${artifactId}"
                         description = projectDescription
                         url = 'https://github.com/alexklibisz/elastiknn'
                         licenses {
@@ -143,10 +139,10 @@ def publishConfig(String projectDescription, boolean isScala = false) {
             }
             repositories {
                 maven {
-                    url sonatypeUrl
+                    url = version.contains('SNAPSHOT') ? "https://oss.sonatype.org/content/repositories/snapshots/" : "https://oss.sonatype.org/service/local/staging/deploy/maven2"
                     credentials {
-                        username sonatypeUsername
-                        password sonatypePassword
+                        username = project.properties.getOrDefault('sonatypeUsername', 'wrong')
+                        password = project.properties.getOrDefault('sonatypePassword', 'wrong')
                     }
                 }
             }
