@@ -1,3 +1,8 @@
+- Plugin: when the `index.elastiknn` setting is `true`, Elastiknn will now use the `Lucene87Codec` with the `BEST_SPEED` setting for storing doc values. 
+  It was previously using the `Lucene70DocValuesFormat`, which did not compress doc values as aggressively. 
+  Since Lucene 8.8 added configurable compression, we can use Lucene87Codec and just provide the BEST_SPEED setting.
+  There should be no effect on performance, and the two are forwards/backwards compatible.
+---
 - [Issue 242](https://github.com/alexklibisz/elastiknn/issues/242) Scala client: added a new method `ElastiknnClient.futureClient` that takes a 
   [RestClient](https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/java-rest-low-usage-initialization.html),
   which can be configured to make requests to multiple Elasticsearch nodes.

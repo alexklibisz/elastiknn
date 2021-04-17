@@ -1,12 +1,11 @@
 package com.klibisz.elastiknn.codec
 
 import org.apache.lucene.codecs._
-import org.apache.lucene.codecs.lucene70.Lucene70DocValuesFormat
 import org.apache.lucene.codecs.lucene87.Lucene87Codec
 
 class Elastiknn88Codec extends Codec(ElastiknnCodecService.ELASTIKNN_88) {
-  private val luceneCodec: Codec = new Lucene87Codec()
-  override def docValuesFormat(): DocValuesFormat = new Lucene70DocValuesFormat()
+  private val luceneCodec: Codec = new Lucene87Codec(Lucene87Codec.Mode.BEST_SPEED)
+  override def docValuesFormat(): DocValuesFormat = luceneCodec.docValuesFormat()
   override def postingsFormat(): PostingsFormat = luceneCodec.postingsFormat()
   override def storedFieldsFormat(): StoredFieldsFormat = luceneCodec.storedFieldsFormat()
   override def termVectorsFormat(): TermVectorsFormat = luceneCodec.termVectorsFormat()
