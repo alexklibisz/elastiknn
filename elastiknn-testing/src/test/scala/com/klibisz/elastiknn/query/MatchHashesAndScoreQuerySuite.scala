@@ -18,11 +18,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   val ft: FieldType = VectorMapper.denseFloatVector.luceneFieldType
 
   test("empty harness") {
-    indexAndSearch() { (_: IndexWriter) =>
-      Assertions.succeed
-    } { (_: IndexReader, _: IndexSearcher) =>
-      Assertions.succeed
-    }
+    indexAndSearch() { (_: IndexWriter) => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
   }
 
   test("minimal id example") {
@@ -60,7 +56,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
               docId shouldBe 0
               numMatchingHashes shouldBe 2
               99d
-          }
+            }
         )
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 1
@@ -90,6 +86,14 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         val dd = s.search(q, 10)
         dd.scoreDocs should have length 2
         dd.scoreDocs.map(_.score) shouldBe Array(3f, 1f)
+        val ex0 = s.explain(q, 0)
+        ex0.isMatch shouldBe true
+        ex0.getValue.doubleValue() shouldBe 3d
+        ex0.getDescription shouldBe "Document [0] and the query vector share [3] of [6] hashes. Their exact similarity score is [3.000000]."
+        val ex1 = s.explain(q, 1)
+        ex1.isMatch shouldBe true
+        ex1.getValue.doubleValue() shouldBe 1d
+        ex1.getDescription shouldBe "Document [1] and the query vector share [1] of [6] hashes. Their exact similarity score is [1.000000]."
     }
   }
 
@@ -106,6 +110,9 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
+        val ex = s.explain(q, 0)
+        ex.isMatch shouldBe false
+        ex.getDescription shouldBe "Document [0] and the query vector share no common hashes."
     }
   }
 
@@ -134,15 +141,17 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
     } {
       case (r, s) =>
         val counts = ArrayBuffer.empty[Int]
-        val q = new MatchHashesAndScoreQuery("vec",
-                                             query,
-                                             candidates,
-                                             r,
-                                             (_: LeafReaderContext) =>
-                                               (_: Int, c: Int) => {
-                                                 counts.append(c)
-                                                 c.toFloat
-                                             })
+        val q = new MatchHashesAndScoreQuery(
+          "vec",
+          query,
+          candidates,
+          r,
+          (_: LeafReaderContext) =>
+            (_: Int, c: Int) => {
+              counts.append(c)
+              c.toFloat
+            }
+        )
         val dd = s.search(q, 10)
         dd.scoreDocs.length shouldBe 5
         counts.toVector.sorted shouldBe Vector(1, 1, 2, 2, 2)

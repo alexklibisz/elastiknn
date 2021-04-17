@@ -154,8 +154,15 @@ public class MatchHashesAndScoreQuery extends Query {
             public void extractTerms(Set<Term> terms) { }
 
             @Override
-            public Explanation explain(LeafReaderContext context, int doc) {
-                return Explanation.match( 0, "If someone knows what this should return, please submit a PR. :)");
+            public Explanation explain(LeafReaderContext context, int doc) throws IOException {
+                HitCounter counter = countHits(context.reader());
+                if (counter.get(doc) > 0) {
+                    ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
+                    double score = scoreFunction.score(doc, counter.get(doc));
+                    return Explanation.match(score, String.format("Document [%d] and the query vector share [%d] of [%d] hashes. Their exact similarity score is [%f].", doc, counter.get(doc), hashAndFrequencies.length, score));
+                } else {
+                    return Explanation.noMatch(String.format("Document [%d] and the query vector share no common hashes.", doc));
+                }
             }
 
             @Override

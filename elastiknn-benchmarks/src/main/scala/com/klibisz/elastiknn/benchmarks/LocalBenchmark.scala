@@ -13,12 +13,12 @@ object LocalBenchmark extends App {
   private val experiments =
     Seq(1).flatMap { shards =>
       Seq(
-        Experiment(
-          Dataset.AnnbFashionMnist,
-          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
-          Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
-          shards = shards
-        ),
+//        Experiment(
+//          Dataset.AnnbFashionMnist,
+//          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+//          Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
+//          shards = shards
+//        ),
         Experiment(
           Dataset.AnnbFashionMnist,
           Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 75, 4, 7),
@@ -51,7 +51,8 @@ object LocalBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url)
-          ))
+          )
+        )
       } yield ()
     }
     val pipeline = for {
@@ -64,7 +65,8 @@ object LocalBenchmark extends App {
           "results/aggregate.csv",
           bucket,
           Some(s3Url)
-        ))
+        )
+      )
     } yield ()
     pipeline.exitCode
   }
