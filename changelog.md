@@ -1,3 +1,7 @@
+- [Issue 242](https://github.com/alexklibisz/elastiknn/issues/242) Scala client: added a new method `ElastiknnClient.futureClient` that takes a 
+  [RestClient](https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/java-rest-low-usage-initialization.html),
+  which can be configured to make requests to multiple Elasticsearch nodes.
+---
 - Bumped Elasticsearch version to 7.12.0.
 - Improved error message for function score queries using a stored vector.
 ---
