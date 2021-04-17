@@ -17,6 +17,7 @@ import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.SearchExecutionContext
+import org.elasticsearch.search.lookup.SourceLookup
 
 import java.util
 import java.util.Collections
@@ -78,8 +79,8 @@ object VectorMapper {
       }
     }
     override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
-      // TODO: figure out what this is and implement it.
-      throw new ElastiknnUnsupportedOperationException(s"Field [${name()}] of type [${typeName()}] doesn't support this operation yet.")
+      // TODO: figure out what this is supposed to return. Also see issue #250.
+      (_: SourceLookup) => util.List.of()
     }
   }
 
