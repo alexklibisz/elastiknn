@@ -1,3 +1,5 @@
+- elastiknn-lucene: implemented proper explanation for the MatchHashesAndScoreQuery. 
+---
 - Plugin: when the `index.elastiknn` setting is `true`, Elastiknn will now use the `Lucene87Codec` with the `BEST_SPEED` setting for storing doc values. 
   It was previously using the `Lucene70DocValuesFormat`, which did not compress doc values as aggressively. 
   Since Lucene 8.8 added configurable compression, we can use Lucene87Codec and just provide the BEST_SPEED setting.

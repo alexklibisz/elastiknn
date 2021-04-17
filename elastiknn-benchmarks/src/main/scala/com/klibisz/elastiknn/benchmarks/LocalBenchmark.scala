@@ -51,7 +51,8 @@ object LocalBenchmark extends App {
             resultsPrefix = "results",
             bucket = bucket,
             s3Url = Some(s3Url)
-          ))
+          )
+        )
       } yield ()
     }
     val pipeline = for {
@@ -64,7 +65,8 @@ object LocalBenchmark extends App {
           "results/aggregate.csv",
           bucket,
           Some(s3Url)
-        ))
+        )
+      )
     } yield ()
     pipeline.exitCode
   }
