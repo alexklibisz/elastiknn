@@ -1,3 +1,5 @@
+- Plugin: Return an empty list from the ValueFetcher. #250
+---
 - elastiknn-lucene: implemented proper explanation for the MatchHashesAndScoreQuery. 
 ---
 - Plugin: when the `index.elastiknn` setting is `true`, Elastiknn will now use the `Lucene87Codec` with the `BEST_SPEED` setting for storing doc values. 
