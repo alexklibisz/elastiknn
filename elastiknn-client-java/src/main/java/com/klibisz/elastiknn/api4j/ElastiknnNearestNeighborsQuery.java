@@ -10,7 +10,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
     public abstract Similarity getSimilarity();
 
     public static final class Exact extends ElastiknnNearestNeighborsQuery {
-        public final Similarity similarity;
+        private final Similarity similarity;
         private final Vector vector;
         public Exact(Vector vector, Similarity similarity) {
             this.similarity = similarity;
@@ -44,7 +44,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
     public static final class AngularLsh extends ElastiknnNearestNeighborsQuery {
         private final Vector vector;
         private final Integer candidates;
-        public final Similarity similarity;
+        private final Similarity similarity;
         public AngularLsh(Vector vector, Integer candidates) {
             this.vector = vector;
             this.candidates = candidates;
@@ -83,7 +83,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
         private final Vector.DenseFloat vector;
         private final Integer candidates;
         private final Integer probes;
-        public final Similarity similarity;
+        private final Similarity similarity;
         public L2Lsh(Vector.DenseFloat vector, Integer candidates, Integer probes) {
             this.vector = vector;
             this.candidates = candidates;
@@ -125,7 +125,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
 
     public final static class PermutationLsh extends ElastiknnNearestNeighborsQuery {
         private final Vector.DenseFloat vector;
-        public final Similarity similarity;
+        private final Similarity similarity;
         private final Integer candidates;
         public PermutationLsh(Vector.DenseFloat vector, Similarity similarity, Integer candidates) {
             this.vector = vector;
