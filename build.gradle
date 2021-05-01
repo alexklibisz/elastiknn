@@ -52,6 +52,7 @@ subprojects {
 Project api4s = project(':api4s')
 Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
+Project clientJava = project(':client-java')
 Project lucene = project(':lucene')
 Project models = project(':models')
 Project plugin = project(':plugin')
@@ -209,6 +210,16 @@ configure(clientElastic4s, List.of(
             }
         }))
 
+configure(clientJava, List.of(
+        publishConfig("Java client for Elastiknn, based on Elasticsearch Java REST client", true),
+        {
+            dependencies {
+                implementation "org.elasticsearch:elasticsearch:${esVersion}"
+            }
+        }
+))
+
+
 configure(models, List.of(
         publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
 
@@ -270,6 +281,7 @@ configure(testing, List.of(scalaProjectConfig, {
     dependencies {
         implementation models
         implementation clientElastic4s
+        implementation clientJava
         implementation plugin
         implementation lucene
         implementation 'com.typesafe:config:1.4.0'
@@ -280,6 +292,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
         implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
         implementation "org.elasticsearch:elasticsearch:${esVersion}"
+        implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}"
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
         implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2-PRE0-SNAPSHOT"
