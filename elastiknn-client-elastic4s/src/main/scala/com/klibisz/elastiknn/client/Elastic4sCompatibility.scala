@@ -2,8 +2,8 @@ package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, NearestNeighborsQuery}
+import com.sksamuel.elastic4s.json.{XContentBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.searches.queries.{CustomQuery, Query}
-import com.sksamuel.elastic4s.{XContentBuilder, XContentFactory}
 
 import scala.language.implicitConversions
 
