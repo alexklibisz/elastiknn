@@ -30,7 +30,6 @@ class JavaClientSuite extends AsyncFunSuite with Matchers with ElasticAsyncClien
     val mapping = Mapping.L2Lsh(corpus.head.dims, 50, 1, 2)
 
     val javaClient = new RestHighLevelClient(RestClient.builder(new HttpHost("localhost", 9200, "http")))
-
     val query = new ElastiknnNearestNeighborsQuery.L2Lsh(new api4j.Vector.DenseFloat(corpus.head.values), 20, 2)
     val queryBuilder = new ElastiknnNearestNeighborsQueryBuilder(query, field)
     val searchRequest = new SearchRequest()
@@ -85,7 +84,7 @@ class JavaClientSuite extends AsyncFunSuite with Matchers with ElasticAsyncClien
         xcb.flush()
         val qbJsonString = bos.toString()
         val qbJsonParsed = parse(qbJsonString).map(_ \\ "elastiknn_nearest_neighbors").flatMap(_.head.as[NearestNeighborsQuery])
-        info(s"case $i: ${scalaQuery.similarity}")
+        info(s"case $i: ${scalaQuery.withVec(Vec.Empty())}")
         withClue(s"case $i:") {
           qbJsonParsed shouldBe Right(scalaQuery)
         }
