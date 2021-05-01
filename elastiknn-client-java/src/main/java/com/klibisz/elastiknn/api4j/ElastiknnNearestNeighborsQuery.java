@@ -44,11 +44,9 @@ public abstract class ElastiknnNearestNeighborsQuery {
     public static final class AngularLsh extends ElastiknnNearestNeighborsQuery {
         private final Vector vector;
         private final Integer candidates;
-        private final Similarity similarity;
         public AngularLsh(Vector vector, Integer candidates) {
             this.vector = vector;
             this.candidates = candidates;
-            this.similarity = Similarity.ANGULAR;
         }
 
         public Integer getCandidates() {
@@ -62,7 +60,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
 
         @Override
         public Similarity getSimilarity() {
-            return similarity;
+            return Similarity.ANGULAR;
         }
 
         @Override
@@ -83,12 +81,10 @@ public abstract class ElastiknnNearestNeighborsQuery {
         private final Vector.DenseFloat vector;
         private final Integer candidates;
         private final Integer probes;
-        private final Similarity similarity;
         public L2Lsh(Vector.DenseFloat vector, Integer candidates, Integer probes) {
             this.vector = vector;
             this.candidates = candidates;
             this.probes = probes;
-            this.similarity = Similarity.L2;
         }
 
         public Integer getProbes() {
@@ -106,7 +102,7 @@ public abstract class ElastiknnNearestNeighborsQuery {
 
         @Override
         public Similarity getSimilarity() {
-            return similarity;
+            return Similarity.L2;
         }
 
         @Override
