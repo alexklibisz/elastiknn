@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.XContentFactory
+import com.sksamuel.elastic4s.json.XContentFactory
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import org.scalatest._
 import org.scalatest.funsuite.AsyncFunSuite
