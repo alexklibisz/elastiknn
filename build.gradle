@@ -204,7 +204,7 @@ configure(clientElastic4s, List.of(
         {
             dependencies {
                 api api4s
-                api 'com.sksamuel.elastic4s:elastic4s-client-esjava_2.12:7.6.0'
+                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
