@@ -2,10 +2,11 @@ package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
+import com.sksamuel.elastic4s.json.XContentFactory
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
-import com.sksamuel.elastic4s.{ElasticDsl, Indexes, XContentFactory}
+import com.sksamuel.elastic4s.{ElasticDsl, Indexes}
 
 /**
   * Methods for creating Elastic4s requests for common elastiknn tasks.
