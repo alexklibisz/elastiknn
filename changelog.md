@@ -1,3 +1,5 @@
+- all projects: Bump to Elasticsearch version 7.12.1.
+---
 - elastiknn-client-elastic4s: Bump to Elastic4s version 7.12.0.
 ---
 - Plugin: Return an empty list from the ValueFetcher. #250
