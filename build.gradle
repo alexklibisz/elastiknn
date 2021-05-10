@@ -211,7 +211,7 @@ configure(clientElastic4s, List.of(
         }))
 
 configure(clientJava, List.of(
-        publishConfig("Java client for Elastiknn, based on Elasticsearch Java REST client", true),
+        publishConfig("Java APIs for Elastiknn, intended for use with Elasticsearch REST clients", true),
         {
             dependencies {
                 implementation "org.elasticsearch:elasticsearch:${esVersion}"
