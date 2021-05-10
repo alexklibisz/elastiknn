@@ -1,3 +1,5 @@
+- client-java: Added a client-java sub-project including Java APIs. #258
+---
 - elastiknn-client-elastic4s: Bump to Elastic4s version 7.12.0.
 ---
 - Plugin: Return an empty list from the ValueFetcher. #250
