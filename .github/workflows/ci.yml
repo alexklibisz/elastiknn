@@ -88,6 +88,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Setup Release Credentials
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
@@ -97,13 +99,17 @@ jobs:
           SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
           SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
         run: ./.github/scripts/setup-env.sh
-      - uses: actions/setup-java@v1
-        with:
-          java-version: 14
       - run: |
-          sudo snap install task --classic
-          sudo snap install hub --classic
-          python3 -m pip install setuptools
+          git --no-pager branch
+          git --no-pager tag
+          git --no-pager log origin/master...HEAD --format='- %h: %s'
+      # - uses: actions/setup-java@v1
+      #   with:
+      #     java-version: 14
+      # - run: |
+      #     sudo snap install task --classic
+      #     sudo snap install hub --classic
+      #     python3 -m pip install setuptools
       # - name: Publish to PyPi
       #   run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
       # - name: Publish JVM Libraries from PR
@@ -112,16 +118,15 @@ jobs:
       # - name: Publish JVM Libraries from Master
       #   if: github.event_name == 'push'
       #   run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
-      - name: Publish Plugin from PR
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
-      - name: Publish Plugin from Master
-        if: github.event_name == 'push'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
-      
+      # - name: Publish Plugin from PR
+      #   if: github.event_name == 'pull_request'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      # - name: Publish Plugin from Master
+      #   if: github.event_name == 'push'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     ./.github/scripts/delete-snapshot-releases.sh
+      #     task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
