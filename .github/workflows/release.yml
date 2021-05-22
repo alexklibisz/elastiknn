@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/setup-java@v1
         with:
           java-version: 14

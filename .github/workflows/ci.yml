@@ -88,6 +88,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Needed for git-based changelog.
       - name: Setup Release Credentials
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
@@ -124,4 +126,3 @@ jobs:
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
           task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
-      
