@@ -16,71 +16,71 @@ jobs:
     steps:
       - run: echo $GITHUB_CONTEXT
   
-  # test-jvm:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-java@v1
-  #       with:
-  #         java-version: 14
-  #     - run: sudo snap install task --classic
-  #     - name: Compile
-  #       run: task jvm:compile
-  #     - name: Docs
-  #       run: task jvm:docs
-  #     - name: Publish Local
-  #       run: task jvm:libraries:publish:local
-  #     - name: Run Cluster
-  #       run: task cluster:run
-  #     - name: Test
-  #       run: task jvm:test
-  #     - name: Cluster Logs
-  #       if: failure()
-  #       run: task cluster:logs
+  test-jvm:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - run: sudo snap install task --classic
+      - name: Compile
+        run: task jvm:compile
+      - name: Docs
+        run: task jvm:docs
+      - name: Publish Local
+        run: task jvm:libraries:publish:local
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task jvm:test
+      - name: Cluster Logs
+        if: failure()
+        run: task cluster:logs
       
-  # test-python:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-java@v1
-  #       with:
-  #         java-version: 14
-  #     - run: sudo snap install task --classic
-  #     - name: Docs
-  #       run: task py:docs
-  #     - name: Publish Local
-  #       run: task jvm:libraries:publish:local
-  #     - name: Run Cluster
-  #       run: task cluster:run
-  #     - name: Test
-  #       run: task py:test
-  #     - name: Cluster Logs
-  #       if: failure()
-  #       run: task cluster:logs
+  test-python:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 14
+      - run: sudo snap install task --classic
+      - name: Docs
+        run: task py:docs
+      - name: Publish Local
+        run: task jvm:libraries:publish:local
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task py:test
+      - name: Cluster Logs
+        if: failure()
+        run: task cluster:logs
 
-  # build-examples:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - run: sudo snap install task --classic
-  #     - uses: olafurpg/setup-scala@v10
-  #       with:
-  #         java-version: 14
-  #     - name: Build SBT client example
-  #       run: |
-  #         task jvm:libraries:publish:local
-  #         cd examples/scala-sbt-client-usage && sbt -batch run
+  build-examples:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo snap install task --classic
+      - uses: olafurpg/setup-scala@v10
+        with:
+          java-version: 14
+      - name: Build SBT client example
+        run: |
+          task jvm:libraries:publish:local
+          cd examples/scala-sbt-client-usage && sbt -batch run
 
-  # build-jekyll-site:
-  #   runs-on: ubuntu-20.04
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-ruby@v1
-  #       with:
-  #         ruby-version: '2.6'
-  #     - run: sudo snap install task --classic
-  #     - name: Compile Jekyll Site
-  #       run: "task docs:compile"
+  build-jekyll-site:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+      - run: sudo snap install task --classic
+      - name: Compile Jekyll Site
+        run: "task docs:compile"
 
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
@@ -88,8 +88,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-        # with:
-        #   fetch-depth: 0
+        with:
+          fetch-depth: 0 # Needed for git-based changelog.
       - name: Setup Release Credentials
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
@@ -106,14 +106,14 @@ jobs:
           sudo snap install task --classic
           sudo snap install hub --classic
           python3 -m pip install setuptools
-      # - name: Publish to PyPi
-      #   run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
-      # - name: Publish JVM Libraries from PR
-      #   if: github.event_name == 'pull_request'
-      #   run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
-      # - name: Publish JVM Libraries from Master
-      #   if: github.event_name == 'push'
-      #   run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+      - name: Publish to PyPi
+        run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+      - name: Publish JVM Libraries from PR
+        if: github.event_name == 'pull_request'
+        run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+      - name: Publish JVM Libraries from Master
+        if: github.event_name == 'push'
+        run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
