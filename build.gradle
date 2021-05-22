@@ -201,6 +201,8 @@ configure(clientElastic4s, List.of(
         {
             dependencies {
                 api api4s
+                // api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
+                // TODO: switch back to using ${esVersion} once the release is fixed, hopefully for 7.12.2.
                 api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.12.0"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
