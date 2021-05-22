@@ -67,9 +67,9 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - "git --no-pager log {{ .VERSION }}...HEAD --format='- %h: %s%n%b%n' >> release.md"
-      # - hub release delete {{ .VERSION }} || true
-      # - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - "git --no-pager log {{ .VERSION }}...HEAD --format='- %h: %s' >> release.md"
+      - hub release delete {{ .VERSION }} || true
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
@@ -79,9 +79,8 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      # - git --no-pager log {{ .VERSION }}...HEAD --format='%h: %s%n%b%n' >> $F
-      # - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
-      # - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - "git --no-pager log {{ .VERSION }}...HEAD --format='- %h: %s' >> release.md"
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
     desc: Run Elasticsearch using gradle
