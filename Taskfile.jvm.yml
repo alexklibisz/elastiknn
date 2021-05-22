@@ -67,7 +67,7 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - "git --no-pager log origin/master...HEAD --format='- %h: %s' >> release.md"
+      - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release delete {{ .VERSION }} || true
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
@@ -79,7 +79,7 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - "git --no-pager log origin/master...HEAD --format='- %h: %s' >> release.md"
+      - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
