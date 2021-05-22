@@ -1,4 +1,4 @@
-- client-java: Added a client-java sub-project including Java APIs. #258
+- all projects: Bump to Elasticsearch version 7.12.1.
 ---
 - elastiknn-client-elastic4s: Bump to Elastic4s version 7.12.0.
 ---

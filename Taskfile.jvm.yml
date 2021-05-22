@@ -65,9 +65,9 @@ tasks:
     desc: Publish a snapshot release to Github
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
-      - echo "{{ .VERSION }}" > release.md
+      - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - echo "_snapshot release_" >> release.md
+      - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release delete {{ .VERSION }} || true
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
@@ -79,7 +79,7 @@ tasks:
       - "{{ .CMD_GRADLE }} assemble"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
-      - cat changelog.md | python .github/scripts/latestchanges.py >> release.md
+      - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:

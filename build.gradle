@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        esVersion = '7.12.0'
+        esVersion = '7.12.1'
         luceneVersion = '8.8.0'
         circeVersion= '0.14.0-M4'
         circeGenericExtrasVersion= '0.13.1-M4'
@@ -33,9 +33,6 @@ allprojects {
         jcenter()
         mavenCentral()
         mavenLocal()
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-        }
     }
 }
 
@@ -205,7 +202,9 @@ configure(clientElastic4s, List.of(
         {
             dependencies {
                 api api4s
-                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
+                // api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
+                // TODO: switch back to using ${esVersion} once the release is fixed, hopefully for 7.12.2.
+                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.12.0"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
@@ -295,7 +294,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}"
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
-        implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2-PRE0-SNAPSHOT"
+        implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2"
         testRuntime 'org.pegdown:pegdown:1.4.2'
         testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
