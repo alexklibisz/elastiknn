@@ -1,7 +1,7 @@
 buildscript {
     ext {
         esVersion = '7.13.0'
-        luceneVersion = '8.8.0'
+        luceneVersion = '8.8.2'
         circeVersion= '0.14.0-M4'
         circeGenericExtrasVersion= '0.13.1-M4'
         scalaShortVersion = '2.12'
@@ -201,9 +201,7 @@ configure(clientElastic4s, List.of(
         {
             dependencies {
                 api api4s
-                // api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
-                // TODO: switch back to using ${esVersion} once the release is fixed, hopefully for 7.12.2.
-                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.12.0"
+                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.12.2"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
@@ -242,12 +240,10 @@ configure(plugin, List.of(scalaProjectConfig, {
 
     dependencies {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
-//        runtime models
         implementation models
         implementation lucene
         implementation api4s
         implementation "com.google.guava:guava:28.1-jre"
-//        runtime "com.google.guava:guava:28.1-jre"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
@@ -282,8 +278,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
         implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2"
-//        testRuntime 'org.pegdown:pegdown:1.4.2'
-//        testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
