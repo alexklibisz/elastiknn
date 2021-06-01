@@ -16,7 +16,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
-        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.30'
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.31'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
 }
@@ -279,5 +279,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
         implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+        implementation 'org.pegdown:pegdown:1.4.2'
+        implementation 'com.vladsch.flexmark:flexmark-all:0.35.10'
     }
 }))
