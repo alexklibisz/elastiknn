@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.json.XContentFactory
+import com.sksamuel.elastic4s.json.{JacksonBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
 import org.scalatest._
 import org.scalatest.funsuite.AsyncFunSuite
@@ -48,7 +48,7 @@ class DocsWithNestedVectorsSuite extends AsyncFunSuite with Matchers with Inspec
       }
       xMapping.endObject()
       xDoc.endObject()
-      (xMapping.string(), xDoc.string())
+      JacksonBuilder.writeAsString(xMapping.value) -> JacksonBuilder.writeAsString(xDoc.value)
     }
     test(s"works with nested field: $nestedField") {
       for {

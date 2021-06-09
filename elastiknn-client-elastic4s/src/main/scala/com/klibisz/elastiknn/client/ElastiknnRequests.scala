@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
-import com.sksamuel.elastic4s.json.XContentFactory
+import com.sksamuel.elastic4s.json.{JacksonBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest
 import com.sksamuel.elastic4s.requests.searches.SearchRequest
@@ -28,7 +28,7 @@ trait ElastiknnRequests {
     */
   def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
     val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
-    IndexRequest(index, source = Some(xcb.string()), id = Some(id))
+    IndexRequest(index, source = Some(JacksonBuilder.writeAsString(xcb.value)), id = Some(id))
   }
 
   /**
