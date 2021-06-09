@@ -37,7 +37,7 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: 'java'
+    // apply plugin: 'java'
     apply plugin: 'java-library'
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -243,8 +243,11 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation models
         implementation lucene
         implementation api4s
+
         implementation "com.google.guava:guava:28.1-jre"
-        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+        runtimeOnly 'com.google.guava:failureaccess:1.0.1'
+
+        runtimeOnly "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
 
