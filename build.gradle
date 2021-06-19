@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        esVersion = '7.13.1'
+        esVersion = '7.13.2'
         luceneVersion = '8.8.2'
         circeVersion= '0.14.0-M4'
         circeGenericExtrasVersion= '0.13.1-M4'
@@ -9,13 +9,12 @@ buildscript {
         zioVersion = '1.0.1'
     }
     repositories {
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
         classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.31'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
@@ -30,7 +29,6 @@ allprojects {
     else setVersion(rootProject.file('version').getText().strip())
 
     repositories {
-        jcenter()
         mavenCentral()
         mavenLocal()
     }
