@@ -34,9 +34,9 @@ This includes a low level client that roughly mirrors the [Scala client](/scala-
 |:--|:--|
 |Release|[![Python Release][Badge-Python-Release]][Link-Python-Release]|
 
-## Java library with exact and approximate similarity models
+## Java library with exact and approximate nearest neighbor search models
 
-This library contains the exact and approximate similarity models used by Elastiknn.
+This library contains the exact and approximate nearest neighbor search models used by Elastiknn.
 
 **Install**
 
@@ -68,9 +68,27 @@ implementation 'com.klibisz.elastiknn:lucene:<version below>'
 **Versions**
 
 |:--|:--|
-|Rekease|[![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]|
+|Release|[![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]|
 |Snapshot|[![Lucene Snapshot][Badge-Lucene-Snapshot]][Link-Lucene-Snapshot]|
 
+## Java library with Elasticsearch query builder for Elastiknn queries
+
+This library contains a custom [query builder](https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/java-rest-high-query-builders.html)
+for defining Elastiknn queries in Java.
+
+**Install**
+
+In a Gradle project:
+
+```groovy
+implementation 'com.klibisz.elastiknn:client-java:<version below>'
+```
+
+**Versions**
+
+|:--|:--|
+|Release|[![Lucene Release][Badge-Java-Client-Release]][Link-Java-Client-Release]|
+|Snapshot|[![Lucene Snapshot][Badge-Java-Client-Snapshot]][Link-Java-Client-Snapshot]|
 
 ## Scala client
 
@@ -141,6 +159,11 @@ libraryDependencies += "com.klibisz.elastiknn" %% "api4s" % <version below>
 [Badge-Lucene-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/lucene?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "lucene snapshot"
 [Link-Lucene-Release]: https://search.maven.org/artifact/com.klibisz.elastiknn/lucene
 [Link-Lucene-Snapshot]: https://oss.sonatype.org/#nexus-search;gav~com.klibisz.elastiknn~lucene~~~
+
+[Badge-Java-Client-Release]: https://img.shields.io/nexus/r/com.klibisz.elastiknn/client-java?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "lucene release"
+[Badge-Java-Client-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/client-java?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "lucene snapshot"
+[Link-Java-Client-Release]: https://search.maven.org/artifact/com.klibisz.elastiknn/client-java
+[Link-Java-Client-Snapshot]: https://oss.sonatype.org/#nexus-search;gav~com.klibisz.elastiknn~client-java~~~
 
 [Badge-Api4s-Release]: https://img.shields.io/nexus/r/com.klibisz.elastiknn/api4s_2.12?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "api4s_2.12 release"
 [Badge-Api4s-Snapshot]: https://img.shields.io/nexus/s/com.klibisz.elastiknn/api4s_2.12?server=http%3A%2F%2Foss.sonatype.org&style=flat-square "api4s_2.12 snapshot"
