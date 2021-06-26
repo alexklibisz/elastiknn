@@ -68,9 +68,8 @@ implementation 'com.klibisz.elastiknn:lucene:<version below>'
 **Versions**
 
 |:--|:--|
-|Rekease|[![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]|
+|Release|[![Lucene Release][Badge-Lucene-Release]][Link-Lucene-Release]|
 |Snapshot|[![Lucene Snapshot][Badge-Lucene-Snapshot]][Link-Lucene-Snapshot]|
-
 
 ## Java library with Elasticsearch query builder for Elastiknn queries
 
@@ -88,7 +87,7 @@ implementation 'com.klibisz.elastiknn:client-java:<version below>'
 **Versions**
 
 |:--|:--|
-|Rekease|[![Lucene Release][Badge-Java-Client-Release]][Link-Java-Client-Release]|
+|Release|[![Lucene Release][Badge-Java-Client-Release]][Link-Java-Client-Release]|
 |Snapshot|[![Lucene Snapshot][Badge-Java-Client-Snapshot]][Link-Java-Client-Snapshot]|
 
 ## Scala client
