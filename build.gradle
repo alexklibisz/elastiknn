@@ -1,7 +1,7 @@
 buildscript {
     ext {
-        esVersion = '7.12.0'
-        luceneVersion = '8.8.0'
+        esVersion = '7.13.2'
+        luceneVersion = '8.8.2'
         circeVersion= '0.14.0-M4'
         circeGenericExtrasVersion= '0.13.1-M4'
         scalaShortVersion = '2.12'
@@ -9,14 +9,13 @@ buildscript {
         zioVersion = '1.0.1'
     }
     repositories {
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
-        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.30'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.31'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
 }
@@ -30,17 +29,13 @@ allprojects {
     else setVersion(rootProject.file('version').getText().strip())
 
     repositories {
-        jcenter()
         mavenCentral()
         mavenLocal()
-        maven {
-            url "https://oss.sonatype.org/content/repositories/snapshots"
-        }
     }
 }
 
 subprojects {
-    apply plugin: 'java'
+    // apply plugin: 'java'
     apply plugin: 'java-library'
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -205,7 +200,7 @@ configure(clientElastic4s, List.of(
         {
             dependencies {
                 api api4s
-                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:${esVersion}"
+                api "com.sksamuel.elastic4s:elastic4s-client-esjava_${scalaShortVersion}:7.12.2"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }))
@@ -254,13 +249,14 @@ configure(plugin, List.of(scalaProjectConfig, {
 
     dependencies {
         // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
-        runtime models
         implementation models
         implementation lucene
         implementation api4s
+
         implementation "com.google.guava:guava:28.1-jre"
-        runtime "com.google.guava:guava:28.1-jre"
-        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+        runtimeOnly 'com.google.guava:failureaccess:1.0.1'
+
+        runtimeOnly "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
 
@@ -295,9 +291,9 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}"
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
         implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
-        implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2-PRE0-SNAPSHOT"
-        testRuntime 'org.pegdown:pegdown:1.4.2'
-        testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
+        implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+        implementation 'org.pegdown:pegdown:1.4.2'
+        implementation 'com.vladsch.flexmark:flexmark-all:0.35.10'
     }
 }))

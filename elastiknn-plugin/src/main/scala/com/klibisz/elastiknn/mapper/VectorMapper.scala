@@ -179,8 +179,8 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
         override def contentType(): String = CONTENT_TYPE
 
-        override def doXContentBody(builder: XContentBuilder, includeDefaults: Boolean, params: ToXContent.Params): Unit = {
-          super.doXContentBody(builder, includeDefaults, params)
+        override def doXContentBody(builder: XContentBuilder, params: ToXContent.Params): Unit = {
+          super.doXContentBody(builder, params)
           ElasticsearchCodec
             .encode(mapping)
             .asObject
