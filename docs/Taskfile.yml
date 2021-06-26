@@ -14,7 +14,7 @@ tasks:
       - install-bundler
     cmds:
       - bundle install
-      - bundle exec jekyll serve
+      - bundle exec jekyll serve  --port 4001
 
   compile:
     desc: Compile docs into a static site.
