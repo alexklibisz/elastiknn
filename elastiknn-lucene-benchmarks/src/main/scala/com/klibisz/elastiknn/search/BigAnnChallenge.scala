@@ -28,6 +28,7 @@ object Utils {
     idFieldType.setStored(true)
 
     val vecFieldType = new FieldType()
+    vecFieldType.setStored(false)
     vecFieldType.setOmitNorms(true)
     vecFieldType.setIndexOptions(IndexOptions.DOCS)
     vecFieldType.setTokenized(false)

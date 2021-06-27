@@ -18,6 +18,9 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 final class LocalDatasetSource(dataset: Dataset, directory: Path) {
 
+  // TODO: parallelize by reading from the same file multiple times at different offsets.
+  //   This should improve throughput. The current method parallelizing CPU-bound work only ends up using ~40% of CPU.
+
   private val chunkSize: Int = dataset.dims * dataset.dtype.sizeOf
 
   private val byteStringToFloatArray = dataset.dtype match {
