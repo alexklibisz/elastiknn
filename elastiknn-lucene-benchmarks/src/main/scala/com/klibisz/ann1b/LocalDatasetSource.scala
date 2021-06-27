@@ -44,21 +44,28 @@ final class LocalDatasetSource(dataset: Dataset, directory: Path) {
       }
   }
 
-  def baseData(parallelism: Int): Source[Dataset.Doc, Future[IOResult]] = {
-    ???
-  }
-
-  def sampleData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] = {
-    val path = Paths.get(directory.toFile.getAbsolutePath, s"sample.${dataset.dtype.extension}")
-    FileIO
+  private def vectors(parallelism: Int, name: String)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] = {
+    val path = Paths.get(directory.toFile.getAbsolutePath, s"$name.${dataset.dtype.extension}")
+    val fileIO = FileIO
       .fromPath(path, chunkSize = chunkSize, startPosition = 8)
       .zipWithIndex
-      .mapAsyncUnordered(parallelism) {
+    if (parallelism < 2) fileIO.map {
+      case (bs, ix) => Dataset.Doc(ix, byteStringToFloatArray(bs))
+    }
+    else
+      fileIO.mapAsyncUnordered(parallelism) {
         case (bs, ix) => Future(Dataset.Doc(ix, byteStringToFloatArray(bs)))
       }
   }
 
-  def queryData(parallelism: Int): Source[Dataset.Doc, Future[IOResult]] = ???
+  def baseData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
+    vectors(parallelism, "base")
+
+  def sampleData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
+    vectors(parallelism, "sample")
+
+  def queryData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
+    vectors(parallelism, "query")
 
 }
 

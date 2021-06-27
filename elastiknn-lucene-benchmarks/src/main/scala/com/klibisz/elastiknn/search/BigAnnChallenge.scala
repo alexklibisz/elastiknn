@@ -56,13 +56,17 @@ object BigAnnChallenge extends App {
   val parallelism = 8
   val source = LocalDatasetSource(dataset)
 
-  val model = new L2LshModel(dataset.dims, 40, 3, 5, new Random(0))
+  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
   println(s"Indexing to $tmpDir")
   val indexDirectory = new MMapDirectory(tmpDir)
   val indexConfig = new IndexWriterConfig().setMaxBufferedDocs(100000)
 
   val run = source
+  // .queryData(parallelism)
+  //    .runWith(Sink.last)
+  //    .map(_.vec.toList)
+  //    .map(println(_))
     .sampleData(parallelism)
     .take(1000000)
     .via(Utils.indexWithHashingModel(model, parallelism))
