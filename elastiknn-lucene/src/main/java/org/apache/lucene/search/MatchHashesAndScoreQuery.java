@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -227,6 +228,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, hashAndFrequencies, candidates, indexReader, scoreFunctionBuilder);
+        return Objects.hash(field, Arrays.hashCode(hashAndFrequencies), candidates, indexReader, scoreFunctionBuilder);
     }
 }

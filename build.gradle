@@ -49,6 +49,7 @@ Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
 Project clientJava = project(':client-java')
 Project lucene = project(':lucene')
+Project luceneBenchmarks = project(':lucene-benchmarks')
 Project models = project(':models')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
@@ -228,6 +229,19 @@ configure(lucene, List.of(
             }
         }))
 
+configure(luceneBenchmarks, List.of(scalaProjectConfig, {
+    dependencies {
+        implementation models
+        implementation lucene
+        implementation api4s
+
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
+        implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+        implementation "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.15"
+        implementation "commons-io:commons-io:2.8.0"
+    }
+}))
+
 configure(plugin, List.of(scalaProjectConfig, {
 
     apply plugin: 'elasticsearch.esplugin'
@@ -248,7 +262,6 @@ configure(plugin, List.of(scalaProjectConfig, {
     }
 
     dependencies {
-        // TODO: a couple of the deps need both runtime _and_ implementation dependencies to run?
         implementation models
         implementation lucene
         implementation api4s
