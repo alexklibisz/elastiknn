@@ -90,54 +90,6 @@ object Streaming {
           d
       }
   }
-
-//  def indexHashingModel(
-//      indexPath: Path,
-//      maxBufferedDocs: Int,
-//      model: HashingModel.DenseFloat,
-//      vecFieldName: String = "vec",
-//      idFieldName: String = "id"
-//  ): (Flow[(Array[Float], String), Unit, NotUsed], () => Unit) = {
-//
-//    import collection.JavaConverters._
-//
-//    val indexDirectory = new MMapDirectory(indexPath)
-//    val indexConfig = new IndexWriterConfig().setMaxBufferedDocs(maxBufferedDocs)
-//    val indexWriter = new IndexWriter(indexDirectory, indexConfig)
-//
-//    val idFieldType = new FieldType()
-//    idFieldType.setStored(true)
-//
-//    val vecFieldType = new FieldType()
-//    vecFieldType.setOmitNorms(true)
-//    vecFieldType.setIndexOptions(IndexOptions.DOCS)
-//    vecFieldType.setTokenized(false)
-//    vecFieldType.setStoreTermVectors(false)
-//
-//    // Hack to avoid writing a more complicated custom GraphStage.
-//    sys.addShutdownHook(indexWriter.close())
-//
-//    Flow[(Array[Float], String)]
-//      .map {
-//        case (vec, id) =>
-//          val hashFields = model.hash(vec).map(hf => new Field(vecFieldName, hf.hash, vecFieldType))
-//          val idField = new Field(idFieldName, id, idFieldType)
-//          indexWriter.addDocument((hashFields :+ idField).toSeq.asJava)
-//          ()
-//      } -> (() => indexWriter.close())
-////      .grouped(maxBufferedDocs)
-////      .map { batch =>
-////        val docs = new java.util.ArrayList[java.util.List[Field]](batch.length)
-////        batch.foreach {
-////          case (vec, id) =>
-////            val hashFields = model.hash(vec).map(hf => new Field(vecFieldName, hf.hash, vecFieldType))
-////            val idField = new Field(idFieldName, id, idFieldType)
-////            docs.add((hashFields :+ idField).toSeq.asJava)
-////        }
-////        indexWriter.addDocuments(docs)
-////      }
-//  }
-
 }
 
 object BigAnnChallenge extends App {
