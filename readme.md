@@ -16,6 +16,7 @@ If you're looking to contribute to Elastiknn, please see developer-guide.md.
 
 Are you using Elastiknn? If so, please consider submitting a pull request to list your organization below.
 
+- [Apache Jackrabbit](https://jackrabbit.apache.org): Uses Elastiknn for image similarity search
 - [rep0st](https://github.com/ReneHollander/rep0st): Uses Elastiknn for reverse image lookups in a set of millions of images
 
 ## Builds
