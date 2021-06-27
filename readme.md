@@ -10,7 +10,8 @@ If you're looking to contribute to Elastiknn, please see developer-guide.md.
 
 ## Community
 
-- Post on the [Github issue tracker](https://github.com/alexklibisz/elastiknn/issues) if you have questions, bugs, etc.
+- For questions and discussion, start a [Github discussion](https://github.com/alexklibisz/elastiknn/discussions).
+- For obvious bugs and feature requests, post a [Github issue](https://github.com/alexklibisz/elastiknn/issues).
 
 ## Users
 
