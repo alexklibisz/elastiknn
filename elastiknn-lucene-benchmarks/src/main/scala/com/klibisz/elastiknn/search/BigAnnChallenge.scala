@@ -64,15 +64,19 @@ object BigAnnChallenge extends App {
   val indexConfig = new IndexWriterConfig().setMaxBufferedDocs(100000)
 
   val run = source
-  // .queryData(parallelism)
-  //    .runWith(Sink.last)
-  //    .map(_.vec.toList)
-  //    .map(println(_))
     .sampleData(parallelism)
-    .take(1000000)
-    .via(Utils.indexWithHashingModel(model, parallelism))
-    .runWith(LuceneSink.create(indexDirectory, indexConfig))
+    .take(10000000)
+    .runWith(Sink.last)
+    .map { doc => println((doc.id, doc.vec.length, doc.vec.toList.take(10))) }
+//    .sampleData(parallelism)
+//    .take(1000000)
+//    .via(Utils.indexWithHashingModel(model, parallelism))
+//    .runWith(LuceneSink.create(indexDirectory, indexConfig))
 
+  val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
   finally system.terminate()
+
+  println((System.nanoTime() - t0).nanos.toMillis)
+
 }

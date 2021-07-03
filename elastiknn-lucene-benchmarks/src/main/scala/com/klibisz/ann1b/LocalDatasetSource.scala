@@ -1,12 +1,14 @@
 package com.klibisz.ann1b
 
-import akka.stream.IOResult
+import akka.NotUsed
 import akka.stream.scaladsl._
+import akka.stream.{IOResult, Materializer}
 import akka.util.ByteString
 
 import java.nio.ByteOrder
 import java.nio.file.{Path, Paths}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
   * Stream the datasets from the local filesystem.
@@ -21,7 +23,7 @@ final class LocalDatasetSource(dataset: Dataset, directory: Path) {
   // TODO: parallelize by reading from the same file multiple times at different offsets.
   //   This should improve throughput. The current method parallelizing CPU-bound work only ends up using ~40% of CPU.
 
-  private val chunkSize: Int = dataset.dims * dataset.dtype.sizeOf
+  private val numBytesInVector: Int = dataset.dims * dataset.dtype.sizeOf
 
   private val byteStringToFloatArray = dataset.dtype match {
     case Datatype.U8Bin =>
@@ -47,28 +49,54 @@ final class LocalDatasetSource(dataset: Dataset, directory: Path) {
       }
   }
 
-  private def vectors(parallelism: Int, name: String)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] = {
+  private def vectors(
+      numPartitions: Int,
+      name: String
+  )(implicit mat: Materializer, ec: ExecutionContext): Source[Dataset.Doc, NotUsed] = {
     val path = Paths.get(directory.toFile.getAbsolutePath, s"$name.${dataset.dtype.extension}")
-    val fileIO = FileIO
-      .fromPath(path, chunkSize = chunkSize, startPosition = 8)
-      .zipWithIndex
-    if (parallelism < 2) fileIO.map {
-      case (bs, ix) => Dataset.Doc(ix, byteStringToFloatArray(bs))
-    }
-    else
-      fileIO.mapAsyncUnordered(parallelism) {
-        case (bs, ix) => Future(Dataset.Doc(ix, byteStringToFloatArray(bs)))
+
+    val (numVecsTotal, _) = Await.result(
+      FileIO
+        .fromPath(path, 8, 0)
+        .take(1)
+        .map { bs =>
+          val buf = bs.asByteBuffer.alignedSlice(4).order(ByteOrder.LITTLE_ENDIAN)
+          (buf.getInt(), buf.getInt())
+        }
+        .runWith(Sink.head),
+      1.second
+    )
+
+    val numVecsInPartition = numVecsTotal.toLong / numPartitions
+    val numBytesInPartition = numVecsInPartition * numBytesInVector
+
+    val sources = (0 until numPartitions)
+      .map { p =>
+        FileIO
+          .fromPath(path, chunkSize = numBytesInVector, startPosition = 8 + p * numBytesInPartition)
+          .take(numVecsInPartition)
+          .zipWithIndex
+          .map {
+            case (bs, ix) => Dataset.Doc(ix + p * numVecsInPartition, byteStringToFloatArray(bs))
+          }
       }
+
+    val combined =
+      if (sources.length == 1) Source.combine(sources.head, Source.empty)(Merge(_))
+      else if (sources.length == 2) Source.combine(sources.head, sources.last)(Merge(_))
+      else Source.combine(sources.head, sources.tail.head, sources.tail.tail: _*)(Merge(_))
+
+    combined
   }
 
-  def baseData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
-    vectors(parallelism, "base")
+  def baseData(partitions: Int)(implicit mat: Materializer, ec: ExecutionContext): Source[Dataset.Doc, NotUsed] =
+    vectors(partitions, "base")
 
-  def sampleData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
-    vectors(parallelism, "sample")
+  def sampleData(partitions: Int)(implicit mat: Materializer, ec: ExecutionContext): Source[Dataset.Doc, NotUsed] =
+    vectors(partitions, "sample")
 
-  def queryData(parallelism: Int)(implicit ec: ExecutionContext): Source[Dataset.Doc, Future[IOResult]] =
-    vectors(parallelism, "query")
+  def queryData(partitions: Int)(implicit mat: Materializer, ec: ExecutionContext): Source[Dataset.Doc, NotUsed] =
+    vectors(partitions, "query")
 
 }
 
