@@ -65,7 +65,6 @@ object BigAnnChallenge extends App {
 
   val run = source
     .sampleData(parallelism)
-    .take(10000000)
     .runWith(Sink.last)
     .map { doc => println((doc.id, doc.vec.length, doc.vec.toList.take(10))) }
 //    .sampleData(parallelism)
