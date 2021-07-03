@@ -57,25 +57,25 @@ object BigAnnChallenge extends App {
   val parallelism = 8
   val source = LocalDatasetSource(dataset)
 
-  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
+//  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
+  val model = new L2LshModel(dataset.dims, 1, 1, 1, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
-  println(s"Indexing to $tmpDir")
+  println(tmpDir)
   val indexDirectory = new MMapDirectory(tmpDir)
   val indexConfig = new IndexWriterConfig().setMaxBufferedDocs(100000)
 
   val run = source
     .sampleData(parallelism)
-    .runWith(Sink.last)
-    .map { doc => println((doc.id, doc.vec.length, doc.vec.toList.take(10))) }
-//    .sampleData(parallelism)
-//    .take(1000000)
-//    .via(Utils.indexWithHashingModel(model, parallelism))
-//    .runWith(LuceneSink.create(indexDirectory, indexConfig))
+    //    .runWith(Sink.last)
+    //    .map { doc => println((doc.id, doc.vec.length, doc.vec.toList.take(10))) }
+    //    .sampleData(parallelism)
+    .via(Utils.indexWithHashingModel(model, parallelism))
+    .runWith(LuceneSink.create(indexDirectory, indexConfig))
 
   val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
   finally system.terminate()
 
-  println((System.nanoTime() - t0).nanos.toMillis)
+  println((System.nanoTime() - t0).nanos.toSeconds)
 
 }
