@@ -29,9 +29,9 @@ public class L2LshModel implements HashingModel.DenseFloat {
      *    small float values should generally use smaller w.
      *
      * Hash sizes:
-     *  - A model with L hash tables and k functions will produce L hashes, each containing 4 * 4 * k bytes.
-     *    E.g., L = 9, k = 3 will produce 9 hashes, each containing 4 * 4 * 3 = 48 bytes.
-     *  - For a dataset w/ N vectors, the max storage needed for just the hashes is N * L * (4 + 4 * k) bytes.
+     *  - A model with L hash tables and k functions will produce L hashes, each containing 4 + 4 * k bytes.
+     *    E.g., L = 9, k = 3 will produce 9 hashes, each containing 4 + 4 * 3 = 16 bytes.
+     *  - For a dataset with N vectors, the max storage needed for just the hashes is N * L * (4 + 4 * k) bytes.
      *    E.g., N = 100k, L = 9, k = 3 requires at most 100k * 9 * (4 + 4 * 3) bytes = 14.4MB.
      *  - Increasing w will decrease the storage size, as more vectors will be assigned to the same hashes.
      *
