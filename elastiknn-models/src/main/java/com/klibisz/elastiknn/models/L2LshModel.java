@@ -15,11 +15,27 @@ public class L2LshModel implements HashingModel.DenseFloat {
     private final float[] B;
 
     /**
-     * Locality sensitive hashing with multiprobe hashing for L2 similarity.
+     * Locality sensitive hashing with multi-probe hashing for L2 similarity.
+     *
      * Based on Mining Massive Datasets chapter 3 and Multi-Probe LSH paper by Qin et. al. 2007.
      * Also drew some inspiration from this closed PR: https://github.com/elastic/elasticsearch/pull/44374.
      *
-     * The multiprobe implementation is the same as Qin et. al. with some subtle exceptions:
+     * Parameter tuning:
+     *  - L is the number hash tables. Increasing this parameter generally increases recall.
+     *  - k is the number of hash functions concatenated to form a hash for each table. Increasing k generally
+     *    increases precision.
+     *  - w is the width of each hash bucket. Increasing this parameter generally increases recall. However, this
+     *    parameter should also be tuned based on the magnitude of of the vector values. E.g., vectors containing very
+     *    small float values should generally use smaller w.
+     *
+     * Hash sizes:
+     *  - A model with L hash tables and k functions will produce L hashes, each containing 4 * 4 * k bytes.
+     *    E.g., L = 9, k = 3 will produce 9 hashes, each containing 4 * 4 * 3 = 48 bytes.
+     *  - For a dataset w/ N vectors, the max storage needed for just the hashes is N * L * (4 + 4 * k) bytes.
+     *    E.g., N = 100k, L = 9, k = 3 requires at most 100k * 9 * (4 + 4 * 3) bytes = 14.4MB.
+     *  - Increasing w will decrease the storage size, as more vectors will be assigned to the same hashes.
+     *
+     * The multi-probe LSH implementation follows Qin et. al. with some subtle exceptions:
      * - Doesn't use the score estimation described in section 4.5. Doesn't seem necessary as generating perturbation
      *   sets is not a performance bottleneck.
      * - Keeps a single heap of perturbation sets across all tables. They actually mention this as an option in the
@@ -53,7 +69,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
         this.B = new float[L * k];
         for (int ixL = 0; ixL < L; ixL++) {
             for (int ixk = 0; ixk < k; ixk++) {
-                this.B[ixL * k + ixk] = (float) rng.nextFloat() * w;
+                this.B[ixL * k + ixk] = rng.nextFloat() * w;
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.scalatest._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
@@ -31,6 +32,26 @@ class L2LshSuite extends AnyFunSuite with Matchers {
       val hashes = lsh.hash(vec.values, p)
       hashes should have length (l * (1 + p.min(maxForK)))
       hashes.foreach(_ should not be null)
+    }
+  }
+
+  test("each hash contains 4 + (k * 4) bytes") {
+    // An int has 4 bytes. The first int is l, the remaining bytes are the k hash values.
+    for {
+      l <- 1 to 10
+      k <- 1 to 10
+      w <- 1 to 10
+      d <- 5 to 50 by 5
+    } {
+      val lsh = new L2LshModel(d, l, k, w, new java.util.Random(rng.nextInt()))
+      val vec = Vec.DenseFloat.random(d)
+      val hashes = lsh.hash(vec.values)
+      hashes.length shouldBe l
+      hashes.zipWithIndex.foreach {
+        case (h, i) =>
+          h.hash.take(4) shouldBe UnsafeSerialization.writeInts(Array(i))
+      }
+      hashes.foreach(_.hash.length shouldBe (4 + k * 4))
     }
   }
 

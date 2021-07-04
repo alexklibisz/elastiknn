@@ -40,7 +40,7 @@ object Utils {
           Future {
             val d = new Document()
             d.add(new Field(idFieldName, id, idFieldType))
-            model.hash(vec).foreach(hf => d.add(new Field(vecFieldName, hf.hash, vecFieldType)))
+            model.hash(vec).foreach { hf => d.add(new Field(vecFieldName, hf.hash, vecFieldType)) }
             d
           }
       }
@@ -58,7 +58,7 @@ object BigAnnChallenge extends App {
   val source = LocalDatasetSource(dataset)
 
 //  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
-  val model = new L2LshModel(dataset.dims, 1, 1, 1, new Random(0))
+  val model = new L2LshModel(dataset.dims, 10, 3, 1, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
   println(tmpDir)
   val indexDirectory = new MMapDirectory(tmpDir)
@@ -66,9 +66,7 @@ object BigAnnChallenge extends App {
 
   val run = source
     .sampleData(parallelism)
-    //    .runWith(Sink.last)
-    //    .map { doc => println((doc.id, doc.vec.length, doc.vec.toList.take(10))) }
-    //    .sampleData(parallelism)
+    .take(100000)
     .via(Utils.indexWithHashingModel(model, parallelism))
     .runWith(LuceneSink.create(indexDirectory, indexConfig))
 

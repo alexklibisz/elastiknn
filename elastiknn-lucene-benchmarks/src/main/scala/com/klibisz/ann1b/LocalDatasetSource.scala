@@ -84,14 +84,13 @@ final class LocalDatasetSource(dataset: Dataset, directory: Path) {
     val sources = (0 until numPartitions)
       .map { p =>
         var ix = p * numVecsInPartition - 1 // ~10% faster than zipWithIndex.
-        val take = if (p < numPartitions - 1) numVecsInPartition else Int.MaxValue
-        FileIO
+        val docs = FileIO
           .fromPath(path, chunkSize = numBytesInVector, startPosition = 8 + p * numBytesInPartition)
-          .take(take)
           .map { bs =>
             ix += 1
             Dataset.Doc(ix, byteStringToFloatArray(p, bs))
           }
+        if (p < numPartitions - 1) docs.take(numVecsInPartition) else docs
       }
 
     val combined =
