@@ -8,7 +8,7 @@ import com.klibisz.ann1b.{Dataset, LocalDatasetSource}
 import com.klibisz.elastiknn.models.{HashingModel, L2LshModel}
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index._
-import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.store.{FSDirectory, MMapDirectory}
 
 import java.nio.file.Files
 import java.util
@@ -49,7 +49,9 @@ object Utils {
       .toMat(Sink.ignore) {
         case (_: NotUsed, f: Future[Done]) =>
           f.andThen {
-            case _ => indexWriter.close()
+            case _ =>
+              println(s"Closing $indexWriter")
+              indexWriter.close()
           }
       }
   }
@@ -62,23 +64,21 @@ object BigAnnChallenge extends App {
   implicit val materializer = ActorMaterializer
 
   val dataset = Dataset.bigann
-  val parallelism = 5 // Runtime.getRuntime.availableProcessors()
+  val numProcessors = Runtime.getRuntime.availableProcessors()
+  val parallelism = 2 * numProcessors
   val source = LocalDatasetSource(dataset)
 
-//  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
   println(tmpDir)
 
   val indexDirectory = new MMapDirectory(tmpDir)
 
-  val q = new ConcurrentMergeScheduler()
-  q.setMaxMergesAndThreads(parallelism, parallelism)
-
   val indexConfig = new IndexWriterConfig()
-    .setMaxBufferedDocs(100000)
+    .setMaxBufferedDocs(Int.MaxValue)
     .setRAMBufferSizeMB(Double.MaxValue)
-    .setRAMPerThreadHardLimitMB(2047)
+    .setMergePolicy(NoMergePolicy.INSTANCE)
+    .setRAMPerThreadHardLimitMB(1024 / numProcessors)
 
   val indexWriter = new IndexWriter(indexDirectory, indexConfig)
 
