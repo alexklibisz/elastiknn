@@ -1,14 +1,13 @@
 package com.klibisz.elastiknn.search
 
-import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.lucene.scaladsl.LuceneSink
 import akka.stream.scaladsl._
+import akka.{Done, NotUsed}
 import com.klibisz.ann1b.{Dataset, LocalDatasetSource}
 import com.klibisz.elastiknn.models.{HashingModel, L2LshModel}
-import org.apache.lucene.document.{Document, Field, FieldType}
-import org.apache.lucene.index.{IndexOptions, IndexWriter, IndexWriterConfig, NoMergeScheduler}
+import org.apache.lucene.document.{Field, FieldType}
+import org.apache.lucene.index._
 import org.apache.lucene.store.MMapDirectory
 
 import java.nio.file.Files
@@ -63,7 +62,7 @@ object BigAnnChallenge extends App {
   implicit val materializer = ActorMaterializer
 
   val dataset = Dataset.bigann
-  val parallelism = 8 // Runtime.getRuntime.availableProcessors()
+  val parallelism = 5 // Runtime.getRuntime.availableProcessors()
   val source = LocalDatasetSource(dataset)
 
 //  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
@@ -72,8 +71,15 @@ object BigAnnChallenge extends App {
   println(tmpDir)
 
   val indexDirectory = new MMapDirectory(tmpDir)
+
+  val q = new ConcurrentMergeScheduler()
+  q.setMaxMergesAndThreads(parallelism, parallelism)
+
   val indexConfig = new IndexWriterConfig()
     .setMaxBufferedDocs(100000)
+    .setRAMBufferSizeMB(Double.MaxValue)
+    .setRAMPerThreadHardLimitMB(2047)
+
   val indexWriter = new IndexWriter(indexDirectory, indexConfig)
 
   val run = source
@@ -86,5 +92,8 @@ object BigAnnChallenge extends App {
   finally system.terminate()
 
   println((System.nanoTime() - t0).nanos.toSeconds)
+
+  val indexReader = DirectoryReader.open(indexDirectory)
+  println(indexReader.leaves.size())
 
 }
