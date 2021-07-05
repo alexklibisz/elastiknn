@@ -6,7 +6,7 @@ import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
-import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
+import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery, TopDocs}
 import org.scalatest._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
@@ -83,7 +83,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
           r,
           (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
         )
-        val dd = s.search(q, 10)
+        val dd: TopDocs = s.search(q, 10)
         dd.scoreDocs should have length 2
         dd.scoreDocs.map(_.score) shouldBe Array(3f, 1f)
         val ex0 = s.explain(q, 0)

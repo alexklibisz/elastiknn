@@ -8,7 +8,7 @@ import akka.stream.scaladsl._
 import com.klibisz.ann1b.{Dataset, LocalDatasetSource}
 import com.klibisz.elastiknn.models.{HashingModel, L2LshModel}
 import org.apache.lucene.document.{Document, Field, FieldType}
-import org.apache.lucene.index.{IndexOptions, IndexWriterConfig}
+import org.apache.lucene.index.{IndexCommit, IndexOptions, IndexWriterConfig, MergePolicy, MergeScheduler}
 import org.apache.lucene.store.MMapDirectory
 
 import java.nio.file.Files
@@ -58,17 +58,18 @@ object BigAnnChallenge extends App {
   val source = LocalDatasetSource(dataset)
 
 //  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
-  val model = new L2LshModel(dataset.dims, 10, 3, 1, new Random(0))
+  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
   println(tmpDir)
   val indexDirectory = new MMapDirectory(tmpDir)
-  val indexConfig = new IndexWriterConfig().setMaxBufferedDocs(100000)
+  val indexConfig = new IndexWriterConfig()
+    .setMaxBufferedDocs(100000)
 
   val run = source
     .sampleData(parallelism)
-    .take(100000)
+    .take(1000000)
     .via(Utils.indexWithHashingModel(model, parallelism))
-    .runWith(LuceneSink.create(indexDirectory, indexConfig))
+    .runWith(LuceneSink.create(indexDirectory, indexConfig, parallelism))
 
   val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
