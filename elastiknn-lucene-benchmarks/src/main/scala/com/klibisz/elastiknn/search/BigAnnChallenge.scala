@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.search
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.alpakka.lucene.scaladsl.LuceneSink
@@ -8,10 +8,11 @@ import akka.stream.scaladsl._
 import com.klibisz.ann1b.{Dataset, LocalDatasetSource}
 import com.klibisz.elastiknn.models.{HashingModel, L2LshModel}
 import org.apache.lucene.document.{Document, Field, FieldType}
-import org.apache.lucene.index.{IndexCommit, IndexOptions, IndexWriterConfig, MergePolicy, MergeScheduler}
+import org.apache.lucene.index.{IndexOptions, IndexWriter, IndexWriterConfig, NoMergeScheduler}
 import org.apache.lucene.store.MMapDirectory
 
 import java.nio.file.Files
+import java.util
 import java.util.Random
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -21,8 +22,9 @@ object Utils {
       model: HashingModel.DenseFloat,
       parallelism: Int,
       vecFieldName: String = "vec",
-      idFieldName: String = "id"
-  )(implicit ec: ExecutionContext): Flow[Dataset.Doc, Document, NotUsed] = {
+      idFieldName: String = "id",
+      indexWriter: IndexWriter
+  )(implicit ec: ExecutionContext): Sink[Dataset.Doc, Future[Done]] = {
 
     val idFieldType = new FieldType()
     idFieldType.setStored(true)
@@ -38,10 +40,17 @@ object Utils {
       .mapAsyncUnordered(parallelism) {
         case Dataset.Doc(id, vec) =>
           Future {
-            val d = new Document()
-            d.add(new Field(idFieldName, id, idFieldType))
-            model.hash(vec).foreach { hf => d.add(new Field(vecFieldName, hf.hash, vecFieldType)) }
-            d
+            val hashes = model.hash(vec)
+            val fields = new util.ArrayList[Field](hashes.length + 1)
+            fields.add(new Field(idFieldName, id, idFieldType))
+            hashes.foreach { hf => fields.add(new Field(vecFieldName, hf.hash, vecFieldType)) }
+            indexWriter.addDocument(fields)
+          }
+      }
+      .toMat(Sink.ignore) {
+        case (_: NotUsed, f: Future[Done]) =>
+          f.andThen {
+            case _ => indexWriter.close()
           }
       }
   }
@@ -54,22 +63,23 @@ object BigAnnChallenge extends App {
   implicit val materializer = ActorMaterializer
 
   val dataset = Dataset.bigann
-  val parallelism = 8
+  val parallelism = 8 // Runtime.getRuntime.availableProcessors()
   val source = LocalDatasetSource(dataset)
 
 //  val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
   println(tmpDir)
+
   val indexDirectory = new MMapDirectory(tmpDir)
   val indexConfig = new IndexWriterConfig()
     .setMaxBufferedDocs(100000)
+  val indexWriter = new IndexWriter(indexDirectory, indexConfig)
 
   val run = source
     .sampleData(parallelism)
     .take(1000000)
-    .via(Utils.indexWithHashingModel(model, parallelism))
-    .runWith(LuceneSink.create(indexDirectory, indexConfig, parallelism))
+    .runWith(Utils.indexWithHashingModel(model, parallelism, indexWriter = indexWriter))
 
   val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
