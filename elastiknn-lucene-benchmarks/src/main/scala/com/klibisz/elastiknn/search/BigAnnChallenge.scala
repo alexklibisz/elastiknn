@@ -78,6 +78,7 @@ object BigAnnChallenge extends App {
     .setMaxBufferedDocs(Int.MaxValue)
     .setRAMBufferSizeMB(Double.MaxValue)
     .setMergePolicy(NoMergePolicy.INSTANCE)
+    // TODO: find a way to increase XMX and remove this value.
     .setRAMPerThreadHardLimitMB(1024 / numProcessors)
 
   val indexWriter = new IndexWriter(indexDirectory, indexConfig)
