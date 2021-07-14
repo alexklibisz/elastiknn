@@ -2,19 +2,24 @@ version: '3'
 
 tasks:
   venv:
+    desc: Create python virtual environment
     cmds:
-      - python3 -m pip install virtualenv
-      - python3 -m virtualenv venv
+      - python3 --version
+      - python3 -m pip install --quiet virtualenv
+      - python3 -m virtualenv -p python3.7 venv
+      - touch requirements.txt
     generates:
       - venv
     status:
       - test -d venv
 
   clean:
+    desc: Delete python virtual environment
     cmds: 
       - rm -rf venv
 
   requirements:
+    desc: Install python dependencies from requirements.txt
     deps:
       - venv
     sources:
@@ -26,6 +31,7 @@ tasks:
       - venv/bin/pip install -r requirements-build.txt
 
   test:
+    desc: Run python tests against local cluster
     deps:
       - requirements
     sources:
@@ -35,6 +41,7 @@ tasks:
       - venv/bin/python -m pytest -v -s -o log_cli=True
 
   docs:
+    desc: Generate python docs
     deps:
       - requirements
     sources:
@@ -45,6 +52,7 @@ tasks:
       - venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
     
   publish-local:
+    desc: Publish python library locally
     deps:
       - requirements
     cmds:
@@ -53,12 +61,14 @@ tasks:
       - ls dist
 
   publish-snapshot:
+    desc: Publish python library to testpypi
     cmds:
       - task: publish-local
         force: True
       - venv/bin/python -m twine upload -r testpypi --verbose dist/*
 
   publish-docs:
+    desc: Publish python docs to elastiknn.com server
     status:
       - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc/index.html
     cmds:
@@ -70,6 +80,7 @@ tasks:
     
 
   publish-release:
+    desc: Publish python library to pypi
     status:
       - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
     cmds:

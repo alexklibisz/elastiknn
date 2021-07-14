@@ -4,7 +4,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from elastiknn.models import ElastiknnModel
 
-digits = load_digits(10)["data"] > 0
+digits = load_digits(n_class=10)["data"] > 0
 digits_train = digits[:1400]
 digits_validate = digits[1400:]
 
