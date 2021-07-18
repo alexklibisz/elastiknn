@@ -1,19 +1,17 @@
-package com.klibisz.elastiknn.search
+package com.klibisz.ann1b.apps
 
-import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.klibisz.ann1b.{Dataset, LocalDatasetSource, LuceneModel}
+import com.klibisz.ann1b._
 import com.klibisz.elastiknn.models.L2LshModel
-import org.apache.lucene.index._
-import org.apache.lucene.store.MMapDirectory
+import com.typesafe.scalalogging.StrictLogging
 
 import java.nio.file.Files
 import java.util.Random
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
 
-object BigAnnChallenge extends App {
+object Index extends App with StrictLogging {
 
   implicit val executionContext = ExecutionContext.global
   implicit val system = ActorSystem()
@@ -25,18 +23,13 @@ object BigAnnChallenge extends App {
   val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val tmpDir = Files.createTempDirectory("elastiknn-lsh-")
 
-  val luceneModel = new LuceneModel.ElastiknnLsh(model)
-  val run: Future[Done] = source
+  val luceneModel = new ElastiknnLshLuceneModel(model)
+  val run = source
     .sampleData(parallelism)
+    .take(1000000)
     .runWith(luceneModel.index(tmpDir, parallelism))
 
   val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
   finally system.terminate()
-
-  println((System.nanoTime() - t0).nanos.toSeconds)
-
-  val indexReader = DirectoryReader.open(new MMapDirectory(tmpDir))
-  println(indexReader.leaves.size())
-
 }
