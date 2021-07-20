@@ -2,16 +2,17 @@ package com.klibisz.ann1b.apps
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.klibisz.ann1b._
+import com.klibisz.ann1b.apps.Index.dataset
+import com.klibisz.ann1b.{Dataset, LocalDatasetSource}
 import com.klibisz.elastiknn.models.L2LshModel
 import com.typesafe.scalalogging.StrictLogging
 
 import java.nio.file.Paths
 import java.util.Random
-import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
 
-object Index extends App with StrictLogging {
+object Search extends App with StrictLogging {
 
   implicit val executionContext = ExecutionContext.global
   implicit val system = ActorSystem()
@@ -23,13 +24,14 @@ object Index extends App with StrictLogging {
   val model = new L2LshModel(dataset.dims, 75, 4, 2, new Random(0))
   val indexPath = Paths.get("/tmp/elastiknn-lsh-bigann")
 
-  val luceneModel = new LshLuceneModel(model)
   val run = source
-    .sampleData(parallelism)
-    .take(100000)
-    .runWith(luceneModel.index(indexPath, parallelism))
+    .queryData(parallelism)
+    .take(10)
+    .map(_.vec.toList)
+    .runForeach(println)
 
   val t0 = System.nanoTime()
   try Await.result(run, Duration.Inf)
   finally system.terminate()
+
 }

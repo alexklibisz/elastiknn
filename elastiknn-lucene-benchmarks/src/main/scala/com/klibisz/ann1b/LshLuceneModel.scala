@@ -14,23 +14,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-trait LuceneModel {
-
-  /**
-    * Executes the indexing transformation for each [[Dataset.Doc]] and writes the resulting documents to a Lucene index
-    * on the local filesystem.
-    */
-  def index(indexPath: Path, parallelism: Int)(implicit ec: ExecutionContext): Sink[Dataset.Doc, Future[Done]]
-
-  /**
-    * Executes the search for each [[Dataset.Doc]] and writes the returned neighbor indexes to disk.
-    * TODO: probably use the same file format as the ground truth data, for easy evaluation.
-    */
-  def search(resultsPath: Path, parallelism: Int)(implicit ec: ExecutionContext): Unit
-
-}
-
-final class ElastiknnLshLuceneModel(val hashingModel: HashingModel.DenseFloat) extends LuceneModel with StrictLogging {
+final class LshLuceneModel(val hashingModel: HashingModel.DenseFloat) extends LuceneModel with StrictLogging {
 
   private val rt = Runtime.getRuntime
   private val idFieldName: String = "i"
@@ -39,6 +23,8 @@ final class ElastiknnLshLuceneModel(val hashingModel: HashingModel.DenseFloat) e
   override def index(indexPath: Path, parallelism: Int)(
       implicit ec: ExecutionContext
   ): Sink[Dataset.Doc, Future[Done]] = {
+
+    FileUtils.deleteDirectory(indexPath.toFile)
 
     val ramPerThreadLimitMB: Int = 2047.min((rt.maxMemory() / 1e6).toInt / rt.availableProcessors())
 
@@ -69,8 +55,6 @@ final class ElastiknnLshLuceneModel(val hashingModel: HashingModel.DenseFloat) e
       d -> i
     }
 
-    // TODO: abstract out the stats and logging. Maybe this method just sets up the directory, writer, field types, and
-    //   method for transforming Dataset.Doc to a Lucene Document.
     val streamStartedAtNanos = new AtomicLong()
 
     val logStartMessage = () => {
@@ -90,11 +74,12 @@ final class ElastiknnLshLuceneModel(val hashingModel: HashingModel.DenseFloat) e
       rdr.close()
       val size = FileUtils.sizeOfDirectory(indexPath.toFile) / 1e9
       logger.info(s"""Indexing summary:
-          |  directory              ${indexPath.toFile}
-          |  duration (in stream)   ${streamDuration.toSeconds} seconds
-          |  duration (closing)     ${closeDuration.toSeconds} seconds
-          |  segments               $leavesCount
-          |  size                   ${size.formatted("%.2f")} GB""".stripMargin)
+                     |  directory              ${indexPath.toFile}
+                     |  duration (in stream)   ${streamDuration.toSeconds} seconds
+                     |  duration (closing)     ${closeDuration.toSeconds} seconds
+                     |  duration (total)       ${(streamDuration + closeDuration).toSeconds} seconds
+                     |  segments               $leavesCount
+                     |  size                   ${size.formatted("%.2f")} GB""".stripMargin)
     }
 
     Flow[Dataset.Doc]
