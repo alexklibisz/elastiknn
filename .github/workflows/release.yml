@@ -18,6 +18,9 @@ jobs:
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.6'
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7.5'
       - name: Setup Release Credentials
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
