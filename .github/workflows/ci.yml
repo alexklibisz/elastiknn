@@ -78,9 +78,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '2.6'
       - run: sudo snap install task --classic
       - name: Compile Jekyll Site
         run: "task docs:compile"
