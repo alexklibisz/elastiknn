@@ -2,30 +2,16 @@ version: '3'
 
 tasks:
 
-  install-bundler:
-    status:
-      - bundle --version
-    cmds:
-      - gem install bundler
-
-  dev: 
+  dev:
     desc: Start local development server.
-    deps:
-      - install-bundler
     cmds:
-      - bundle install
-      - bundle exec jekyll serve  --port 4001
+      - docker-compose up dev
 
   compile:
     desc: Compile docs into a static site.
-    sources:
-      - "**/*.md"
-      - "**/*.html"
-    deps:
-      - install-bundler
     cmds:
-      - bundle install
-      - bundle exec jekyll build
+      - chmod -R 777 $(pwd) # Otherwise container can't write to the local filesystem.
+      - docker-compose run --rm compile
 
   publish:
     desc: Publish docs to elastiknn.com server.
