@@ -23,4 +23,4 @@ plugins:
 analytics:
   provider: "google"
   google:
-    tracking_id: "UA-21164883-1"
+    tracking_id: "UA-163415632-1"
