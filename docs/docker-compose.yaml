@@ -7,7 +7,7 @@ services:
     container_name: elastiknn-docs-dev
     image: jekyll/jekyll:4.0
     volumes:
-      - "./jekyll:/srv/jekyll"
+      - ".:/srv/jekyll"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
@@ -23,7 +23,7 @@ services:
     container_name: elastiknn-docs-build
     image: jekyll/jekyll:4.0
     volumes:
-      - "./jekyll:/srv/jekyll:z"
+      - ".:/srv/jekyll:z"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
