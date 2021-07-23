@@ -1,13 +1,12 @@
 ---
-layout: default
+layout: single
 title: Performance
-nav_order: 5
 description: "Elastiknn Performance"
 permalink: /performance/
+classes: wide
 ---
 
-# Performance
-{: .no_toc }
+This page should answer the question "how fast is Elastiknn?"
 
 Elastiknn is benchmarked on a subset of datasets from the popular [ann-benchmarks project](https://github.com/erikbern/ann-benchmarks).
 
@@ -46,14 +45,8 @@ When comparing Elastiknn performance to these methods, consider the following:
 4. Elastiknn scales horizontally out-of-the-box by adding shards to an Elasticsearch index.
    Query latency typically scales inversely with the number of shards, i.e., queries on an index with two shards will be 2x faster than an index with one shard. 
    Few other methods are this simple to parallelize.
-
---- 
-
+   
 ## Results
-{: .no_toc }
-
-1. TOC
-{:toc}
 
 <!-- 
 Everything below is generated using a python program 

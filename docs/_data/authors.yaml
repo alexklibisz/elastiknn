@@ -1,0 +1,17 @@
+Alex Klibisz:
+  name: Alex Klibisz
+  avatar: https://github.com/alexklibisz.png
+  bio: Software Engineer
+  links:
+    - label: "Github"
+      icon: "fas fa-fw fa-link"
+      url: "https://github.com/alexklibisz"
+    - label: "Twitter"
+      icon: "fas fa-fw fa-link"
+      url: "https://twitter.com/alexklibisz"
+    - label: "Linkedin"
+      icon: "fas fa-fw fa-link"
+      url: "https://linkedin.com/in/alexklibisz"
+    - label: "Google Scholar"
+      icon: "fas fa-fw fa-link"
+      url: "https://scholar.google.com/citations?user=Nlqg9y4AAAAJ&hl=en"

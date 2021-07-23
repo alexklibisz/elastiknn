@@ -1,20 +1,16 @@
 ---
-layout: default
-title: API
-nav_order: 2
+layout: single
+title: Elastiknn API
 description: "Elastiknn API"
 permalink: /api/
+toc: true
+toc_label: Contents
+toc_icon: cog
 ---
-
-# Elastiknn API
-{: .no_toc }
 
 This document covers the Elastiknn API, including: indexing settings, REST API payloads, all aproximate similarity models, and some nice-to-know implementation details.
 
 Once you've [installed Elastiknn](/installation/), you can use the REST API just like you would use the [official Elasticsearch REST APIs](https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html).
-
-1. TOC
-{:toc}
 
 ## Index Settings
 
