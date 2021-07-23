@@ -1,18 +1,26 @@
 title: Elastiknn
-email: aklibisz@gmail.com
+name: Elastiknn
 description: >- # this means to ignore newlines until "baseurl:"
   An Elasticsearch Plugin for Exact and Approximate Nearest Neighbors Search in High Dimensional Vector Spaces
-baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://elastiknn.com" # the base hostname & protocol for your site, e.g. http://example.com
 
-theme: just-the-docs
-color_scheme: wider
+theme: minimal-mistakes-jekyll
+minimal_mistakes_skin: dark
+author_profile: false
 
-footer_content: "Copyright &copy; 2019-2021 <a href=\"http://alex.klibisz.com\" target=\"_blank\">Alex Klibisz</a>."
+footer:
+  links:
+    - label: "Github"
+      icon: "fas fa-fw fa-link"
+      url: "https://github.com/alexklibisz/elastiknn"
+    - label: "Twitter"
+      icon: "fas fa-fw fa-link"
+      url: "https://twitter.com/elastiknn"
 
-aux_links:
-  "Elastiknn on Github":
-    - "//github.com/alexklibisz/elastiknn"
+plugins:
+  - jekyll-feed
 
-ga_tracking: UA-163415632-1
-
+analytics:
+  provider: "google"
+  google:
+    tracking_id: "UA-163415632-1"

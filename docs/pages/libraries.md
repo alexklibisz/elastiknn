@@ -1,18 +1,14 @@
 ---
-layout: default
+layout: single
 title: Libraries
-nav_order: 3
 description: "Documentation for the Elastiknn Libraries"
 permalink: /libraries/
+toc: true
+toc_label: Contents
+toc_icon: cog
 ---
 
-# Libraries
-{: .no_toc }
-
 The Elastiknn project includes some additional Python, Java, and Scala libraries.
-
-1. TOC
-{: toc}
 
 ## Python client
 

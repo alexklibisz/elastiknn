@@ -1,12 +1,10 @@
 ---
-layout: default
+layout: single
 title: Installation
-nav_order: 2
 description: "Installing the Elastiknn Plugin"
 permalink: /installation/
+classes: wide
 ---
-
-# Installation
 
 The Elastiknn plugin gets published as a zip file in a Github release. [The lastest release can be found here.](https://github.com/alexklibisz/elastiknn/releases/latest)
 

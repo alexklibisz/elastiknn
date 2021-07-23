@@ -1,12 +1,9 @@
 ---
-layout: default
+layout: splash
 title: Home
-nav_order: 1
 description: "Elasticsearch Plugin for Nearest Neighbor Search"
 permalink: /
 ---
-
-# Elastiknn
 
 ## Elasticsearch Plugin for Nearest Neighbor Search
 
@@ -14,8 +11,6 @@ Methods like word2vec and convolutional neural nets can convert many data modali
 Elasticsearch is a ubiquitous search solution, but its support for vectors is limited.
 This plugin fills the gap by bringing efficient exact and approximate vector search to Elasticsearch.
 This enables users to combine traditional queries (e.g., "some product") with vector search queries (e.g., _an image (vector) of a product_) for an enhanced search experience.
-
----
 
 ## Features
 
@@ -30,10 +25,7 @@ _Non-Features_
 
 - If you need high-throughput nearest neighbor search for periodic batch jobs, there are several faster and simpler methods. [Ann-benchmarks](https://github.com/erikbern/ann-benchmarks) is a good place to find them.
 
----
-
 ## Community
 
-- Post and discuss issues on [Github](https://github.com/alexklibisz/elastiknn) and [Gitter](https://gitter.im/elastiknn/community).
-- Follow [@Elastiknn](http://twitter.com/elastiknn) for updates on releases.
+- Post and discuss issues on [Github](https://github.com/alexklibisz/elastiknn).
 
