@@ -6,7 +6,7 @@ permalink: /performance/
 classes: wide
 ---
 
-This page should answer the question "how fast is Elastiknn?"
+This document should answer the question "how fast is Elastiknn?"
 
 Elastiknn is benchmarked on a subset of datasets from the popular [ann-benchmarks project](https://github.com/erikbern/ann-benchmarks).
 
