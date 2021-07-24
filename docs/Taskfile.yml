@@ -10,7 +10,6 @@ tasks:
   compile:
     desc: Compile docs into a static site.
     cmds:
-      - chmod -R 777 $(pwd) # Otherwise container can't write to the local filesystem.
       - docker-compose run --rm compile
 
   publish:
