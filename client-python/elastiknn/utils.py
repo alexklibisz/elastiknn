@@ -12,16 +12,16 @@ _rng = Random(0)
 valid_metrics_algos = [
     ('exact', 'l1'),
     ('exact', 'l2'),
-    ('exact', 'angular'),
+    ('exact', 'cosine'),
     ('exact', 'hamming'),
     ('exact', 'jaccard'),
     ('sparse_indexed', 'jaccard'),
     ('sparse_indexed', 'hamming'),
     ('lsh', 'l2'),
-    ('lsh', 'angular'),
+    ('lsh', 'cosine'),
     ('lsh', 'jaccard'),
     ('lsh', 'hamming'),
-    ('permutation_lsh', 'angular'),
+    ('permutation_lsh', 'cosine'),
     ('permutation_lsh', 'l2')
 ]
 
@@ -29,8 +29,6 @@ def dealias_metric(metric: str) -> str:
     mlower = metric.lower()
     if mlower == 'euclidean':
         return 'l2'
-    elif mlower == 'cosine':
-        return 'angular'
     else:
         return mlower
 

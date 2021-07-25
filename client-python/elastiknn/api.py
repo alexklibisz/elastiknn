@@ -16,7 +16,7 @@ class Similarity(Enum):
     Hamming = 2
     L1 = 3
     L2 = 4
-    Angular = 5
+    Cosine = 5
 
 
 class Vec:
@@ -141,7 +141,7 @@ class Mapping:
             }
 
     @dataclass(frozen=True)
-    class AngularLsh(Base):
+    class CosineLsh(Base):
         dims: int
         L: int
         k: int
@@ -151,7 +151,7 @@ class Mapping:
                 "type": "elastiknn_dense_float_vector",
                 "elastiknn": {
                     "model": "lsh",
-                    "similarity": "angular",
+                    "similarity": "cosine",
                     "dims": self.dims,
                     "L": self.L,
                     "k": self.k
@@ -282,10 +282,10 @@ class NearestNeighborsQuery:
                                                     candidates=self.candidates)
 
     @dataclass(frozen=True)
-    class AngularLsh(Base):
+    class CosineLsh(Base):
         field: str
         vec: Vec.Base
-        similarity: Similarity = Similarity.Angular
+        similarity: Similarity = Similarity.Cosine
         candidates: int = 1000
 
         def to_dict(self):
@@ -298,8 +298,8 @@ class NearestNeighborsQuery:
             }
 
         def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.AngularLsh(field=self.field, vec=vec, similarity=self.similarity,
-                                                    candidates=self.candidates)
+            return NearestNeighborsQuery.CosineLsh(field=self.field, vec=vec, similarity=self.similarity,
+                                                   candidates=self.candidates)
 
     @dataclass(frozen=True)
     class L2Lsh(Base):
@@ -327,7 +327,7 @@ class NearestNeighborsQuery:
     class PermutationLsh(Base):
         field: str
         vec: Vec.Base
-        similarity: Similarity = Similarity.Angular
+        similarity: Similarity = Similarity.Cosine
         candidates: int = 1000
 
         def to_dict(self):
