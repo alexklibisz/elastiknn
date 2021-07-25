@@ -65,7 +65,7 @@ public class ExactModel {
         }
     }
 
-    public static class Angular implements DenseFloat {
+    public static class Cosine implements DenseFloat {
         @Override
         @ForceInline
         public double similarity(float[] v1, float[] v2) {

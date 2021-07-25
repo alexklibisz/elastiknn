@@ -105,7 +105,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Mapping.HammingLsh(dims, dims * 2 / 5, 4),
       Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.65)
     ),
-    // Angular Lsh
+    // Cosine Lsh
     Test(
       Mapping.CosineLsh(dims, 400, 1),
       Seq(
