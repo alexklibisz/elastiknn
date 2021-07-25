@@ -122,22 +122,22 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
         NearestNeighborsQuery.CosineLsh(vecField, 400) -> 0.51,
         NearestNeighborsQuery.CosineLsh(vecField, 800) -> 0.72
       )
-    )
+    ),
     // L2 Lsh
-      Test (
-        Mapping.L2Lsh(dims, 600, 1, 4),
-        Seq(
-          NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-          NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-          NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-          NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.12,
-          NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.22,
-          NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.40,
-          // Adding probes should improve recall, but since k = 1, probing > 2 times should have no effect.
-          NearestNeighborsQuery.L2Lsh(vecField, 800, 1) -> 0.43,
-          NearestNeighborsQuery.L2Lsh(vecField, 800, 2) -> 0.49,
-          NearestNeighborsQuery.L2Lsh(vecField, 800, 10) -> 0.49
-        )
+    Test(
+      Mapping.L2Lsh(dims, 600, 1, 4),
+      Seq(
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.12,
+        NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.22,
+        NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.40,
+        // Adding probes should improve recall, but since k = 1, probing > 2 times should have no effect.
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 1) -> 0.43,
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 2) -> 0.49,
+        NearestNeighborsQuery.L2Lsh(vecField, 800, 10) -> 0.49
+      )
     ),
     // Permutation Lsh
     Test(
@@ -145,9 +145,9 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.14,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 400) -> 0.21,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
       ),
@@ -159,9 +159,9 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.31,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.51,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.31,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 400) -> 0.51,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.43
       ),
