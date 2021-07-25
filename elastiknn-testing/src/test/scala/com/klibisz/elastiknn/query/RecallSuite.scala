@@ -39,6 +39,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
   private val segmentsPerShard: Int = 1
   private val sparseBoolTestData = TestData.read("testdata-sparsebool.json.gz")
   private val denseFloatTestData = TestData.read("testdata-densefloat.json.gz")
+  private val denseFloatUnitTestData = TestData.read("testdata-densefloat-unit.json.gz")
 
   private val tests = Seq(
     // Exact
@@ -119,7 +120,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Mapping.CosineLsh(dims, 400, 2),
       Seq(
         NearestNeighborsQuery.CosineLsh(vecField, 200) -> 0.34,
-        NearestNeighborsQuery.CosineLsh(vecField, 400) -> 0.51,
+        NearestNeighborsQuery.CosineLsh(vecField, 400) -> 0.50,
         NearestNeighborsQuery.CosineLsh(vecField, 800) -> 0.72
       )
     ),

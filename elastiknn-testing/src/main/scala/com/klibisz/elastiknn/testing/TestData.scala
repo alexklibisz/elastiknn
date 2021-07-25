@@ -86,6 +86,7 @@ object Generate {
     val dims = 1024
     write(genSparseBool(dims, 5000, 50, 100), "testdata-sparsebool.json.gz")
     write(genDenseFloat(dims, 5000, 50, 100), "testdata-densefloat.json.gz")
+    write(genDenseFloat(dims, 5000, 50, 100, unit = true), "testdata-densefloat-unit.json.gz")
   }
 
 }
