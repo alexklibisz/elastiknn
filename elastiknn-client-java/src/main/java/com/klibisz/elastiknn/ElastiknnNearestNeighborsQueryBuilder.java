@@ -33,8 +33,8 @@ public class ElastiknnNearestNeighborsQueryBuilder extends AbstractQueryBuilder<
         builder.field("similarity", query.getSimilarity().toString());
         if (query instanceof ElastiknnNearestNeighborsQuery.Exact) {
             builder.field("model", "exact");
-        } else if (query instanceof ElastiknnNearestNeighborsQuery.AngularLsh) {
-            ElastiknnNearestNeighborsQuery.AngularLsh q = (ElastiknnNearestNeighborsQuery.AngularLsh) query;
+        } else if (query instanceof ElastiknnNearestNeighborsQuery.CosineLsh) {
+            ElastiknnNearestNeighborsQuery.CosineLsh q = (ElastiknnNearestNeighborsQuery.CosineLsh) query;
             builder.field("model", "lsh");
             builder.field("candidates", q.getCandidates());
         } else if (query instanceof ElastiknnNearestNeighborsQuery.L2Lsh) {
