@@ -63,6 +63,22 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     }
   }
 
+  test("model is invariant to vector magnitude") {
+    implicit val rng: Random = new Random(0)
+    val dims = 10
+    for {
+      isUnit <- Seq(true, false)
+      repeating <- Seq(true, false)
+    } {
+      val mlsh = new PermutationLshModel(dims, repeating)
+      val vec = Vec.DenseFloat.random(dims, unit = isUnit)
+      val scaled = (1 to 10).map(m => vec.copy(vec.values.map(_ * m)))
+      val hashed = scaled.map(v => mlsh.hash(v.values).toList)
+      scaled.distinct.length shouldBe 10
+      hashed.distinct.length shouldBe 1
+    }
+  }
+
   test("lucene example where counting matters") {
 
     // This example demonstrates a tricky condition: 0 appears once in the query vector and three times in corpus vector
