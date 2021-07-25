@@ -28,7 +28,7 @@ object ExactSimilarityFunction {
     override def maxScore: Float = 1f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(v1.values, v2.values)
   }
-  object Angular extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
+  object Cosine extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     private val m = new ExactModel.Angular
     override def maxScore: Float = 2f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(v1.values, v2.values);

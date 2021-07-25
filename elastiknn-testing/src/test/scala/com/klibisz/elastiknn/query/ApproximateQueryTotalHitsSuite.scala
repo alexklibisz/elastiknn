@@ -17,16 +17,17 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
     val (index, vecField, idField, dims) = ("issue-240", "vec", "id", 80)
     val corpus = Vec.DenseFloat.randoms(dims, 9999)
     val ids = corpus.indices.map(i => s"v$i")
-    val mapping = Mapping.AngularLsh(dims, 75, 2)
-    val query = NearestNeighborsQuery.AngularLsh(vecField, 30)
+    val mapping = Mapping.CosineLsh(dims, 75, 2)
+    val query = NearestNeighborsQuery.CosineLsh(vecField, 30)
     val k = 42
 
     // Run search for the first n vectors, in shuffled order, and return the index, the number of hits, and the hit IDs.
     def search(n: Int = 100): Future[Seq[(Int, Long, Vector[String])]] = {
       val queriesWithIndices = corpus.take(n).map(query.withVec).zipWithIndex
       val shuffled = Random.shuffle(queriesWithIndices)
-      val running = shuffled.map { case (q, i) =>
-        eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
+      val running = shuffled.map {
+        case (q, i) =>
+          eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
       }
       Future.sequence(running).map(_.sortBy(_._1))
     }
@@ -46,6 +47,5 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
       s2 shouldBe s3
     }
   }
-
 
 }

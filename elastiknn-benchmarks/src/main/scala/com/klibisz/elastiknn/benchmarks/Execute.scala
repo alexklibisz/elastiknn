@@ -19,13 +19,15 @@ import zio.stream._
   */
 object Execute extends App {
 
-  final case class Params(experimentKey: String = "",
-                          datasetsPrefix: String = "",
-                          resultsPrefix: String = "",
-                          recompute: Boolean = false,
-                          bucket: String = "",
-                          s3Url: Option[String] = None,
-                          esUrl: String = "http://localhost:9200")
+  final case class Params(
+      experimentKey: String = "",
+      datasetsPrefix: String = "",
+      resultsPrefix: String = "",
+      recompute: Boolean = false,
+      bucket: String = "",
+      s3Url: Option[String] = None,
+      esUrl: String = "http://localhost:9200"
+  )
 
   private val parser = new scopt.OptionParser[Params]("Execute benchmark jobs") {
     override def showUsageOnError: Option[Boolean] = Some(true)
@@ -120,9 +122,9 @@ object Execute extends App {
     } yield {
       // Same method for computing recall as ann-benchmarks.
       def lowerBound(dists: Seq[Float]): Double = query.nnq.similarity match {
-        case Similarity.L2      => dists.map(d => 1 / (1 + d)).min
-        case Similarity.Angular => dists.map(2 - _).min
-        case _                  => Double.MaxValue
+        case Similarity.L2     => dists.map(d => 1 / (1 + d)).min
+        case Similarity.Cosine => dists.map(2 - _).min
+        case _                 => Double.MaxValue
       }
 
       val recalls = results

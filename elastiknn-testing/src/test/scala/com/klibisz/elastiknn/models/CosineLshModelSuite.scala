@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class AngularLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
+class CosineLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   test("model is invariant to vector magnitude") {
     implicit val rng: Random = new Random(0)
@@ -17,7 +17,7 @@ class AngularLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport 
       k <- 1 to 5
       isUnit <- Seq(true, false)
     } {
-      val mlsh = new AngularLshModel(dims, l, k, new java.util.Random(0))
+      val mlsh = new CosineLshModel(dims, l, k, new java.util.Random(0))
       val vec = Vec.DenseFloat.random(dims, unit = isUnit)
       val scaled = (1 to 10).map(m => vec.copy(vec.values.map(_ * m)))
       val hashed = scaled.map(v => mlsh.hash(v.values).toList)

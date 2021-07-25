@@ -22,7 +22,7 @@ class DocsWithMissingVectorsSuite extends AsyncFunSuite with Matchers with Inspe
     implicit val rng = new Random(0)
     val index = "issue-181"
     val (vecField, idField, dims, numDocs) = ("vec", "id", 128, 20000)
-    val vecMapping: Mapping = Mapping.AngularLsh(dims, 99, 1)
+    val vecMapping: Mapping = Mapping.CosineLsh(dims, 99, 1)
     val mappingJsonString =
       s"""
          |{
@@ -53,11 +53,11 @@ class DocsWithMissingVectorsSuite extends AsyncFunSuite with Matchers with Inspe
       _ = countWithIdField.result.count shouldBe numDocs
       _ = countWithVecField.result.count shouldBe numDocs / 2
 
-      nbrsExact <- eknn.nearestNeighbors(index, NearestNeighborsQuery.Exact(vecField, Similarity.Angular, v0), 10, idField)
+      nbrsExact <- eknn.nearestNeighbors(index, NearestNeighborsQuery.Exact(vecField, Similarity.Cosine, v0), 10, idField)
       _ = nbrsExact.result.hits.hits.length shouldBe 10
       _ = nbrsExact.result.hits.hits.head.score shouldBe 2f
 
-      nbrsApprox <- eknn.nearestNeighbors(index, NearestNeighborsQuery.AngularLsh(vecField, 13, v0), 10, idField)
+      nbrsApprox <- eknn.nearestNeighbors(index, NearestNeighborsQuery.CosineLsh(vecField, 13, v0), 10, idField)
       _ = nbrsApprox.result.hits.hits.length shouldBe 10
       _ = nbrsApprox.result.hits.hits.head.score shouldBe 2f
     } yield Assertions.succeed
