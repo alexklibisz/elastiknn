@@ -29,10 +29,10 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
     // Some of them are intentionally duplicated.
     val fields: Seq[(String, Mapping, () => String, NearestNeighborsQuery)] = Seq(
       ("d1", Mapping.DenseFloat(dims), genDF, NearestNeighborsQuery.Exact("d1", Similarity.L2)),
-      ("d2", Mapping.AngularLsh(dims, 10, 1), genDF, NearestNeighborsQuery.AngularLsh("d2", n)),
-      ("d3", Mapping.AngularLsh(dims, 10, 1), genDF, NearestNeighborsQuery.AngularLsh("d3", n)),
+      ("d2", Mapping.CosineLsh(dims, 10, 1), genDF, NearestNeighborsQuery.CosineLsh("d2", n)),
+      ("d3", Mapping.CosineLsh(dims, 10, 1), genDF, NearestNeighborsQuery.CosineLsh("d3", n)),
       ("d4", Mapping.L2Lsh(dims, 21, 2, 3), genDF, NearestNeighborsQuery.L2Lsh("d4", n)),
-      ("d5", Mapping.PermutationLsh(dims, 6, false), genDF, NearestNeighborsQuery.PermutationLsh("d5", Similarity.Angular, n)),
+      ("d5", Mapping.PermutationLsh(dims, 6, false), genDF, NearestNeighborsQuery.PermutationLsh("d5", Similarity.Cosine, n)),
       ("b1", Mapping.SparseBool(dims), genSB, NearestNeighborsQuery.Exact("b1", Similarity.Jaccard)),
       ("b2", Mapping.SparseIndexed(dims), genSB, NearestNeighborsQuery.SparseIndexed("b2", Similarity.Jaccard)),
       ("b3", Mapping.JaccardLsh(dims, 10, 2), genSB, NearestNeighborsQuery.JaccardLsh("b3", n)),

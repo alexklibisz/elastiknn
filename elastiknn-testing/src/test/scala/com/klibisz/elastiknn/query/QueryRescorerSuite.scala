@@ -32,13 +32,13 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
   val mappingsAndQueries = Seq(
     Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
-      NearestNeighborsQuery.Exact("vec", Similarity.Angular, queryVec),
+      NearestNeighborsQuery.Exact("vec", Similarity.Cosine, queryVec),
       NearestNeighborsQuery.L2Lsh("vec", candidates, vec = queryVec)
     ),
-    Mapping.AngularLsh(dims, 40, 1) -> Seq(
+    Mapping.CosineLsh(dims, 40, 1) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
-      NearestNeighborsQuery.Exact("vec", Similarity.Angular, queryVec),
-      NearestNeighborsQuery.AngularLsh("vec", candidates, queryVec)
+      NearestNeighborsQuery.Exact("vec", Similarity.Cosine, queryVec),
+      NearestNeighborsQuery.CosineLsh("vec", candidates, queryVec)
     )
   )
 

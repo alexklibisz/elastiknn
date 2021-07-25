@@ -61,15 +61,15 @@ class JavaClientSuite extends AsyncFunSuite with Matchers with ElasticAsyncClien
       new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.L2) ->
         NearestNeighborsQuery.Exact("vec", Similarity.L2, dfv),
       new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.ANGULAR) ->
-        NearestNeighborsQuery.Exact("vec", Similarity.Angular, dfv),
+        NearestNeighborsQuery.Exact("vec", Similarity.Cosine, dfv),
       new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.SparseBool(sbv.trueIndices, sbv.totalIndices), api4j.Similarity.JACCARD) ->
         NearestNeighborsQuery.Exact("vec", Similarity.Jaccard, sbv),
       new ElastiknnNearestNeighborsQuery.L2Lsh(new api4j.Vector.DenseFloat(dfv.values), 22, 3) ->
         NearestNeighborsQuery.L2Lsh("vec", 22, 3, dfv),
       new ElastiknnNearestNeighborsQuery.AngularLsh(new api4j.Vector.DenseFloat(dfv.values), 22) ->
-        NearestNeighborsQuery.AngularLsh("vec", 22, dfv),
+        NearestNeighborsQuery.CosineLsh("vec", 22, dfv),
       new ElastiknnNearestNeighborsQuery.PermutationLsh(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.ANGULAR, 22) ->
-        NearestNeighborsQuery.PermutationLsh("vec", Similarity.Angular, 22, dfv),
+        NearestNeighborsQuery.PermutationLsh("vec", Similarity.Cosine, 22, dfv),
       new ElastiknnNearestNeighborsQuery.PermutationLsh(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.L2, 22) ->
         NearestNeighborsQuery.PermutationLsh("vec", Similarity.L2, 22, dfv)
     )

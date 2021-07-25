@@ -126,7 +126,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       } {
         case (r, s) =>
           queryVecs.map { v =>
-            val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), ExactSimilarityFunction.Angular)
+            val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), ExactSimilarityFunction.Cosine)
             s.search(q.toLuceneQuery(r), 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
           }
       }

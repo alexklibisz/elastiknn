@@ -57,7 +57,8 @@ object TestData {
   }
 
   def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(
-      implicit rng: Random): TestData = {
+      implicit rng: Random
+  ): TestData = {
     val corpus = Vec.DenseFloat.randoms(dims, numCorpus)
     val queries = Vec.DenseFloat.randoms(dims, numQueries).map { qv =>
       Query(
@@ -65,7 +66,7 @@ object TestData {
         Seq(
           Result(Similarity.L1, corpus.map(cv => ExactSimilarityFunction.L1(cv, qv)).sorted.reverse.take(numNeighbors)),
           Result(Similarity.L2, corpus.map(cv => ExactSimilarityFunction.L2(cv, qv)).sorted.reverse.take(numNeighbors)),
-          Result(Similarity.Angular, corpus.map(cv => ExactSimilarityFunction.Angular(cv, qv)).sorted.reverse.take(numNeighbors))
+          Result(Similarity.Cosine, corpus.map(cv => ExactSimilarityFunction.Cosine(cv, qv)).sorted.reverse.take(numNeighbors))
         )
       )
     }
@@ -85,7 +86,6 @@ object Generate {
     val dims = 1024
     write(genSparseBool(dims, 5000, 50, 100), "testdata-sparsebool.json.gz")
     write(genDenseFloat(dims, 5000, 50, 100), "testdata-densefloat.json.gz")
-    write(genDenseFloat(dims, 5000, 50, 100, unit = true), "testdata-densefloat-unit.json.gz")
   }
 
 }

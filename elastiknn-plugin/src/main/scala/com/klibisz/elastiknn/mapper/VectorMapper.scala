@@ -53,7 +53,7 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.CosineLsh      => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
