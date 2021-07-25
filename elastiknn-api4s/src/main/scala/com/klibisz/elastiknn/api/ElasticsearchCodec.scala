@@ -18,9 +18,7 @@ trait ElasticsearchCodec[A] extends Codec[A]
 
 private object Keys {
   val ANGULAR = "angular"
-  val ANGULAR_LSH = "angular_lsh"
   val COSINE = "cosine"
-  val COSINE_LSH = "cosine_lsh"
   val DIMS = "dims"
   val EKNN_DENSE_FLOAT_VECTOR = s"${ELASTIKNN_NAME}_dense_float_vector"
   val EKNN_SPARSE_BOOL_VECTOR = s"${ELASTIKNN_NAME}_sparse_bool_vector"
