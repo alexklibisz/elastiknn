@@ -222,7 +222,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       case Similarity.Hamming => sparseBoolTestData
       case Similarity.L1      => denseFloatTestData
       case Similarity.L2      => denseFloatTestData
-      case Similarity.Cosine  => denseFloatTestData
+      case Similarity.Cosine  => denseFloatUnitTestData
     }
   } {
     val uuid = UUID.randomUUID().toString
