@@ -80,7 +80,9 @@ jobs:
       - uses: actions/checkout@v2
       - run: sudo snap install task --classic
       - name: Compile Jekyll Site
-        run: "task docs:compile"
+        run: |
+          chmod 777 docs
+          task docs:compile
 
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
