@@ -14,12 +14,12 @@ This enables users to combine traditional queries (e.g., "some product") with ve
 
 ## Features
 
-- Datatypes to efficiently store dense and sparse numerical vectors in Elasticsearch documents.
-- Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Angular](https://en.wikipedia.org/wiki/Cosine_similarity), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
-- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) and related algorithms for all similarities.
-- Compose nearest neighbor queries with standard Elasticsearch queries.
-- Incrementally build and update your index. Elastiknn doesn't perform any sort of model fitting, and a vector is just a field in a document. So you can start with 1 vector or 1 million and then create/update/delete documents and vectors without ever re-building the entire index.
-- Implemented with standard Elasticsearch and Lucene primitives. Executes entirely in the Elasticsearch JVM. This means deployment is a simple plugin installation and indexing and querying both scale horizontally with Elasticsearch.
+- Datatypes to efficiently store dense and sparse numerical vectors in Elasticsearch documents, including multiple vectors per document.
+- Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
+- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) and related algorithms for L2, Cosine, Jaccard, and Hamming similarity.
+- Integration of nearest neighbor queries with standard Elasticsearch queries.
+- Incremental index updates. Start with 1 vector or 1 million vectors and then create/update/delete documents and vectors without ever re-building the entire index.
+- Implementation based on standard Elasticsearch and Lucene primitives, entirely in the JVM. This means deployment is a simple plugin installation and indexing and querying both scale horizontally with Elasticsearch.
 
 _Non-Features_
 
