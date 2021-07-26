@@ -81,7 +81,7 @@ jobs:
       - run: sudo snap install task --classic
       - name: Compile Jekyll Site
         run: |
-          chmod 777 docs
+          chmod -R 777 docs
           task docs:compile
 
   # Ideally the snapshot release would run only if the tests pass, but right now
