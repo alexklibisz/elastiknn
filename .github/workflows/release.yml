@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p docs/_site
           chmod -R 777 docs
-          task -f docs:publish
+          task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
       - name: Publish to Sonatype
