@@ -35,10 +35,10 @@ jobs:
         run: task py:publish-docs
       - name: Publish JVM Docs
         run: task jvm:docs:publish
-      - name: Publish Site
-        run: |
-          chmod -R 777 docs # Otherwise container can't write to the local filesystem
-          task docs:publish
+#      - name: Publish Site
+#        run: |
+#          chmod -R 777 docs # Otherwise container can't write to the local filesystem
+#          task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
       - name: Publish to Sonatype
