@@ -1,6 +1,6 @@
 ---
 layout: single
-title: Elastiknn API
+title: API
 description: "Elastiknn API"
 permalink: /api/
 toc: true
