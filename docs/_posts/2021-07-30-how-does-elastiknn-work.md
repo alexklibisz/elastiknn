@@ -3,35 +3,36 @@ layout: single
 title: "How Does Elastiknn Work?"
 permalink: /posts/how-does-elastiknn-work-july-2021/
 date: 2021-07-24 18:00:00 -0500
-author_profile: false
+author_profile: true
 author: Alex Klibisz
 excerpt: "This post walks through the implementation of Elastiknn. If I've done my job well, you should find it's pretty simple."
 classes: wide
 ---
 
 This post covers the implementation of Elastiknn in fairly thorough detail. 
-The only way to get _more_ detail is to read and modify the code on [Github](https://github.com/alexklibisz/elastiknn), which is also recommended as a follow-up.
+The best way to get _more_ detail is to explore and contribute to the project, hosted on [Github](https://github.com/alexklibisz/elastiknn).
 
-Hopefully I can convey that this implementation is just a combination of a few simple concepts, with only a couple non-trivial optimizations for better performance.
+This post should (ideally) convey that Elastiknn is just a combination of a few simple concepts, with a couple interesting optimizations for better performance.
 
-This post assumes familiarity with nearest neighbor search (aka "vector search").
-If you need a refresher on this topic, there are a number of existing resources.[^ann-resources]
-
-This post also assumes familiarity with Elasticsearch and Lucene.[^elasticsearch-resources]
+This post assumes some familiarity with nearest neighbor search (aka "vector search"),[^vector-search-resources] 
+Locality Sensitive Hashing,[^lsh-resources]
+and Elasticsearch and Lucene.[^elasticsearch-resources]
   
-This post does not directly cover the Elastiknn API. If that's of interest, I recommend reading the [API docs](/api) and the [Multimodal Search on the Amazon Products Dataset tutorial](http://localhost:4000/tutorials/multimodal-search-amazon-products-dataset/).
+This post does not directly cover the Elastiknn API. If that's of interest, I recommend reading the [API docs](/api) and the tutorial for [Multimodal Search on the Amazon Products Dataset](http://localhost:4000/tutorials/multimodal-search-amazon-products-dataset/).
 
 ## What does Elastiknn do?
 
 In short, Elastiknn is an Elasticsearch plugin for exact and approximate nearest neighbor search.
-The fill list of features (copied from the home page) is as follows:
+The name is a combination of _Elastic_ and _KNN_ -- I pronounce it _elasti-knn_.
+
+The full list of features (copied from the home page) is as follows:
 
 - Datatypes to efficiently store dense and sparse numerical vectors in Elasticsearch documents, including multiple vectors per document.
 - Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
-- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) and related algorithms for L2, Cosine, Jaccard, and Hamming similarity.
+- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) for L2, Cosine, Jaccard, and Hamming similarity.
 - Integration of nearest neighbor queries with standard Elasticsearch queries.
 - Incremental index updates: start with any number of vectors and incrementally create/update/delete more without ever re-building the entire index.
-- Implementation based on standard Elasticsearch and Lucene primitives, entirely in the JVM. This means deployment is a simple plugin installation and indexing and querying both scale horizontally with Elasticsearch.
+- Implementation based on standard Elasticsearch and Lucene primitives, entirely in the JVM. Indexing and querying scale horizontally with Elasticsearch.
 
 The API is embedded into the standard Elasticsearch JSON-over-HTTP API -- [see the API docs](/api).
 
@@ -44,7 +45,7 @@ The clients and libraries are [documented on the Libraries page](/libraries).
 ### Language
 
 The Elastiknn plugin implementation is about 60% Scala and 40% Java.
-Scala is a JVM-based language, meaning you can call Java code from Scala, call Scala code from Java (with some limitations), and bundle Scala and Java sources in a single JAR.
+Scala is a JVM-based language, meaning you can call Java code from Scala, call Scala code from Java (with some limitations), and provide Scala and Java sources in a single JAR.
 I find Scala to be a more expressive and productive language,[^scala-example-1] however its abstractions are not always free.
 I use Scala in all the places where the need for productive abstraction and type-safety exceeds the need for speed.[^scala-example-2]
 I use Java to implement the CPU-bound similarity models and Lucene queries.[^note-scala-java]
@@ -65,13 +66,14 @@ The Elasticsearch plugin sources are compiled and packaged as a zip file (pretty
 You can run this installation command on each node at startup, or simply build it into a Docker image.
 
 Finally, Elasticsearch plugins need to be re-built and re-released for every specific release of Elasticsearch.
-This is because Elasticsearch only maintains backwards-compatibility at the HTTP API level -- the Java internals usually have a few minor breaking changes for every release.
+This is because Elasticsearch only maintains backwards-compatibility at the HTTP API level.
+The Java internals usually have a few minor breaking changes for every release.
 This makes it difficult to backport bug-fixes and new features to older versions of the plugin.
 Elastiknn has so far taken the approach that bug-fixes and new features are released only for the latest version of Elasticsearch.[^gradle]
 
 ### Diagram Overview
 
-This diagram should help understand the discrete parts of Elastiknn and how they interact with Elasticsearch and Lucene.
+This diagram should help understand the components of Elastiknn and how they interact with Elasticsearch and Lucene.
 
 The diagram is partitioned into rows and columns.
 The rows delineate three use-cases, from top to bottom: specifying a mapping that includes a vector, indexing a new document according to this mapping, 
@@ -84,17 +86,73 @@ Without further ado:
 
 The main takeaway from this diagram should be that Elastiknn has three responsibilities:
 
-1. Parsing a JSON mapping into an object that can execute the next two responsibilities.
-2. Indexing a vector by converting it to its corresponding Lucene fields, which are indexed by Lucene.
-3. Executing a nearest neighbor query by converting the query vector into a Lucene query, which is executed by Lucene.
+1. `TypeParser` parses a JSON mapping into a `TypeMapper`
+2. `TypeMapper` converts a vector into Lucene fields, which are indexed by Lucene
+3. `KnnQueryBuilder` converts the query vector into a Lucene query, executed by Lucene
 
 Elasticsearch and Lucene handle everything else: serving requests, indexing documents, and executing queries.
 
-The most important and interesting parts of Elastiknn are the similarity models and the custom `MatchHashesAndScoreQuery`.
-The similarity models are used in the `FieldMapper` and `KnnQueryBuilder` to convert vectors into Lucene Fields.
+The most important and interesting parts of Elastiknn are the hashing models and the custom `MatchHashesAndScoreQuery`.
+The hashing models are used in the `TypeMapper` and `KnnQueryBuilder` to convert vectors into Lucene Fields.
 The `MatchHashesAndScoreQuery` executes a very simple (but carefully-optimized) term-based document retrieval and re-ranking.
 
 I'll talk more about both of these in the upcoming sections.
+
+## Hashing Models
+
+As a quick reminder, the idea of Locality Sensitive Hashing is that we can approximate exact similarity of vectors by converting them into discrete hashes,
+with the key property that the probability of a hash collision for any pair of vectors correlates to their exact similarity.
+
+This model is particularly compelling with respect to Lucene and Elasticsearch: it allows us to store and search vector hashes just like words in a standard text document.
+In fact, there is absolutely zero difference in how Lucene handles vector hashes compared to plain old words. 
+Both are serialized as byte arrays and used as keys in an inverted index.
+
+With that in mind, this section will cover five of Elastiknn's hashing models.
+The models differ in their specific implementation, generally based on the similarity function they approximate, but they all share the same interface:
+
+> take a vector as input and produce a set of hashes as output.
+
+The `HashingModel` interface should convey this concisely. Hashes can be repeated for some models, hence the `HashAndFreq` type.
+
+```java
+package com.klibisz.elastiknn.models;
+
+public class HashingModel {
+    public interface SparseBool {
+        HashAndFreq[] hash(int[] trueIndices, int totalIndices);
+    }
+    public interface DenseFloat {
+        HashAndFreq[] hash(float[] values);
+    }
+}
+
+// ...
+
+// A hash represented as a byte array and the frequency with which this hash occurred.
+public class HashAndFreq implements Comparable<HashAndFreq> {
+    public final byte[] hash;
+    public final int freq;
+    
+    // Typical POJO boilerplate omitted.
+}
+```
+
+Without further ado, let's have a look at each of the hashing models.
+
+### L2 LSH
+
+### Cosine LSH
+
+### Permutation LSH
+
+### Jaccard LSH
+
+### Hamming LSH
+
+
+## MatchHashesAndScoreQuery
+
+<!--
 
 ## Indexing and Searching Strategies
 
@@ -112,32 +170,24 @@ I'll talk more about both of these in the upcoming sections.
 
 ## Locality Sensitive Hashing Algorithms
 
-### L2 LSH
-
-### Cosine LSH
-
-### Permutation LSH
-
-### Jaccard LSH
-
-### Hamming LSH
-
 ## Interesting Optimizations
 
 ### Fast Vector Serialization
 
 ### Custom Lucene Query
-
+--> 
 ---
 
 <!--Footnotes-->
 
-[^ann-resources]: For a thorough textbook introduction (including a bit of math), read Chapter 3 of [Mining of Massive Datasets](http://www.mmds.org/). For a thorough video lecture introduction, watch lectures 13 through 20 of the [Scalable Data Science course from IIT Kharagpur](https://www.youtube.com/watch?v=06HGoXE6GAs&list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul&index=14). For an explanation in the context of large-scale ANN, read [this Medium article about the upcoming Billion-Scale Approximate Nearest Neighbor Search Challenge](https://medium.com/big-ann-benchmarks/neurips-2021-announcement-the-billion-scale-approximate-nearest-neighbor-search-challenge-72858f768f69). For a brief introduction aimed at Elastiknn users, start watching [this presentation at 1m56s](https://youtu.be/M4vqhmSZMTI?t=116).
+[^vector-search-resources]: For a brief introduction to vector search aimed at Elastiknn users, start watching [this presentation at 1m56s](https://youtu.be/M4vqhmSZMTI?t=116). For a more general introduction, see [this Medium article about the Billion-Scale Approximate Nearest Neighbor Search Challenge](https://medium.com/big-ann-benchmarks/neurips-2021-announcement-the-billion-scale-approximate-nearest-neighbor-search-challenge-72858f768f69).
+[^lsh-resources]: For a thorough textbook introduction to Locality Sensitive Hashing, including a bit of math, read Chapter 3 of [Mining of Massive Datasets](http://www.mmds.org/). For a thorough video lecture introduction, watch lectures 13 through 20 of the [Scalable Data Science course from IIT Kharagpur](https://www.youtube.com/watch?v=06HGoXE6GAs&list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul&index=14). 
+[^elasticsearch-resources]: The short story is: Lucene is a search library implemented in Java, generally intended for text search. You give Lucene some documents, and it parses the terms and stores an inverted index. You give it some terms, and it uses the inverted index to tell you which documents contain those terms. Elasticsearch is basically a distributed cluster of Lucene indices with a JSON API.
 [^scala-example-1]: Consider the difference between representing different query types as [Scala case classes](https://github.com/alexklibisz/elastiknn/blob/dcabb8cbf6d793fe83ac85a2a6ffa91786f87c73/elastiknn-api4s/src/main/scala/com/klibisz/elastiknn/api/package.scala#L126-L167) vs. [Java POJOs](https://github.com/alexklibisz/elastiknn/blob/dcabb8cbf6d793fe83ac85a2a6ffa91786f87c73/elastiknn-client-java/src/main/java/com/klibisz/elastiknn/api4j/ElastiknnNearestNeighborsQuery.java#L12-L158).
 [^scala-example-2]: For example, [this pattern rewrites a user-provided query and an existing index mapping into an internal Elasticsearch query](https://github.com/alexklibisz/elastiknn/blob/6798e3b4e4c08a1ac14e9be668761fc284bbacaa/elastiknn-plugin/src/main/scala/com/klibisz/elastiknn/query/ElastiknnQuery.scala#L52-L112). 
 [^note-scala-java]: When deciding to use Java or Scala, I find it useful to ask if I'm optimizing "in the large" or "in the small." For more context, read the first couple sections of [Daniel Spiewak](https://twitter.com/djspiewak)'s post [Why are Fibers Fast?](https://typelevel.org/blog/2021/02/21/fibers-fast-mkay.html).
-[^gradle]: The only legitimate alternative seems to be maintaining a separate copy of the code for every version of Elasticsearch. This seems to be the approach taken by [read-only-rest](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin).
-[^elasticsearch-resources]: The short story is: Lucene is a search library implemented in Java. You give it some documents and it parses out the terms and stores an inverted index. You give it some terms, it uses the inverted index to tell you which documents contain those terms. Elasticsearch is basically a distributed cluster of Lucene indices with a JSON API.  
+[^gradle]: The only alternative seems to be maintaining a separate copy of the code for every version of Elasticsearch. This seems to be the approach taken by [read-only-rest](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin).
+  
 
 
 
