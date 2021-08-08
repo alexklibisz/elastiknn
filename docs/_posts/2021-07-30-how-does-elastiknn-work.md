@@ -1,21 +1,22 @@
 ---
 layout: single
-title: "How Does Elastiknn Work?"
-permalink: /posts/how-does-elastiknn-work-july-2021/
-date: 2021-07-24 18:00:00 -0500
+title: "Tour de Elastiknn"
+permalink: /posts/tour-de-elastiknn-august-2021/
+date: 2021-08-07 18:00:00 -0500
 author_profile: true
 author: Alex Klibisz
-excerpt: "This post walks through the implementation of Elastiknn in fairly thorough detail."
+excerpt: "This post is a tour through Elastiknn in fairly thorough detail."
 classes: wide
 mathjax: true
 toc: true
 toc_label: Table of Contents
 toc_icon: cog
+read_time: true
 ---
 
 ## Introduction
 
-This post covers the implementation of Elastiknn in fairly thorough detail. 
+This post is a tour through Elastiknn in fairly thorough detail. 
 The best way to get more detail is to explore and contribute to the project, hosted on [Github](https://github.com/alexklibisz/elastiknn).
 
 This post should convey that Elastiknn is just a combination of a few simple concepts, with a couple interesting optimizations for improved performance.
@@ -26,6 +27,15 @@ Some knowledge of Locality Sensitive Hashing[^lsh-resources] is helpful but not 
 
 This post does not directly cover the Elastiknn API. 
 If that's of interest, please see the [API docs](/api) and the tutorial for [Multimodal Search on the Amazon Products Dataset](http://localhost:4000/tutorials/multimodal-search-amazon-products-dataset/).
+
+The tour is structured as follows:
+1. Cover Elastiknn's features at a high level.
+2. Cover some software engineering details.
+3. Examine a detailed component diagram to understand Elastiknn's interaction with Elasticsearch and Lucene.
+4. Present Locality Sensitive Hashing (LSH) in enough detail to understand its implementation in Elastiknn.
+5. Cover the specific implementation of LSH indexing and querying in Elastiknn.
+6. Look at some open questions.
+7. Finally, the appendix covers some more encyclopedic information, like brief summaries of the LSH implementations and some interesting optimizations.  
 
 ## What does Elastiknn do?
 
@@ -47,7 +57,7 @@ There are language-specific HTTP clients for Python, Java, and Scala.
 There are also Java libraries exposing the LSH models and Lucene abstractions for standalone use.
 The clients and libraries are [documented on the Libraries page](/libraries).
 
-## Elastiknn Software
+## Elastiknn Software Background
 
 ### Elasticsearch Plugins
 
@@ -79,19 +89,19 @@ So Java is used for all the CPU-bound LSH models and Lucene abstractions, and Sc
 
 ### Distance vs. Similarity
 
-Elasticsearch requires that scores be non-negative with higher scores indicating higher relevance.
+Elasticsearch requires non-negative relevance scores, with higher scores indicating higher relevance.
 
 Elastiknn supports five vector similarity functions (L1, L2, Cosine, Jaccard, and Hamming).
 Three of these are problematic with respect to this scoring requirement.
 
 Specifically, L1 and L2 are generally defined as _distance_ functions, rather than similarity functions,
-which means that higher relevance (i.e., lower distance) results would have _lower_ scores.
-Cosine similarity is also defined over $$[-1, 1]$$, and we can't have negative scores.
+which means that higher relevance (i.e., lower distance) yields _lower_ scores.
+Cosine similarity is defined over $$[-1, 1]$$, and we can't have negative scores.
 
 To work around this, Elastiknn applies simple transformations to produce L1, L2, and Cosine _similarity_ in accordance with the Elasticsearch requirements.
 The exact transformations are documented [on the API page](/api/#similarity-scoring).
 
-### Component Diagram
+## Elastiknn Component Diagram
 
 This diagram should help understand the components of Elastiknn and how they interact with Elasticsearch and Lucene.
 
@@ -116,7 +126,7 @@ The most important and interesting parts of Elastiknn are the LSH models and the
 The LSH models are used in the `TypeMapper` and `KnnQueryBuilder` to convert vectors into Lucene fields.
 The `MatchHashesAndScoreQuery` executes a simple, carefully-optimized term-based document retrieval and re-ranking.
 
-We'll look at both of these in the upcoming sections.
+We'll look at both of these in detail in upcoming sections.
 
 ## Locality Sensitive Hashing Background
 
@@ -124,10 +134,10 @@ Before we look at Elastiknn's specific implementations of LSH, we should cover s
 The notation is biased to expedite explanation with respect to Elastiknn.
 There are additional resources which provide a more thorough, generalized presentation.[^lsh-resources]
 
-### Hash Functions
+### Hash Functions that Preserve Locality
 
 The idea of Locality Sensitive Hashing is that we can approximate exact pairwise similarity of vectors by converting each vector into integer hash values,
-with the key property that the probability of a two vectors having the same hash value correlates to their exact similarity.
+with the key property that the probability of two vectors having the same hash value correlates to their exact similarity.
 
 In other words, we define a hash function which preserves the locality of vectors.
 
@@ -167,7 +177,7 @@ This is called _OR_ amplification because the $$g_i(v)$$ hashes are OR-ed in ord
 Another way to think about this is that we simply have $$L$$ distinct hash tables, and each one uses a logical hash $$g_i(v)$$.
 As $$L$$ increases, the probability of collision increases, which generally results in higher recall.
 
-Finally, the number of operations to hash a vector and the size (i.e., number of bytes) of the resulting hash value are both a function of $$L \times k$$.
+The number of operations to hash a vector and the size (i.e., number of bytes) of the resulting hash value are both a function of $$L \times k$$.
 In other words, the cost of increased recall and precision is more CPU, memory, and storage.
 
 To summarize:
@@ -194,17 +204,15 @@ To be clear, Multiprobe LSH doesn't really eliminate any cost.
 Rather, it simply shifts the cost from CPU, memory, and storage at indexing time to CPU and memory at query time.
 Depending on the application, this can be a worthwhile tradeoff.
 
-## Locality Sensitive Hashing Models in Elastiknn
+## Locality Sensitive Hashing and Lucene
 
-### LSH and Elastiknn
+### Hashes and Words are the Same Thing
 
-This model is particularly compelling with respect to Lucene and Elasticsearch: it allows us to store and search vector hashes just like words in a standard text document.
-In fact, there is absolutely zero difference in how Lucene handles vector hashes compared to plain old words. 
+The LSH paradigm is particularly compelling with respect to Lucene: we can store and search vector hash values just like words in a standard text document.
+In fact, there is absolutely zero difference in how Lucene handles vector hashes compared to words.
 Both are serialized as byte arrays and used as keys in an inverted index.
 
-With that in mind, this section will cover five of Elastiknn's hashing models.
-
-The models differ in their specific implementation, generally based on the similarity function they approximate, but they all share the same interface:
+The LSH models differ based on the similarity function they approximate, but they all share the same interface:
 
 > take a vector as input and produce a set of hashes as output.
 
@@ -231,9 +239,25 @@ public class HashAndFreq implements Comparable<HashAndFreq> {
 }
 ```
 
-Without further ado, let's have a look at each of the hashing models.
+### Naive Lucene Query: BooleanQuery
 
-### L2 LSH
+Blah
+
+### Custom Lucene Query: MatchHashesAndScoreQuery
+
+Blah
+
+## Open Questions
+
+Blah
+
+## Conclusion
+
+---
+
+## Appendix
+
+### L2 LSH Model
 
 L2 (i.e., Euclidean) distance for two $$n$$-dimensional vectors $$u$$ and $$v$$ is defined as follows:
 
@@ -246,14 +270,14 @@ $$\text{sim}_{L2}(u, v) = \frac{1}{1 + d_{L2}(u, v)}$$
 
 Elastiknn uses the _Stable Distributions_ method with multi-probe queries to approximate this similarity.[^cite-indyk-2006] [^cite-qin-2007]
 
-Intuitively, this method hashes a vector $$v$$ by projecting it onto a randomly-generated vector $$A_i$$, adding a random offset $$B_i$$, 
+Intuitively, this method hashes a vector $$v$$ by projecting it onto a randomly-generated vector $$A_i$$, adding a random offset $$B_i$$,
 dividing the resulting scalar by a width parameter $$w$$, and finally flooring the scalar to represent a discretized section (or bucket) of $$A_i$$.
 
 The process looks like this:
 
 <img src="/assets/images/how-does-elastiknn-work-L2-lsh.jpg" alt="Visualization of L2 LSH hashing"/>
 
-We can intuit that a vector close to $$v$$ would be likely to hash to the same section of $$A_i$$.  
+We can intuit that a vector close to $$v$$ would be likely to hash to the same section of $$A_i$$.
 
 This hash function is defined more precisely as:
 
@@ -265,33 +289,25 @@ $$w$$ is provided by the user.
 Key metrics:
 
 - Number of hashes as a function of parameters: ...
-- Hash size as a function of parameters: ... 
+- Hash size as a function of parameters: ...
 
-### Cosine LSH
-
-Blah
-
-### Permutation LSH
+### Cosine LSH Model
 
 Blah
 
-### Jaccard LSH
+### Permutation LSH Model
 
 Blah
 
-### Hamming LSH
+### Jaccard LSH Model
 
 Blah
 
-## MatchHashesAndScoreQuery
+### Hamming LSH Model
 
 Blah
 
-## Other Interesting Optimizations
-
-Blah
-
-### Storing Model Parameters
+### Storing LSH Model Parameters
 
 Each hashing model uses a set of parameters to hash vectors.
 
@@ -311,12 +327,6 @@ The hyper-parameters are stored inside the mappings where they are originally de
 ### Fast Vector Serialization
 
 Blah
-
-## Open Questions
-
-Blah
-
-## Conclusion
 
 ---
 
