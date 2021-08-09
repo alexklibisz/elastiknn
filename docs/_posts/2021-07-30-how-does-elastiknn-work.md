@@ -57,7 +57,7 @@ There are language-specific HTTP clients for Python, Java, and Scala.
 There are also Java libraries exposing the LSH models and Lucene abstractions for standalone use.
 The clients and libraries are [documented on the Libraries page](/libraries).
 
-## Elastiknn Software Background
+## Software Background
 
 ### Elasticsearch Plugins
 
@@ -101,7 +101,7 @@ Cosine similarity is defined over $$[-1, 1]$$, and we can't have negative scores
 To work around this, Elastiknn applies simple transformations to produce L1, L2, and Cosine _similarity_ in accordance with the Elasticsearch requirements.
 The exact transformations are documented [on the API page](/api/#similarity-scoring).
 
-## Elastiknn Component Diagram
+## Component Diagram
 
 This diagram should help understand the components of Elastiknn and how they interact with Elasticsearch and Lucene.
 
@@ -206,7 +206,7 @@ Depending on the application, this can be a worthwhile tradeoff.
 
 ## Locality Sensitive Hashing and Lucene
 
-### Hashes and Words are the Same Thing
+### Hashes are Just Words
 
 The LSH paradigm is particularly compelling with respect to Lucene: we can store and search vector hash values just like words in a standard text document.
 In fact, there is absolutely zero difference in how Lucene handles vector hashes compared to words.
@@ -216,7 +216,8 @@ The LSH models differ based on the similarity function they approximate, but the
 
 > take a vector as input and produce a set of hashes as output.
 
-The `HashingModel` interface should convey this concisely. Hashes can be repeated for some models, hence the `HashAndFreq` type.
+The `HashingModel` interface should convey this concisely. 
+Hashes can be repeated for some LSH models, hence the `HashAndFreq` type, which is just a container for a byte array and the frequency of occurrences.
 
 ```java
 package com.klibisz.elastiknn.models;
@@ -239,6 +240,10 @@ public class HashAndFreq implements Comparable<HashAndFreq> {
 }
 ```
 
+### Storage
+
+Blah
+
 ### Naive Lucene Query: BooleanQuery
 
 Blah
@@ -249,7 +254,7 @@ Blah
 
 ## Open Questions
 
-Blah
+- Support for range queries.
 
 ## Conclusion
 
