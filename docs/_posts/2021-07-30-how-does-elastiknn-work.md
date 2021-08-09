@@ -291,6 +291,8 @@ $$h_{i}(v) = \lfloor \frac{A_i \cdot v + B_i}{w} \rfloor$$
 Each vector $$A_i$$ is sampled from a standard Normal distribution and each scalar $$B_i$$ is sampled from a uniform distribution in $$[0, 1]$$.
 $$w$$ is provided by the user.
 
+<!-- TODO: Add python repl snippets demonstrating each of the hashing algos --> 
+
 Key metrics:
 
 - Number of hashes as a function of parameters: ...
