@@ -3,13 +3,12 @@ package com.klibisz.elastiknn.models
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.query.HashingQuery
-import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.MatchHashesAndScoreQuery
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
@@ -21,7 +20,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val mapping = Mapping.PermutationLsh(6, 4, true)
     val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
-    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.hash), h.freq))
+    val hashes = mlsh.hash(vec.values).map(h => (h.hash, h.freq))
     hashes shouldBe Array((-3, 4), (-2, 3), (5, 2), (1, 1))
   }
 
@@ -29,7 +28,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val mapping = Mapping.PermutationLsh(6, 4, false)
     val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
-    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.hash), h.freq))
+    val hashes = mlsh.hash(vec.values).map(h => (h.hash, h.freq))
     hashes shouldBe Array((-3, 1), (-2, 1), (5, 1), (1, 1))
   }
 
@@ -37,7 +36,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val mapping = Mapping.PermutationLsh(10, 4, true)
     val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(10f, -2f, 0f, 99f, 0.1f, -8f, 42f, -13f, 6f, 0.1f)
-    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.hash), h.freq))
+    val hashes = mlsh.hash(vec.values).map(h => (h.hash, h.freq))
     // Get the top 4 indices by absolute value:   (4, 7, 8, 1)
     // Negate the ones with negative values:      (4, 7, -8, 1)
     // Repeat each one proportional to its rank:  (4, 4, 4, 4, 7, 7, 7, -8, -8, 1)
@@ -48,7 +47,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     // Since index 1 and 2 are tied, index 5 should have freq = 2 instead of 3.
     val mlsh = new PermutationLshModel(4, true)
     val vec = Vec.DenseFloat(2f, 2f, 0f, 0f, 1f, 4f)
-    val hashes = mlsh.hash(vec.values).map(h => (readInt(h.hash), h.freq))
+    val hashes = mlsh.hash(vec.values).map(h => (h.hash, h.freq))
     hashes.sorted shouldBe Array((6, 4), (1, 3), (2, 3), (5, 1)).sorted
   }
 
@@ -58,7 +57,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val mlsh = new PermutationLshModel(128, true)
     (0 until 100).foreach { _ =>
       val vec = Vec.DenseFloat.random(dims)
-      val hashes = (0 until 100).map(_ => mlsh.hash(vec.values).map(h => (readInt(h.hash), h.freq)).mkString(","))
+      val hashes = (0 until 100).map(_ => mlsh.hash(vec.values).map(h => (h.hash, h.freq)).mkString(","))
       hashes.distinct.length shouldBe 1
     }
   }
@@ -85,14 +84,14 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     // zero, so it should only contribute 1 to the score for corpus vector 0. Similarly, 4 appears twice in the query
     // vector and three times in corpus vector 1, so it should only contribute 2 to the socre for corpus vector 1.
 
-    val hc0 = Array((0, 3), (2, 2), (4, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
-    val hc1 = Array((4, 3), (1, 2), (2, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
-    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, c)  => new HashAndFreq(writeInt(n), c) }
+    val hc0 = Array((0, 3), (2, 2), (4, 1)).map { case (n, c) => new HashAndFreq(n, c) }
+    val hc1 = Array((4, 3), (1, 2), (2, 1)).map { case (n, c) => new HashAndFreq(n, c) }
+    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, c)  => new HashAndFreq(n, c) }
 
     indexAndSearch() { w =>
       Seq(hc0, hc1).foreach { hd =>
         val d = new Document()
-        hd.foreach(h => d.add(new Field("vec", h.hash, ft)))
+        hd.foreach(h => d.add(new Field("vec", h.barr, ft)))
         w.addDocument(d)
       }
     } {

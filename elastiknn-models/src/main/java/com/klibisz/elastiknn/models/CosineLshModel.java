@@ -1,11 +1,11 @@
 package com.klibisz.elastiknn.models;
 
-import com.klibisz.elastiknn.storage.BitBuffer;
+import org.apache.lucene.codecs.bloom.MurmurHash2;
+
+import java.nio.ByteBuffer;
+import java.util.Random;
 
 import static com.klibisz.elastiknn.models.Utils.dot;
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
-
-import java.util.Random;
 
 public class CosineLshModel implements HashingModel.DenseFloat {
 
@@ -35,14 +35,17 @@ public class CosineLshModel implements HashingModel.DenseFloat {
     @Override
     public HashAndFreq[] hash(float[] values) {
         HashAndFreq[] hashes = new HashAndFreq[L];
+        ByteBuffer bbuf = ByteBuffer.allocate(8);
         for (int ixL = 0; ixL < L; ixL++) {
-            BitBuffer.IntBuffer buf = new BitBuffer.IntBuffer(writeInt(ixL));
+            bbuf.putInt(ixL);
+            int hash = 0;
             for (int ixk = 0; ixk < k; ixk++) {
                 float dot = dot(planes[ixL * k + ixk], values);
-                if (dot > 0) buf.putOne();
-                else buf.putZero();
+                if (dot > 0) hash += (1 << ixk);
             }
-            hashes[ixL] = HashAndFreq.once(buf.toByteArray());
+            bbuf.putInt(hash);
+            hashes[ixL] = HashAndFreq.once(MurmurHash2.hash(bbuf.array(), HashingModel.MURMURHASH_SEED, 0, 8));
+            bbuf.clear();
         }
         return hashes;
     }

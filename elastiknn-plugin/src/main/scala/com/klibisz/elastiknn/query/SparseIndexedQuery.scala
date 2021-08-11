@@ -1,23 +1,22 @@
 package com.klibisz.elastiknn.query
 
-import java.util.Objects
-
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.{HashAndFreq, SparseIndexedSimilarityFunction}
-import com.klibisz.elastiknn.storage.UnsafeSerialization
 import org.apache.lucene.document.{Field, FieldType, NumericDocValuesField}
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 
+import java.util.Objects
+
 class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: SparseIndexedSimilarityFunction)
     extends ElastiknnQuery[Vec.SparseBool] {
 
   import SparseIndexedQuery._
 
-  private val trueIndexTerms = queryVec.trueIndices.map(i => HashAndFreq.once(UnsafeSerialization.writeInt(i)))
+  private val trueIndexTerms = queryVec.trueIndices.map(i => HashAndFreq.once(i))
 
   private val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
     (lrc: LeafReaderContext) => {
@@ -48,15 +47,13 @@ class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: Spars
         private val terms = reader.terms(field)
         private val termsEnum = terms.iterator()
         private val postings = trueIndexTerms.sorted.flatMap { h =>
-          if (termsEnum.seekExact(new BytesRef(h.hash))) Some(termsEnum.postings(null, PostingsEnum.NONE))
+          if (termsEnum.seekExact(new BytesRef(h.barr))) Some(termsEnum.postings(null, PostingsEnum.NONE))
           else None
         }
         private val scoreFunc = scoreFunction(ctx)
 
         override def score(docId: Int, subQueryScore: Float): Double = {
-          val intersection = postings.count { p =>
-            p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId
-          }
+          val intersection = postings.count { p => p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId }
           scoreFunc.score(docId, intersection)
         }
 
@@ -65,7 +62,6 @@ class SparseIndexedQuery(field: String, queryVec: Vec.SparseBool, simFunc: Spars
             score(docId, subQueryScore.getValue.floatValue()).toFloat,
             "Sparse indexed query score function."
           )
-          ???
         }
       }
 
@@ -82,7 +78,7 @@ object SparseIndexedQuery {
 
   def apply(field: String, queryVec: Vec.SparseBool, simFunc: SparseIndexedSimilarityFunction, indexReader: IndexReader): Query = {
 
-    val terms = queryVec.trueIndices.map(i => HashAndFreq.once(UnsafeSerialization.writeInt(i)))
+    val terms = queryVec.trueIndices.map(i => HashAndFreq.once(i))
 
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
@@ -107,7 +103,7 @@ object SparseIndexedQuery {
 
   def index(field: String, fieldType: FieldType, vec: Vec.SparseBool): Seq[IndexableField] = {
     vec.trueIndices.map { ti =>
-      new Field(field, UnsafeSerialization.writeInt(ti), fieldType)
+      new Field(field, HashAndFreq.encode(ti), fieldType)
     } ++ ExactQuery.index(field, vec) :+ new NumericDocValuesField(numTrueDocValueField(field), vec.trueIndices.length)
   }
 

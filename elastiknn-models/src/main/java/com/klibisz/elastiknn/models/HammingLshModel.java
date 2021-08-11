@@ -1,11 +1,10 @@
 package com.klibisz.elastiknn.models;
 
-import com.klibisz.elastiknn.storage.BitBuffer;
+import org.apache.lucene.codecs.bloom.MurmurHash2;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
 
 public class HammingLshModel implements HashingModel.SparseBool{
 
@@ -93,11 +92,8 @@ public class HammingLshModel implements HashingModel.SparseBool{
 
     @Override
     public HashAndFreq[] hash(int[] trueIndices, int totalIndices) {
-        // Create a bit buffer for each hash, prefixed by the hash index.
-        BitBuffer.IntBuffer[] hashBuffers = new BitBuffer.IntBuffer[L];
-        for (int ixL = 0; ixL < L; ixL++) {
-            hashBuffers[ixL] = new BitBuffer.IntBuffer(writeInt(ixL));
-        }
+        int[] hashes = new int[L];
+        int[] hbits = new int[L];
         int ixsp = 0;
         int ixti = 0;
         while (ixti < trueIndices.length && ixsp < sampledPositions.length) {
@@ -107,22 +103,29 @@ public class HammingLshModel implements HashingModel.SparseBool{
             if (spos.vecIndex > trueIndex) ixti += 1;
             // The sampled index was not true, append a zero to the hashes that sampled it, move on to next sampled.
             else if (spos.vecIndex < trueIndex) {
-                for (int hi : spos.hashIndexes) hashBuffers[hi].putZero();
+                for (int hi : spos.hashIndexes) hbits[hi] += 1;
                 ixsp += 1;
             }
             // The true index was sampled, append a one to the hashes that sampled it, move both forward.
             else {
-                for (int hi : spos.hashIndexes) hashBuffers[hi].putOne();
+                for (int hi : spos.hashIndexes) hashes[hi] += (1 << hbits[hi]);
                 ixsp += 1;
                 ixti += 1;
             }
         }
         while (ixsp < sampledPositions.length) {
-            for (int hi: sampledPositions[ixsp].hashIndexes) hashBuffers[hi].putZero();
+            for (int hi: sampledPositions[ixsp].hashIndexes) hbits[hi] += 1;
             ixsp += 1;
         }
-        HashAndFreq[] hashes = new HashAndFreq[L];
-        for (int ixL = 0; ixL < hashBuffers.length; ixL++) hashes[ixL] = HashAndFreq.once(hashBuffers[ixL].toByteArray());
-        return hashes;
+        HashAndFreq[] hfs = new HashAndFreq[L];
+        ByteBuffer bbuf = ByteBuffer.allocate(8);
+        for (int ixL = 0; ixL < hfs.length; ixL++) {
+            bbuf.putInt(ixL);
+            bbuf.putInt(hashes[ixL]);
+            int hash = MurmurHash2.hash(bbuf.array(), HashingModel.MURMURHASH_SEED, 0, 8);
+            hfs[ixL] = HashAndFreq.once(hash);
+            bbuf.clear();
+        }
+        return hfs;
     }
 }

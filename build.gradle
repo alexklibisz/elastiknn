@@ -216,7 +216,11 @@ configure(clientJava, List.of(
 
 
 configure(models, List.of(
-        publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
+        publishConfig("Exact and approximate similarity models used in Elastiknn", false), {
+            dependencies {
+                implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
+            }
+        }))
 
 configure(lucene, List.of(
         publishConfig("Custom Lucene queries used in Elastiknn"),

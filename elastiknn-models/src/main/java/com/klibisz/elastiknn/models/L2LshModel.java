@@ -1,7 +1,11 @@
 package com.klibisz.elastiknn.models;
 
+import org.apache.lucene.codecs.bloom.MurmurHash2;
+
+import java.nio.ByteBuffer;
 import java.util.*;
 
+import static com.klibisz.elastiknn.models.HashingModel.MURMURHASH_SEED;
 import static com.klibisz.elastiknn.models.Utils.dot;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
@@ -65,15 +69,17 @@ public class L2LshModel implements HashingModel.DenseFloat {
 
     private HashAndFreq[] hashNoProbing(float[] values) {
         HashAndFreq[] hashes = new HashAndFreq[L];
+        int bbufLength = (k + 1) * 4;
+        ByteBuffer bbuf = ByteBuffer.allocate(bbufLength);
         for (int ixL = 0; ixL < L; ixL++) {
-            int[] ints = new int[1 + k];
-            ints[0] = ixL;
+            bbuf.putInt(ixL);
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
+                bbuf.putInt((int) Math.floor((dot(a, values) + b) / w));
             }
-            hashes[ixL] = HashAndFreq.once(writeInts(ints));
+            hashes[ixL] = HashAndFreq.once(MurmurHash2.hash(bbuf.array(), MURMURHASH_SEED, 0, bbufLength));
+            bbuf.clear();
         }
         return hashes;
     }
@@ -84,9 +90,10 @@ public class L2LshModel implements HashingModel.DenseFloat {
         // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
         Perturbation[] zeroPerturbations = new Perturbation[L * k];
         Perturbation[][] sortedPerturbations = new Perturbation[L][k * 2];
+        int bbufLength = (k + 1) * 4;
+        ByteBuffer bbuf = ByteBuffer.allocate(bbufLength);
         for (int ixL = 0; ixL < L; ixL++) {
-            int[] ints = new int[k + 1];
-            ints[0] = ixL;
+            bbuf.putInt(ixL);
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
@@ -96,9 +103,10 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
                 sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
                 zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
-                ints[ixk + 1] = hash;
+                bbuf.putInt(hash);
             }
-            hashes[ixL] = HashAndFreq.once(writeInts(ints));
+            hashes[ixL] = HashAndFreq.once(MurmurHash2.hash(bbuf.array(), MURMURHASH_SEED, 0, bbufLength));
+            bbuf.clear();
         }
 
         PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
@@ -120,13 +128,13 @@ public class L2LshModel implements HashingModel.DenseFloat {
             if (Ae != null) heap.add(Ae);
 
             // Generate the hash value for Ai. If ixk is unperturbed access the zeroPerturbations from above.
-            int[] ints = new int[k + 1];
-            ints[0] = Ai.ixL;
+            bbuf.putInt(Ai.ixL);
             for (int ixk = 0; ixk < k; ixk++) {
                 Perturbation pert = Ai.members.getOrDefault(ixk, zeroPerturbations[Ai.ixL * k + ixk]);
-                ints[ixk + 1] = pert.hash + pert.delta;
+                bbuf.putInt(pert.hash + pert.delta);
             }
-            hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
+            hashes[ixhashes] = HashAndFreq.once(MurmurHash2.hash(bbuf.array(), MURMURHASH_SEED, 0, bbufLength));
+            bbuf.clear();
         }
         return hashes;
     }

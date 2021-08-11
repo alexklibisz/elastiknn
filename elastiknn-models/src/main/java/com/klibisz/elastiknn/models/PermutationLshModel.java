@@ -2,8 +2,6 @@ package com.klibisz.elastiknn.models;
 
 import java.util.PriorityQueue;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
-
 public class PermutationLshModel implements HashingModel.DenseFloat {
 
     private final int k;
@@ -44,7 +42,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
                 prevAbs = currAbs;
                 currTies = 0;
             } else currTies += 1;
-            byte[] hash = values[ix] >= 0 ? writeInt(ix + 1) : writeInt(-1 - ix);
+            int hash = values[ix] >= 0 ? ix + 1 : -1 - ix;
             int freq = repeating ? k - rankComplement : 1;
             hashes[ixHashes] = new HashAndFreq(hash, freq);
         }

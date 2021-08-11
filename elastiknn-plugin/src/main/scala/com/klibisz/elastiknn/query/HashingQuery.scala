@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.util.Objects
-
 import com.klibisz.elastiknn.api.{Mapping, Vec}
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq, HashingFunction}
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
@@ -11,11 +9,15 @@ import org.apache.lucene.search.{DocIdSetIterator, Explanation, MatchHashesAndSc
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 
-class HashingQuery[V <: Vec, S <: StoredVec](field: String,
-                                             queryVec: V,
-                                             candidates: Int,
-                                             hashes: Array[HashAndFreq],
-                                             simFunc: ExactSimilarityFunction[V, S])(implicit codec: StoredVec.Codec[V, S])
+import java.util.Objects
+
+class HashingQuery[V <: Vec, S <: StoredVec](
+    field: String,
+    queryVec: V,
+    candidates: Int,
+    hashes: Array[HashAndFreq],
+    simFunc: ExactSimilarityFunction[V, S]
+)(implicit codec: StoredVec.Codec[V, S])
     extends ElastiknnQuery[V] {
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
@@ -52,13 +54,11 @@ class HashingQuery[V <: Vec, S <: StoredVec](field: String,
         private val terms = reader.terms(field)
         private val termsEnum = terms.iterator()
         private val postings = hashes.sorted.flatMap { h =>
-          if (termsEnum.seekExact(new BytesRef(h.hash))) Some(termsEnum.postings(null, PostingsEnum.NONE))
+          if (termsEnum.seekExact(new BytesRef(h.barr))) Some(termsEnum.postings(null, PostingsEnum.NONE))
           else None
         }
         override def score(docId: Int, subQueryScore: Float): Double = {
-          val intersection = postings.count { p =>
-            p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId
-          }
+          val intersection = postings.count { p => p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId }
           simFunc.maxScore * (intersection * 1d / hashes.length)
         }
 
@@ -84,9 +84,11 @@ object HashingQuery {
       field: String,
       fieldType: FieldType,
       vec: V,
-      hashes: Array[HashAndFreq]): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
-    val f = new Field(field, h.hash, fieldType)
-    (0 until h.freq).map(_ => f)
+      hashes: Array[HashAndFreq]
+  ): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
+    val f = new Field(field, h.barr, fieldType)
+    if (h.freq > 0) (0 until h.freq).map(_ => f)
+    else Seq(f)
   }
 
 }

@@ -2,20 +2,21 @@ package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
-import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import com.klibisz.elastiknn.testing.LuceneSupport
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
 import org.scalatest._
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ArrayBuffer
 
 class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   val ft: FieldType = VectorMapper.denseFloatVector.luceneFieldType
+
+  def writeInt(i: Int): Array[Byte] = HashAndFreq.encode(i)
 
   test("empty harness") {
     indexAndSearch() { (_: IndexWriter) => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
@@ -40,12 +41,12 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   test("no repeating values") {
     indexAndSearch() { w =>
       val d = new Document()
-      d.add(new Field("vec", writeInt(42), ft))
-      d.add(new Field("vec", writeInt(99), ft))
+      d.add(new Field("vec", HashAndFreq.once(42).barr, ft))
+      d.add(new Field("vec", HashAndFreq.once(99).barr, ft))
       w.addDocument(d)
     } {
       case (r, s) =>
-        val hashes = Array(HashAndFreq.once(writeInt(42)), HashAndFreq.once(writeInt(99)), HashAndFreq.once(writeInt(22)))
+        val hashes = Array(HashAndFreq.once(42), HashAndFreq.once(99), HashAndFreq.once(22))
         val q = new MatchHashesAndScoreQuery(
           "vec",
           hashes,
@@ -75,7 +76,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
       w.addDocument(d2)
     } {
       case (r, s) =>
-        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => HashAndFreq.once(writeInt(i)))
+        val hashes = Array(3, 3, 3, 0, 0, 6).map(i => HashAndFreq.once(i))
         val q = new MatchHashesAndScoreQuery(
           "vec",
           hashes,
@@ -106,7 +107,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
       }
     } {
       case (r, s) =>
-        val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
+        val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(i))
         val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
         val dd = s.search(q, 10)
         dd.scoreDocs shouldBe empty
@@ -117,7 +118,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   }
 
   test("returns no more than `candidates` doc IDs") {
-    val query = Array(6, 7).map(i => HashAndFreq.once(writeInt(i)))
+    val query = Array(6, 7).map(i => HashAndFreq.once(i))
     val candidates = 5
 
     // Three docs with count > 1, three with count = 1, one with count = 0.
