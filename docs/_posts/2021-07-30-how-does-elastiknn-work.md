@@ -2,7 +2,7 @@
 layout: single
 title: "Tour de Elastiknn"
 permalink: /posts/tour-de-elastiknn-august-2021/
-date: 2021-08-07 18:00:00 -0500
+date: 2021-08-11 18:00:00 -0500
 author_profile: true
 author: Alex Klibisz
 excerpt: "This article is a tour through Elastiknn's implementation and underlying concepts in fairly thorough detail."
