@@ -5,7 +5,7 @@ permalink: /posts/tour-de-elastiknn-august-2021/
 date: 2021-08-07 18:00:00 -0500
 author_profile: true
 author: Alex Klibisz
-excerpt: "This post is a tour through Elastiknn in fairly thorough detail."
+excerpt: "This article is a tour through Elastiknn's implementation and underlying concepts in fairly thorough detail."
 classes: wide
 mathjax: true
 toc: true
@@ -16,16 +16,16 @@ read_time: true
 
 ## Introduction
 
-This post is a tour through Elastiknn in fairly thorough detail. 
+This article is a tour through Elastiknn's implementation and underlying concepts in fairly thorough detail. 
 The best way to get more detail is to explore and contribute to the project, hosted on [Github](https://github.com/alexklibisz/elastiknn).
 
-This post should convey that Elastiknn is just a combination of a few simple concepts, with a couple interesting optimizations for improved performance.
+This article should convey that Elastiknn is just a combination of a few simple concepts, with a couple interesting optimizations for improved performance.
 
-This post assumes some familiarity with nearest neighbor search (i.e., _vector search_)[^vector-search-resources]
+We assume some familiarity with nearest neighbor search (i.e., _vector search_)[^vector-search-resources]
 and Elasticsearch and Lucene.[^elasticsearch-resources]
 Some knowledge of Locality Sensitive Hashing[^lsh-resources] is helpful but not strictly necessary.
 
-This post does not directly cover the Elastiknn API. 
+We will not directly cover the Elastiknn API. 
 If that's of interest, please see the [API docs](/api) and the tutorial for [Multimodal Search on the Amazon Products Dataset](http://localhost:4000/tutorials/multimodal-search-amazon-products-dataset/).
 
 The tour is structured as follows:
@@ -99,6 +99,8 @@ Cosine similarity is defined over $$[-1, 1]$$, and we can't have negative scores
 To work around this, Elastiknn applies simple transformations to produce L1, L2, and Cosine _similarity_ in accordance with the Elasticsearch requirements.
 The exact transformations are documented [on the API page](/api/#similarity-scoring).
 
+<!-- TODO: Add a section on Testing -->
+
 ## Locality Sensitive Hashing Background
 
 Before we look at Elastiknn's specific implementations of LSH, we should cover some LSH basics.
@@ -136,10 +138,14 @@ These amplification techniques give us levers to control the [precision and reca
 _AND_ amplification is the process of concatenating several distinct hash functions $$h_j(v)$$ to form a logical hash function $$g_i(v)$$.
 The integer hyper-parameter $$k$$ is generally used to specify the number of concatenated functions.
 
-$$g_i(v) = (h_{i k}(v), h_{i k + 1}(v), h_{i k + 2}(v) \ldots, h_{i k + k - 1}(v))$$
+$$g_i(v) = \text{concat}(h_{i k}(v), h_{i k + 1}(v), h_{i k + 2}(v) \ldots, h_{i k + k - 1}(v))$$
 
 This is called _AND_ amplification because the $$h_j(v)$$ hashes are AND-ed together to form $$g_i$$.
 As $$k$$ increases, the probability of collision decreases, which generally results in higher precision.
+
+One trick to avoid unintentional hash collisions is to include the value of $$i$$ in the logical hash value:
+
+$$g_i(v) = \text{concat}(i, h_{i k}(v), h_{i k + 1}(v), h_{i k + 2}(v) \ldots, h_{i k + k - 1}(v))$$
 
 _OR_ amplification is the related process of computing multiple logical hashes $$g_i$$ for every vector.
 The integer hyper-parameter $$L$$ is generally used to specify the number of logical hashes computed for every vector.
@@ -176,9 +182,22 @@ To be clear, Multiprobe LSH doesn't really eliminate any cost.
 Rather, it simply shifts the cost from CPU, memory, and storage at indexing time to CPU and memory at query time.
 Depending on the application, this can be a worthwhile tradeoff.
 
+### Query Pattern
+
+The query pattern for LSH is quite simple: 
+
+1. Hash the query vector.
+2. Find the approximate candidates having the most hashes in common with the query vector.
+3. Re-rank them by computing exact similarity of the query vector vs. each candidate.
+4. Return the top re-ranked candidates. 
+
+The number of approximate candidates is generally larger than the number of results that will be returned, but much smaller than the total index.
+For example, to find 10 results from an index of 1 million vectors, we might reasonably find and re-rank 1000 candidates.
+Obviously, as the number of candidates increases, the results improve at the cost of query time.
+
 ### A Concrete Example: L2 LSH
 
-With some theory fresh in mind, let's look at the LSH model for the L2 distance function, as it's implemented in Elastiknn.
+Let's look at the LSH model for the L2 distance function.
 
 L2 (i.e., Euclidean) distance for two $$n$$-dimensional vectors $$u$$ and $$v$$ is defined:
 
@@ -191,8 +210,12 @@ $$\text{sim}_{L2}(u, v) = \frac{1}{1 + \text{dist}_{L2}(u, v)}$$
 
 Elastiknn uses the _Stable Distributions_ method with multi-probe queries to approximate this similarity.[^cite-indyk-2006] [^cite-qin-2007]
 
-Intuitively, this method hashes a vector $$v$$ by projecting it onto a randomly-generated vector $$A_j$$, adding a random offset $$B_j$$,
-dividing the resulting scalar by a width parameter $$w$$, and finally flooring the scalar to represent a discretized section (or bucket) of $$A_j$$.
+Intuitively, this method hashes a vector $$v$$ as follows:
+
+1. project (i.e., dot product) the vector onto a randomly-generated vector $$A_j$$
+2. add a random offset $$B_j$$ to the scalar from step 1
+3. divide the resulting scalar by a width parameter $$w$$
+4. floor the scalar to represent a discretized section (or bucket) of $$A_j$$
 
 The process looks like this:
 
@@ -210,12 +233,32 @@ The width $$w$$ is provided as a hyper-parameter and depends on the magnitude of
 As vector values increase, the scalar projections will increase, so $$w$$ should also increase.
 If we think of hashing as putting vectors in buckets, then $$w$$ is a _bucket width_.
 
+We apply OR-amplification by computing $$L$$ logical hash values, each of which is computed using AND-amplification.
+This is currently done as described in the above introduction for amplification:
+We concatenate the logical index hash (an integer in $$[0, L)$$) with the $$k$$ outputs from $$h_j(v)$$ for $$j \in [0, k)$$.[^concat-notes]
+We repeat this $$L$$ times.
 
-The [Elastiknn L2 LSH mapping](/api/#l2-lsh-mapping) has three hyper-parameters:
-1. The width, $$w$$, which we've just discussed
-2. The number of logical hashes for OR-amplification, $$L$$
-3. The number of hashes in each logical hash for AND-amplification, $$k$$
+Multiprobe querying is a topic for another day.
+The short story is that we inject some logic into the function $$h_j(v)$$ in order to perturb each of the $$k$$ hashes.
+These perturbations generate the logical hashes adjacent to the actual logical hash, i.e., the hashes that are likely for nearby vectors.
+For more detail, see the original paper by Qin, et. al.,[^cite-qin-2007] 
+watch [this lecture from IIT Kharagpur](https://www.youtube.com/watch?v=6zVy9yNynAA&list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul&index=19), 
+or read the [implementation on Github](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-models/src/main/java/com/klibisz/elastiknn/models/L2LshModel.java).[^multiprobe-notes]
 
+Ok, let's summarize.
+
+The model hyper-parameters are:
+
+- The bucket width parameter, $$w$$
+- The number of tables for OR-amplification, $$L$$
+- The number of hashes for AND-amplification, $$k$$
+
+The actual model parameters are:
+
+- $$L \times k$$ random vectors $$A_j$$ sampled from a standard Normal distribution
+- $$L \times k$$ random scalars $$B_j$$ sampled from a uniform distribution over $$[0, 1]$$
+
+For every vector, we compute $$L \times k$$ hashes and concatenate them into groups of size $$k$$ to produce $$L$$ logical hashes.
 
 ## Locality Sensitive Hashing in Elastiknn
 
@@ -223,7 +266,7 @@ With this LSH background in mind, let's look at how it's actually implemented in
 
 ### Component Diagram
 
-This diagram should help understand the components of Elastiknn and how they interact with Elasticsearch and Lucene.
+This diagram shows the components of Elastiknn and their interactions with Elasticsearch and Lucene.
 
 The diagram is partitioned into rows and columns.
 The rows delineate three use-cases, from top to bottom: specifying a mapping that includes a vector, indexing a new document according to this mapping,
@@ -283,18 +326,6 @@ public class HashAndFreq implements Comparable<HashAndFreq> {
 }
 ```
 
-### Query Pattern
-
-Blah
-
-### Simple and Slow Lucene Query: BooleanQuery
-
-Blah
-
-### Custom and Fast Lucene Query: MatchHashesAndScoreQuery
-
-Blah
-
 ### Storage
 
 Once the hashes are computed by a `HashingModel`, they have to be indexed.
@@ -308,18 +339,109 @@ This is generally the largest part of an Elastiknn index, as it scales linearly 
 Each integer hash is serialized as a byte-array, also using `sun.misc.Unsafe`, although the performance benefits of using `Unsafe` are smaller here.
 It's then wrapped in an instance of [`Field`](https://lucene.apache.org/core/8_8_2/core/org/apache/lucene/document/Field.html) and stored in Lucene's inverted-index Postings format.
 This part of the index scales with the product of the number of vectors, $$N$$, and the number of hashes per vector, $$L$$.
-We expect somewhere between $$4L + 4NL$$ bytes and $$8NL$$ bytes of storage.
-$$4L + 4NL$$ bytes assumes all vectors hash to exactly $$L$$ hashes: $$4L$$ bytes for integer hashes and $$4NL$$ bytes for the integer doc IDs in the postings lists.
-$$8NL$$ assumes all vectors hash to $$N$$ different hashes: $$4NL$$ bytes for integer hashes and $$4NL$$ bytes for integer doc IDs.
-Each of those scenarios will result in poor results and is exceedingly rare.
+
+We expect somewhere between $$4L + 4NL$$ bytes and $$8NL$$ bytes of storage:
+- $$4L + 4NL$$ bytes assumes all vectors hash to exactly $$L$$ hashes. $$4L$$ bytes for integer hashes and $$4NL$$ bytes for the integer doc IDs in the postings lists.
+- $$8NL$$ assumes all vectors hash to $$N$$ unique hashes. $$4NL$$ bytes for integer hashes and $$4NL$$ bytes for integer doc IDs.
+
+Both of these scenarios results in poor results and is very rare.
 The reality is somewhere in between.
 
-Let's do a back-of-envelope estimation for an index of 1 billion 128-dimensional floating-point vectors, each hashed to 100 hashes.
-1 billion vectors times 128 dimensions times 4 bytes per float is 512 gigabytes
-100 hashes times 4 bytes plus 1 billion vectors times 100 hashes times 4 bytes is 400 gigabytes and a rounding error.
-1 billion vectors times 100 hashes times 8 bytes is 800 gigabytes.
-So we would need somewhere between 900 gigabytes and 1.3 terabytes for this index.
-Keep in mind we can also decrease the number of hashes and use multiprobe hashing at query-time, i.e., trade-off storage and memory costs for CPu costs.
+Let's do a back-of-envelope estimation for an index of 1 billion 128-dimensional floating-point vectors, each hashed to 100 hashes:
+- 1 billion vectors times 128 dimensions times 4 bytes per float is 512 gigabytes
+- 100 hashes times 4 bytes plus 1 billion vectors times 100 hashes times 4 bytes is 400 gigabytes and a rounding error.
+- 1 billion vectors times 100 hashes times 8 bytes is 800 gigabytes.
+
+So we need somewhere between 900 gigabytes and 1.3 terabytes for this index.
+Keep in mind we can also decrease the number of hashes and use multiprobe hashing at query-time to trade-off storage and memory costs for CPU costs.
+
+Finally, one might ask, "what about the LSH model parameters -- you know, the random vectors and scalars -- where are they stored?"
+
+These parameters aren't actually stored anywhere.
+Rather, they are lazily re-computed from a fixed random seed each time they are needed.
+The advantage of this is that it avoids storing and synchronizing large parameter blobs in the cluster.
+The disadvantage is that it's expensive to re-compute the randomized parameters.
+Instead of re-computing them, we keep an LRU cache of models in each Elasticsearch node, keyed on the model type and its hyper-parameters.
+
+### Queries
+
+We know how to hash and store the vectors. Now let's look at how they're queried.
+
+As the component diagram indicated, we use the same LSH model to generate hashes for both indexing and querying.
+Once hashed, the query vector and its hashes are converted into a Lucene query and executed against each Lucene segment.
+
+This query follows a relatively simple pattern. 
+We just want to find the docs that had the largest number of hashes in common with the query vector.
+Once we have them, we fetch their corresponding vectors in order to re-rank by exact similarity. 
+
+Let's look at a couple ways to do this.
+
+#### Simple but Slow: BooleanQuery
+
+Lucene's [`BooleanQuery`](https://lucene.apache.org/core/8_1_1/core/org/apache/lucene/search/BooleanQuery.html) is the simplest way to find the docs that share the largest number of hashes with the query vector.
+
+The Scala code looks roughly like this:
+
+```scala
+val field = "myVec"
+val hashes = Array(11, 22, 33, ...)
+val builder = new BooleanQuery.Builder
+hashes.foreach { h =>
+  val term = new Term(field, new BytesRef(UnsafeSerialization.writeInt(h)))
+  val termQuery = new TermQuery(term)
+  val constQuery = new ConstantScoreQuery(termQuery)
+  builder.add(new BooleanClause(constQuery, BooleanClause.Occur.SHOULD))
+}
+builder.setMinimumNumberShouldMatch(1)
+val booleanQuery: BooleanQuery = builder.build()
+```
+
+We basically create a _should occur_ clause for every hash and let Lucene find the docs that satisfy the largest number of clauses.
+
+Unfortunately, this simple query proved to be a major bottleneck in Elastiknn LSH queries.
+Once vector serialization was optimized by using `sun.misc.Unsafe`, some LSH queries were actually slower than exact queries,
+and the profiler indicated the system spending the majority of its time in this query and its related classes. 
+
+Here's an excerpt from [Elastiknn Issue #76](https://github.com/alexklibisz/elastiknn/issues/76) from June 2020:
+
+> ... I figured out that the biggest bottleneck for the various LSH methods is the speed of the Boolean Query used to retrieve vectors matching the hashes of a query vector. 
+> For example: on the ann-benchmarks NYT dataset (~300K 256d vectors), you can compute about 4.5 exact queries per second (with perfect recall). Once you switch to LSH, you can barely get over 2 queries per second with recall over 0.8. Most of that time is spent executing the boolean query. So you would have to get a dataset well into the millions to beat the exact search, and the breaking point is likely well over 1 second / query. 
+> ...
+
+Why is it so slow?
+
+It's a long story, but the summary is that the boolean query maintains state about its constituent term queries in order to optimize OR disjunctions.
+The cost of maintaining this state is negligible for queries with on the order of ten terms.
+This makes total sense, as a text search engine will rarely service queries longer than ten terms.
+However, LSH queries can easily have tens or hundreds of terms, and maintaining this state quickly becomes prohibitively expensive with that many terms.
+
+#### Custom and Fast: MatchHashesAndScoreQuery
+
+Based on the experimentation and recommendations of various Lucene community members on the mailing list,[^mailing-list-0]
+it was determined that a custom Lucene query was justified for optimizing this query pattern.
+
+Through several iterations, a custom query called [`MatchHashesAndScoreQuery`](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-lucene/src/main/java/org/apache/lucene/search/MatchHashesAndScoreQuery.java) was born.
+
+The name is not particularly creative.
+This query takes some hashes and a score function, finds docs with the most matching hashes, and re-scores them using the scoring function.
+
+The [`MatchHashesAndScoreQuerySuite`](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-testing/src/test/scala/com/klibisz/elastiknn/query/MatchHashesAndScoreQuerySuite.scala)
+shows some examples of its usage.
+
+This query is largely based on Lucene's [`TermsInSetQuery`](https://lucene.apache.org/core/8_8_2/core/org/apache/lucene/search/TermInSetQuery.html).
+It's mostly just removing unnecessary pieces of functionality from that query and adding support for the scoring function.
+
+To compare with the `BooleanQuery` approach: the `BooleanQuery` was barely able to exceed 2 single-threaded queries/second with 80% recall@100 on a dataset of 300,000 vectors.
+The `MatchHashesAndScoreQuery` exceeds 50 single-threaded queries/second with 80% recall@100 on a dataset of 1M vectors. 
+So it's more than a 25x speedup over the simple `BooleanQuery`.
+
+There is definitely still some room for improvement. For those interested, there are two open issues closely related to this topic: 
+- [Elastiknn Issue #160: Optimize top-k counting for approximate queries](https://github.com/alexklibisz/elastiknn/issues/160)
+- [Elastiknn Issue #156: More efficient counter for query hits](https://github.com/alexklibisz/elastiknn/issues/156)
+
+A couple shout-outs: the article ["Build your own custom Lucene query and Scorer"](https://opensourceconnections.com/blog/2014/01/20/build-your-own-custom-lucene-query-and-scorer/) from 
+OpenSource Connections was extremely helpful in building the custom Lucene query.
+Mike McCandless' and other Lucene developers' answers on the mailing list and various issue trackers were also instrumental.
 
 ## Open Questions
 
@@ -327,66 +449,17 @@ Keep in mind we can also decrease the number of hashes and use multiprobe hashin
 
 ## Conclusion
 
----
-
-## Appendix
-
-### L2 LSH Model
-
-<!-- TODO: Add python repl snippets demonstrating each of the hashing algos --> 
-
-Key metrics:
-
-- Number of hashes as a function of parameters: ...
-- Hash size as a function of parameters: ...
-
-### Cosine LSH Model
-
-Blah
-
-### Permutation LSH Model
-
-Blah
-
-### Jaccard LSH Model
-
-Blah
-
-### Hamming LSH Model
-
-Blah
-
-### Storing LSH Model Parameters
-
-Each hashing model uses a set of parameters to hash vectors.
-
-The simplest example is the bit-sampling model for Hamming similarity, parameterized by a list of randomly sampled indices.
-A more complicated example is the stable distributions model for L2 similarity, parameterized by a set of random unit vectors
-and a set of random bias scalars.
-
-These parameters aren't actually stored anywhere in Elasticsearch.
-Rather, they are lazily re-computed from a fixed random seed each time they are needed.
-
-The advantage of this is that it avoids storing and synchronizing large parameter blobs in the cluster.
-The disadvantage is that it's expensive to re-compute the randomized parameters.
-
-Instead of re-computing them we keep a cache of models in each Elasticsearch node, keyed on the model hyper-parameters (`L`, `k`, etc.).
-The hyper-parameters are stored inside the mappings where they are originally defined.
-
-### Fast Vector Serialization
-
-Blah
-
----
-
 <!--Footnotes-->
 
 [^vector-search-resources]: For a brief introduction to vector search aimed at Elastiknn users, start watching [this presentation at 1m56s](https://youtu.be/M4vqhmSZMTI?t=116). For a more general introduction, see [this Medium article about the Billion-Scale Approximate Nearest Neighbor Search Challenge](https://medium.com/big-ann-benchmarks/neurips-2021-announcement-the-billion-scale-approximate-nearest-neighbor-search-challenge-72858f768f69).
 [^lsh-resources]: For a thorough textbook introduction to Locality Sensitive Hashing, including a bit of math, read Chapter 3 of [Mining of Massive Datasets](http://www.mmds.org/). For a thorough video lecture introduction, watch lectures 13 through 20 of the [Scalable Data Science course from IIT Kharagpur](https://www.youtube.com/watch?v=06HGoXE6GAs&list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul&index=14). 
-[^elasticsearch-resources]: The short story is: Lucene is a search library implemented in Java, generally intended for text search. You give Lucene some documents, and it parses the terms and stores an inverted index. You give it some terms, and it uses the inverted index to tell you which documents contain those terms. Elasticsearch is basically a distributed cluster of Lucene indices with a JSON API. 
+[^elasticsearch-resources]: The short story about Elasticsearch and Lucene: Lucene is a search library implemented in Java, generally intended for text search. You give Lucene some documents, and it parses the terms and stores an inverted index. You give it some terms, and it uses the inverted index to tell you which documents contain those terms. Elasticsearch is basically a distributed cluster of Lucene indices with a JSON API. 
 [^note-scala-java]: To support the claim of Scala being more expressive, consider the difference between representing different query types as [Scala case classes](https://github.com/alexklibisz/elastiknn/blob/dcabb8cbf6d793fe83ac85a2a6ffa91786f87c73/elastiknn-api4s/src/main/scala/com/klibisz/elastiknn/api/package.scala#L126-L167) vs. [Java POJOs](https://github.com/alexklibisz/elastiknn/blob/dcabb8cbf6d793fe83ac85a2a6ffa91786f87c73/elastiknn-client-java/src/main/java/com/klibisz/elastiknn/api4j/ElastiknnNearestNeighborsQuery.java#L12-L158). When deciding to use Java or Scala, I find it useful to ask if I'm optimizing "in the large" or "in the small." For more context, see [Daniel Spiewak's](https://twitter.com/djspiewak) post [Why are Fibers Fast?](https://typelevel.org/blog/2021/02/21/fibers-fast-mkay.html).
-[^gradle]: The only alternative seems to be maintaining a separate copy of the code for every version of Elasticsearch. This seems to be the approach taken by [read-only-rest](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin).
-[^unsafe-notes]: The [sun.misc.Unsafe](https://blogs.oracle.com/javamagazine/the-unsafe-class-unsafe-at-any-speed) utilities are benchmarked as the fastest way to store a vector. Serialization is an area of the JVM where the performance of different abstractions varies wildly. Still, it's not great that we use them. There's [an open issue](https://github.com/alexklibisz/elastiknn/issues/263) for considering some alternatives. 
+[^gradle]: The only alternative to Elastiknn's release pattern seems to be maintaining a separate copy of the code for every version of Elasticsearch. This seems to be the approach taken by [read-only-rest](https://github.com/sscarduzio/elasticsearch-readonlyrest-plugin).
+[^unsafe-notes]: The [sun.misc.Unsafe](https://blogs.oracle.com/javamagazine/the-unsafe-class-unsafe-at-any-speed) utilities were carefully benchmarked as the fastest way to store a vector. Serialization is an area of the JVM where the performance of different abstractions varies wildly. Still, it's not great that we use them. There's [an open issue](https://github.com/alexklibisz/elastiknn/issues/263) for considering some alternatives.
+[^concat-notes]: AND-amplification doesn't necessarily have to be implemented as a concatenation. There's [an open ticket](https://github.com/alexklibisz/elastiknn/issues/299) to explore using an ordered hashing function like MurmurHash to condense the outputs to a single integer.
+[^multiprobe-notes]: Implementing the multiprobe algorithm and seeing it actually work was an extremely satisfying moment.
+
 
 [^cite-indyk-2006]: _Stable distributions, pseudorandom generators, embeddings, and data stream computation_ by Piotr Indyk, 2006
 [^cite-qin-2007]: _Multi-Probe LSH: Efficient Indexing for High-Dimensional Similarity Search_ by Qin Lv, et. al., 2007
