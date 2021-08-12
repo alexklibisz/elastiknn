@@ -5,5 +5,5 @@ public enum Similarity {
     HAMMING,
     L1,
     L2,
-    ANGULAR
+    COSINE
 }

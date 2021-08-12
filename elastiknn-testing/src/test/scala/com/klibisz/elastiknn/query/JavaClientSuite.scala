@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.{ElastiknnNearestNeighborsQueryBuilder, api4j}
 import com.klibisz.elastiknn.api4j.ElastiknnNearestNeighborsQuery
+import com.klibisz.elastiknn.api4j.ElastiknnNearestNeighborsQuery.CosineLsh
 import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.http.HttpHost
@@ -60,16 +61,16 @@ class JavaClientSuite extends AsyncFunSuite with Matchers with ElasticAsyncClien
         NearestNeighborsQuery.Exact("vec", Similarity.L1, dfv),
       new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.L2) ->
         NearestNeighborsQuery.Exact("vec", Similarity.L2, dfv),
-      new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.ANGULAR) ->
-        NearestNeighborsQuery.Exact("vec", Similarity.Angular, dfv),
+      new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.COSINE) ->
+        NearestNeighborsQuery.Exact("vec", Similarity.Cosine, dfv),
       new ElastiknnNearestNeighborsQuery.Exact(new api4j.Vector.SparseBool(sbv.trueIndices, sbv.totalIndices), api4j.Similarity.JACCARD) ->
         NearestNeighborsQuery.Exact("vec", Similarity.Jaccard, sbv),
       new ElastiknnNearestNeighborsQuery.L2Lsh(new api4j.Vector.DenseFloat(dfv.values), 22, 3) ->
         NearestNeighborsQuery.L2Lsh("vec", 22, 3, dfv),
-      new ElastiknnNearestNeighborsQuery.AngularLsh(new api4j.Vector.DenseFloat(dfv.values), 22) ->
-        NearestNeighborsQuery.AngularLsh("vec", 22, dfv),
-      new ElastiknnNearestNeighborsQuery.PermutationLsh(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.ANGULAR, 22) ->
-        NearestNeighborsQuery.PermutationLsh("vec", Similarity.Angular, 22, dfv),
+      new CosineLsh(new api4j.Vector.DenseFloat(dfv.values), 22) ->
+        NearestNeighborsQuery.CosineLsh("vec", 22, dfv),
+      new ElastiknnNearestNeighborsQuery.PermutationLsh(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.COSINE, 22) ->
+        NearestNeighborsQuery.PermutationLsh("vec", Similarity.Cosine, 22, dfv),
       new ElastiknnNearestNeighborsQuery.PermutationLsh(new api4j.Vector.DenseFloat(dfv.values), api4j.Similarity.L2, 22) ->
         NearestNeighborsQuery.PermutationLsh("vec", Similarity.L2, 22, dfv)
     )

@@ -37,7 +37,8 @@ jobs:
         run: task jvm:docs:publish
       - name: Publish Site
         run: |
-          chmod 777 docs # Otherwise container can't write to the local filesystem
+          mkdir -p docs/_site
+          chmod -R 777 docs
           task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release

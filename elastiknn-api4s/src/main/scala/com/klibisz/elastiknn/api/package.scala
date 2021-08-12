@@ -14,8 +14,8 @@ package object api {
     case object Hamming extends Similarity
     case object L1 extends Similarity
     case object L2 extends Similarity
-    case object Angular extends Similarity
-    val values: Seq[Similarity] = Seq(Jaccard, Hamming, L1, L2, Angular)
+    case object Cosine extends Similarity
+    val values: Seq[Similarity] = Seq(Jaccard, Hamming, L1, L2, Cosine)
   }
 
   sealed trait Vec
@@ -111,7 +111,7 @@ package object api {
     final case class JaccardLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class HammingLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class DenseFloat(dims: Int) extends Mapping
-    final case class AngularLsh(dims: Int, L: Int, k: Int) extends Mapping
+    final case class CosineLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class L2Lsh(dims: Int, L: Int, k: Int, w: Int) extends Mapping
     final case class PermutationLsh(dims: Int, k: Int, repeating: Boolean) extends Mapping
   }
@@ -148,10 +148,10 @@ package object api {
       override def similarity: Similarity = Similarity.Hamming
     }
 
-    final case class AngularLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
+    final case class CosineLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
-      override def similarity: Similarity = Similarity.Angular
+      override def similarity: Similarity = Similarity.Cosine
     }
 
     final case class L2Lsh(field: String, candidates: Int, probes: Int = 0, vec: Vec = Vec.Empty()) extends ApproximateQuery {

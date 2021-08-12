@@ -1,6 +1,6 @@
 ---
 layout: single
-title: Elastiknn API
+title: API
 description: "Elastiknn API"
 permalink: /api/
 toc: true
@@ -311,10 +311,10 @@ PUT /my-index/_mapping
 |5|Number of hash tables. Generally, increasing this value increases recall.|
 |6|Number of hash functions combined to form a single hash value. Generally, increasing this value increases precision.|
 
-### Angular LSH Mapping
+### Cosine LSH Mapping
 
 Uses the [Random Projection algorithm](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
-to hash and store dense float vectors such that they support approximate Angular similarity queries.
+to hash and store dense float vectors such that they support approximate Cosine similarity queries.[^note-angular-cosine]
 
 The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
 
@@ -327,7 +327,7 @@ PUT /my-index/_mapping
             "elastiknn": {
                 "dims": 100,                        # 2
                 "model": "lsh",                     # 3
-                "similarity": "angular",            # 4
+                "similarity": "cosine",             # 4
                 "L": 99,                            # 5
                 "k": 1                              # 6
             }
@@ -388,7 +388,7 @@ Uses the model described in [Large-Scale Image Retrieval with Elasticsearch by A
 This model describes a vector by the `k` indices (_positions in the vector_) with the greatest absolute values.
 The intuition is that each index corresponds to some latent concept, and indices with high absolute values carry more 
 information about their respective concepts than those with low absolute values.
-The research for this method has focused mainly on Angular similarity, though the implementation supports Angular, L1, and L2.
+The research for this method has focused mainly on Cosine similarity,[^note-angular-cosine] though the implementation also supports L1 and L2.
 
 **An example**
 
@@ -413,7 +413,7 @@ PUT /my-index/_mapping
             "elastiknn": {
                 "dims": 100,                        # 2
                 "model": "permutation_lsh",         # 3
-                "similarity": "angular",            # 4
+                "similarity": "cosine",             # 4
                 "k": 10,                            # 5
                 "repeating": true                   # 6
             }
@@ -427,7 +427,7 @@ PUT /my-index/_mapping
 |1|Vector datatype. Must be dense float vector.|
 |2|Vector dimensionality.|
 |3|Model type.|
-|4|Similarity. Supports angular, l1, and l2|
+|4|Similarity. Supports Cosine,[^note-angular-cosine] L1, and L2.|
 |5|The number of top indices to pick.|
 |6|Whether or not to repeat the indices proportionally to their rank. See the notes on repeating above.|
 
@@ -451,7 +451,7 @@ GET /my-index/_search
                 "values": [0.1, 0.2, 0.3, ...],               
             },
             "model": "exact",                   # 4
-            "similarity": "angular",            # 5
+            "similarity": "cosine",             # 5
             ...                                 # 6
         }
     }
@@ -470,10 +470,10 @@ GET /my-index/_search
 ### Compatibility of Vector Types and Similarities
 
 Jaccard and Hamming similarity only work with sparse bool vectors. 
-Angular, L1, and L2 similarity only work with dense float vectors. 
+Cosine,[^note-angular-cosine] L1, and L2 similarity only work with dense float vectors. 
 The following documentation assume this restriction is known.
 
-These restrictions aren't inherent to the types and algorithms, i.e., you could in theory run angular similarity on sparse vectors.
+These restrictions aren't inherent to the types and algorithms, i.e., you could in theory run cosine similarity on sparse vectors.
 The restriction merely reflects the most common patterns and simplifies the implementation.
 
 ### Similarity Scoring
@@ -486,11 +486,11 @@ Such functions really represent _distance_ without a well-defined mapping from d
 In these cases Elastiknn applies a transformation to invert the score such that more similar vectors have higher scores. 
 The exact transformations are described below.
 
-|Similarity|Transformtion to Elasticsearch Score|Min Value|Max Value|
+|Similarity|Transformation to Elasticsearch Score|Min Value|Max Value|
 |:--|:--|:--|
 |Jaccard|N/A|0|1.0|
 |Hamming|N/A|0|1.0|
-|Angular|`cosine similarity + 1`|0|2|
+|Cosine[^note-angular-cosine]|`cosine similarity + 1`|0|2|
 |L1|`1 / (1 + l1 distance)`|0|1|
 |L2|`1 / (1 + l2 distance)`|0|1|
 
@@ -545,7 +545,7 @@ GET /my-index/_search
                 "values": [0.1, 0.2, 0.3, ...],
             },
             "model": "exact",                       # 2
-            "similarity": "(angular | l1 | l2)",    # 3
+            "similarity": "(cosine | l1 | l2)",    # 3
         }
     }
 }
@@ -664,9 +664,9 @@ GET /my-index/_search
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
-### Angular LSH Query
+### Cosine LSH Query
 
-Retrieve dense float vectors based on approximate Angular similarity.
+Retrieve dense float vectors based on approximate Cosine similarity.[^note-angular-cosine]
 
 ```json
 GET /my-index/_search
@@ -678,7 +678,7 @@ GET /my-index/_search
                 "values": [0.1, 0.2, 0.3, ...]
             },
             "model": "lsh",                        # 3
-            "similarity": "angular",               # 4
+            "similarity": "cosine",                # 4
             "candidates": 50                       # 5
         }
     }
@@ -687,7 +687,7 @@ GET /my-index/_search
 
 |#|Description|
 |:--|:--|
-|1|Indexed field. Must use `lsh` mapping model with `angular` similarity.|
+|1|Indexed field. Must use `lsh` mapping model with `cosine` similarity.|
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
 |4|Similarity function.|
@@ -744,7 +744,7 @@ GET /my-index/_search
                 "values": [0.1, 0.2, 0.3, ...]
             },
             "model": "permutation_lsh",            # 3
-            "similarity": "angular",               # 4
+            "similarity": "cosine",                # 4
             "candidates": 50                       # 5
         }
     }
@@ -756,7 +756,7 @@ GET /my-index/_search
 |1|Indexed field. Must use `permutation_lsh` mapping to use this query.|
 |2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
 |3|Model name.|
-|4|Similarity function. Supports Angular, L1, and L2.|
+|4|Similarity function. Supports Cosine,[^note-angular-cosine] L1, and L2.|
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
 
 ### Model and Query Compatibility
@@ -767,7 +767,7 @@ The opposite is _not_ true: vectors stored using the exact model do not support 
 
 The tables below shows valid model/query combinations. 
 Rows are models and columns are queries. 
-The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1, L2).
+The similarity functions are abbreviated (J: Jaccard, H: Hamming, C: Cosine,[^note-angular-cosine] L1, L2).
 
 #### elastiknn_sparse_bool_vector
 
@@ -780,12 +780,12 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, A: Angular, L1
 
 #### elastiknn_dense_float_vector
 
-|Model / Query                   |Exact         |Angular LSH |L2 LSH |Permutation LSH|
+|Model / Query                   |Exact         |Cosine LSH |L2 LSH |Permutation LSH|
 |:--                             |:--           |:--         |:--    |:--            |
-|Exact (i.e. no model specified) |✔ (A, L1, L2) |x           |x      |x              | 
-|Angular LSH                     |✔ (A, L1, L2) |✔           |x      |x              |
-|L2 LSH                          |✔ (A, L1, L2) |x           |✔      |x              |
-|Permutation LSH                 |✔ (A, L1, L2) |x           |x      |✔              |
+|Exact (i.e. no model specified) |✔ (C, L1, L2) |x           |x      |x              | 
+|Cosine LSH                      |✔ (C, L1, L2) |✔           |x      |x              |
+|L2 LSH                          |✔ (C, L1, L2) |x           |✔      |x              |
+|Permutation LSH                 |✔ (C, L1, L2) |x           |x      |✔              |
 
 ## Common Patterns
 
@@ -813,7 +813,7 @@ GET /my-index/_search
         {
           "elastiknn_nearest_neighbors": {           # 3
             "field": "vec",
-            "similarity": "angular",
+            "similarity": "cosine",
             "model": "exact",
             "vec": {
               "values": [0.1, 0.2, 0.3, ...]
@@ -925,3 +925,6 @@ Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` 
 This means the simplest way to increase query parallelism is to add shards to your index. 
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
 
+---
+
+[^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.1. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
