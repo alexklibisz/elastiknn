@@ -19,13 +19,13 @@ Bellow are some index settings which affect Elastiknn performance and behavior.
 ```json
 PUT /my-index
 {
-  "settings": {
-    "index": {
-      "number_of_shards": 1,          # 1  
-      "elastiknn": true               # 2
-       
-    }
-  }
+   "settings": {
+      "index": {
+         "number_of_shards": 1,          # 1
+         "elastiknn": true               # 2
+
+      }
+   }
 }
 ```
 
@@ -36,7 +36,7 @@ PUT /my-index
 
 ## Vectors
 
-You need to specify vectors when indexing documents and when running queries. 
+You need to specify vectors when indexing documents and when running queries.
 In both cases you use the same JSON structure to define vectors.
 Each vector also has a shorthand alternative, which can be convenient when using tools that don't support nested documents.
 The examples below show how to specify vectors when indexing them.
@@ -49,16 +49,16 @@ This assumes you've defined a mapping where `my_vec` has type `elastiknn_dense_f
 ```json
 POST /my-index/_doc
 {
-    "my_vec": {
-        "values": [0.1, 0.2, 0.3, ...]    # 1
-    }
+   "my_vec": {
+      "values": [0.1, 0.2, 0.3, ...]    # 1
+   }
 }
 ```
 
 ```json
 POST /my-index/_doc
 {
-    "my_vec": [0.1, 0.2, 0.3, ...]        # 2
+   "my_vec": [0.1, 0.2, 0.3, ...]        # 2
 }
 
 ```
@@ -75,17 +75,17 @@ This assumes you've defined a mapping where `my_vec` has type `elastiknn_sparse_
 ```json
 POST /my-index/_doc
 {
-    "my_vec": {
-       "true_indices": [1, 3, 5, ...],   # 1
-       "total_indices": 100,             # 2
-    }
+   "my_vec": {
+      "true_indices": [1, 3, 5, ...],   # 1
+      "total_indices": 100,             # 2
+   }
 }
 ```
 
 ```json
 POST /my-index/_doc
 {
-    "my_vec": [[1, 3, 5, ...], 100]      # 3
+   "my_vec": [[1, 3, 5, ...], 100]      # 3
 }
 
 ```
@@ -98,7 +98,7 @@ POST /my-index/_doc
 
 ## Mappings
 
-Before indexing vectors, you first define a mapping specifying a vector datatype, an indexing model, and the model's parameters. 
+Before indexing vectors, you first define a mapping specifying a vector datatype, an indexing model, and the model's parameters.
 This determines which queries are supported for the indexed vectors.
 
 ### General Structure
@@ -108,16 +108,16 @@ The general mapping structure looks like this:
 ```json
 PUT /my-index/_mapping
 {
-  "properties": {                               # 1
-    "my_vec": {                                 # 2 
-      "type": "elastiknn_sparse_bool_vector",   # 3
-      "elastiknn": {                            # 4
-        "dims": 100,                            # 5
-        "model": "sparse_indexed",              # 6
-        ...                                     # 7
-      }
-    }
-  }
+   "properties": {                               # 1
+   "my_vec": {                                 # 2
+   "type": "elastiknn_sparse_bool_vector",   # 3
+   "elastiknn": {                            # 4
+   "dims": 100,                            # 5
+   "model": "sparse_indexed",              # 6
+   ...                                     # 7
+}
+}
+}
 }
 ```
 
@@ -133,22 +133,22 @@ PUT /my-index/_mapping
 
 ### elastiknn_sparse_bool_vector Datatype
 
-This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`. 
-For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any single document contains a very small fraction of all words. 
+This type is optimized for vectors where each index is either `true` or `false` and the majority of indices are `false`.
+For example, you might represent a bag-of-words encoding of a document, where each index corresponds to a word in a vocabulary and any single document contains a very small fraction of all words.
 Internally, Elastiknn saves space by only storing the true indices.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_sparse_bool_vector",  # 1
-            "elastiknn": {
-                "dims": 25000,                       # 2
-                ...                                  # 3
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_sparse_bool_vector",  # 1
+         "elastiknn": {
+            "dims": 25000,                       # 2
+            ...                                  # 3
+         }
+      }
+   }
 }
 ```
 
@@ -160,22 +160,22 @@ PUT /my-index/_mapping
 
 ### elastiknn_dense_float_vector Datatype
 
-This type is optimized for vectors where each index is a floating point number, all of the indices are populated, and the dimensionality usually doesn't exceed ~1000. 
-For example, you might store a word embedding or an image vector. 
+This type is optimized for vectors where each index is a floating point number, all of the indices are populated, and the dimensionality usually doesn't exceed ~1000.
+For example, you might store a word embedding or an image vector.
 Internally, Elastiknn uses Java Floats to store the values.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_dense_float_vector",  # 1
-            "elastiknn": {
-                "dims": 100,                         # 2
-                ...                                  # 3
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_dense_float_vector",  # 1
+         "elastiknn": {
+            "dims": 100,                         # 2
+            ...                                  # 3
+         }
+      }
+   }
 }
 ```
 
@@ -187,7 +187,7 @@ PUT /my-index/_mapping
 
 ### Exact Mapping
 
-The exact model will allow you to run exact searches. 
+The exact model will allow you to run exact searches.
 These don't leverage any indexing constructs and have `O(n^2)` runtime, where `n` is the total number of documents.
 
 You don't need to supply any `"model": "..."` value or any model parameters to use this model.
@@ -195,14 +195,14 @@ You don't need to supply any `"model": "..."` value or any model parameters to u
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_(dense_float | sparse_bool)_vector",  # 1
-            "elastiknn": {
-                "dims": 100,                                         # 2
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_(dense_float | sparse_bool)_vector",  # 1
+         "elastiknn": {
+            "dims": 100,                                         # 2
+         }
+      }
+   }
 }
 ```
 
@@ -213,22 +213,22 @@ PUT /my-index/_mapping
 
 ### Sparse Indexed Mapping
 
-The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. 
-It indexes each of the true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) 
+The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors.
+It indexes each of the true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count)
 If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_sparse_bool_vector",  # 1
-            "elastiknn": {
-                "dims": 25000,                       # 2
-                "model": "sparse_indexed",           # 3
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_sparse_bool_vector",  # 1
+         "elastiknn": {
+            "dims": 25000,                       # 2
+            "model": "sparse_indexed",           # 3
+         }
+      }
+   }
 }
 ```
 
@@ -243,26 +243,26 @@ PUT /my-index/_mapping
 Uses the [Minhash algorithm](https://en.wikipedia.org/wiki/MinHash) to hash and store sparse bool vectors such that they
 support approximate Jaccard similarity queries.
 
-The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/), 
-the [Spark MinHash implementation](https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance), 
-the [tdebatty/java-LSH Github project](https://github.com/tdebatty/java-LSH), 
+The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/),
+the [Spark MinHash implementation](https://spark.apache.org/docs/2.2.3/ml-features.html#minhash-for-jaccard-distance),
+the [tdebatty/java-LSH Github project](https://github.com/tdebatty/java-LSH),
 and the [Minhash for Dummies](http://matthewcasperson.blogspot.com/2013/11/minhash-for-dummies.html) blog post.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_sparse_bool_vector", # 1
-            "elastiknn": {
-                "dims": 25000,                      # 2
-                "model": "lsh",                     # 3
-                "similarity": "jaccard",            # 4
-                "L": 99,                            # 5
-                "k": 1                              # 6
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_sparse_bool_vector", # 1
+         "elastiknn": {
+            "dims": 25000,                      # 2
+            "model": "lsh",                     # 3
+            "similarity": "jaccard",            # 4
+            "L": 99,                            # 5
+            "k": 1                              # 6
+         }
+      }
+   }
 }
 ```
 
@@ -281,24 +281,24 @@ Uses the [Bit-Sampling algorithm](http://mlwiki.org/index.php/Bit_Sampling_LSH) 
 such that they support approximate Hamming similarity queries.
 
 Only difference from the canonical bit-sampling method is that it samples and combines `k` bits to form a single hash value.
-For example, if you set `L = 100, k = 3`, it samples `100 * 3 = 300` bits from the vector and concatenates sets of 3 
+For example, if you set `L = 100, k = 3`, it samples `100 * 3 = 300` bits from the vector and concatenates sets of 3
 bits to form each hash value, for a total of 100 hash values.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_sparse_bool_vector", # 1
-            "elastiknn": {
-                "dims": 25000,                      # 2
-                "model": "lsh",                     # 3
-                "similarity": "hamming",            # 4
-                "L": 99,                            # 5
-                "k": 2
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_sparse_bool_vector", # 1
+         "elastiknn": {
+            "dims": 25000,                      # 2
+            "model": "lsh",                     # 3
+            "similarity": "hamming",            # 4
+            "L": 99,                            # 5
+            "k": 2
+         }
+      }
+   }
 }
 ```
 
@@ -321,18 +321,18 @@ The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_dense_float_vector", # 1
-            "elastiknn": {
-                "dims": 100,                        # 2
-                "model": "lsh",                     # 3
-                "similarity": "cosine",             # 4
-                "L": 99,                            # 5
-                "k": 1                              # 6
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_dense_float_vector", # 1
+         "elastiknn": {
+            "dims": 100,                        # 2
+            "model": "lsh",                     # 3
+            "similarity": "cosine",             # 4
+            "L": 99,                            # 5
+            "k": 1                              # 6
+         }
+      }
+   }
 }
 ```
 
@@ -355,19 +355,19 @@ The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_dense_float_vector", # 1
-            "elastiknn": {
-                "dims": 100,                        # 2
-                "model": "lsh",                     # 3
-                "similarity": "l2",                 # 4
-                "L": 99,                            # 5
-                "k": 1,                             # 6
-                "w": 3                              # 7
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_dense_float_vector", # 1
+         "elastiknn": {
+            "dims": 100,                        # 2
+            "model": "lsh",                     # 3
+            "similarity": "l2",                 # 4
+            "L": 99,                            # 5
+            "k": 1,                             # 6
+            "w": 3                              # 7
+         }
+      }
+   }
 }
 ```
 
@@ -386,39 +386,39 @@ PUT /my-index/_mapping
 Uses the model described in [Large-Scale Image Retrieval with Elasticsearch by Amato, et. al.](https://dl.acm.org/doi/10.1145/3209978.3210089).
 
 This model describes a vector by the `k` indices (_positions in the vector_) with the greatest absolute values.
-The intuition is that each index corresponds to some latent concept, and indices with high absolute values carry more 
+The intuition is that each index corresponds to some latent concept, and indices with high absolute values carry more
 information about their respective concepts than those with low absolute values.
 The research for this method has focused mainly on Cosine similarity,[^note-angular-cosine] though the implementation also supports L1 and L2.
 
 **An example**
 
 The vector `[10, -2, 0, 99, 0.1, -8, 42, -13, 6, 0.1]` with `k = 4` is represented by indices `[4, 7, -8, 1]`.
-Indices are 1-indexed and indices for negative values are negated (hence the -8). 
+Indices are 1-indexed and indices for negative values are negated (hence the -8).
 Indices can optionally be repeated based on their ranking.
 In this example, the indices would be repeated `[4, 4, 4, 4, 7, 7, 7, -8, -8, 1]`.
-Index 4 has the highest absolute value, so it's repeated `k - 0 = 4` times. 
+Index 4 has the highest absolute value, so it's repeated `k - 0 = 4` times.
 Index 7 has the second highest absolute value, so it's repeated `k - 1 = 3` times, and so on.
-The search algorithm computes the score as the size of the intersection of the stored vector's representation and the 
+The search algorithm computes the score as the size of the intersection of the stored vector's representation and the
 query vector's representation.
 So for a query vector represented by `[2, 2, 2, 2, 7, 7, 7, 4, 4, 5]`, the intersection is `[7, 7, 7, 4, 4]`, producing
-a score of 5. 
+a score of 5.
 In some experiments, repetition has actually decreased recall, so it's advised that you try with and without repetition.
 
 ```json
 PUT /my-index/_mapping
 {
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_dense_float_vector", # 1
-            "elastiknn": {
-                "dims": 100,                        # 2
-                "model": "permutation_lsh",         # 3
-                "similarity": "cosine",             # 4
-                "k": 10,                            # 5
-                "repeating": true                   # 6
-            }
-        }
-    }
+   "properties": {
+      "my_vec": {
+         "type": "elastiknn_dense_float_vector", # 1
+         "elastiknn": {
+            "dims": 100,                        # 2
+            "model": "permutation_lsh",         # 3
+            "similarity": "cosine",             # 4
+            "k": 10,                            # 5
+            "repeating": true                   # 6
+         }
+      }
+   }
 }
 ```
 
@@ -434,8 +434,8 @@ PUT /my-index/_mapping
 
 ## Nearest Neighbor Queries
 
-Elastiknn provides a query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like 
-standard Elasticsearch queries, as well as in combination with standard Elasticsearch queries. 
+Elastiknn provides a query called `elastiknn_nearest_neighbors`, which can be used in a `GET /_search` request just like
+standard Elasticsearch queries, as well as in combination with standard Elasticsearch queries.
 
 ### General Structure
 
@@ -444,17 +444,17 @@ The general query structure looks like this:
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {        # 1
-            "field": "my_vec",                  # 2
-            "vec": {                            # 3
-                "values": [0.1, 0.2, 0.3, ...],               
-            },
-            "model": "exact",                   # 4
-            "similarity": "cosine",             # 5
-            ...                                 # 6
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {        # 1
+      "field": "my_vec",                  # 2
+      "vec": {                            # 3
+      "values": [0.1, 0.2, 0.3, ...],
+   },
+   "model": "exact",                   # 4
+   "similarity": "cosine",             # 5
+   ...                                 # 6
+}
+}
 }
 ```
 
@@ -469,8 +469,8 @@ GET /my-index/_search
 
 ### Compatibility of Vector Types and Similarities
 
-Jaccard and Hamming similarity only work with sparse bool vectors. 
-Cosine,[^note-angular-cosine] L1, and L2 similarity only work with dense float vectors. 
+Jaccard and Hamming similarity only work with sparse bool vectors.
+Cosine,[^note-angular-cosine] L1, and L2 similarity only work with dense float vectors.
 The following documentation assume this restriction is known.
 
 These restrictions aren't inherent to the types and algorithms, i.e., you could in theory run cosine similarity on sparse vectors.
@@ -478,12 +478,12 @@ The restriction merely reflects the most common patterns and simplifies the impl
 
 ### Similarity Scoring
 
-Elasticsearch queries must return a non-negative floating-point score. 
-For Elastiknn, the score for an indexed vector represents its similarity to the query vector. 
-However, not all similarity functions increase as similarity increases. 
-For example, a perfect similarity for the L1 and L2 functions is 0. 
-Such functions really represent _distance_ without a well-defined mapping from distance to similarity. 
-In these cases Elastiknn applies a transformation to invert the score such that more similar vectors have higher scores. 
+Elasticsearch queries must return a non-negative floating-point score.
+For Elastiknn, the score for an indexed vector represents its similarity to the query vector.
+However, not all similarity functions increase as similarity increases.
+For example, a perfect similarity for the L1 and L2 functions is 0.
+Such functions really represent _distance_ without a well-defined mapping from distance to similarity.
+In these cases Elastiknn applies a transformation to invert the score such that more similar vectors have higher scores.
 The exact transformations are described below.
 
 |Similarity|Transformation to Elasticsearch Score|Min Value|Max Value|
@@ -503,25 +503,25 @@ The query vector is either a literal vector or a pointer to an indexed vector.
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {    
-            ...
-            "vec": {                                # 1
-                "true_indices": [1, 3, 5, ...],
-                "total_indices": 1000
-            },
-            ...
-            "vec": {                                # 2
-                "values": [0.1, 0.2, 0.3, ...]
-            },
-            ...
-            "vec": {                                # 3
-                "index": "my-other-index",
-                "field": "my_vec",
-                "id": "abc123"
-            },
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         ...
+         "vec": {                                # 1
+         "true_indices": [1, 3, 5, ...],
+         "total_indices": 1000
+      },
+      ...
+      "vec": {                                # 2
+      "values": [0.1, 0.2, 0.3, ...]
+   },
+   ...
+   "vec": {                                # 3
+   "index": "my-other-index",
+   "field": "my_vec",
+   "id": "abc123"
+},
+}
+}
 }
 ```
 
@@ -538,16 +538,16 @@ Computes the exact similarity of a query vector against all indexed vectors. The
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {        
-            "field": "my_vec", 
-            "vec": {                                # 1
-                "values": [0.1, 0.2, 0.3, ...],
-            },
-            "model": "exact",                       # 2
-            "similarity": "(cosine | l1 | l2)",    # 3
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",
+         "vec": {                                # 1
+         "values": [0.1, 0.2, 0.3, ...],
+      },
+      "model": "exact",                       # 2
+      "similarity": "(cosine | l1 | l2)",    # 3
+   }
+}
 }
 ```
 
@@ -564,17 +564,17 @@ Computes the exact similarity of sparse bool vectors using a Lucene Boolean Quer
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {        
-            "field": "my_vec",                      # 1
-            "vec": {                                # 2
-                "true_indices": [1, 3, 5, ...],
-                "total_indices": 100
-            },
-            "model": "sparse_indexed",              # 3
-            "similarity": "(jaccard | hamming)",    # 4
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                      # 1
+         "vec": {                                # 2
+         "true_indices": [1, 3, 5, ...],
+         "total_indices": 100
+      },
+      "model": "sparse_indexed",              # 3
+      "similarity": "(jaccard | hamming)",    # 4
+   }
+}
 }
 ```
 
@@ -587,8 +587,8 @@ GET /my-index/_search
 
 ### LSH Search Strategy
 
-All LSH search models follow roughly the same strategy. 
-They first retrieve approximate neighbors based on common hash terms and then compute the exact similarity for a subset of the best approximate candidates. 
+All LSH search models follow roughly the same strategy.
+They first retrieve approximate neighbors based on common hash terms and then compute the exact similarity for a subset of the best approximate candidates.
 The exact steps are as follows:
 
 1. Hash the query vector using model parameters that were specified in the indexed vector's mapping.
@@ -598,7 +598,7 @@ The exact steps are as follows:
    The `candidates` parameter controls the number of exact similarity computations.
    Specifically, we compute exact similarity for the top _`candidates`_ candidate vectors in each segment.
    As a reminder, each Elasticsearch index has >= 1 shards, and each shard has >= 1 segments.
-   That means if you set `"candiates": 200` for an index with 2 shards, each with 3 segments, then you'll compute the 
+   That means if you set `"candiates": 200` for an index with 2 shards, each with 3 segments, then you'll compute the
    exact similarity for `2 * 3 * 200 = 1200` vectors.
    `candidates` must be set to a number greater or equal to the number of Elasticsearch results you want to get.
    Higher values generally mean higher recall and higher latency.
@@ -610,18 +610,18 @@ Retrieve sparse bool vectors based on approximate Jaccard similarity.
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {
-            "field": "my_vec",                     # 1
-            "vec": {                               # 2
-                "true_indices": [1, 3, 5, ...],
-                "total_indices": 100
-            },
-            "model": "lsh",                        # 3
-            "similarity": "jaccard",               # 4
-            "candidates": 50                       # 5
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                     # 1
+         "vec": {                               # 2
+         "true_indices": [1, 3, 5, ...],
+         "total_indices": 100
+      },
+      "model": "lsh",                        # 3
+      "similarity": "jaccard",               # 4
+      "candidates": 50                       # 5
+   }
+}
 }
 ```
 
@@ -640,18 +640,18 @@ Retrieve sparse bool vectors based on approximate Hamming similarity.
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {
-            "field": "my_vec",                     # 1
-            "vec": {                               # 2
-                "true_indices": [1, 3, 5, ...],
-                "total_indices": 100
-            },
-            "model": "lsh",                        # 3
-            "similarity": "hamming",               # 4
-            "candidates": 50                       # 5
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                     # 1
+         "vec": {                               # 2
+         "true_indices": [1, 3, 5, ...],
+         "total_indices": 100
+      },
+      "model": "lsh",                        # 3
+      "similarity": "hamming",               # 4
+      "candidates": 50                       # 5
+   }
+}
 }
 ```
 
@@ -671,17 +671,17 @@ Retrieve dense float vectors based on approximate Cosine similarity.[^note-angul
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {
-            "field": "my_vec",                     # 1
-            "vec": {                               # 2
-                "values": [0.1, 0.2, 0.3, ...]
-            },
-            "model": "lsh",                        # 3
-            "similarity": "cosine",                # 4
-            "candidates": 50                       # 5
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                     # 1
+         "vec": {                               # 2
+         "values": [0.1, 0.2, 0.3, ...]
+      },
+      "model": "lsh",                        # 3
+      "similarity": "cosine",                # 4
+      "candidates": 50                       # 5
+   }
+}
 }
 ```
 
@@ -705,18 +705,18 @@ Retrieve dense float vectors based on approximate L2 similarity.
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {
-            "field": "my_vec",                     # 1
-            "vec": {                               # 2
-                "values": [0.1, 0.2, 0.3, ...]
-            },
-            "model": "lsh",                        # 3
-            "similarity": "l2",                    # 4
-            "candidates": 50,                      # 5
-            "probes": 2                            # 6
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                     # 1
+         "vec": {                               # 2
+         "values": [0.1, 0.2, 0.3, ...]
+      },
+      "model": "lsh",                        # 3
+      "similarity": "l2",                    # 4
+      "candidates": 50,                      # 5
+      "probes": 2                            # 6
+   }
+}
 }
 ```
 
@@ -737,17 +737,17 @@ See the permutation LSH mapping for more about the algorithm.
 ```json
 GET /my-index/_search
 {
-    "query": {
-        "elastiknn_nearest_neighbors": {
-            "field": "my_vec",                     # 1
-            "vec": {                               # 2
-                "values": [0.1, 0.2, 0.3, ...]
-            },
-            "model": "permutation_lsh",            # 3
-            "similarity": "cosine",                # 4
-            "candidates": 50                       # 5
-        }
-    }
+   "query": {
+      "elastiknn_nearest_neighbors": {
+         "field": "my_vec",                     # 1
+         "vec": {                               # 2
+         "values": [0.1, 0.2, 0.3, ...]
+      },
+      "model": "permutation_lsh",            # 3
+      "similarity": "cosine",                # 4
+      "candidates": 50                       # 5
+   }
+}
 }
 ```
 
@@ -761,12 +761,12 @@ GET /my-index/_search
 
 ### Model and Query Compatibility
 
-Some models can support more than one type of query. 
-For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using both Jaccard and Hamming similarity. 
+Some models can support more than one type of query.
+For example, sparse bool vectors indexed with the Jaccard LSH model support exact searches using both Jaccard and Hamming similarity.
 The opposite is _not_ true: vectors stored using the exact model do not support Jaccard LSH queries.
 
-The tables below shows valid model/query combinations. 
-Rows are models and columns are queries. 
+The tables below shows valid model/query combinations.
+Rows are models and columns are queries.
 The similarity functions are abbreviated (J: Jaccard, H: Hamming, C: Cosine,[^note-angular-cosine] L1, L2).
 
 #### elastiknn_sparse_bool_vector
@@ -782,7 +782,7 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, C: Cosine,[^no
 
 |Model / Query                   |Exact         |Cosine LSH |L2 LSH |Permutation LSH|
 |:--                             |:--           |:--         |:--    |:--            |
-|Exact (i.e. no model specified) |✔ (C, L1, L2) |x           |x      |x              | 
+|Exact (i.e. no model specified) |✔ (C, L1, L2) |x           |x      |x              |
 |Cosine LSH                      |✔ (C, L1, L2) |✔           |x      |x              |
 |L2 LSH                          |✔ (C, L1, L2) |x           |✔      |x              |
 |Permutation LSH                 |✔ (C, L1, L2) |x           |x      |✔              |
@@ -803,26 +803,26 @@ The function score query is usually simpler, but both are covered below.
 GET /my-index/_search
 
 {
-  "size": 10,
-  "query": {
-    "function_score": {
-      "query": {
-        "term": { "color": "blue" }                  # 1
-      },
-      "functions": [                                 # 2
-        {
-          "elastiknn_nearest_neighbors": {           # 3
-            "field": "vec",
-            "similarity": "cosine",
-            "model": "exact",
-            "vec": {
-              "values": [0.1, 0.2, 0.3, ...]
-            }
-          }
-        }
-      ]
-    }
-  }
+   "size": 10,
+   "query": {
+      "function_score": {
+         "query": {
+            "term": { "color": "blue" }                  # 1
+         },
+         "functions": [                                 # 2
+{
+   "elastiknn_nearest_neighbors": {           # 3
+   "field": "vec",
+   "similarity": "cosine",
+   "model": "exact",
+   "vec": {
+      "values": [0.1, 0.2, 0.3, ...]
+   }
+}
+}
+]
+}
+}
 }
 ```
 
@@ -836,36 +836,36 @@ GET /my-index/_search
 
 This does not yet support passing indexed vectors.
 
-When using `"model": "lsh"`, the `"candidates"` parameter is ignored and vectors are not re-scored with the exact 
+When using `"model": "lsh"`, the `"candidates"` parameter is ignored and vectors are not re-scored with the exact
 similarity like they are with a `elastiknn_nearest_neighbors` query.
 Instead, the score is: `max similarity score * proportion of matching hashes`.
 This is a necessary consequence of the fact that score functions take a doc ID and must immediately return a score.
 
-#### Using a Query Rescorer 
+#### Using a Query Rescorer
 
 ```json
 GET /my-index/_search
 {
-  "query": {
-    "term": { "color": "blue" }                     # 1
-  },
-  "rescore": {
-    "window_size": 10,                              # 2
-    "query": {
-      "rescore_query": {
-        "elastiknn_nearest_neighbors": {            # 3
+   "query": {
+      "term": { "color": "blue" }                     # 1
+   },
+   "rescore": {
+      "window_size": 10,                              # 2
+      "query": {
+         "rescore_query": {
+            "elastiknn_nearest_neighbors": {            # 3
             "field" : "vec",
             "similarity" : "l2",
-            "model" : "exact",            
+            "model" : "exact",
             "vec" : {
-                "values" : [0.1, 0.2, 0.3, ...]
+               "values" : [0.1, 0.2, 0.3, ...]
             }
-        }
+         }
       },
       "query_weight": 0,                            # 4
       "rescore_query_weight": 1                     # 5
-    }
-  }
+   }
+}
 }
 ```
 
@@ -882,7 +882,7 @@ GET /my-index/_search
 This does not yet support passing indexed vectors.
 
 Elasticsearch has a configurable limit for the number of docs that are matched and passed to the `rescore` query.
-The default is 10,000. 
+The default is 10,000.
 You can modify the `index.max_rescore_window` setting to get around this.
 
 Given the default limit of 10k vectors passed to the nearest neighbors query, you can typically use exact queries.
@@ -906,23 +906,36 @@ and discussed in detail [in this Github issue.](https://github.com/elastic/elast
 
 ## Nice to Know
 
-Here are some other things worth knowing. 
+Here are some other things worth knowing.
 Perhaps there will be a more cohesive way to present these in the future.
+
+### Storing Model Parameters
+
+The LSH models all use randomized parameters to hash vectors.
+The simplest example is the bit-sampling model for Hamming similarity, parameterized by a list of randomly sampled indices.
+A more complicated example is the stable distributions model for L2 similarity, parameterized by a set of random unit vectors
+and a set of random bias scalars.
+These parameters aren't actually stored anywhere in Elasticsearch.
+Rather, they are lazily re-computed from a fixed random seed (0) each time they are needed.
+The advantage of this is that it avoids storing and synchronizing potentially large parameter blobs in the cluster.
+The disadvantage is that it's expensive to re-compute the randomized parameters.
+So instead we keep a cache of models in each Elasticsearch node, keyed on the model hyperparameters (e.g. `L`, `k`, etc.).
+The hyperparameters are stored inside the mappings where they are originally defined.
 
 ### Transforming and Indexing Vectors
 
-Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. 
-All vectors store a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) 
+Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request.
+All vectors store a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html)
 containing a serialized version of the vector for exact queries, and vectors indexed using an LSH model index the hashes
-using a Lucene Term field. 
-For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in 
+using a Lucene Term field.
+For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in
 a doc values field and the vector's hash values as a set of Lucene Terms.
 
 ### Parallelism
 
-From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. 
-Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. 
-This means the simplest way to increase query parallelism is to add shards to your index. 
+From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query.
+Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index.
+This means the simplest way to increase query parallelism is to add shards to your index.
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
 
 ---
