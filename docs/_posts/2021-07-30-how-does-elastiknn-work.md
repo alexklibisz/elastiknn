@@ -402,7 +402,7 @@ Unfortunately, this simple query proved to be a major bottleneck in Elastiknn LS
 Once vector serialization was optimized by using `sun.misc.Unsafe`, some LSH queries were actually slower than exact queries,
 and the profiler indicated the system spending the majority of its time in this query and its related classes. 
 
-Here's an excerpt from [Elastiknn Issue #76](https://github.com/alexklibisz/elastiknn/issues/76) from June 2020:
+Here's an excerpt from [Github issue #76](https://github.com/alexklibisz/elastiknn/issues/76) from June 2020:
 
 > ... I figured out that the biggest bottleneck for the various LSH methods is the speed of the Boolean Query used to retrieve vectors matching the hashes of a query vector. 
 > For example: on the ann-benchmarks NYT dataset (~300K 256d vectors), you can compute about 4.5 exact queries per second (with perfect recall). Once you switch to LSH, you can barely get over 2 queries per second with recall over 0.8. Most of that time is spent executing the boolean query. So you would have to get a dataset well into the millions to beat the exact search, and the breaking point is likely well over 1 second / query. 
@@ -417,37 +417,77 @@ However, LSH queries can easily have tens or hundreds of terms, and maintaining 
 
 #### Custom and Fast: MatchHashesAndScoreQuery
 
-Based on the experimentation and recommendations of various Lucene community members on the mailing list,[^mailing-list-0]
+Based on the experimentation and recommendations of various Lucene community members on the mailing list,[^mailing-list-optimizing-query]
 it was determined that a custom Lucene query was justified for optimizing this query pattern.
 
 Through several iterations, a custom query called [`MatchHashesAndScoreQuery`](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-lucene/src/main/java/org/apache/lucene/search/MatchHashesAndScoreQuery.java) was born.
 
 The name is not particularly creative.
-This query takes some hashes and a score function, finds docs with the most matching hashes, and re-scores them using the scoring function.
+This query takes some hashes and a scoring function, finds docs with the most matching hashes, and re-scores them using the scoring function.
 
 The [`MatchHashesAndScoreQuerySuite`](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-testing/src/test/scala/com/klibisz/elastiknn/query/MatchHashesAndScoreQuerySuite.scala)
 shows some examples of its usage.
 
 This query is largely based on Lucene's [`TermsInSetQuery`](https://lucene.apache.org/core/8_8_2/core/org/apache/lucene/search/TermInSetQuery.html).
-It's mostly just removing unnecessary pieces of functionality from that query and adding support for the scoring function.
+It mostly removes unnecessary functionality from that query, adds the ability to track how many times each document matched any of the terms, and adds support for the scoring function.
 
-To compare with the `BooleanQuery` approach: the `BooleanQuery` was barely able to exceed 2 single-threaded queries/second with 80% recall@100 on a dataset of 300,000 vectors.
+To compare with the `BooleanQuery` approach: the `BooleanQuery` was barely able to exceed 2 single-threaded queries/second with 80% recall@100 on a dataset of 300k vectors.
 The `MatchHashesAndScoreQuery` exceeds 50 single-threaded queries/second with 80% recall@100 on a dataset of 1M vectors. 
-So it's more than a 25x speedup over the simple `BooleanQuery`.
+So it's more than a 25x speedup.
 
 There is definitely still some room for improvement. For those interested, there are two open issues closely related to this topic: 
-- [Elastiknn Issue #160: Optimize top-k counting for approximate queries](https://github.com/alexklibisz/elastiknn/issues/160)
-- [Elastiknn Issue #156: More efficient counter for query hits](https://github.com/alexklibisz/elastiknn/issues/156)
+- [Github issue #160: Optimize top-k counting for approximate queries](https://github.com/alexklibisz/elastiknn/issues/160)
+- [Github issue #156: More efficient counter for query hits](https://github.com/alexklibisz/elastiknn/issues/156)
 
-A couple shout-outs: the article ["Build your own custom Lucene query and Scorer"](https://opensourceconnections.com/blog/2014/01/20/build-your-own-custom-lucene-query-and-scorer/) from 
+A couple shout-outs are in order: the article ["Build your own custom Lucene query and Scorer"](https://opensourceconnections.com/blog/2014/01/20/build-your-own-custom-lucene-query-and-scorer/) from 
 OpenSource Connections was extremely helpful in building the custom Lucene query.
-Mike McCandless' and other Lucene developers' answers on the mailing list and various issue trackers were also instrumental.
+[Mike McCandless](https://twitter.com/mikemccand) and other Lucene developers contributed instrumental advice on the mailing list and various issue trackers.
 
 ## Open Questions
 
-- Support for range queries.
+### Performance
+
+Performance improvements remain a priority.
+On single-threaded benchmarks, Elastiknn is an order-of-magnitude slower than some purpose-built vector search solutions.
+To some extent there is an insurmountable cost of running on the JVM when compared to implementations closer to bare metal.
+Still, there is absolutely room to improve.
+
+See [Github issues with the _performance_ tag](https://github.com/alexklibisz/elastiknn/issues?q=is%3Aissue+is%3Aopen+label%3Aperformance) for some specific problems.
+
+### Support for range queries
+
+Range queries, i.e., "return the neighbors within distance _d_" remain unimplemented.
+It's an interesting problem to solve with hashing methods, as it requires essentially computing a ball of hashes around the query vector, out to some distance.
+
+See [Github issue 279: Support for range queries (neighbors within some distance)](https://github.com/alexklibisz/elastiknn/issues/279).
+
+### Data-Dependent LSH and Vector Preprocessing
+
+Elastiknn's parameters are currently totally ignorant of the dataset.
+It's likely that some amount of parameter fitting to the indexed dataset would improve results.
+How much fitting, and how to do it remain interesting questions.
+Elastiknn very intentionally supports incremental indexing. 
+Parameter-fitting almost necessarily requires providing a representative chunk of data up-front, which is antithetical to the incremental implementation.
+
+A related improvement might involve vector preprocessing. 
+Can we recommend a simple vector preprocessing step that guarantees better results?
+For example, perhaps we can _center_ the vectors (by subtracting the mean and dividing by the standard deviation along each dimension), 
+thereby leading to more uniformly-distributed hash assignments.
+
+### Better Tooling for Finding Optimal Hyper-parameters
+
+By far the most common issue and question about Elastiknn is along the lines of "I tried this model with these parameters. Why are the results bad?"
+This is generally extremely difficult to reproduce. 
+The search results change depending on the amount of data, so a small sample of data is insufficient.
+Besides, the data is often proprietary anyways.
+
+Part of the solution is educating about the tradeoffs of amplification parameters.
+Another part is building some new tooling to analyze Elasticsearch and Lucene indices to diagnose common pathologies, e.g., 
+an index where a small minority of hash values maps to a large majority of vectors. 
 
 ## Conclusion
+
+Hopefully this article has demystified some magic behind Elastiknn and leads to discussion and continued improvements in the project.
 
 <!--Footnotes-->
 
@@ -459,7 +499,7 @@ Mike McCandless' and other Lucene developers' answers on the mailing list and va
 [^unsafe-notes]: The [sun.misc.Unsafe](https://blogs.oracle.com/javamagazine/the-unsafe-class-unsafe-at-any-speed) utilities were carefully benchmarked as the fastest way to store a vector. Serialization is an area of the JVM where the performance of different abstractions varies wildly. Still, it's not great that we use them. There's [an open issue](https://github.com/alexklibisz/elastiknn/issues/263) for considering some alternatives.
 [^concat-notes]: AND-amplification doesn't necessarily have to be implemented as a concatenation. There's [an open ticket](https://github.com/alexklibisz/elastiknn/issues/299) to explore using an ordered hashing function like MurmurHash to condense the outputs to a single integer.
 [^multiprobe-notes]: Implementing the multiprobe algorithm and seeing it actually work was an extremely satisfying moment.
-
+[^mailing-list-optimizing-query]: [Lucene Java-user mailing list: Optimizing a boolean query for 100s of term clauses, June 23, 2020](https://mail-archives.apache.org/mod_mbox/lucene-java-user/202006.mbox/browser)
 
 [^cite-indyk-2006]: _Stable distributions, pseudorandom generators, embeddings, and data stream computation_ by Piotr Indyk, 2006
 [^cite-qin-2007]: _Multi-Probe LSH: Efficient Indexing for High-Dimensional Similarity Search_ by Qin Lv, et. al., 2007
