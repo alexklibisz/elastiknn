@@ -426,10 +426,20 @@ The name is not particularly creative.
 This query takes some hashes and a scoring function, finds docs with the most matching hashes, and re-scores them using the scoring function.
 
 The [`MatchHashesAndScoreQuerySuite`](https://github.com/alexklibisz/elastiknn/blob/14e2c6fc3d6c642986c5e2256d46ed402174660c/elastiknn-testing/src/test/scala/com/klibisz/elastiknn/query/MatchHashesAndScoreQuerySuite.scala)
-shows some examples of its usage.
+shows some examples of its usage:
+
+```scala
+val hashes = Array(HashAndFreq.once(writeInt(42)), ...)
+val q = new MatchHashesAndScoreQuery("vec", hashes, 10, indexReader,
+  (_: LeafReaderContext) => 
+    (docId: Int, numMatchingHashes: Int) => 
+      (docId + numMatchingHashes) * 3.14f
+)
+val top10 = indexSearcher.search(q, 10)
+```
 
 This query is largely based on Lucene's [`TermsInSetQuery`](https://lucene.apache.org/core/8_8_2/core/org/apache/lucene/search/TermInSetQuery.html).
-It mostly removes unnecessary functionality from that query, adds the ability to track how many times each document matched any of the terms, and adds support for the scoring function.
+It mostly removes unnecessary functionality from that query, adds the ability to count exactly how many times each document matched any of the terms, and adds support for the scoring function.
 
 To compare with the `BooleanQuery` approach: the `BooleanQuery` was barely able to exceed 2 single-threaded queries/second with 80% recall@100 on a dataset of 300k vectors.
 The `MatchHashesAndScoreQuery` exceeds 50 single-threaded queries/second with 80% recall@100 on a dataset of 1M vectors. 
@@ -449,21 +459,23 @@ OpenSource Connections was extremely helpful in building the custom Lucene query
 
 Performance improvements remain a priority.
 On single-threaded benchmarks, Elastiknn is an order-of-magnitude slower than some purpose-built vector search solutions.
-To some extent there is an insurmountable cost of running on the JVM when compared to implementations closer to bare metal.
-Still, there is absolutely room to improve.
 
-See [Github issues with the _performance_ tag](https://github.com/alexklibisz/elastiknn/issues?q=is%3Aissue+is%3Aopen+label%3Aperformance) for some specific problems.
+To some extent there is an insurmountable cost of running on the JVM with a disk-based indexing solution like Lucene, 
+especially when compared to implementations closer to bare metal with in-memory indexing. Still, there is absolutely room to improve.
+
+See the [issues tagged _performance_](https://github.com/alexklibisz/elastiknn/issues?q=is%3Aissue+is%3Aopen+label%3Aperformance) for some interesting problems.
 
 ### Support for range queries
 
 Range queries, i.e., "return the neighbors within distance _d_" remain unimplemented.
-It's an interesting problem to solve with hashing methods, as it requires essentially computing a ball of hashes around the query vector, out to some distance.
+It's an interesting problem to solve with hashing methods, as it requires expressing distance in terms of hashes and essentially
+computing a ball of hashes around the query vector.
 
 See [Github issue 279: Support for range queries (neighbors within some distance)](https://github.com/alexklibisz/elastiknn/issues/279).
 
 ### Data-Dependent LSH and Vector Preprocessing
 
-Elastiknn's parameters are currently totally ignorant of the dataset.
+Elastiknn's hashing parameters are currently totally ignorant of the dataset.
 It's likely that some amount of parameter fitting to the indexed dataset would improve results.
 How much fitting, and how to do it remain interesting questions.
 Elastiknn very intentionally supports incremental indexing. 
@@ -476,18 +488,24 @@ thereby leading to more uniformly-distributed hash assignments.
 
 ### Better Tooling for Finding Optimal Hyper-parameters
 
-By far the most common issue and question about Elastiknn is along the lines of "I tried this model with these parameters. Why are the results bad?"
-This is generally extremely difficult to reproduce. 
-The search results change depending on the amount of data, so a small sample of data is insufficient.
-Besides, the data is often proprietary anyways.
+By far the most common question about Elastiknn is along the lines of "I tried this model with these parameters. Why are the results bad?"
 
-Part of the solution is educating about the tradeoffs of amplification parameters.
+This is generally extremely difficult to reproduce. 
+The search results change depending on the amount of data, so a small sample is insufficient.
+The data is often proprietary anyways.
+
+Part of the solution is educating about the tradeoffs of hyper-parameters.
 Another part is building some new tooling to analyze Elasticsearch and Lucene indices to diagnose common pathologies, e.g., 
-an index where a small minority of hash values maps to a large majority of vectors. 
+an index where a large majority of vectors are hashed to a very small number of unique hashes.
 
 ## Conclusion
 
 Hopefully this article has demystified some magic behind Elastiknn and leads to discussion and continued improvements in the project.
+
+To continue the discussion, you can find me on Twitter [@alexklibisz](https://twitter.com/alexklibisz), 
+or [start a new discussion on the Elastiknn Github project](https://github.com/alexklibisz/elastiknn/discussions). 
+
+---
 
 <!--Footnotes-->
 
