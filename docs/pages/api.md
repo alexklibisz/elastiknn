@@ -885,4 +885,4 @@ Obviously this has an upper limit, but the general performance implications of s
 
 ---
 
-[^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.1. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
+[^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.2. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
