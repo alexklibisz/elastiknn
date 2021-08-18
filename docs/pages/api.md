@@ -113,7 +113,7 @@ PUT /my-index/_mapping
       "type": "elastiknn_sparse_bool_vector",   # 3
       "elastiknn": {                            # 4
         "dims": 100,                            # 5
-        "model": "sparse_indexed",              # 6
+        "model": "exact",                       # 6
         ...                                     # 7
       }
     }
@@ -210,33 +210,6 @@ PUT /my-index/_mapping
 |:--|:--|
 |1|Vector datatype. Both dense float and sparse bool are supported|
 |2|Vector dimensionality.|
-
-### Sparse Indexed Mapping
-
-The sparse indexed model introduces an obvious optimization for exact queries on sparse bool vectors. 
-It indexes each of the true indices as a Lucene term, basically treating them like [Elasticsearch keywords](https://www.elastic.co/guide/en/elasticsearch/reference/current/keyword.html). Jaccard and Hamming similarity both require computing the intersection of the query vector against all indexed vectors, and indexing the true indices makes this operation much more efficient. However, you must consider that there is an upper bound on the number of possible terms in a term query, [see the `index.max_terms_count` setting.](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules.html#index-max-terms-count) 
-If the number of true indices in your vectors exceeds this limit, you'll have to adjust it or you'll encounter failed queries.
-
-```json
-PUT /my-index/_mapping
-{
-    "properties": {
-        "my_vec": {
-            "type": "elastiknn_sparse_bool_vector",  # 1
-            "elastiknn": {
-                "dims": 25000,                       # 2
-                "model": "sparse_indexed",           # 3
-            }
-        }
-    }
-}
-```
-
-|#|Description|
-|:--|:--|
-|1|Vector datatype. Must be sparse bool vector.|
-|2|Vector dimensionality.|
-|3|Model type. This model has no additional parameters.|
 
 ### Jaccard LSH Mapping
 
@@ -556,34 +529,6 @@ GET /my-index/_search
 |1|Query vector. Must match the datatype of `my_vec` or be a pointer to an indexed vector that matches the type.|
 |2|Model name.|
 |3|Similarity function. Must be compatible with the vector type.|
-
-### Sparse Indexed Query
-
-Computes the exact similarity of sparse bool vectors using a Lucene Boolean Query to compute the size of the intersection of true indices in the query vector against true indices in the indexed vectors.
-
-```json
-GET /my-index/_search
-{
-    "query": {
-        "elastiknn_nearest_neighbors": {        
-            "field": "my_vec",                      # 1
-            "vec": {                                # 2
-                "true_indices": [1, 3, 5, ...],
-                "total_indices": 100
-            },
-            "model": "sparse_indexed",              # 3
-            "similarity": "(jaccard | hamming)",    # 4
-        }
-    }
-}
-```
-
-|#|Description|
-|:--|:--|
-|1|Indexed field. Must use `sparse_indexed` mapping model.|
-|2|Query vector. Must be literal sparse bool or a pointer to an indexed sparse bool vector.|
-|3|Model name.|
-|4|Similarity function. Must be jaccard or hamming.|
 
 ### LSH Search Strategy
 

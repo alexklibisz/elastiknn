@@ -58,16 +58,6 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
         NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
       )
     ),
-    // SparseIndexed
-    Test(
-      Mapping.SparseIndexed(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),

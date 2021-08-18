@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api.NearestNeighborsQuery._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.mapper.VectorMapper
-import com.klibisz.elastiknn.models.{Cache, SparseIndexedSimilarityFunction}
+import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF}
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.search.Query
@@ -54,13 +54,13 @@ object ElastiknnQuery {
 
       case (
           Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
-          _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Jaccard)
 
       case (
           Exact(f, Similarity.Hamming, v: Vec.SparseBool),
-          _: Mapping.SparseBool | _: Mapping.SparseIndexed | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Hamming)
 
@@ -81,12 +81,6 @@ object ElastiknnQuery {
           _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, ESF.Cosine)
-
-      case (SparseIndexed(f, Similarity.Jaccard, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Jaccard)
-
-      case (SparseIndexed(f, Similarity.Hamming, sbv: Vec.SparseBool), _: Mapping.SparseIndexed) =>
-        new SparseIndexedQuery(f, sbv, SparseIndexedSimilarityFunction.Hamming)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
         new HashingQuery(f, v, candidates, Cache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard)

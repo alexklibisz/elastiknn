@@ -80,19 +80,6 @@ class Mapping:
             }
 
     @dataclass(frozen=True)
-    class SparseIndexed(Base):
-        dims: int
-
-        def to_dict(self):
-            return {
-                "type": "elastiknn_sparse_bool_vector",
-                "elastiknn": {
-                    "dims": self.dims,
-                    "model": "sparse_indexed"
-                }
-            }
-
-    @dataclass(frozen=True)
     class JaccardLsh(Base):
         dims: int
         L: int
@@ -223,23 +210,6 @@ class NearestNeighborsQuery:
 
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.Exact(field=self.field, vec=vec, similarity=self.similarity)
-
-    @dataclass(frozen=True)
-    class SparseIndexed(Base):
-        field: str
-        vec: Vec.Base
-        similarity: Similarity
-
-        def to_dict(self):
-            return {
-                "field": self.field,
-                "model": "sparse_indexed",
-                "similarity": self.similarity.name.lower(),
-                "vec": self.vec.to_dict()
-            }
-
-        def with_vec(self, vec: Vec.Base):
-            return NearestNeighborsQuery.SparseIndexed(field=self.field, vec=vec, similarity=self.similarity)
 
     @dataclass(frozen=True)
     class JaccardLsh(Base):
