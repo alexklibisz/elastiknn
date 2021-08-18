@@ -1,6 +1,6 @@
 ---
 layout: single
-title: Elastic Meetup Presentation and Demo
+title: "Elastic Meetup: Using Elastiknn for Exact And Approximate Nearest Neighbor Search"
 permalink: /posts/elastic-meetup-presentation-demo-december-2020/
 date: 2020-12-15 18:00:00 -0500
 author_profile: true
