@@ -132,20 +132,10 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
 
     """
       |{
-      | "type": "elastiknn_sparse_bool_vector",
-      | "elastiknn": {
-      |  "dims": 100,
-      |  "model": "sparse_indexed"
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseIndexed(100)
-
-    """
-      |{
       | "type": "elastiknn_dense_float_vector",
       | "elastiknn": {
       |  "dims": 100,
-      |  "model": "sparse_indexed"
+      |  "model": "exact"
       | }
       |}
       |""".stripMargin.shouldNotDecodeTo[Mapping]
@@ -166,30 +156,6 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       | }
       |}
       |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] Exact("vec", Similarity.Jaccard, Vec.SparseBool(Array(1, 2, 3), 99))
-
-    """
-      |{
-      | "field": "vec",
-      | "model": "sparse_indexed",
-      | "similarity": "hamming",
-      | "vec": {
-      |   "true_indices": [1,2,3],
-      |   "total_indices": 99
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Hamming, Vec.SparseBool(Array(1, 2, 3), 99))
-
-    """
-      |{
-      | "field": "vec",
-      | "model": "sparse_indexed",
-      | "similarity": "jaccard",
-      | "vec": {
-      |   "true_indices": [1,2,3],
-      |   "total_indices": 99
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Jaccard, Vec.SparseBool(Array(1, 2, 3), 99))
 
     """
       |{

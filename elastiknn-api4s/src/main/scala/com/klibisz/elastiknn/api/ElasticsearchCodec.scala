@@ -35,7 +35,6 @@ private object Keys {
   val MODEL = "model"
   val QUERY_OPTIONS = "query_options"
   val SIMILARITY = "similarity"
-  val SPARSE_INDEXED = "sparse_indexed"
   val TYPE = "type"
   val VEC = "vec"
 }
@@ -158,7 +157,6 @@ object ElasticsearchCodec { esc =>
 
   implicit val mappingSparseBool: ESC[Mapping.SparseBool] = ElasticsearchCodec(deriveCodec)
   implicit val mappingDenseFloat: ESC[Mapping.DenseFloat] = ElasticsearchCodec(deriveCodec)
-  implicit val mappingSparseIndexed: ESC[Mapping.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val mappingJaccardLsh: ESC[Mapping.JaccardLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingHammingLsh: ESC[Mapping.HammingLsh] = ElasticsearchCodec(deriveCodec)
   implicit val mappingCosineLsh: ESC[Mapping.CosineLsh] = ElasticsearchCodec(deriveCodec)
@@ -170,8 +168,6 @@ object ElasticsearchCodec { esc =>
       t match {
         case m: Mapping.SparseBool => JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
         case m: Mapping.DenseFloat => JsonObject(TYPE -> EKNN_DENSE_FLOAT_VECTOR, ELASTIKNN_NAME -> esc.encode(m))
-        case m: Mapping.SparseIndexed =>
-          JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> SPARSE_INDEXED)))
         case m: Mapping.JaccardLsh =>
           JsonObject(TYPE -> EKNN_SPARSE_BOOL_VECTOR, ELASTIKNN_NAME -> (esc.encode(m) ++ JsonObject(MODEL -> LSH, SIMILARITY -> JACCARD)))
         case m: Mapping.HammingLsh =>
@@ -195,8 +191,6 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.SparseBool](c)
           case (EKNN_DENSE_FLOAT_VECTOR, None, None) =>
             esc.decode[Mapping.DenseFloat](c)
-          case (EKNN_SPARSE_BOOL_VECTOR, Some(SPARSE_INDEXED), None) =>
-            esc.decode[Mapping.SparseIndexed](c)
           case (EKNN_SPARSE_BOOL_VECTOR, Some(LSH), Some(Similarity.Jaccard)) =>
             esc.decode[Mapping.JaccardLsh](c)
           case (EKNN_SPARSE_BOOL_VECTOR, Some(LSH), Some(Similarity.Hamming)) =>
@@ -214,7 +208,6 @@ object ElasticsearchCodec { esc =>
   }
 
   implicit val queryExact: ESC[NearestNeighborsQuery.Exact] = ElasticsearchCodec(deriveCodec)
-  implicit val querySparseIndexed: ESC[NearestNeighborsQuery.SparseIndexed] = ElasticsearchCodec(deriveCodec)
   implicit val queryJaccardLsh: ESC[NearestNeighborsQuery.JaccardLsh] = {
     implicit val cfg: Configuration = Configuration.default.withDefaults
     ElasticsearchCodec(deriveConfiguredCodec)
@@ -241,7 +234,6 @@ object ElasticsearchCodec { esc =>
       val default = JsonObject(FIELD -> a.field, VEC -> esc.encode(a.vec), SIMILARITY -> esc.encode(a.similarity))
       a match {
         case q: NearestNeighborsQuery.Exact          => JsonObject(MODEL -> EXACT) ++ (default ++ esc.encode(q))
-        case q: NearestNeighborsQuery.SparseIndexed  => JsonObject(MODEL -> SPARSE_INDEXED) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.JaccardLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.HammingLsh     => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
         case q: NearestNeighborsQuery.CosineLsh      => JsonObject(MODEL -> LSH) ++ (default ++ esc.encode(q))
@@ -255,7 +247,6 @@ object ElasticsearchCodec { esc =>
         sim <- c.downField(SIMILARITY).as[Json].flatMap(esc.decodeJson[Similarity])
         nnq <- model match {
           case EXACT           => esc.decode[NearestNeighborsQuery.Exact](c)
-          case SPARSE_INDEXED  => esc.decode[NearestNeighborsQuery.SparseIndexed](c)
           case PERMUTATION_LSH => esc.decode[NearestNeighborsQuery.PermutationLsh](c)
           case LSH =>
             sim match {
@@ -265,7 +256,7 @@ object ElasticsearchCodec { esc =>
               case Similarity.L2      => esc.decode[NearestNeighborsQuery.L2Lsh](c)
               case other              => fail(s"$SIMILARITY [$other] is not compatible with $MODEL [$LSH]")
             }
-          case other => failTypes(MODEL, Seq(EXACT, SPARSE_INDEXED, LSH), other)
+          case other => failTypes(MODEL, Seq(EXACT, LSH), other)
         }
       } yield nnq
   }

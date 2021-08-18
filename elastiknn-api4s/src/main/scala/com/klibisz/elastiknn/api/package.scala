@@ -107,7 +107,6 @@ package object api {
   }
   object Mapping {
     final case class SparseBool(dims: Int) extends Mapping
-    final case class SparseIndexed(dims: Int) extends Mapping
     final case class JaccardLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class HammingLsh(dims: Int, L: Int, k: Int) extends Mapping
     final case class DenseFloat(dims: Int) extends Mapping
@@ -124,10 +123,6 @@ package object api {
   }
   object NearestNeighborsQuery {
     final case class Exact(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
-      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
-    }
-
-    final case class SparseIndexed(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
     }
 

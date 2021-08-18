@@ -96,13 +96,6 @@ class ElastiknnModel(object):
                 return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
             elif self._metric == 'hamming':
                 return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Hamming)
-        elif self._algorithm == 'sparse_indexed':
-            if self._metric == 'jaccard':
-                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
-                                                                                        Similarity.Jaccard)
-            elif self._metric == 'hamming':
-                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
-                                                                                        Similarity.Hamming)
         elif self._algorithm == 'lsh':
             if self._metric == 'l2':
                 m, q = Mapping.L2Lsh(self._dims, **self._mapping_params), \

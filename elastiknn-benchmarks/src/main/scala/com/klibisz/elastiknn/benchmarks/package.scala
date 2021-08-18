@@ -33,7 +33,6 @@ package object benchmarks {
       import NearestNeighborsQuery._
       nnq match {
         case _: Exact                                                => "Exact"
-        case _: SparseIndexed                                        => "Sparse Indexed"
         case _: HammingLsh | _: JaccardLsh | _: CosineLsh | _: L2Lsh => "LSH"
         case _: PermutationLsh                                       => "Permutation LSH"
       }

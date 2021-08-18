@@ -34,7 +34,6 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
       ("d4", Mapping.L2Lsh(dims, 21, 2, 3), genDF, NearestNeighborsQuery.L2Lsh("d4", n)),
       ("d5", Mapping.PermutationLsh(dims, 6, false), genDF, NearestNeighborsQuery.PermutationLsh("d5", Similarity.Cosine, n)),
       ("b1", Mapping.SparseBool(dims), genSB, NearestNeighborsQuery.Exact("b1", Similarity.Jaccard)),
-      ("b2", Mapping.SparseIndexed(dims), genSB, NearestNeighborsQuery.SparseIndexed("b2", Similarity.Jaccard)),
       ("b3", Mapping.JaccardLsh(dims, 10, 2), genSB, NearestNeighborsQuery.JaccardLsh("b3", n)),
       ("b4", Mapping.JaccardLsh(dims, 10, 2), genSB, NearestNeighborsQuery.JaccardLsh("b4", n)),
       ("b5", Mapping.HammingLsh(dims, 10, 3), genSB, NearestNeighborsQuery.HammingLsh("b5", n))

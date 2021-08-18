@@ -15,8 +15,6 @@ valid_metrics_algos = [
     ('exact', 'cosine'),
     ('exact', 'hamming'),
     ('exact', 'jaccard'),
-    ('sparse_indexed', 'jaccard'),
-    ('sparse_indexed', 'hamming'),
     ('lsh', 'l2'),
     ('lsh', 'cosine'),
     ('lsh', 'jaccard'),
