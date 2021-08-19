@@ -228,7 +228,7 @@ This hash function is defined more precisely as:
 
 $$h_j(v) = \lfloor \frac{A_j \cdot v + B_j}{w} \rfloor$$
 
-Each vector $$A_j$$ is sampled from a standard Normal distribution and each scalar $$B_j$$ is sampled from a uniform distribution in $$[0, 1]$$.
+Each vector $$A_j$$ is sampled from a standard Normal distribution and each scalar $$B_j$$ is sampled from a uniform distribution in $$[0, w]$$.
 
 The width $$w$$ is provided as a hyper-parameter and depends on the magnitude of the vectors.
 As vector values increase, the scalar projections will increase, so $$w$$ should also increase.
