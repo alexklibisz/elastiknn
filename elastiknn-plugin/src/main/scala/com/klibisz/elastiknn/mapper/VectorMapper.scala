@@ -14,7 +14,6 @@ import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
-import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.search.lookup.SourceLookup
@@ -103,7 +102,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder = {
+    override def parse(name: String, node: JavaJsonMap, parserContext: MappingParserContext): Mapper.Builder = {
       val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
       val builder: Builder = new Builder(name, mapping)
       // TypeParsers.parseField(builder, name, node, parserContext)
