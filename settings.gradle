@@ -6,7 +6,7 @@ List<String> subprojectNames = List.of(
     'client-elastic4s',
     'client-java',
     'lucene',
-    'lucene-benchmarks',
+    'ann-benchmarks',
     'models',
     'plugin',
     'testing'

@@ -89,5 +89,9 @@ final class LshLuceneModel(val hashingModel: HashingModel.DenseFloat) extends Lu
       .toMat(Sink.ignore)(Keep.right)
   }
 
-  override def search(): Unit = ???
+  /**
+    * Executes the search for each [[Dataset.Doc]] and writes the returned neighbor indexes to disk.
+    * TODO: probably use the same file format as the ground truth data, for easy evaluation.
+    */
+  override def search(resultsPath: Path, parallelism: Int)(implicit ec: ExecutionContext): Unit = ???
 }

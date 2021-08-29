@@ -49,7 +49,7 @@ Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
 Project clientJava = project(':client-java')
 Project lucene = project(':lucene')
-Project luceneBenchmarks = project(':lucene-benchmarks')
+Project annBenchmarks = project(':ann-benchmarks')
 Project models = project(':models')
 Project plugin = project(':plugin')
 Project testing = project(':testing')
@@ -230,7 +230,7 @@ configure(lucene, List.of(
             }
         }))
 
-configure(luceneBenchmarks, List.of(scalaProjectConfig, {
+configure(annBenchmarks, List.of(scalaProjectConfig, {
     dependencies {
         implementation models
         implementation lucene
