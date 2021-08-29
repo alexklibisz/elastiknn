@@ -1,18 +1,14 @@
 ---
-layout: default
+layout: single
 title: Libraries
-nav_order: 3
 description: "Documentation for the Elastiknn Libraries"
 permalink: /libraries/
+toc: true
+toc_label: Contents
+toc_icon: cog
 ---
 
-# Libraries
-{: .no_toc }
-
 The Elastiknn project includes some additional Python, Java, and Scala libraries.
-
-1. TOC
-{: toc}
 
 ## Python client
 
@@ -26,7 +22,7 @@ This includes a low level client that roughly mirrors the [Scala client](/scala-
 
 **Documentation**
 
-- **<a href="/docs/pdoc" target="_blank">PDoc for latest the release</a>**
+- **<a href="/docs/pdoc" target="_blank">PDoc for latest release</a>**
 - <a href="https://archive.elastiknn.com" target="_blank">Archived docs from previous releases</a>
 
 **Versions**

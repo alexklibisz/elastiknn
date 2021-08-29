@@ -55,17 +55,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d
-      )
-    ),
-    // SparseIndexed
-    Test(
-      Mapping.SparseIndexed(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.SparseIndexed(vecField, Similarity.Hamming) -> 1d
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
       )
     ),
     // Jaccard LSH
@@ -105,23 +95,23 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Mapping.HammingLsh(dims, dims * 2 / 5, 4),
       Seq(NearestNeighborsQuery.HammingLsh(vecField, 200) -> 0.65)
     ),
-    // Angular Lsh
+    // Cosine Lsh
     Test(
-      Mapping.AngularLsh(dims, 400, 1),
+      Mapping.CosineLsh(dims, 400, 1),
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.46,
-        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.67
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.CosineLsh(vecField, 400) -> 0.46,
+        NearestNeighborsQuery.CosineLsh(vecField, 800) -> 0.67
       )
     ),
     Test(
-      Mapping.AngularLsh(dims, 400, 2),
+      Mapping.CosineLsh(dims, 400, 2),
       Seq(
-        NearestNeighborsQuery.AngularLsh(vecField, 200) -> 0.34,
-        NearestNeighborsQuery.AngularLsh(vecField, 400) -> 0.50,
-        NearestNeighborsQuery.AngularLsh(vecField, 800) -> 0.72
+        NearestNeighborsQuery.CosineLsh(vecField, 200) -> 0.34,
+        NearestNeighborsQuery.CosineLsh(vecField, 400) -> 0.50,
+        NearestNeighborsQuery.CosineLsh(vecField, 800) -> 0.72
       )
     ),
     // L2 Lsh
@@ -130,7 +120,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
         NearestNeighborsQuery.L2Lsh(vecField, 200) -> 0.12,
         NearestNeighborsQuery.L2Lsh(vecField, 400) -> 0.22,
         NearestNeighborsQuery.L2Lsh(vecField, 800) -> 0.40,
@@ -146,9 +136,9 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.14,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.21,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.14,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 400) -> 0.21,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.20
       ),
@@ -160,9 +150,9 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       Seq(
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Angular) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 200) -> 0.31,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Angular, 400) -> 0.51,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.31,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 400) -> 0.51,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 400) -> 0.43
       ),
@@ -222,7 +212,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
       case Similarity.Hamming => sparseBoolTestData
       case Similarity.L1      => denseFloatTestData
       case Similarity.L2      => denseFloatTestData
-      case Similarity.Angular => denseFloatUnitTestData
+      case Similarity.Cosine  => denseFloatUnitTestData
     }
   } {
     val uuid = UUID.randomUUID().toString

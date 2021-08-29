@@ -12,16 +12,14 @@ _rng = Random(0)
 valid_metrics_algos = [
     ('exact', 'l1'),
     ('exact', 'l2'),
-    ('exact', 'angular'),
+    ('exact', 'cosine'),
     ('exact', 'hamming'),
     ('exact', 'jaccard'),
-    ('sparse_indexed', 'jaccard'),
-    ('sparse_indexed', 'hamming'),
     ('lsh', 'l2'),
-    ('lsh', 'angular'),
+    ('lsh', 'cosine'),
     ('lsh', 'jaccard'),
     ('lsh', 'hamming'),
-    ('permutation_lsh', 'angular'),
+    ('permutation_lsh', 'cosine'),
     ('permutation_lsh', 'l2')
 ]
 
@@ -29,8 +27,6 @@ def dealias_metric(metric: str) -> str:
     mlower = metric.lower()
     if mlower == 'euclidean':
         return 'l2'
-    elif mlower == 'cosine':
-        return 'angular'
     else:
         return mlower
 
@@ -43,7 +39,7 @@ def sparse_bool_vectors_to_csr(sbvs: List[Vec.SparseBool]) -> csr_matrix:
             cols.append(col)
             rows.append(row)
             data.append(True)
-    return csr_matrix((data, (rows, cols)), shape=(len(sbvs), sbvs[0].total_indices), dtype=np.bool)
+    return csr_matrix((data, (rows, cols)), shape=(len(sbvs), sbvs[0].total_indices), dtype=bool)
 
 
 def csr_to_sparse_bool_vectors(csr: csr_matrix) -> Iterator[Vec.SparseBool]:
@@ -67,7 +63,7 @@ def ndarray_to_sparse_bool_vectors(arr: np.ndarray) -> Iterator[Vec.SparseBool]:
 
 def canonical_vectors_to_elastiknn(canonical: Union[np.ndarray, csr_matrix]) -> Iterator[Union[Vec.SparseBool, Vec.DenseFloat]]:
     if isinstance(canonical, np.ndarray):
-        if canonical.dtype == np.bool:
+        if canonical.dtype == bool:
             return ndarray_to_sparse_bool_vectors(canonical)
         else:
             return ndarray_to_dense_float_vectors(canonical)

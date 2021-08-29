@@ -17,7 +17,7 @@ object ExactSimilarityReference {
     1 / (1 + manhattanDistance(new DenseVector(v1.values), new DenseVector(v2.values)))
   }
 
-  val Angular: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
+  val Cosine: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
     1 + (1 - cosineDistance(new DenseVector(v1.values.map(_.toDouble)), new DenseVector(v2.values.map(_.toDouble))))
   }
 

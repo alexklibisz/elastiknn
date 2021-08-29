@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.api
 
 import io.circe
-import io.circe.{DecodingFailure, Json}
+import io.circe._
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -106,6 +106,19 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
 
     """
       |{
+      | "type": "elastiknn_dense_float_vector",
+      | "elastiknn": {
+      |  "dims": 100,
+      |  "model": "lsh",
+      |  "similarity": "cosine",
+      |  "L": 99,
+      |  "k": 1
+      | }
+      |}
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.CosineLsh(100, 99, 1)
+
+    """
+      |{
       | "type": "elastiknn_sparse_bool_vector",
       | "elastiknn": {
       |  "dims": 100,
@@ -119,20 +132,10 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
 
     """
       |{
-      | "type": "elastiknn_sparse_bool_vector",
-      | "elastiknn": {
-      |  "dims": 100,
-      |  "model": "sparse_indexed"
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [Mapping] Mapping.SparseIndexed(100)
-
-    """
-      |{
       | "type": "elastiknn_dense_float_vector",
       | "elastiknn": {
       |  "dims": 100,
-      |  "model": "sparse_indexed"
+      |  "model": "exact"
       | }
       |}
       |""".stripMargin.shouldNotDecodeTo[Mapping]
@@ -157,30 +160,6 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
     """
       |{
       | "field": "vec",
-      | "model": "sparse_indexed",
-      | "similarity": "hamming",
-      | "vec": {
-      |   "true_indices": [1,2,3],
-      |   "total_indices": 99
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Hamming, Vec.SparseBool(Array(1, 2, 3), 99))
-
-    """
-      |{
-      | "field": "vec",
-      | "model": "sparse_indexed",
-      | "similarity": "jaccard",
-      | "vec": {
-      |   "true_indices": [1,2,3],
-      |   "total_indices": 99
-      | }
-      |}
-      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] SparseIndexed("vec", Similarity.Jaccard, Vec.SparseBool(Array(1, 2, 3), 99))
-
-    """
-      |{
-      | "field": "vec",
       | "model": "lsh",
       | "similarity": "jaccard",
       | "candidates": 100,
@@ -204,4 +183,42 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       |}
       |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] JaccardLsh("vec", 100, Vec.SparseBool(Array(1, 2, 3), 99))
   }
+
+  // Issue 277: "Angular" was renamed to "Cosine", but we still want backwards compatibility for "Angular" in the codec.
+  test("backwards-compatibility for Angular similarity") {
+
+    ElasticsearchCodec.decodeJson[Similarity](Json.fromString("angular")) shouldBe Right(Similarity.Cosine)
+
+    ElasticsearchCodec.encode(Similarity.Cosine: Similarity) shouldBe Json.fromString("cosine")
+
+    """
+      |{
+      | "type": "elastiknn_dense_float_vector",
+      | "elastiknn": {
+      |  "dims": 100,
+      |  "model": "lsh",
+      |  "similarity": "angular",
+      |  "L": 99,
+      |  "k": 1
+      | }
+      |}
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.CosineLsh(100, 99, 1)
+
+    """
+      |{
+      | "field": "vec",
+      | "model": "exact",
+      | "similarity": "angular",
+      | "vec": {
+      |   "values": [1,2,3]
+      | }
+      |}
+      |""".stripMargin shouldDecodeTo [NearestNeighborsQuery] NearestNeighborsQuery.Exact(
+      "vec",
+      Similarity.Cosine,
+      Vec.DenseFloat(1f, 2f, 3f)
+    )
+
+  }
+
 }

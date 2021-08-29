@@ -63,7 +63,6 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
               config.getGlobalCheckpointSupplier,
               config.retentionLeasesSupplier,
               config.getPrimaryTermSupplier,
-              config.getTombstoneDocSupplier,
               config.getSnapshotCommitSupplier
             )
           )

@@ -41,10 +41,10 @@ public abstract class ElastiknnNearestNeighborsQuery {
         }
     }
 
-    public static final class AngularLsh extends ElastiknnNearestNeighborsQuery {
+    public static final class CosineLsh extends ElastiknnNearestNeighborsQuery {
         private final Vector vector;
         private final Integer candidates;
-        public AngularLsh(Vector vector, Integer candidates) {
+        public CosineLsh(Vector vector, Integer candidates) {
             this.vector = vector;
             this.candidates = candidates;
         }
@@ -60,14 +60,14 @@ public abstract class ElastiknnNearestNeighborsQuery {
 
         @Override
         public Similarity getSimilarity() {
-            return Similarity.ANGULAR;
+            return Similarity.COSINE;
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            AngularLsh that = (AngularLsh) o;
+            CosineLsh that = (CosineLsh) o;
             return Objects.equals(getVector(), that.getVector()) && Objects.equals(getCandidates(), that.getCandidates()) && getSimilarity() == that.getSimilarity();
         }
 

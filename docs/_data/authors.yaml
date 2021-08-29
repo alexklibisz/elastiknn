@@ -1,0 +1,8 @@
+Alex Klibisz:
+  name: Alex Klibisz
+  avatar: https://github.com/alexklibisz.png
+  bio: Maintainer of Elastiknn
+  links:
+    - label: "Github"
+      icon: "fas fa-fw fa-link"
+      url: "https://github.com/alexklibisz"

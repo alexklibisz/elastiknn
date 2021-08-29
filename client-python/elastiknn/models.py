@@ -90,36 +90,29 @@ class ElastiknnModel(object):
                 return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L1)
             elif self._metric == 'l2':
                 return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
-            elif self._metric == 'angular':
-                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Angular)
+            elif self._metric == 'cosine':
+                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Cosine)
             elif self._metric == 'jaccard':
                 return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
             elif self._metric == 'hamming':
                 return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Hamming)
-        elif self._algorithm == 'sparse_indexed':
-            if self._metric == 'jaccard':
-                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
-                                                                                        Similarity.Jaccard)
-            elif self._metric == 'hamming':
-                return Mapping.SparseIndexed(self._dims), NearestNeighborsQuery.SparseIndexed(field, dummy,
-                                                                                        Similarity.Hamming)
         elif self._algorithm == 'lsh':
             if self._metric == 'l2':
                 m, q = Mapping.L2Lsh(self._dims, **self._mapping_params), \
                        NearestNeighborsQuery.L2Lsh(field, dummy, **query_params)
                 return m, q
-            elif self._metric == 'angular':
-                return Mapping.AngularLsh(self._dims, **self._mapping_params), \
-                       NearestNeighborsQuery.AngularLsh(field, dummy, **query_params)
+            elif self._metric == 'cosine':
+                return Mapping.CosineLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.CosineLsh(field, dummy, **query_params)
             elif self._metric == 'hamming':
-                return Mapping.AngularLsh(self._dims, **self._mapping_params), \
+                return Mapping.CosineLsh(self._dims, **self._mapping_params), \
                        NearestNeighborsQuery.HammingLsh(field, dummy, **query_params)
             elif self._metric == 'jaccard':
                 return Mapping.JaccardLsh(self._dims, **self._mapping_params), \
                        NearestNeighborsQuery.JaccardLsh(field, dummy, **query_params)
         elif self._algorithm == 'permutation_lsh':
-            if self._metric == 'angular':
+            if self._metric == 'cosine':
                 return Mapping.PermutationLsh(self._dims, **self._mapping_params), \
-                       NearestNeighborsQuery.PermutationLsh(field, dummy, Similarity.Angular, **query_params)
+                       NearestNeighborsQuery.PermutationLsh(field, dummy, Similarity.Cosine, **query_params)
 
         raise NameError

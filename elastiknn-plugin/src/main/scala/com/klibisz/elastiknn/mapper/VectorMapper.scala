@@ -5,7 +5,7 @@ import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
 import com.klibisz.elastiknn.models.Cache
-import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery, SparseIndexedQuery}
+import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
 import io.circe.syntax._
 import io.circe.{Json, JsonObject}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
@@ -14,7 +14,6 @@ import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
-import org.elasticsearch.index.mapper.Mapper.TypeParser
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.search.lookup.SourceLookup
@@ -34,8 +33,7 @@ object VectorMapper {
         else {
           val sorted = vec.sorted() // Sort for faster intersections on the query side.
           mapping match {
-            case Mapping.SparseBool(_)    => Try(ExactQuery.index(field, sorted))
-            case Mapping.SparseIndexed(_) => Try(SparseIndexedQuery.index(field, luceneFieldType, sorted))
+            case Mapping.SparseBool(_) => Try(ExactQuery.index(field, sorted))
             case m: Mapping.JaccardLsh =>
               Try(HashingQuery.index(field, luceneFieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
             case m: Mapping.HammingLsh =>
@@ -53,7 +51,7 @@ object VectorMapper {
         else
           mapping match {
             case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.AngularLsh     => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
+            case m: Mapping.CosineLsh      => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
             case _                         => Failure(incompatible(mapping, vec))
@@ -104,7 +102,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   import com.klibisz.elastiknn.utils.CirceUtils._
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: JavaJsonMap, parserContext: TypeParser.ParserContext): Mapper.Builder = {
+    override def parse(name: String, node: JavaJsonMap, parserContext: MappingParserContext): Mapper.Builder = {
       val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
       val builder: Builder = new Builder(name, mapping)
       // TypeParsers.parseField(builder, name, node, parserContext)

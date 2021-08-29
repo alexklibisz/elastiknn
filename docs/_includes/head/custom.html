@@ -1,0 +1,23 @@
+<!-- start custom head snippets -->
+
+<style>
+/*
+ This makes the page full-width if its the only element in the #main div
+ This only works if the frontmatter includes sidebar:false
+*/
+#main > .page:only-child, #main > .archive:only-child {
+  /* border: 1px solid yellow; */
+  width: 100%;
+}
+
+a.anchor-link {
+  display: none;
+}
+</style>
+
+{% if page.mathjax %}
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% endif %}
+
+<!-- end custom head snippets -->

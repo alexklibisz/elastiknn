@@ -28,7 +28,6 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     val mappings: Seq[(String, Mapping)] = Seq(
       ("vec_spv", Mapping.SparseBool(100)),
       ("vec_dfv", Mapping.DenseFloat(100)),
-      ("vec_spix", Mapping.SparseIndexed(100)),
       ("vec_jcdlsh", Mapping.JaccardLsh(100, 65, 1))
     )
     for {
@@ -44,48 +43,47 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
         case (fieldName, _) => eknn.execute(getMapping(Indexes(index), fieldName))
       }
       getMappingRes <- Future.sequence(getMappingReqs)
-    } yield
-      forAll(mappings.zip(getMappingRes)) {
-        case ((fieldName, mapping), res) =>
-          // Just check the JSON directly. Example structure:
-          // {
-          //  "test-226cf173-38d9-40e3-8c3d-3aabccd182ae": {
-          //    "mappings": {
-          //      "vec_spv": {
-          //        "full_name": "vec_spv",
-          //        "mapping": {
-          //          "vec_spv": {
-          //            "type": "elastiknn_sparse_bool_vector",
-          //            "elastiknn": {
-          //              "dims": 100
-          //            }
-          //          }
-          //        }
-          //      }
-          //    }
-          //  }
-          //}
+    } yield forAll(mappings.zip(getMappingRes)) {
+      case ((fieldName, mapping), res) =>
+        // Just check the JSON directly. Example structure:
+        // {
+        //  "test-226cf173-38d9-40e3-8c3d-3aabccd182ae": {
+        //    "mappings": {
+        //      "vec_spv": {
+        //        "full_name": "vec_spv",
+        //        "mapping": {
+        //          "vec_spv": {
+        //            "type": "elastiknn_sparse_bool_vector",
+        //            "elastiknn": {
+        //              "dims": 100
+        //            }
+        //          }
+        //        }
+        //      }
+        //    }
+        //  }
+        //}
 
-          res.body shouldBe defined
-          val json = parse(res.body.get)
-          json shouldBe 'right
+        res.body shouldBe defined
+        val json = parse(res.body.get)
+        json shouldBe 'right
 
-          val encoded = ElasticsearchCodec.encode(mapping)
+        val encoded = ElasticsearchCodec.encode(mapping)
 
-          val mappingJsonOpt: Option[JsonObject] = for {
-            x <- json.toOption
-            x <- x.findAllByKey(index).headOption
-            x <- x.findAllByKey("mappings").headOption
-            x <- x.findAllByKey(fieldName).headOption
-            x <- x.findAllByKey("mapping").headOption
-            x <- x.findAllByKey(fieldName).headOption
-            x <- x.asObject
-            y <- encoded.asObject
-            // The returned mapping might contain some more items, like similarity, so filter them out.
-          } yield x.filterKeys(y.keys.toSet.contains)
+        val mappingJsonOpt: Option[JsonObject] = for {
+          x <- json.toOption
+          x <- x.findAllByKey(index).headOption
+          x <- x.findAllByKey("mappings").headOption
+          x <- x.findAllByKey(fieldName).headOption
+          x <- x.findAllByKey("mapping").headOption
+          x <- x.findAllByKey(fieldName).headOption
+          x <- x.asObject
+          y <- encoded.asObject
+          // The returned mapping might contain some more items, like similarity, so filter them out.
+        } yield x.filterKeys(y.keys.toSet.contains)
 
-          mappingJsonOpt shouldBe encoded.asObject
-      }
+        mappingJsonOpt shouldBe encoded.asObject
+    }
 
   }
 
@@ -98,7 +96,6 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       // (index, mapping, random vectors, vector ids
       (s"test-${UUID.randomUUID()}", Mapping.SparseBool(dims), Vec.SparseBool.randoms(dims, n), ids),
       (s"test-${UUID.randomUUID()}", Mapping.DenseFloat(dims), Vec.DenseFloat.randoms(dims, n), ids),
-      (s"test-${UUID.randomUUID()}", Mapping.SparseIndexed(dims), Vec.SparseBool.randoms(dims, n), ids),
       (s"test-${UUID.randomUUID()}", Mapping.JaccardLsh(dims, 65, 1), Vec.SparseBool.randoms(dims, n), ids)
     )
 
@@ -127,15 +124,14 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
 
       getResponses: Seq[Seq[Response[GetResponse]]] <- Future.sequence(getReqs)
 
-    } yield
-      forAll(inputs.zip(getResponses)) {
-        case ((_, _, vectors, _), getResponses) =>
-          getResponses should have length vectors.length
-          val parsedVectors = getResponses.map(_.result.sourceAsString).map(parse)
-          forAll(parsedVectors)(_ shouldBe 'right)
-          val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(vecField -> ElasticsearchCodec.encode(v))))
-          forAll(encodedVectors)(v => parsedVectors should contain(Right(v)))
-      }
+    } yield forAll(inputs.zip(getResponses)) {
+      case ((_, _, vectors, _), getResponses) =>
+        getResponses should have length vectors.length
+        val parsedVectors = getResponses.map(_.result.sourceAsString).map(parse)
+        forAll(parsedVectors)(_ shouldBe 'right)
+        val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(vecField -> ElasticsearchCodec.encode(v))))
+        forAll(encodedVectors)(v => parsedVectors should contain(Right(v)))
+    }
   }
 
   test("throw an error given vector with bad dimensions") {

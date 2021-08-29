@@ -15,9 +15,9 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 14
-      - uses: actions/setup-ruby@v1
+      - uses: actions/setup-python@v2
         with:
-          ruby-version: '2.6'
+          python-version: '3.7.5'
       - name: Setup Release Credentials
         env:
           GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
@@ -36,7 +36,10 @@ jobs:
       - name: Publish JVM Docs
         run: task jvm:docs:publish
       - name: Publish Site
-        run: task docs:publish
+        run: |
+          mkdir -p docs/_site
+          chmod -R 777 docs
+          task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
       - name: Publish to Sonatype

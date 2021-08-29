@@ -45,6 +45,9 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 14
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7.5'
       - run: sudo snap install task --classic
       - name: Docs
         run: task py:docs
@@ -75,12 +78,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '2.6'
       - run: sudo snap install task --classic
       - name: Compile Jekyll Site
-        run: "task docs:compile"
+        run: |
+          chmod -R 777 docs
+          task docs:compile
 
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
@@ -102,6 +104,9 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 14
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7.5'
       - run: |
           sudo snap install task --classic
           sudo snap install hub --classic
