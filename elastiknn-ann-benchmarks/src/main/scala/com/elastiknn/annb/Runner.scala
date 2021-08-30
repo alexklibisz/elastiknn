@@ -16,7 +16,7 @@ object Runner {
       rebuild: Boolean,
       runs: Int,
       buildArgs: Json,
-      queryArgs: Json
+      queryArgs: List[Json]
   )
 
   private val defaultParams = Params(
@@ -26,7 +26,7 @@ object Runner {
     count = 10,
     runs = 1,
     buildArgs = Json.Null,
-    queryArgs = Json.Null
+    queryArgs = List.empty
   )
 
   private val optionParser = new OptionParser[Params]("(big-)ann-benchmarks CLI") {
@@ -73,13 +73,14 @@ object Runner {
       .action((s, c) => c.copy(buildArgs = parser.parse(s).fold(throw _, identity)))
     arg[String]("queries")
       .text("JSON of arguments to pass to the queries. E.g. [100].")
+      .unbounded()
       .validate(s =>
         parser.parse(s) match {
           case Left(err) => Left(s"Invalid json [$s]. Parsing failed with error [${err.message}]")
           case Right(_)  => Right(())
         }
       )
-      .action((s, c) => c.copy(queryArgs = parser.parse(s).fold(throw _, identity)))
+      .action((s, c) => c.copy(queryArgs = c.queryArgs :+ parser.parse(s).fold(throw _, identity)))
   }
 
   def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams) match {
