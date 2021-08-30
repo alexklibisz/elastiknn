@@ -64,19 +64,19 @@ tasks:
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - "{{ .CMD_GRADLE }} assemble shadowJar"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release delete {{ .VERSION }} || true
-      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-{{.VERSION}}.zip -a elastiknn-ann-benchmarks/build/libs/ann-benchmarks-{{.VERSION}}-all.jar {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - "{{ .CMD_GRADLE }} assemble shadowJar"
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
