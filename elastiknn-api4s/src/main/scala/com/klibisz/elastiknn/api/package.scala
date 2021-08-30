@@ -96,6 +96,21 @@ package object api {
         (0 until n).map(_ => random(length, unit, scale)).toVector
     }
 
+    final case class DenseInt(values: Array[Int]) extends Vec with KnownDims {
+      override def equals(other: Any): Boolean = other match {
+        case other: DenseInt => other.values.deep == values.deep
+        case _               => false
+      }
+
+      override def toString: String = s"DenseInt(${values.take(3).mkString(",")},...,${values.length})"
+
+      override def dims: Int = values.length
+    }
+
+    object DenseInt {
+      def apply(values: Int*): DenseInt = DenseInt(values.toArray)
+    }
+
     final case class Indexed(index: String, id: String, field: String) extends Vec
 
     final case class Empty() extends Vec

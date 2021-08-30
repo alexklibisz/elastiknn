@@ -231,6 +231,9 @@ configure(lucene, List.of(
         }))
 
 configure(annBenchmarks, List.of(scalaProjectConfig, {
+
+    apply plugin: 'com.github.johnrengelman.shadow'
+
     dependencies {
         implementation models
         implementation lucene
@@ -242,6 +245,7 @@ configure(annBenchmarks, List.of(scalaProjectConfig, {
         implementation "commons-io:commons-io:2.8.0"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
         implementation "ch.qos.logback:logback-classic:1.2.3"
+        implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
     }
 }))
 
