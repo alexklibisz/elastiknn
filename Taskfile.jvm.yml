@@ -69,7 +69,7 @@ tasks:
       - echo "" >> release.md
       - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
       - hub release delete {{ .VERSION }} || true
-      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-{{.VERSION}}.zip -a elastiknn-ann-benchmarks/build/libs/ann-benchmarks-{{.VERSION}}-all.jar {{ .VERSION }}
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip -a elastiknn-ann-benchmarks/build/libs/ann-benchmarks-*-all.jar {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
@@ -80,7 +80,7 @@ tasks:
       - echo {{ .VERSION }} > release.md
       - echo "" >> release.md
       - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
-      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-{{.VERSION}}.zip elastiknn-ann-benchmarks/build/libs/ann-benchmarks-{{.VERSION}}-all.jar {{ .VERSION }}
+      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip elastiknn-ann-benchmarks/build/libs/ann-benchmarks-*-all.jar {{ .VERSION }}
 
   run:gradle:
     desc: Run Elasticsearch using gradle
