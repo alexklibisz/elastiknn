@@ -62,6 +62,10 @@ object Runner {
     opt[Unit]("rebuild")
       .text("Re-build the index, even if it exists.")
       .action((_, c) => c.copy(rebuild = true))
+    opt[String]("constructor")
+      .text("No-op. Used for compatibility (big-)ann-benchmarks frameworks.")
+    opt[String]("module")
+      .text("No-op. Used for compatibility (big-)ann-benchmarks frameworks.")
     arg[String]("build")
       .text("JSON of arguments to pass to the constructor. E.g. [\"angular\", 100].")
       .validate(s =>
@@ -81,6 +85,7 @@ object Runner {
         }
       )
       .action((s, c) => c.copy(queryArgs = c.queryArgs :+ parser.parse(s).fold(throw _, identity)))
+
   }
 
   def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams) match {
