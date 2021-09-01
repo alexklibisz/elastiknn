@@ -1,10 +1,9 @@
 package com.elastiknn.annb
 
 import akka.NotUsed
-import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.Get
-import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.stream.scaladsl.{FileIO, Source}
 import com.klibisz.elastiknn.api.Vec
 
@@ -42,30 +41,37 @@ object DatasetClient {
   */
 final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.AnnBenchmarks, path: Path) extends DatasetClient {
 
-  def download()(implicit sys: ActorSystem, ec: ExecutionContext): Future[Path] = {
-    val out = path.resolve(s"${dataset.name}.hdf5")
-    if (out.toFile.exists())
-      Future.successful {
-        sys.log.info(s"File $out already exists")
-        out
+  private val localHdf5Path = path.resolve(s"${dataset.name}.hdf5")
+
+  private def download(): Source[Unit, NotUsed] =
+    Source
+      .fromMaterializer {
+        case (mat, _) =>
+          val log = mat.system.log
+          implicit val ec: ExecutionContext = mat.executionContext
+          if (localHdf5Path.toFile.exists()) Source.single(())
+          else
+            Source.lazyFuture { () =>
+              val uri = Uri("http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5")
+              val req = Get(uri)
+              val resF = Http()(mat.system).singleRequest(req)
+              resF.flatMap {
+                case okres @ HttpResponse(StatusCodes.OK, _, entity, _) =>
+                  log.info(s"Downloading dataset ${dataset.name} from $uri to $localHdf5Path")
+                  entity.dataBytes
+                    .runWith(FileIO.toPath(localHdf5Path))(mat)
+                    .map(_ => log.info(s"Finished downloading dataset ${dataset.name} to $localHdf5Path"))
+                case other => Future.failed(new Throwable(s"Non-200 status code for ${other}"))
+              }
+            }
       }
-    else {
-      val uri = Uri("http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5")
-      val req = Get(uri)
-      val resF = Http().singleRequest(req)
-      sys.log.info(s"Requesting $uri")
-      for {
-        res <- resF
-        _ = sys.log.info(s"Found $res")
-        _ = sys.log.info(s"Downloading $uri to $out")
-        _ <- res.entity.dataBytes.runWith(FileIO.toPath(out))
-      } yield out
-    }
-  }
+      .mapMaterializedValue(_ => NotUsed)
 
   override def indexVectors(): Source[Vec, NotUsed] = {
-    ???
+    download()
+      .flatMapConcat(_ => Source.single(Vec.Empty()))
   }
+
   override def queryVectors(): Source[Vec, NotUsed] = ???
 }
 

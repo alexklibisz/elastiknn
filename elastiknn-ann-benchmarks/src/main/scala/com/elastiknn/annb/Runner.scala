@@ -105,7 +105,7 @@ object Runner {
         // Setup the dataset client.
         val client = DatasetClient(params.dataset, config.datasetsPath)
 
-        val example = client.asInstanceOf[AnnBenchmarksLocalHdf5Client].download()
+        val example = client.asInstanceOf[AnnBenchmarksLocalHdf5Client].indexVectors().runForeach(println(_))
 
         Await.result(example, Duration.Inf)
 
