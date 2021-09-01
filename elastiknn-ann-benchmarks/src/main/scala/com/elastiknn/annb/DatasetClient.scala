@@ -6,7 +6,10 @@ import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.stream.scaladsl.{FileIO, Source}
 import com.klibisz.elastiknn.api.Vec
+import org.bytedeco.javacpp.FloatPointer
+import org.bytedeco.javacpp.hdf5.{DataType, H5F_ACC_RDONLY, H5File, PredType}
 
+import java.nio.FloatBuffer
 import java.nio.file.Path
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,7 +46,7 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
 
   private val localHdf5Path = path.resolve(s"${dataset.name}.hdf5")
 
-  private def download(): Source[Unit, NotUsed] =
+  private def download() =
     Source
       .fromMaterializer {
         case (mat, _) =>
@@ -56,7 +59,7 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
               val req = Get(uri)
               val resF = Http()(mat.system).singleRequest(req)
               resF.flatMap {
-                case okres @ HttpResponse(StatusCodes.OK, _, entity, _) =>
+                case HttpResponse(StatusCodes.OK, _, entity, _) =>
                   log.info(s"Downloading dataset ${dataset.name} from $uri to $localHdf5Path")
                   entity.dataBytes
                     .runWith(FileIO.toPath(localHdf5Path))(mat)
@@ -67,10 +70,32 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
       }
       .mapMaterializedValue(_ => NotUsed)
 
-  override def indexVectors(): Source[Vec, NotUsed] = {
-    download()
-      .flatMapConcat(_ => Source.single(Vec.Empty()))
+  private def readVectors(name: String): Iterator[Vec] = {
+    val f = new H5File(localHdf5Path.toFile.getAbsolutePath, H5F_ACC_RDONLY)
+    val dataSet = f.openDataSet(name)
+    val space = dataSet.getSpace
+    val (rows, cols) = {
+      val buf = Array(0L, 0L)
+      space.getSimpleExtentDims(buf)
+      (buf(0).toInt, buf(1).toInt)
+    }
+    try {
+      val buf = FloatBuffer.allocate(rows * cols)
+      val ptr = new FloatPointer(buf)
+      val typ = new DataType(PredType.NATIVE_FLOAT())
+      dataSet.read(ptr, typ)
+      ptr.get(buf.array())
+      buf.array().grouped(cols).map(Vec.DenseFloat(_))
+    } finally {
+      dataSet.deallocate()
+      space.deallocate()
+      f.close()
+    }
   }
+
+  override def indexVectors(): Source[Vec, NotUsed] =
+    download()
+      .flatMapConcat(_ => Source.fromIterator(() => readVectors("train")))
 
   override def queryVectors(): Source[Vec, NotUsed] = ???
 }

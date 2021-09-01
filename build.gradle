@@ -243,6 +243,7 @@ configure(annBenchmarks, List.of(scalaProjectConfig, {
         implementation "org.apache.lucene:lucene-core:${luceneVersion}"
         implementation "com.typesafe.akka:akka-stream_${scalaShortVersion}:2.6.15"
         implementation "com.typesafe.akka:akka-http_${scalaShortVersion}:10.2.6"
+        implementation 'org.bytedeco.javacpp-presets:hdf5-platform:1.10.4-1.4.4'
         implementation "commons-io:commons-io:2.8.0"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
         implementation "ch.qos.logback:logback-classic:1.2.3"

@@ -1,6 +1,7 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
+import com.klibisz.elastiknn.api.Vec
 import io.circe.Json
 import scopt.OptionParser
 
@@ -98,15 +99,11 @@ object Runner {
       implicit val ec: ExecutionContext = ExecutionContext.global
       implicit val sys: ActorSystem = ActorSystem()
       try {
-        // Load app config.
         val config = RunnerConfig.configured
-        println(config)
-
-        // Setup the dataset client.
         val client = DatasetClient(params.dataset, config.datasetsPath)
-
-        val example = client.asInstanceOf[AnnBenchmarksLocalHdf5Client].indexVectors().runForeach(println(_))
-
+        val example = client
+          .indexVectors()
+          .runForeach(v => println(v.asInstanceOf[Vec.DenseFloat].values.max, v.asInstanceOf[Vec.DenseFloat].values.length))
         Await.result(example, Duration.Inf)
 
         // Setup the results client.
