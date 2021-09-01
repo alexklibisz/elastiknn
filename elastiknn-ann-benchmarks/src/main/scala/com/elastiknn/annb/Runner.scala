@@ -1,7 +1,11 @@
 package com.elastiknn.annb
 
+import akka.actor.ActorSystem
 import io.circe.Json
 import scopt.OptionParser
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext}
 
 /**
   * big-ann-benchmarks run_from_cmdline: https://github.com/harsha-simhadri/big-ann-benchmarks/blob/004924700184fd79a27ff1a74c675f92dbf271fa/benchmark/runner.py#L114
@@ -89,15 +93,28 @@ object Runner {
   }
 
   def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams) match {
-    case None         => sys.exit(1)
+    case None => sys.exit(1)
     case Some(params) =>
-      // Setup the dataset client.
-      // Setup the results client.
-      // Setup the Lucene algorithm client.
-      // Build the index, via Lucene algo client.
-      // Run the queries, keeping results in memory, via Lucene algo client.
-      // Flush the results to disk.
-      println(params)
+      implicit val ec: ExecutionContext = ExecutionContext.global
+      implicit val sys: ActorSystem = ActorSystem()
+      try {
+        // Load app config.
+        val config = RunnerConfig.configured
+        println(config)
+
+        // Setup the dataset client.
+        val client = DatasetClient(params.dataset, config.datasetsPath)
+
+        val example = client.asInstanceOf[AnnBenchmarksLocalHdf5Client].download()
+
+        Await.result(example, Duration.Inf)
+
+        // Setup the results client.
+        // Setup the Lucene algorithm client.
+        // Build the index, via Lucene algo client.
+        // Run the queries, keeping results in memory, via Lucene algo client.
+        // Flush the results to disk.
+      } finally sys.terminate()
   }
 
 }
