@@ -13,7 +13,7 @@ import java.nio.FloatBuffer
 import java.nio.file.Path
 import scala.concurrent.Future
 
-trait DatasetClient[V <: Vec] {
+trait DatasetClient[V <: Vec.KnownDims] {
 
   /**
     * Provide an akka-stream Source for vectors that should be indexed.
@@ -29,7 +29,7 @@ trait DatasetClient[V <: Vec] {
 }
 
 object DatasetClient {
-  def apply[V <: Vec, F <: DatasetFormat](dataset: Dataset[V, F], path: Path): DatasetClient[V] =
+  def apply(dataset: Dataset, path: Path): DatasetClient[dataset.V] =
     dataset match {
       case d @ Dataset.FashionMnist   => new AnnBenchmarksLocalHdf5Client(d, path)
       case d @ Dataset.Glove25Angular => new AnnBenchmarksLocalHdf5Client(d, path)
@@ -42,11 +42,10 @@ object DatasetClient {
   * Each dataset is in a single HDF5 file at http://ann-benchmarks.com/<dataset-name>.hdf5
   * e.g., http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
   */
-final class AnnBenchmarksLocalHdf5Client[V <: Vec, F <: DatasetFormat](
-    val dataset: Dataset[V, F],
+final class AnnBenchmarksLocalHdf5Client[D <: Dataset](
+    val dataset: D,
     path: Path
-)(implicit ev: AnnBenchmarksLocalHdf5Client.ReadFromFloatArray[V])
-    extends DatasetClient[V] {
+) extends DatasetClient[D#V] {
 
   private val localHdf5Path = path.resolve(s"${dataset.name}.hdf5")
 
@@ -75,7 +74,7 @@ final class AnnBenchmarksLocalHdf5Client[V <: Vec, F <: DatasetFormat](
       }
       .mapMaterializedValue(_ => NotUsed)
 
-  private def readVectors(name: String): Iterator[V] = {
+  private def readVectors(name: String): Iterator[dataset.V] = {
     val f = new H5File(localHdf5Path.toFile.getAbsolutePath, H5F_ACC_RDONLY)
     val dataSet = f.openDataSet(name)
     val space = dataSet.getSpace
@@ -91,7 +90,8 @@ final class AnnBenchmarksLocalHdf5Client[V <: Vec, F <: DatasetFormat](
       val typ = new DataType(PredType.NATIVE_FLOAT())
       dataSet.read(ptr, typ)
       ptr.get(buf.array())
-      buf.array().grouped(cols).map(ev(_))
+//      buf.array().grouped(cols).map(ev(_))
+      ???
     } finally {
       dataSet.deallocate()
       space.deallocate()
@@ -99,16 +99,16 @@ final class AnnBenchmarksLocalHdf5Client[V <: Vec, F <: DatasetFormat](
     }
   }
 
-  override def indexVectors(): Source[V, NotUsed] =
+  override def indexVectors(): Source[dataset.V, NotUsed] =
     download()
       .flatMapConcat(_ => Source.fromIterator(() => readVectors("train")))
 
-  override def queryVectors(): Source[V, NotUsed] = ???
+  override def queryVectors(): Source[dataset.V, NotUsed] = ???
 }
 
 object AnnBenchmarksLocalHdf5Client {
 
-  sealed trait ReadFromFloatArray[V <: Vec] {
+  sealed trait ReadFromFloatArray[V <: Vec.KnownDims] {
     def apply(arr: Array[Float]): V
   }
 

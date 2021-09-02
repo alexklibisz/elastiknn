@@ -1,10 +1,15 @@
 package com.elastiknn.annb
 
 import com.klibisz.elastiknn.api.Vec
-import org.apache.lucene.document.Document
+import org.apache.lucene.index.IndexableField
 
-trait LuceneAlgorithm[V <: Vec] {
+trait LuceneAlgorithm[V <: Vec.KnownDims] {
 
-  def apply(index: Int, vec: V): Document
+  def index(id: Long, vec: V): Array[IndexableField]
 
+}
+
+object LuceneAlgorithm {
+  def apply(dataset: Dataset, algo: Algorithm): LuceneAlgorithm[dataset.V] =
+    ???
 }

@@ -1,6 +1,7 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
+import akka.stream.scaladsl.Sink
 import com.klibisz.elastiknn.api.Vec
 import io.circe.Json
 import scopt.OptionParser
@@ -15,7 +16,7 @@ import scala.concurrent.{Await, ExecutionContext}
 object Runner {
 
   final case class Params(
-      dataset: Dataset[_ <: Vec, _ <: DatasetFormat],
+      dataset: Dataset,
       algo: Algorithm,
       count: Int,
       rebuild: Boolean,
@@ -99,12 +100,17 @@ object Runner {
       implicit val ec: ExecutionContext = ExecutionContext.global
       implicit val sys: ActorSystem = ActorSystem()
       try {
-        val config = RunnerConfig.configured
-        val client = DatasetClient(params.dataset, config.datasetsPath)
-
+        val config: RunnerConfig = RunnerConfig.configured
+        val client: DatasetClient[params.dataset.V] = DatasetClient(params.dataset, config.datasetsPath)
+        val algo: LuceneAlgorithm[params.dataset.V] = LuceneAlgorithm(params.dataset, params.algo)
         val example = client
           .indexVectors()
-          .runForeach(println(_))
+          .zipWithIndex
+          .map {
+            case (vec, i) => algo.index(i + 1, vec)
+          }
+          .runWith(Sink.ignore)
+
         // Read Elastiknn vec
         // Transform to a Lucene doc via Hashing model
         //
