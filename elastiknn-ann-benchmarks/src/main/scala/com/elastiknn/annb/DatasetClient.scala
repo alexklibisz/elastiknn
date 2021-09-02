@@ -11,27 +11,29 @@ import org.bytedeco.javacpp.hdf5.{DataType, H5F_ACC_RDONLY, H5File, PredType}
 
 import java.nio.FloatBuffer
 import java.nio.file.Path
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-trait DatasetClient {
+trait DatasetClient[V <: Vec] {
 
   /**
     * Provide an akka-stream Source for vectors that should be indexed.
     * If the dataset is not cached in local storage already, this should also download it.
     */
-  def indexVectors(): Source[Vec, NotUsed]
+  def indexVectors(): Source[V, NotUsed]
 
   /**
     * Provide an akka-stream Source for vecotrs that should be used for querying.
     * If the dataset is not cached in local storage already, this should also download it.
     */
-  def queryVectors(): Source[Vec, NotUsed]
+  def queryVectors(): Source[V, NotUsed]
 }
 
 object DatasetClient {
-  def apply(dataset: Dataset, path: Path): DatasetClient = dataset match {
-    case d @ Dataset.FashionMnist => new AnnBenchmarksLocalHdf5Client(d, path)
-  }
+  def apply[V <: Vec, F <: DatasetFormat](dataset: Dataset[V, F], path: Path): DatasetClient[V] =
+    dataset match {
+      case d @ Dataset.FashionMnist   => new AnnBenchmarksLocalHdf5Client(d, path)
+      case d @ Dataset.Glove25Angular => new AnnBenchmarksLocalHdf5Client(d, path)
+    }
 }
 
 /**
@@ -39,10 +41,12 @@ object DatasetClient {
   *
   * Each dataset is in a single HDF5 file at http://ann-benchmarks.com/<dataset-name>.hdf5
   * e.g., http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
-  *
-  * TODO: Document the format.
   */
-final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.AnnBenchmarks, path: Path) extends DatasetClient {
+final class AnnBenchmarksLocalHdf5Client[V <: Vec, F <: DatasetFormat](
+    val dataset: Dataset[V, F],
+    path: Path
+)(implicit ev: AnnBenchmarksLocalHdf5Client.ReadFromFloatArray[V])
+    extends DatasetClient[V] {
 
   private val localHdf5Path = path.resolve(s"${dataset.name}.hdf5")
 
@@ -50,27 +54,28 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
     Source
       .fromMaterializer {
         case (mat, _) =>
+          implicit val exc = mat.executionContext
+          implicit val sys = mat.system
           val log = mat.system.log
-          implicit val ec: ExecutionContext = mat.executionContext
           if (localHdf5Path.toFile.exists()) Source.single(())
           else
             Source.lazyFuture { () =>
-              val uri = Uri("http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5")
+              val uri = Uri(s"http://ann-benchmarks.com/${dataset.name}.hdf5")
               val req = Get(uri)
-              val resF = Http()(mat.system).singleRequest(req)
+              val resF = Http().singleRequest(req)
               resF.flatMap {
                 case HttpResponse(StatusCodes.OK, _, entity, _) =>
                   log.info(s"Downloading dataset ${dataset.name} from $uri to $localHdf5Path")
                   entity.dataBytes
-                    .runWith(FileIO.toPath(localHdf5Path))(mat)
+                    .runWith(FileIO.toPath(localHdf5Path))
                     .map(_ => log.info(s"Finished downloading dataset ${dataset.name} to $localHdf5Path"))
-                case other => Future.failed(new Throwable(s"Non-200 status code for ${other}"))
+                case other => Future.failed(new Throwable(s"Non-200 response: $other"))
               }
             }
       }
       .mapMaterializedValue(_ => NotUsed)
 
-  private def readVectors(name: String): Iterator[Vec] = {
+  private def readVectors(name: String): Iterator[V] = {
     val f = new H5File(localHdf5Path.toFile.getAbsolutePath, H5F_ACC_RDONLY)
     val dataSet = f.openDataSet(name)
     val space = dataSet.getSpace
@@ -80,12 +85,13 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
       (buf(0).toInt, buf(1).toInt)
     }
     try {
+      // TODO: Read and emit the vectors in batches.
       val buf = FloatBuffer.allocate(rows * cols)
       val ptr = new FloatPointer(buf)
       val typ = new DataType(PredType.NATIVE_FLOAT())
       dataSet.read(ptr, typ)
       ptr.get(buf.array())
-      buf.array().grouped(cols).map(Vec.DenseFloat(_))
+      buf.array().grouped(cols).map(ev(_))
     } finally {
       dataSet.deallocate()
       space.deallocate()
@@ -93,14 +99,28 @@ final class AnnBenchmarksLocalHdf5Client(dataset: Dataset with DatasetFormat.Ann
     }
   }
 
-  override def indexVectors(): Source[Vec, NotUsed] =
+  override def indexVectors(): Source[V, NotUsed] =
     download()
       .flatMapConcat(_ => Source.fromIterator(() => readVectors("train")))
 
-  override def queryVectors(): Source[Vec, NotUsed] = ???
+  override def queryVectors(): Source[V, NotUsed] = ???
 }
 
-final class BigAnnBenchmarksLocalCustomClient(dataset: Dataset with DatasetFormat.AnnBenchmarks, path: Path) extends DatasetClient {
-  override def indexVectors(): Source[Vec, NotUsed] = ???
-  override def queryVectors(): Source[Vec, NotUsed] = ???
+object AnnBenchmarksLocalHdf5Client {
+
+  sealed trait ReadFromFloatArray[V <: Vec] {
+    def apply(arr: Array[Float]): V
+  }
+
+  object ReadFromFloatArray {
+    implicit def readDenseFloatFromFloatArray: ReadFromFloatArray[Vec.DenseFloat] = new ReadFromFloatArray[Vec.DenseFloat] {
+      override def apply(arr: Array[Float]): Vec.DenseFloat = Vec.DenseFloat(arr)
+    }
+  }
+
 }
+
+//final class BigAnnBenchmarksLocalCustomClient(dataset: Dataset with DatasetFormat.AnnBenchmarks, path: Path) extends DatasetClient {
+//  override def indexVectors(): Source[Vec, NotUsed] = ???
+//  override def queryVectors(): Source[Vec, NotUsed] = ???
+//}

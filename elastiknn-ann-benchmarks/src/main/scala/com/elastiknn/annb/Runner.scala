@@ -15,7 +15,7 @@ import scala.concurrent.{Await, ExecutionContext}
 object Runner {
 
   final case class Params(
-      dataset: Dataset,
+      dataset: Dataset[_ <: Vec, _ <: DatasetFormat],
       algo: Algorithm,
       count: Int,
       rebuild: Boolean,
@@ -101,9 +101,15 @@ object Runner {
       try {
         val config = RunnerConfig.configured
         val client = DatasetClient(params.dataset, config.datasetsPath)
+
         val example = client
           .indexVectors()
-          .runForeach(v => println(v.asInstanceOf[Vec.DenseFloat].values.max, v.asInstanceOf[Vec.DenseFloat].values.length))
+          .runForeach(println(_))
+        // Read Elastiknn vec
+        // Transform to a Lucene doc via Hashing model
+        //
+        // Transform them to Lucene Documents
+
         Await.result(example, Duration.Inf)
 
         // Setup the results client.
