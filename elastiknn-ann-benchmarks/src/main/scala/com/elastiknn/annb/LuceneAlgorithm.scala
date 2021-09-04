@@ -11,5 +11,7 @@ trait LuceneAlgorithm[V <: Vec.KnownDims] {
 
 object LuceneAlgorithm {
   def apply(dataset: Dataset, algo: Algorithm): LuceneAlgorithm[dataset.V] =
-    ???
+    new LuceneAlgorithm[dataset.V] {
+      override def index(id: Long, vec: dataset.V): Array[IndexableField] = ???
+    }
 }

@@ -2,7 +2,6 @@ package com.elastiknn.annb
 
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
-import com.klibisz.elastiknn.api.Vec
 import io.circe.Json
 import scopt.OptionParser
 
@@ -107,7 +106,7 @@ object Runner {
           .indexVectors()
           .zipWithIndex
           .map {
-            case (vec, i) => algo.index(i + 1, vec)
+            case (vec, i) => println((i, vec)) // algo.index(i + 1, vec)
           }
           .runWith(Sink.ignore)
 
