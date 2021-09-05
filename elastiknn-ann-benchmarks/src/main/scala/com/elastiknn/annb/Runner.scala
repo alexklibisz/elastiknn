@@ -93,36 +93,30 @@ object Runner {
 
   }
 
-  def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams) match {
-    case None => sys.exit(1)
-    case Some(params) =>
-      implicit val ec: ExecutionContext = ExecutionContext.global
-      implicit val sys: ActorSystem = ActorSystem()
-      try {
-        val config: RunnerConfig = RunnerConfig.configured
-        val client: DatasetClient[params.dataset.V] = DatasetClient(params.dataset, config.datasetsPath)
-        val algo: LuceneAlgorithm[params.dataset.V] = LuceneAlgorithm(params.dataset, params.algo)
-        val example = client
-          .indexVectors()
-          .zipWithIndex
-          .map {
-            case (vec, i) => println((i, vec)) // algo.index(i + 1, vec)
-          }
-          .runWith(Sink.ignore)
+  def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams).foreach { p: Params =>
+    implicit val ec: ExecutionContext = ExecutionContext.global
+    implicit val sys: ActorSystem = ActorSystem()
+    try {
+      val config = RunnerConfig.configured
+      val client: DatasetClient[p.dataset.V] = DatasetClient(p.dataset, config.datasetsPath)
+      val algoEither: Either[AnnBenchmarksError, LuceneAlgorithm[p.dataset.V]] = LuceneAlgorithm(p.dataset, p.algo, p.buildArgs)
+      val algo: LuceneAlgorithm[p.dataset.V] = algoEither.fold(throw _, identity[LuceneAlgorithm[p.dataset.V]])
+      val example = client
+        .indexVectors()
+        .zipWithIndex
+        .map {
+          case (vec, i) => ??? // algo.toDocument(i + 1, vec)
+        }
+        .runWith(LuceneSink.store(config.indexPath, 1))
 
-        // Read Elastiknn vec
-        // Transform to a Lucene doc via Hashing model
-        //
-        // Transform them to Lucene Documents
+      Await.result(example, Duration.Inf)
 
-        Await.result(example, Duration.Inf)
-
-        // Setup the results client.
-        // Setup the Lucene algorithm client.
-        // Build the index, via Lucene algo client.
-        // Run the queries, keeping results in memory, via Lucene algo client.
-        // Flush the results to disk.
-      } finally sys.terminate()
+      // Setup the results client.
+      // Setup the Lucene algorithm client.
+      // Build the index, via Lucene algo client.
+      // Run the queries, keeping results in memory, via Lucene algo client.
+      // Flush the results to disk.
+    } finally sys.terminate()
   }
 
 }
