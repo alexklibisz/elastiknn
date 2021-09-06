@@ -12,6 +12,7 @@ import scala.concurrent.Future
   */
 object LuceneSink {
 
-  def store(indexPath: Path, parallelism: Int): Sink[java.lang.Iterable[IndexableField], Future[Done]] = ???
+  def store(indexPath: Path, parallelism: Int): Sink[java.lang.Iterable[IndexableField], Future[Done]] =
+    Sink.foreach(println(_))
 
 }

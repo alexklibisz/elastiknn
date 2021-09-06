@@ -1,8 +1,9 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
-import io.circe.Json
+import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.models.L2LshModel
+import io.circe.{Decoder, Json}
 import scopt.OptionParser
 
 import scala.concurrent.duration.Duration
@@ -15,7 +16,7 @@ import scala.concurrent.{Await, ExecutionContext}
 object Runner {
 
   final case class Params(
-      dataset: Dataset,
+      dataset: Dataset[_ <: Benchmark, _ <: Vec.KnownDims],
       algo: Algorithm,
       count: Int,
       rebuild: Boolean,
@@ -93,30 +94,34 @@ object Runner {
 
   }
 
-  def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams).foreach { p: Params =>
+  def apply[V <: Vec.KnownDims](datasetClient: DatasetClient[V], luceneAlgorithm: LuceneAlgorithm[V], config: AppConfig): Unit = {
     implicit val ec: ExecutionContext = ExecutionContext.global
     implicit val sys: ActorSystem = ActorSystem()
     try {
-      val config = RunnerConfig.configured
-      val client: DatasetClient[p.dataset.V] = DatasetClient(p.dataset, config.datasetsPath)
-      val algoEither: Either[AnnBenchmarksError, LuceneAlgorithm[p.dataset.V]] = LuceneAlgorithm(p.dataset, p.algo, p.buildArgs)
-      val algo: LuceneAlgorithm[p.dataset.V] = algoEither.fold(throw _, identity[LuceneAlgorithm[p.dataset.V]])
-      val example = client
+      val example = datasetClient
         .indexVectors()
         .zipWithIndex
         .map {
-          case (vec, i) => ??? // algo.toDocument(i + 1, vec)
+          case (vec, i) => luceneAlgorithm.toDocument(i + 1, vec)
         }
         .runWith(LuceneSink.store(config.indexPath, 1))
-
       Await.result(example, Duration.Inf)
-
-      // Setup the results client.
-      // Setup the Lucene algorithm client.
-      // Build the index, via Lucene algo client.
-      // Run the queries, keeping results in memory, via Lucene algo client.
-      // Flush the results to disk.
     } finally sys.terminate()
   }
 
+  def apply(params: Params, config: AppConfig): Unit = {
+    import params._
+    val buildDecoder = Decoder[List[Int]]
+    val rng0 = new java.util.Random(0)
+    (dataset, algo, buildDecoder.decodeJson(buildArgs)) match {
+      case (d: Dataset.AnnBenchmarksDenseFloat, Algorithm.ElastiknnL2Lsh, Right(List(l, k, w))) =>
+        apply(
+          new DatasetClient.AnnBenchmarksDenseFloat(d, config.datasetsPath),
+          new LuceneAlgorithm.ElastiknnDenseFloatHashing(new L2LshModel(d.dims, l, k, w, rng0)),
+          config
+        )
+    }
+  }
+
+  def main(args: Array[String]): Unit = optionParser.parse(args, defaultParams).foreach(apply(_, AppConfig.typesafe))
 }
