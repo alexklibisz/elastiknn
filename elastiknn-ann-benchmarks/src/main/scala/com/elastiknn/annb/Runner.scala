@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.L2LshModel
 import io.circe.{Decoder, Json}
+import org.apache.commons.io.FileUtils
 import scopt.OptionParser
 
 import scala.concurrent.duration.Duration
@@ -96,21 +97,25 @@ object Runner {
   }
 
   def apply[V <: Vec.KnownDims](client: DatasetClient[V], algo: LuceneAlgorithm[V], params: Params, config: AppConfig): Unit = {
-    implicit val ec: ExecutionContext = ExecutionContext.global
     implicit val sys: ActorSystem = ActorSystem()
+    implicit val ec: ExecutionContext = sys.dispatcher
     try {
       sys.log.info(s"Running with params [$params] and config [$config]")
       val indexPath = config.indexPath.resolve(params.dataset.name).resolve(params.hashCode().toString).resolve(config.hashCode().toString)
-      val example = client
-        .indexVectors()
-        .zipWithIndex
-        .map {
-          case (vec, i) =>
-            if (i % 10000 == 0) sys.log.info(s"Indexing vector $i")
-            algo.toDocument(i + 1, vec)
-        }
-        .runWith(LuceneSink.store(indexPath, 8))
-      Await.result(example, Duration.Inf)
+      if (indexPath.toFile.exists() && indexPath.toFile.isDirectory && !params.rebuild) {
+        sys.log.info(s"Skipping indexing because directory [$indexPath] already exists and rebuild is [${params.rebuild}]")
+      } else {
+        val indexing = client
+          .indexVectors()
+          .zipWithIndex
+          .map {
+            case (vec, i) =>
+              if (i % 10000 == 0) sys.log.info(s"Indexing vector $i")
+              algo.toDocument(i + 1, vec)
+          }
+          .runWith(LuceneSink.store(indexPath, config.parallelism))
+        Await.result(indexing, config.indexingTimeout)
+      }
     } finally sys.terminate()
   }
 

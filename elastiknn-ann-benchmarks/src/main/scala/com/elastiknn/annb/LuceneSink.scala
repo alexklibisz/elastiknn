@@ -38,10 +38,10 @@ object LuceneSink {
           val closeAndLogInfo = () => {
             val streamDuration = (System.nanoTime() - streamStartedNanos.get()).nanos
             val closeStartedNanos = System.nanoTime()
-            sys.log.info(s"Closing [$mmd]")
+            sys.log.info(s"Closing directory [$mmd]")
             ixw.close()
             val closeDuration = (System.nanoTime() - closeStartedNanos).nanos
-            sys.log.info(s"Closed [$mmd]")
+            sys.log.info(s"Closed directory [$mmd]")
             val rdr = DirectoryReader.open(mmd)
             val leavesCount = rdr.leaves().size()
             rdr.close()
