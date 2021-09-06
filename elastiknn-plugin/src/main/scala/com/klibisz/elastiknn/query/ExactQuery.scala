@@ -12,8 +12,8 @@ import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 
 class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
-    implicit codec: StoredVec.Codec[V, S])
-    extends ElastiknnQuery[V] {
+    implicit codec: StoredVec.Codec[V, S]
+) extends ElastiknnQuery[V] {
 
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val subQuery = new DocValuesFieldExistsQuery(field)
@@ -35,8 +35,10 @@ class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: 
             simFunc(queryVec, storedVec)
           }
           override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
-            Explanation.`match`(score(docId, subQueryScore.getValue.floatValue()),
-                                s"Elastiknn exact score function. Returns the exact similarity for each doc.")
+            Explanation.`match`(
+              score(docId, subQueryScore.getValue.floatValue()),
+              s"Elastiknn exact score function. Returns the exact similarity for each doc."
+            )
         }
       }
 
@@ -52,7 +54,7 @@ class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: 
 
 object ExactQuery {
   def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
-    val storedVec = implicitly[StoredVec.Encoder[V]].apply(vec)
+    val storedVec = StoredVec.Encoder[V].apply(vec)
     Seq(new BinaryDocValuesField(field, new BytesRef(storedVec)))
   }
 }

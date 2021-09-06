@@ -23,7 +23,11 @@ object Runner {
       runs: Int,
       buildArgs: Json,
       queryArgs: List[Json]
-  )
+  ) {
+    override def toString: String =
+      s"Params(dataset=${dataset.name}, algo=${algo.name}, count=$count, rebuild=$rebuild, runs=$runs, buildArgs=${buildArgs.noSpacesSortKeys}, queryArgs=${queryArgs
+        .map(_.noSpacesSortKeys)})"
+  }
 
   private val defaultParams = Params(
     Dataset.FashionMnist,
@@ -91,20 +95,23 @@ object Runner {
         }
       )
       .action((s, c) => c.copy(queryArgs = c.queryArgs :+ parser.parse(s).fold(throw _, identity)))
-
   }
 
-  def apply[V <: Vec.KnownDims](datasetClient: DatasetClient[V], luceneAlgorithm: LuceneAlgorithm[V], config: AppConfig): Unit = {
+  def apply[V <: Vec.KnownDims](client: DatasetClient[V], algo: LuceneAlgorithm[V], params: Params, config: AppConfig): Unit = {
     implicit val ec: ExecutionContext = ExecutionContext.global
     implicit val sys: ActorSystem = ActorSystem()
     try {
-      val example = datasetClient
+      sys.log.info(s"Running with params [$params] and config [$config]")
+      val indexPath = config.indexPath.resolve(params.dataset.name).resolve(params.hashCode().toString).resolve(config.hashCode().toString)
+      val example = client
         .indexVectors()
         .zipWithIndex
         .map {
-          case (vec, i) => luceneAlgorithm.toDocument(i + 1, vec)
+          case (vec, i) =>
+            if (i % 10000 == 0) sys.log.info(s"Indexing vector $i")
+            algo.toDocument(i + 1, vec)
         }
-        .runWith(LuceneSink.store(config.indexPath, 1))
+        .runWith(LuceneSink.store(indexPath, 8))
       Await.result(example, Duration.Inf)
     } finally sys.terminate()
   }
@@ -118,7 +125,12 @@ object Runner {
         apply(
           new DatasetClient.AnnBenchmarksDenseFloat(d, config.datasetsPath),
           new LuceneAlgorithm.ElastiknnDenseFloatHashing(new L2LshModel(d.dims, l, k, w, rng0)),
+          params,
           config
+        )
+      case (_, _, decoded) =>
+        throw new IllegalArgumentException(
+          s"Unexpected combination of dataset [${dataset.name}], algorithm [${algo.name}], build args [$buildArgs], decoded build args [$decoded]."
         )
     }
   }
