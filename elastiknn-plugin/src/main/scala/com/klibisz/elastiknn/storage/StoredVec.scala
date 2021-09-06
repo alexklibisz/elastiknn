@@ -74,6 +74,7 @@ object StoredVec {
   }
 
   object Decoder {
+    def apply[S <: StoredVec: Decoder]: Decoder[S] = implicitly[Decoder[S]]
     implicit val sparseBool: Decoder[SparseBool] = (barr: Array[Byte], offset: Int, length: Int) =>
       new SparseBool {
         override val trueIndices: Array[Int] = UnsafeSerialization.readInts(barr, offset, length)

@@ -1,14 +1,14 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Sink, Source}
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.L2LshModel
 import io.circe.{Decoder, Json}
-import org.apache.commons.io.FileUtils
+import org.apache.lucene.search.{IndexSearcher, Sort}
 import scopt.OptionParser
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 object Runner {
 
@@ -96,16 +96,21 @@ object Runner {
       .action((s, c) => c.copy(queryArgs = c.queryArgs :+ parser.parse(s).fold(throw _, identity)))
   }
 
-  def apply[V <: Vec.KnownDims](client: DatasetClient[V], algo: LuceneAlgorithm[V], params: Params, config: AppConfig): Unit = {
+  def apply[V <: Vec.KnownDims](
+      datasetStore: DatasetStore[V],
+      algo: LuceneAlgorithm[V],
+      luceneStore: LuceneStore,
+      params: Params,
+      config: AppConfig
+  ): Unit = {
     implicit val sys: ActorSystem = ActorSystem()
     implicit val ec: ExecutionContext = sys.dispatcher
     try {
       sys.log.info(s"Running with params [$params] and config [$config]")
-      val indexPath = config.indexPath.resolve(params.dataset.name).resolve(params.hashCode().toString).resolve(config.hashCode().toString)
-      if (indexPath.toFile.exists() && indexPath.toFile.isDirectory && !params.rebuild) {
-        sys.log.info(s"Skipping indexing because directory [$indexPath] already exists and rebuild is [${params.rebuild}]")
+      if (luceneStore.indexPath.toFile.exists() && luceneStore.indexPath.toFile.isDirectory && !params.rebuild) {
+        sys.log.info(s"Skipping indexing because directory [${luceneStore.indexPath}] already exists and rebuild is [${params.rebuild}]")
       } else {
-        val indexing = client
+        val indexing = datasetStore
           .indexVectors()
           .zipWithIndex
           .map {
@@ -113,9 +118,30 @@ object Runner {
               if (i % 10000 == 0) sys.log.info(s"Indexing vector $i")
               algo.toDocument(i + 1, vec)
           }
-          .runWith(LuceneSink.store(indexPath, config.parallelism))
+          .runWith(luceneStore.index(config.parallelism))
         Await.result(indexing, config.indexingTimeout)
       }
+      val indexReader = luceneStore.reader()
+      val indexSearcher = new IndexSearcher(indexReader, sys.dispatcher)
+      try {
+        params.queryArgs.foreach { qa: Json =>
+          sys.log.info(s"Searching with query args [${qa.noSpacesSortKeys}]")
+          val search = for {
+            queryBuilder <- Future.fromTry(algo.queryBuilder(qa, indexReader))
+            _ <- datasetStore
+              .queryVectors()
+              .zipWithIndex
+              .map {
+                case (vec, i) =>
+                  if (i % 100 == 0) sys.log.info(s"Searching vector $i")
+                  val q = queryBuilder(vec)
+                  indexSearcher.search(q, params.count, Sort.INDEXORDER)
+              }
+              .runWith(Sink.ignore)
+          } yield ()
+          Await.result(search, config.searchingTimeout)
+        }
+      } finally indexReader.close()
     } finally sys.terminate()
   }
 
@@ -123,11 +149,13 @@ object Runner {
     import params._
     val buildDecoder = Decoder[List[Int]]
     val rng0 = new java.util.Random(0)
+    val indexPath = config.indexPath.resolve(dataset.name).resolve(params.hashCode().toString).resolve(config.hashCode().toString)
     (dataset, algo, buildDecoder.decodeJson(buildArgs)) match {
       case (d: Dataset.AnnBenchmarksDenseFloat, Algorithm.ElastiknnL2Lsh, Right(List(l, k, w))) =>
         apply(
-          new DatasetClient.AnnBenchmarksDenseFloat(d, config.datasetsPath),
-          new LuceneAlgorithm.ElastiknnDenseFloatHashing(new L2LshModel(d.dims, l, k, w, rng0)),
+          new DatasetStore.AnnBenchmarksDenseFloat(d, config.datasetsPath),
+          new LuceneAlgorithm.ElastiknnL2Lsh(new L2LshModel(d.dims, l, k, w, rng0)),
+          new LuceneStore.Default(indexPath),
           params,
           config
         )

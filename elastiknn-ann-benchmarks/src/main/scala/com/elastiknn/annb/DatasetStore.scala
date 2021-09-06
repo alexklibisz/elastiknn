@@ -13,7 +13,7 @@ import java.nio.FloatBuffer
 import java.nio.file.Path
 import scala.concurrent.Future
 
-trait DatasetClient[V <: Vec.KnownDims] {
+trait DatasetStore[V <: Vec.KnownDims] {
 
   /**
     * Provide an akka-stream Source for vectors that should be indexed.
@@ -28,7 +28,7 @@ trait DatasetClient[V <: Vec.KnownDims] {
   def queryVectors(): Source[V, NotUsed]
 }
 
-object DatasetClient {
+object DatasetStore {
 
   /**
     * Client that reads datasets in the ann-benchmarks HDF5 format.
@@ -36,7 +36,7 @@ object DatasetClient {
     * e.g., http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
     */
   final class AnnBenchmarksDenseFloat(dataset: Dataset[Benchmark.AnnBenchmarks.type, Vec.DenseFloat], path: Path)
-      extends DatasetClient[Vec.DenseFloat] {
+      extends DatasetStore[Vec.DenseFloat] {
 
     private val localHdf5Path = path.resolve(s"${dataset.name}.hdf5")
 
@@ -93,6 +93,8 @@ object DatasetClient {
       download()
         .flatMapConcat(_ => Source.fromIterator(() => readVectors("train")))
 
-    override def queryVectors(): Source[Vec.DenseFloat, NotUsed] = ???
+    override def queryVectors(): Source[Vec.DenseFloat, NotUsed] =
+      download()
+        .flatMapConcat(_ => Source.fromIterator(() => readVectors("test")))
   }
 }
