@@ -9,10 +9,6 @@ import scopt.OptionParser
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
 
-/**
-  * big-ann-benchmarks run_from_cmdline: https://github.com/harsha-simhadri/big-ann-benchmarks/blob/004924700184fd79a27ff1a74c675f92dbf271fa/benchmark/runner.py#L114
-  * ann-benchmarks run_from_cmdline: https://github.com/erikbern/ann-benchmarks/blob/ef2f85f6ae5891d812d5df1c9db7f4d6b2d087bc/ann_benchmarks/runner.py#L151
-  */
 object Runner {
 
   final case class Params(
@@ -39,6 +35,8 @@ object Runner {
     queryArgs = List.empty
   )
 
+  // big-ann-benchmarks run_from_cmdline: https://github.com/harsha-simhadri/big-ann-benchmarks/blob/004924700184fd79a27ff1a74c675f92dbf271fa/benchmark/runner.py#L114
+  // ann-benchmarks run_from_cmdline: https://github.com/erikbern/ann-benchmarks/blob/ef2f85f6ae5891d812d5df1c9db7f4d6b2d087bc/ann_benchmarks/runner.py#L151
   private val optionParser = new OptionParser[Params]("(big-)ann-benchmarks CLI") {
     import io.circe.parser
     override def showUsageOnError: Option[Boolean] = Some(true)

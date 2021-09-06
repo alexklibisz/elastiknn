@@ -12,9 +12,10 @@ buildscript {
         maven {
             url "https://plugins.gradle.org/m2/"
         }
+        gradlePluginPortal()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
+        classpath 'gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0'
         classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.31'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
@@ -233,6 +234,10 @@ configure(lucene, List.of(
 configure(annBenchmarks, List.of(scalaProjectConfig, {
 
     apply plugin: 'com.github.johnrengelman.shadow'
+
+    shadowJar {
+        append("reference.conf")
+    }
 
     dependencies {
         implementation models
