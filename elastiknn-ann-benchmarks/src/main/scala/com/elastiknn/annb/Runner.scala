@@ -1,12 +1,10 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.Sink
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.L2LshModel
 import io.circe.{Decoder, Json}
-import org.apache.lucene.document.DocumentStoredFieldVisitor
-import org.apache.lucene.search.{IndexSearcher, Sort}
 import scopt.OptionParser
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -128,15 +126,16 @@ object Runner {
           sys.log.info(s"Searching with query args [${qa.noSpacesSortKeys}]")
           val search = for {
             search <- Future.fromTry(algo.searchFunction(qa, indexReader, sys.dispatcher))
-            _ <- datasetStore
+            results <- datasetStore
               .queryVectors()
               .zipWithIndex
               .map {
                 case (vec, i) =>
                   if (i % 100 == 0) sys.log.info(s"Searching vector $i")
-                  search(vec, params.count).toList
+                  search(vec, params.count)
               }
-              .runWith(Sink.ignore)
+              .runWith(Sink.seq)
+            _ <- datasetStore.saveResults(results)
           } yield ()
           Await.result(search, config.searchingTimeout)
         }

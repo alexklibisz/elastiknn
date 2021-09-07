@@ -1,3 +1,5 @@
 package com.elastiknn.annb
 
-final case class LuceneResult(index: Int, distance: Float)
+import scala.concurrent.duration.Duration
+
+final case class LuceneResult(time: Duration, neighbors: Array[Int], distances: Array[Float])

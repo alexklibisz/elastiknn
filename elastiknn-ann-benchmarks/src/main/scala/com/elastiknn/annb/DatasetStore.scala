@@ -26,6 +26,9 @@ trait DatasetStore[V <: Vec.KnownDims] {
     * If the dataset is not cached in local storage already, this should also download it.
     */
   def queryVectors(): Source[V, NotUsed]
+
+  def saveResults(results: Seq[LuceneResult]): Future[Unit]
+
 }
 
 object DatasetStore {
@@ -96,5 +99,13 @@ object DatasetStore {
     override def queryVectors(): Source[Vec.DenseFloat, NotUsed] =
       download()
         .flatMapConcat(_ => Source.fromIterator(() => readVectors("test")))
+
+    override def saveResults(results: Seq[LuceneResult]): Future[Unit] = {
+      // TODO:
+      //  - save neighbors as "neighbors" matrix
+      //  - save distances as "distances" matrix
+      //  - save durations as "times" matrix
+      ???
+    }
   }
 }

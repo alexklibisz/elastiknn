@@ -11,6 +11,8 @@ import org.apache.lucene.util.BytesRef
 
 import java.util
 import java.util.concurrent.Executor
+import scala.concurrent.duration._
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
@@ -18,7 +20,7 @@ trait LuceneAlgorithm[V <: Vec.KnownDims] {
 
   def toDocument(id: Long, vec: V): java.lang.Iterable[IndexableField]
 
-  def searchFunction(queryArgs: Json, indexReader: IndexReader, searchExecutor: Executor): Try[(V, Int) => Array[LuceneResult]]
+  def searchFunction(queryArgs: Json, indexReader: IndexReader, searchExecutor: Executor): Try[(V, Int) => LuceneResult]
 
 }
 
@@ -61,7 +63,7 @@ object LuceneAlgorithm {
         queryArgs: Json,
         indexReader: IndexReader,
         searchExecutor: Executor
-    ): Try[(Vec.DenseFloat, Int) => Array[LuceneResult]] = {
+    ): Try[(Vec.DenseFloat, Int) => LuceneResult] = {
       val indexSearcher = new IndexSearcher(indexReader, searchExecutor)
       Decoder[(Int, Int)]
         .decodeJson(queryArgs)
@@ -86,10 +88,15 @@ object LuceneAlgorithm {
                     } else throw new RuntimeException(s"Could not advance to doc ID [$docID].")
                 }
               )
-              indexSearcher.search(query, count).scoreDocs.map { td =>
+              val indexes = new ArrayBuffer[Int](count)
+              val distances = new ArrayBuffer[Float](count)
+              val t0 = System.nanoTime()
+              indexSearcher.search(query, count).scoreDocs.foreach { td =>
                 val doc = indexReader.document(td.doc, storedFieldsIdOnly)
-                LuceneResult(doc.getField("id").stringValue().toInt, 1 / td.score - 1)
+                indexes.append(doc.getField("id").stringValue().toInt)
+                distances.append(1 / td.score - 1)
               }
+              LuceneResult((System.nanoTime() - t0).nanos, indexes.toArray, distances.toArray)
         }
     }
   }
