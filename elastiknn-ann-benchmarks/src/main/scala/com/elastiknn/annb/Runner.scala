@@ -5,6 +5,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.L2LshModel
 import io.circe.{Decoder, Json}
+import org.apache.lucene.document.DocumentStoredFieldVisitor
 import org.apache.lucene.search.{IndexSearcher, Sort}
 import scopt.OptionParser
 
@@ -122,20 +123,18 @@ object Runner {
         Await.result(indexing, config.indexingTimeout)
       }
       val indexReader = luceneStore.reader()
-      val indexSearcher = new IndexSearcher(indexReader, sys.dispatcher)
       try {
         params.queryArgs.foreach { qa: Json =>
           sys.log.info(s"Searching with query args [${qa.noSpacesSortKeys}]")
           val search = for {
-            queryBuilder <- Future.fromTry(algo.queryBuilder(qa, indexReader))
+            search <- Future.fromTry(algo.searchFunction(qa, indexReader, sys.dispatcher))
             _ <- datasetStore
               .queryVectors()
               .zipWithIndex
               .map {
                 case (vec, i) =>
                   if (i % 100 == 0) sys.log.info(s"Searching vector $i")
-                  val q = queryBuilder(vec)
-                  indexSearcher.search(q, params.count, Sort.INDEXORDER)
+                  search(vec, params.count).toList
               }
               .runWith(Sink.ignore)
           } yield ()

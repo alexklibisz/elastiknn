@@ -24,7 +24,6 @@ trait LuceneStore {
 object LuceneStore {
 
   final class Default(val indexPath: Path) extends LuceneStore {
-    private val mmd = new MMapDirectory(indexPath)
     override def index(parallelism: Int): Sink[lang.Iterable[IndexableField], Future[Done]] =
       Flow
         .fromMaterializer {
@@ -37,6 +36,7 @@ object LuceneStore {
               .setRAMBufferSizeMB(Double.MaxValue)
               .setRAMPerThreadHardLimitMB(ramPerThreadLimitMB)
               .setMergePolicy(NoMergePolicy.INSTANCE)
+            val mmd = new MMapDirectory(indexPath)
             val ixw = new IndexWriter(mmd, ixc)
             val streamStartedNanos = new AtomicLong()
             val logStartMessage = () => {
@@ -72,6 +72,6 @@ object LuceneStore {
         }
         .toMat(Sink.ignore)(Keep.right)
 
-    override def reader(): DirectoryReader = DirectoryReader.open(mmd)
+    override def reader(): DirectoryReader = DirectoryReader.open(new MMapDirectory(indexPath))
   }
 }
