@@ -1,9 +1,7 @@
 package com.elastiknn.annb
 
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.models.L2LshModel
 import io.circe.{Decoder, Json}
 import scopt.OptionParser
 
@@ -114,7 +112,7 @@ object Runner {
           .zipWithIndex
           .map {
             case (vec, i) =>
-              if (i % 10000 == 0) sys.log.info(s"Indexing vector $i")
+              if (i % 10000 == 0) sys.log.info(s"Indexing vector [$i]")
               algo.toDocument(i + 1, vec)
           }
           .runWith(luceneStore.index(config.parallelism))
@@ -125,17 +123,19 @@ object Runner {
         params.queryArgs.foreach { qa: Json =>
           sys.log.info(s"Searching with query args [${qa.noSpacesSortKeys}]")
           val search = for {
-            search <- Future.fromTry(algo.searchFunction(qa, indexReader, sys.dispatcher))
-            results <- datasetStore
+            (resultsPrefix, searchFunction) <- Future.fromTry(algo.buildSearchFunction(qa, indexReader, sys.dispatcher))
+            _ <- datasetStore
               .queryVectors()
               .zipWithIndex
               .map {
                 case (vec, i) =>
-                  if (i % 100 == 0) sys.log.info(s"Searching vector $i")
-                  search(vec, params.count)
+                  val res = searchFunction(vec, params.count)
+                  if (i % 1000 == 0) {
+                    sys.log.info(s"Search for vector [$i] returned [${res.distances.count(_ != 0f)}] results in [${res.time.toMillis}ms]")
+                  }
+                  res
               }
-              .runWith(Sink.seq)
-            _ <- datasetStore.saveResults(results)
+              .runWith(datasetStore.saveResults(params.algo, s"$resultsPrefix.hdf5"))
           } yield ()
           Await.result(search, config.searchingTimeout)
         }
@@ -146,13 +146,13 @@ object Runner {
   def apply(params: Params, config: AppConfig): Unit = {
     import params._
     val buildDecoder = Decoder[List[Int]]
-    val rng0 = new java.util.Random(0)
-    val indexPath = config.indexPath.resolve(dataset.name).resolve(params.hashCode().toString).resolve(config.hashCode().toString)
+    val indexPath =
+      config.indexPath.resolve(dataset.name).resolve("index").resolve(params.hashCode().toString).resolve(config.hashCode().toString)
     (dataset, algo, buildDecoder.decodeJson(buildArgs)) match {
       case (d: Dataset.AnnBenchmarksDenseFloat, Algorithm.ElastiknnL2Lsh, Right(List(l, k, w))) =>
         apply(
-          new DatasetStore.AnnBenchmarksDenseFloat(d, config.datasetsPath),
-          new LuceneAlgorithm.ElastiknnL2Lsh(new L2LshModel(d.dims, l, k, w, rng0)),
+          new DatasetStore.AnnBenchmarksDenseFloat(d, config.datasetsPath, config.resultsPath),
+          new LuceneAlgorithm.ElastiknnL2Lsh(d.dims, l, k, w),
           new LuceneStore.Default(indexPath),
           params,
           config
