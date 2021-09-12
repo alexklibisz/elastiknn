@@ -135,7 +135,7 @@ object Runner {
                   }
                   res
               }
-              .runWith(datasetStore.saveResults(params.algo, s"$resultsPrefix.hdf5"))
+              .runWith(datasetStore.saveResults(params.algo, s"${params.count}/$resultsPrefix.hdf5"))
           } yield ()
           Await.result(search, config.searchingTimeout)
         }
