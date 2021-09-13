@@ -135,7 +135,7 @@ object Runner {
                   }
                   res
               }
-              .runWith(datasetStore.saveResults(params.algo, s"${params.count}/$resultsPrefix.hdf5"))
+              .runWith(datasetStore.saveResults(params.algo, resultsPrefix))
           } yield ()
           Await.result(search, config.searchingTimeout)
         }
@@ -151,7 +151,7 @@ object Runner {
     (dataset, algo, buildDecoder.decodeJson(buildArgs)) match {
       case (d: Dataset.AnnBenchmarksDenseFloat, Algorithm.ElastiknnL2Lsh, Right(List(l, k, w))) =>
         apply(
-          new DatasetStore.AnnBenchmarksDenseFloat(d, config.datasetsPath, config.resultsPath),
+          new DatasetStore.AnnBenchmarksDenseFloat(d, params.algo, config.datasetsPath, config.resultsPath, params.count),
           new LuceneAlgorithm.ElastiknnL2Lsh(d.dims, l, k, w),
           new LuceneStore.Default(indexPath),
           params,

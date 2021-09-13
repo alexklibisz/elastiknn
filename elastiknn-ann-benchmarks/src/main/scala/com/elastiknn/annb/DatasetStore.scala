@@ -37,10 +37,16 @@ object DatasetStore {
     * Each dataset is in a single HDF5 file at http://ann-benchmarks.com/<dataset-name>.hdf5
     * e.g., http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5
     */
-  final class AnnBenchmarksDenseFloat(dataset: Dataset[Benchmark.AnnBenchmarks.type, Vec.DenseFloat], datasetsPath: Path, resultsPath: Path)
-      extends DatasetStore[Vec.DenseFloat] {
+  final class AnnBenchmarksDenseFloat(
+      dataset: Dataset[Benchmark.AnnBenchmarks.type, Vec.DenseFloat],
+      algo: Algorithm,
+      datasetsPath: Path,
+      resultsPath: Path,
+      count: Int
+  ) extends DatasetStore[Vec.DenseFloat] {
 
     private val datasetHdf5Path = datasetsPath.resolve(s"${dataset.name}.hdf5")
+    private val resultsPrefixPath = resultsPath.resolve(dataset.name).resolve(count.toString).resolve(algo.name)
 
     private def download() =
       Source
@@ -89,7 +95,7 @@ object DatasetStore {
               .mapAsync(1) { results: Vector[LuceneResult] =>
                 Future.fromTry {
                   val fileNameWithHdf5 = if (fileName.endsWith(".hdf5")) fileName else s"$fileName.hdf5"
-                  val hdf5Path = resultsPath.resolve(dataset.name).resolve(algorithm.name).resolve(fileNameWithHdf5)
+                  val hdf5Path = resultsPrefixPath.resolve(fileNameWithHdf5)
                   mat.system.log.info(s"Writing results to [$hdf5Path]")
                   // ['batch_mode', 'best_search_time', 'candidates', 'expect_extra', 'name', 'run_count', 'distance', 'count', 'build_time', 'index_size', 'algo', 'dataset']
                   for {
