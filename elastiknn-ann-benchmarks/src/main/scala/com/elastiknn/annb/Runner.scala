@@ -15,6 +15,7 @@ object Runner {
       count: Int,
       rebuild: Boolean,
       runs: Int,
+      batch: Boolean,
       buildArgs: Json,
       queryArgs: List[Json]
   ) {
@@ -29,6 +30,7 @@ object Runner {
     rebuild = false,
     count = 10,
     runs = 1,
+    batch = false,
     buildArgs = Json.Null,
     queryArgs = List.empty
   )
@@ -63,15 +65,17 @@ object Runner {
       .text("Number of nearest neighbors for the algorithm to return.")
       .action((i, c) => c.copy(count = i))
     opt[Int]("runs")
-      .text("Number of times to run the algorithm. Will use the fastest run-time over the bunch.")
-      .action((i, c) => c.copy(runs = i))
+      .text("No-op. Used for compatibility w/ (big-)ann-benchmarks frameworks.")
+    // .text("Number of times to run the algorithm. Will use the fastest run-time over the bunch.")
     opt[Unit]("rebuild")
       .text("Re-build the index, even if it exists.")
       .action((_, c) => c.copy(rebuild = true))
     opt[String]("constructor")
-      .text("No-op. Used for compatibility (big-)ann-benchmarks frameworks.")
+      .text("No-op. Used for compatibility w/ (big-)ann-benchmarks frameworks.")
     opt[String]("module")
-      .text("No-op. Used for compatibility (big-)ann-benchmarks frameworks.")
+      .text("No-op. Used for compatibility w/ (big-)ann-benchmarks frameworks.")
+    opt[Unit]("batch")
+      .text("No-op. Used for compatibility w/ (big-)ann-benchmarks frameworks.")
     arg[String]("build")
       .text("JSON of arguments to pass to the constructor. E.g. [\"angular\", 100].")
       .validate(s =>
@@ -135,7 +139,7 @@ object Runner {
                   }
                   res
               }
-              .runWith(datasetStore.saveResults(params.algo, resultsPrefix))
+              .runWith(datasetStore.saveResults(params, resultsPrefix))
           } yield ()
           Await.result(search, config.searchingTimeout)
         }

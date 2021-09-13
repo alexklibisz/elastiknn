@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.stream.scaladsl.{FileIO, Flow, Keep, Sink, Source}
+import com.elastiknn.annb.Runner.Params
 import com.klibisz.elastiknn.api.Vec
 import io.circe.{Json, JsonObject}
 import org.bytedeco.hdf5.global.hdf5._
@@ -26,7 +27,7 @@ trait DatasetStore[V <: Vec.KnownDims] {
     */
   def queryVectors(): Source[V, NotUsed]
 
-  def saveResults(algorithm: Algorithm, fileName: String): Sink[LuceneResult, Future[NotUsed]]
+  def saveResults(params: Params, fileName: String): Sink[LuceneResult, Future[NotUsed]]
 
 }
 
@@ -86,7 +87,7 @@ object DatasetStore {
     override def queryVectors(): Source[Vec.DenseFloat, NotUsed] =
       download().flatMapConcat(_ => readVectors("test"))
 
-    override def saveResults(algorithm: Algorithm, fileName: String): Sink[LuceneResult, Future[NotUsed]] = {
+    override def saveResults(params: Params, fileName: String): Sink[LuceneResult, Future[NotUsed]] = {
       Flow
         .fromMaterializer {
           case (mat, _) =>
@@ -97,12 +98,29 @@ object DatasetStore {
                   val fileNameWithHdf5 = if (fileName.endsWith(".hdf5")) fileName else s"$fileName.hdf5"
                   val hdf5Path = resultsPrefixPath.resolve(fileNameWithHdf5)
                   mat.system.log.info(s"Writing results to [$hdf5Path]")
-                  // ['batch_mode', 'best_search_time', 'candidates', 'expect_extra', 'name', 'run_count', 'distance', 'count', 'build_time', 'index_size', 'algo', 'dataset']
+                  val timesSeconds = results.map(_.time.toNanos / 1e9).map(_.toFloat)
+                  // ['run_count']
                   for {
-                    _ <- HDF5Util.writeFloats2d(hdf5Path, H5F_ACC_TRUNC, "distances", results.map(_.distances).toArray)
+                    _ <- HDF5Util.createFileWithAttributes(
+                      hdf5Path,
+                      JsonObject(
+                        "algo" -> Json.fromString(params.algo.name),
+                        "batch_mode" -> Json.fromBoolean(params.batch),
+                        "best_search_time" -> Json.fromFloatOrNull(timesSeconds.sum),
+                        "build_time" -> Json.fromFloatOrNull(Float.MinValue),
+                        "candidates" -> Json.fromInt(results.map(_.neighbors.count(_ >= 0)).sum / results.length),
+                        "count" -> Json.fromInt(params.count),
+                        "dataset" -> Json.fromString(params.dataset.name),
+                        "distance" -> Json.fromString(params.algo.distance),
+                        "expect_extra" -> Json.fromBoolean(false),
+                        "index_size" -> Json.fromFloatOrNull(Float.MinValue),
+                        "name" -> Json.fromString(params.algo.name),
+                        "run_count" -> Json.fromInt(params.runs)
+                      )
+                    )
+                    _ <- HDF5Util.writeFloats2d(hdf5Path, H5F_ACC_RDWR, "distances", results.map(_.distances).toArray)
                     _ <- HDF5Util.writeInts2d(hdf5Path, H5F_ACC_RDWR, "neighbors", results.map(_.neighbors).toArray)
                     _ <- HDF5Util.writeFloats1d(hdf5Path, H5F_ACC_RDWR, "times", results.map(_.time.toNanos / 1e9).map(_.toFloat).toArray)
-                    _ <- HDF5Util.writeAttributesViaPython(hdf5Path, JsonObject("batch_mode" -> Json.fromBoolean(false)))
                   } yield NotUsed
                 }
               }

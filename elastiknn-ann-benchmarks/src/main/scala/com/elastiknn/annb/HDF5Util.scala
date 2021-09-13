@@ -83,8 +83,7 @@ object HDF5Util {
     }
   }
 
-  def writeAttributesViaPython(path: Path, attrs: JsonObject): Try[Unit] = Try {
-    Thread.sleep(5000)
+  def createFileWithAttributes(path: Path, attrs: JsonObject): Try[Unit] = Try {
     val optAppPyscript = new File("/opt/app/hdf5_set_attrs.py")
     val pyscript = if (optAppPyscript.exists()) optAppPyscript.getAbsolutePath else this.getClass.getResource("/hdf5_set_attrs.py").getFile
     import sys.process._
