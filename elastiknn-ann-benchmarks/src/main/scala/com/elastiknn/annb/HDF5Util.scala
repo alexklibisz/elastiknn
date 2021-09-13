@@ -1,10 +1,13 @@
 package com.elastiknn.annb
 
+import io.circe.{Encoder, Json, JsonObject}
 import org.bytedeco.hdf5._
+import org.bytedeco.hdf5.global.hdf5.H5F_ACC_TRUNC
 import org.bytedeco.javacpp.{FloatPointer, IntPointer}
 
+import java.io.File
 import java.nio.FloatBuffer
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import scala.util.Try
 
 object HDF5Util {
@@ -81,4 +84,12 @@ object HDF5Util {
     }
   }
 
+  def writeAttributesViaPython(path: Path, attrs: JsonObject): Try[Unit] = Try {
+    val optAppPyscript = new File("/opt/app/hdf5_set_attrs.py")
+    val pyscript = if (optAppPyscript.exists()) optAppPyscript.getAbsolutePath else this.getClass.getResource("/hdf5_set_attrs.py").getFile
+    import sys.process._
+    val cmd: String = s"python3 $pyscript ${path.toFile.getAbsolutePath} ${Json.fromJsonObject(attrs).noSpaces}"
+    val res: Int = cmd.!
+    assert(res == 0, s"Command [$cmd] failed with exit code [$res]")
+  }
 }

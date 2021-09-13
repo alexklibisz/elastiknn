@@ -6,6 +6,7 @@ import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.stream.scaladsl.{FileIO, Flow, Keep, Sink, Source}
 import com.klibisz.elastiknn.api.Vec
+import io.circe.{Json, JsonObject}
 import org.bytedeco.hdf5.global.hdf5._
 
 import java.nio.file.Path
@@ -90,10 +91,12 @@ object DatasetStore {
                   val fileNameWithHdf5 = if (fileName.endsWith(".hdf5")) fileName else s"$fileName.hdf5"
                   val hdf5Path = resultsPath.resolve(dataset.name).resolve(algorithm.name).resolve(fileNameWithHdf5)
                   mat.system.log.info(s"Writing results to [$hdf5Path]")
+                  // ['batch_mode', 'best_search_time', 'candidates', 'expect_extra', 'name', 'run_count', 'distance', 'count', 'build_time', 'index_size', 'algo', 'dataset']
                   for {
                     _ <- HDF5Util.writeFloats2d(hdf5Path, H5F_ACC_TRUNC, "distances", results.map(_.distances).toArray)
                     _ <- HDF5Util.writeInts2d(hdf5Path, H5F_ACC_RDWR, "neighbors", results.map(_.neighbors).toArray)
                     _ <- HDF5Util.writeFloats1d(hdf5Path, H5F_ACC_RDWR, "times", results.map(_.time.toNanos / 1e9).map(_.toFloat).toArray)
+                    _ <- HDF5Util.writeAttributesViaPython(hdf5Path, JsonObject("batch_mode" -> Json.fromBoolean(false)))
                   } yield NotUsed
                 }
               }
