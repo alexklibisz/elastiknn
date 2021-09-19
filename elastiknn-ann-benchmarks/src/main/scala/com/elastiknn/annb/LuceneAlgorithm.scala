@@ -1,7 +1,7 @@
 package com.elastiknn.annb
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.models.{ExactModel, L2LshModel}
+import com.klibisz.elastiknn.models.{ExactModel, HashAndFreq, L2LshModel}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.{BinaryDocValuesField, Field, FieldType}
@@ -9,7 +9,7 @@ import org.apache.lucene.index.{IndexOptions, IndexReader, IndexableField, LeafR
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery}
 import org.apache.lucene.util.BytesRef
 
-import java.util
+import java.{lang, util}
 import java.util.concurrent.Executor
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -98,16 +98,17 @@ object LuceneAlgorithm {
                 }
               )
               val indexes = new Array[Int](count)
-              val distances = new Array[Float](count)
+              val distances = Array.fill(count)(Float.MaxValue)
               val t0 = System.nanoTime()
+              val result = indexSearcher.search(query, count)
               var i = 0
-              indexSearcher.search(query, count).scoreDocs.foreach { td =>
+              result.scoreDocs.foreach { td =>
                 val doc = indexReader.document(td.doc, storedFieldsIdOnly)
                 indexes.update(i, doc.getField("id").stringValue().toInt)
-                distances.update(i, 1 / td.score - 1)
+                distances.update(i, exact.similarityToDistance(td.score).toFloat)
                 i += 1
               }
-              LuceneResult((System.nanoTime() - t0).nanos, indexes, distances)
+              LuceneResult((System.nanoTime() - t0).nanos, indexes, distances, result.scoreDocs.length)
             }
             (resultsPrefix, function)
         }

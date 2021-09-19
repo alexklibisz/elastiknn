@@ -51,6 +51,11 @@ public class ExactModel {
             double dist = Math.sqrt(sumSqrDiff);
             return 1.0 / (1 + dist);
         }
+
+        @ForceInline
+        public double similarityToDistance(double similarity) {
+            return 1.0 / similarity - 1;
+        }
     }
 
     public static class L1 implements DenseFloat {

@@ -135,7 +135,7 @@ object Runner {
                 case (vec, i) =>
                   val res = searchFunction(vec, params.count)
                   if (i % 1000 == 0) {
-                    sys.log.info(s"Search for vector [$i] returned [${res.distances.count(_ != 0f)}] results in [${res.time.toMillis}ms]")
+                    sys.log.info(s"Search for vector [$i] returned [${res.hits}] results in [${res.time.toMillis}ms]")
                   }
                   res
               }

@@ -96,25 +96,26 @@ object DatasetStore {
               .mapAsync(1) { results: Vector[LuceneResult] =>
                 Future.fromTry {
                   val fileNameWithHdf5 = if (fileName.endsWith(".hdf5")) fileName else s"$fileName.hdf5"
+                  val fileNameNoHdf5 = if (fileNameWithHdf5 != fileName) fileName else fileName.dropRight(5)
                   val hdf5Path = resultsPrefixPath.resolve(fileNameWithHdf5)
                   mat.system.log.info(s"Writing results to [$hdf5Path]")
-                  val timesSeconds = results.map(_.time.toNanos / 1e9).map(_.toFloat)
-                  // ['run_count']
+                  val bestSearchTime = results.map(_.time.toNanos / 1e9).sum * 1f / results.length
+                  val candidates = results.map(_.neighbors.count(_ >= 0)).sum / results.length
                   for {
                     _ <- HDF5Util.createFileWithAttributes(
                       hdf5Path,
                       JsonObject(
                         "algo" -> Json.fromString(params.algo.name),
                         "batch_mode" -> Json.fromBoolean(params.batch),
-                        "best_search_time" -> Json.fromFloatOrNull(timesSeconds.sum),
-                        "build_time" -> Json.fromFloatOrNull(Float.MinValue),
-                        "candidates" -> Json.fromInt(results.map(_.neighbors.count(_ >= 0)).sum / results.length),
+                        "best_search_time" -> Json.fromDoubleOrNull(bestSearchTime),
+                        "build_time" -> Json.fromFloatOrNull(-1f),
+                        "candidates" -> Json.fromInt(candidates),
                         "count" -> Json.fromInt(params.count),
                         "dataset" -> Json.fromString(params.dataset.name),
                         "distance" -> Json.fromString(params.algo.distance),
                         "expect_extra" -> Json.fromBoolean(false),
-                        "index_size" -> Json.fromFloatOrNull(Float.MinValue),
-                        "name" -> Json.fromString(params.algo.name),
+                        "index_size" -> Json.fromFloatOrNull(-1f),
+                        "name" -> Json.fromString(s"${params.algo.name}_$fileNameNoHdf5"),
                         "run_count" -> Json.fromInt(params.runs)
                       )
                     )
