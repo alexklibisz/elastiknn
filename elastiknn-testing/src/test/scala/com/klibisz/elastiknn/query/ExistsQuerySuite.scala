@@ -3,13 +3,12 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
-import org.scalatest.Inspectors
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class ExistsQuerySuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient with SilentMatchers {
+class ExistsQuerySuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with SilentMatchers {
 
   implicit val rng: Random = new Random(0)
   val (index, field, id) = ("issue-174", "vec", "id")
