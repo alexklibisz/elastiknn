@@ -92,15 +92,15 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
         new ActionListener[GetResponse] {
           override def onResponse(response: GetResponse): Unit = {
             val asMap = response.getSourceAsMap
-            if (response.isExists && asMap != null) {
-              if (asMap.containsKey(ixv.field)) {
-                val srcField: Any = response.getSourceAsMap.get(ixv.field)
-                val srcJson: Json = CirceUtils.encodeAny(srcField)
-                val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
-                supplier.set(copy(query.withVec(vector)))
-                listener.asInstanceOf[ActionListener[Any]].onResponse(null)
-              } else listener.onFailure(doesNotHaveField)
-            } else listener.onFailure(doesNotExist)
+            if (!response.isExists || asMap == null) listener.onFailure(doesNotExist)
+            else if (!asMap.containsKey(ixv.field)) listener.onFailure(doesNotHaveField)
+            else {
+              val srcField: Any = response.getSourceAsMap.get(ixv.field)
+              val srcJson: Json = CirceUtils.encodeAny(srcField)
+              val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
+              supplier.set(copy(query.withVec(vector)))
+              listener.asInstanceOf[ActionListener[Any]].onResponse(null)
+            }
           }
           override def onFailure(e: Exception): Unit = e match {
             case _: ElasticsearchException => listener.onFailure(e)
