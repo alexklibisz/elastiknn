@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        esVersion = '7.14.0'
+        esVersion = '7.14.1'
         luceneVersion = '8.9.0'
         circeVersion= '0.14.0-M4'
         circeGenericExtrasVersion= '0.13.1-M4'
