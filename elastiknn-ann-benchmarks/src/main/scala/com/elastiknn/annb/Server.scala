@@ -6,13 +6,11 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
-import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.Vec
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import io.circe.Json.JObject
 import io.circe.generic.auto._
 import io.circe.{Decoder, Json, JsonObject}
 import scopt.OptionParser
@@ -98,7 +96,7 @@ object Server {
                         .map {
                           case (vec, i) =>
                             if (i % logInterval == 0 && i > 0) log.info(s"Indexing ${i / logInterval}% complete.")
-                            algorithm.toDocument(i + 1, vec)
+                            algorithm.toDocument(i, vec)
                         }
                         .runWith(luceneStore.index(parallelism))
                       onComplete(indexing) {
