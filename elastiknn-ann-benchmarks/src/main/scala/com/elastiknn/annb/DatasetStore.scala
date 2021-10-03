@@ -12,7 +12,7 @@ import java.nio.{ByteBuffer, ByteOrder}
 /**
   * DatasetStore provides an interface to stream vectors of a specific type from disk
   */
-trait DatasetStore[V <: Vec.KnownDims] {
+trait DatasetStore[V <: Vec] {
   def indexVectors(parallelism: Int, dataset: Dataset[V]): Source[V, NotUsed]
 }
 

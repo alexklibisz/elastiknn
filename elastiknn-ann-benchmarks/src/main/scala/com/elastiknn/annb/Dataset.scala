@@ -2,7 +2,7 @@ package com.elastiknn.annb
 
 import com.klibisz.elastiknn.api.Vec
 
-sealed trait Dataset[V <: Vec.KnownDims] {
+sealed trait Dataset[V <: Vec] {
   val name: String
   val indexFilePath: String
   val dims: Int

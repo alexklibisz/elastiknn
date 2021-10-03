@@ -14,7 +14,7 @@ import java.util.concurrent.Executor
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
-trait LuceneAlgorithm[V <: Vec.KnownDims] {
+trait LuceneAlgorithm[V <: Vec] {
 
   /**
     * Converts the given ID and vector into a Lucene document, represented by a list of IndexableFields.
@@ -26,10 +26,11 @@ trait LuceneAlgorithm[V <: Vec.KnownDims] {
     * The search function takes a vector and a number of candidates and returns LuceneResults.
     */
   def buildSearchFunction(
+      count: Int,
       queryArgs: Json,
       indexReader: IndexReader,
       searchExecutor: Executor
-  ): Try[(String, (V, Int) => LuceneResult)]
+  ): Try[V => LuceneResult]
 
 }
 
@@ -73,18 +74,18 @@ object LuceneAlgorithm {
     }
 
     override def buildSearchFunction(
+        count: Int,
         queryArgs: Json,
         indexReader: IndexReader,
         searchExecutor: Executor
-    ): Try[(String, (Vec.DenseFloat, Int) => LuceneResult)] = {
+    ): Try[Vec.DenseFloat => LuceneResult] = {
       val indexSearcher = new IndexSearcher(indexReader, searchExecutor)
       Decoder[(Int, Int)]
         .decodeJson(queryArgs)
         .fold(Failure(_), Success(_))
         .map {
           case (candidates, probes) =>
-            val resultsPrefix = s"${L}_${k}_${w}_${candidates}_$probes"
-            val function = (vec: Vec.DenseFloat, count: Int) => {
+            val function = (vec: Vec.DenseFloat) => {
               val query = new MatchHashesAndScoreQuery(
                 vecFieldName,
                 lsh.hash(vec.values, probes),
@@ -115,7 +116,7 @@ object LuceneAlgorithm {
               }
               LuceneResult((System.nanoTime() - t0).nanos, indexes, distances, result.scoreDocs.length)
             }
-            (resultsPrefix, function)
+            function
         }
     }
   }

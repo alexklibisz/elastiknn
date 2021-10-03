@@ -5,16 +5,23 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.Materializer
+import akka.stream.scaladsl.{Sink, Source}
+import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.Vec
-import io.circe.{Json, JsonObject}
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.Json.JObject
+import io.circe.generic.auto._
+import io.circe.{Decoder, Json, JsonObject}
 import scopt.OptionParser
 
 import java.nio.file.Path
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.{ClassTag, classTag}
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 object Server {
@@ -28,83 +35,133 @@ object Server {
     final case class LoadIndexResponse(load_index: Boolean)
     final case class FitRequest(dataset: String)
     final case class FitResponse(dataset: String)
+    final case class QueryRequest[V <: Vec](X: List[V], k: Int)
+    final case class GetResultsResponse(get_results: Seq[Seq[Int]])
+    final case class GetAdditionalResponse(get_additional: Json)
     final case class EmptyResponse()
     final case class ErrorResponse(error: String)
+    object ErrorResponse {
+      def apply(ex: Exception): ErrorResponse = ErrorResponse(ex.getMessage)
+    }
   }
 
-  def routes[V <: Vec.KnownDims: ClassTag](
+  def routes[V <: Vec: ClassTag: Decoder](
       datasetStore: DatasetStore[V],
       algorithm: LuceneAlgorithm[V],
       luceneStore: LuceneStore,
-      parallelism: Int
+      parallelism: Int,
+      count: Int
   ): Route = {
     import Contracts._
-    import io.circe.generic.auto._
-    import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
     val datasetClazz: Class[_] = classTag[Dataset[V]].runtimeClass
     var dataset: Try[Dataset[V]] = Failure(Uninitialized)
+    var queryArgs: Try[Json] = Failure(Uninitialized)
+    var results: Try[Seq[Seq[Int]]] = Failure(Uninitialized)
 
     extractMaterializer { implicit mat: Materializer =>
       implicit val ec: ExecutionContext = mat.executionContext
       val log = mat.system.log
-      post {
-        path("init") {
-          entity(as[EmptyRequest]) { _: EmptyRequest => complete(StatusCodes.OK, EmptyResponse()) }
-        } ~
-          path("load_index") {
-            entity(as[LoadIndexRequest]) {
-              case LoadIndexRequest(dataset) =>
-                val indexExists = luceneStore.indexPath.resolve(dataset).toFile.exists()
-                complete(StatusCodes.OK, LoadIndexResponse(indexExists))
-            }
+      val exceptionHandler = ExceptionHandler {
+        case NonFatal(t) =>
+          log.error(t, s"Unexpected exception: ${t.getMessage}")
+          complete(StatusCodes.InternalServerError, ErrorResponse(t.getMessage))
+      }
+      handleExceptions(exceptionHandler) {
+        post {
+          path("init") {
+            entity(as[EmptyRequest]) { _: EmptyRequest => complete(StatusCodes.OK, EmptyResponse()) }
           } ~
-          path("fit") {
-            entity(as[FitRequest]) {
-              case FitRequest(datasetName) =>
-                Dataset.All.find(_.name == datasetName) match {
-                  // Pattern matching with generics requires some ceremony to appease the compiler.
-                  case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
-                    dataset = Success(ds)
-                    val logInterval = ds.count / 100
-                    val readParallelism = parallelism * 2
-                    val indexing = datasetStore
-                      .indexVectors(readParallelism, ds)
-                      .take(100000)
-                      .zipWithIndex
+            path("load_index") {
+              entity(as[LoadIndexRequest]) {
+                case LoadIndexRequest(dataset) =>
+                  val indexPath = luceneStore.indexPath.resolve(dataset)
+                  val indexExists = indexPath.toFile.exists()
+                  if (indexExists) log.info(s"Index already exists at $indexPath.")
+                  complete(StatusCodes.OK, LoadIndexResponse(indexExists))
+              }
+            } ~
+            path("fit") {
+              entity(as[FitRequest]) {
+                case FitRequest(datasetName) =>
+                  Dataset.All.find(_.name == datasetName) match {
+                    // Pattern matching with type parameters requires some ceremony to appease the compiler.
+                    case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
+                      dataset = Success(ds)
+                      val logInterval = ds.count / 100
+                      val readParallelism = parallelism * 2
+                      val t0 = System.currentTimeMillis()
+                      val indexing = datasetStore
+                        .indexVectors(readParallelism, ds)
+                        .take(1000000)
+                        .zipWithIndex
+                        .map {
+                          case (vec, i) =>
+                            if (i % logInterval == 0 && i > 0) log.info(s"Indexing ${i / logInterval}% complete.")
+                            algorithm.toDocument(i + 1, vec)
+                        }
+                        .runWith(luceneStore.index(parallelism))
+                      onComplete(indexing) {
+                        case Success(_) =>
+                          log.info(s"Indexing completed in ${(System.currentTimeMillis() - t0).millis.toMinutes} minutes.")
+                          complete(StatusCodes.OK, EmptyResponse())
+                        case Failure(ex) => failWith(ex)
+                      }
+                    case Some(_) => complete(StatusCodes.BadRequest, ErrorResponse(s"Incompatible dataset: $datasetName"))
+                    case None    => complete(StatusCodes.BadRequest, ErrorResponse(s"Unknown dataset: $datasetName"))
+                  }
+              }
+            } ~
+            path("set_query_arguments") {
+              entity(as[SetQueryArgumentsRequest]) {
+                case SetQueryArgumentsRequest(query_args) =>
+                  queryArgs = Success(query_args)
+                  complete(StatusCodes.OK, EmptyResponse())
+              }
+            } ~
+            path("query") {
+              entity(as[QueryRequest[V]]) {
+                case QueryRequest(vecs, k) =>
+                  val logInterval = vecs.length / 100
+                  val querying = for {
+                    qargs <- Future.fromTry(queryArgs)
+                    searchFunction <- Future.fromTry(algorithm.buildSearchFunction(k, qargs, luceneStore.reader(), mat.executionContext))
+                    t0 = System.currentTimeMillis()
+                    luceneResults <- Source(vecs).zipWithIndex
                       .map {
                         case (vec, i) =>
-                          if (i % logInterval == 0 && i > 0) log.info(s"Indexing ${i / logInterval}% complete")
-                          algorithm.toDocument(i + 1, vec)
+                          val res = searchFunction(vec)
+                          if (i % logInterval == 0 && i > 0)
+                            log.info(s"Searching ${i / logInterval}% complete. Found ${res.hits} hits in ${res.time.toMillis} millis.")
+                          if (res.hits < count)
+                            log.warning(s"Search $i found only ${res.hits} hits.")
+                          res
                       }
-                      .runWith(luceneStore.index(parallelism))
-                    onComplete(indexing) {
-                      case Success(_)  => complete(StatusCodes.OK, EmptyResponse())
-                      case Failure(ex) => complete(StatusCodes.InternalServerError, ErrorResponse(ex.getMessage))
-                    }
-                  case Some(_) => complete(StatusCodes.BadRequest, ErrorResponse(s"Incompatible dataset: $datasetName"))
-                  case None    => complete(StatusCodes.BadRequest, ErrorResponse(s"Unknown dataset: $datasetName"))
-                }
+                      .runWith(Sink.seq)
+                    _ = log.info(s"Searches completed in ${(System.currentTimeMillis() - t0).millis.toMinutes} minutes.")
+                  } yield results = Success(luceneResults.toList.map(_.neighbors.toList))
+                  onComplete(querying) {
+                    case Success(_)  => complete(StatusCodes.OK, EmptyResponse())
+                    case Failure(ex) => failWith(ex)
+                  }
+              }
+            } ~
+            path("get_results") {
+              results match {
+                case Success(value) => complete(StatusCodes.OK, GetResultsResponse(value))
+                case Failure(ex)    => failWith(ex)
+              }
+            } ~
+            path("range_query") {
+              entity(as[Json]) { _ => complete(StatusCodes.BadRequest, ErrorResponse("Not implemented")) }
+            } ~
+            path("get_range_results") {
+              complete(StatusCodes.BadRequest, ErrorResponse("Not implemented"))
+            } ~
+            path("get_additional") {
+              complete(StatusCodes.OK, GetAdditionalResponse(Json.fromJsonObject(JsonObject.empty)))
             }
-          } ~
-          path("set_query_arguments") {
-            complete(StatusCodes.OK, EmptyResponse())
-          } ~
-          path("query") {
-            complete(StatusCodes.OK, EmptyResponse())
-          } ~
-          path("range_query") {
-            complete(StatusCodes.OK, EmptyResponse())
-          } ~
-          path("get_results") {
-            complete(StatusCodes.OK, EmptyResponse())
-          } ~
-          path("get_range_results") {
-            complete(StatusCodes.OK, EmptyResponse())
-          } ~
-          path("get_additional") {
-            complete(StatusCodes.OK, EmptyResponse())
-          }
+        }
       }
     }
   }
@@ -115,6 +172,7 @@ object Server {
       vectorType: String,
       algorithm: String,
       buildArgs: Json,
+      count: Int,
       port: Int,
       parallelism: Int
   ) {
@@ -124,7 +182,7 @@ object Server {
 
   object ServerOpts {
     val Default: ServerOpts =
-      ServerOpts(Path.of("/tmp/data"), Path.of("/tmp/index"), "float32", "l2lsh", Json.Null, 8080, 1)
+      ServerOpts(Path.of("/tmp/data"), Path.of("/tmp/index"), "float32", "l2lsh", Json.Null, 8080, 100, 1)
   }
 
   private val optsParser = new OptionParser[ServerOpts]("server") {
@@ -150,6 +208,9 @@ object Server {
         }
       )
       .action((s, c) => c.copy(buildArgs = io.circe.parser.parse(s).fold(throw _, identity)))
+    opt[Int]("count")
+      .required()
+      .action((i, c) => c.copy(count = i))
     opt[Int]("port")
       .required()
       .action((i, c) => c.copy(port = i))
@@ -169,7 +230,8 @@ object Server {
           new DatasetStore.BigAnnBenchmarksDenseFloat(datasetsPath),
           new LuceneAlgorithm.ElastiknnL2Lsh(dims, l, k, w),
           new LuceneStore.Default(indexPath.resolve(s"${algorithm.name}-${vectorType.name}-$dims-$l-$k-$w")),
-          parallelism
+          parallelism = parallelism,
+          count = count
         )
     }
     val binding = Http().newServerAt("0.0.0.0", port).bind(routes)

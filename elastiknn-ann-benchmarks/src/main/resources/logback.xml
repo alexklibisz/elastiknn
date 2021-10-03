@@ -2,7 +2,8 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>[%level] [%date{ISO8601}] - %msg%n</pattern>
+            <!--<pattern>[%level] [%date{ISO8601}] - %msg%n</pattern>-->
+            <pattern>%msg%n</pattern>
         </encoder>
     </appender>
     <root level="INFO">
