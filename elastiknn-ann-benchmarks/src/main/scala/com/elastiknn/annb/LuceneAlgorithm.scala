@@ -1,7 +1,7 @@
 package com.elastiknn.annb
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.models.{ExactModel, HashAndFreq, L2LshModel}
+import com.klibisz.elastiknn.models.{ExactModel, L2LshModel}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import io.circe.{Decoder, Json}
 import org.apache.lucene.document.{BinaryDocValuesField, Field, FieldType}
@@ -9,9 +9,8 @@ import org.apache.lucene.index.{IndexOptions, IndexReader, IndexableField, LeafR
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery}
 import org.apache.lucene.util.BytesRef
 
-import java.{lang, util}
+import java.util
 import java.util.concurrent.Executor
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -26,7 +25,11 @@ trait LuceneAlgorithm[V <: Vec.KnownDims] {
     * Converts the given query arguments, IndexReader, and Executor into a search function.
     * The search function takes a vector and a number of candidates and returns LuceneResults.
     */
-  def buildSearchFunction(queryArgs: Json, indexReader: IndexReader, searchExecutor: Executor): Try[(String, (V, Int) => LuceneResult)]
+  def buildSearchFunction(
+      queryArgs: Json,
+      indexReader: IndexReader,
+      searchExecutor: Executor
+  ): Try[(String, (V, Int) => LuceneResult)]
 
 }
 
@@ -35,15 +38,15 @@ object LuceneAlgorithm {
   private val idFieldName = "id"
   private val vecFieldName = "v"
 
-  sealed trait ElastiknnLuceneTypes {
-    protected val idFieldType = new FieldType()
+  private object ElastiknnLuceneTypes {
+    val idFieldType = new FieldType()
     idFieldType.setStored(true)
 
-    protected val storedFieldsIdOnly: util.Set[String] = new util.HashSet[String] {
+    val storedFieldsIdOnly: util.Set[String] = new util.HashSet[String] {
       add(idFieldName)
     }
 
-    protected val vecFieldType = new FieldType()
+    val vecFieldType = new FieldType()
     vecFieldType.setStored(false)
     vecFieldType.setOmitNorms(true)
     vecFieldType.setIndexOptions(IndexOptions.DOCS)
@@ -51,7 +54,9 @@ object LuceneAlgorithm {
     vecFieldType.setStoreTermVectors(false)
   }
 
-  final class ElastiknnL2Lsh(dims: Int, L: Int, k: Int, w: Int) extends LuceneAlgorithm[Vec.DenseFloat] with ElastiknnLuceneTypes {
+  final class ElastiknnL2Lsh(dims: Int, L: Int, k: Int, w: Int) extends LuceneAlgorithm[Vec.DenseFloat] {
+
+    import ElastiknnLuceneTypes._
 
     private val rng = new java.util.Random(0)
     private val lsh: L2LshModel = new L2LshModel(dims, L, k, w, rng)
