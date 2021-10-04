@@ -82,6 +82,7 @@ object Server {
             path("fit") {
               entity(as[FitRequest]) {
                 case FitRequest(datasetName) =>
+                  log.info(Dataset.All.find(_.name == datasetName).toString)
                   Dataset.All.find(_.name == datasetName) match {
                     // Pattern matching with type parameters requires some ceremony to appease the compiler.
                     case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
@@ -91,12 +92,17 @@ object Server {
                       val t0 = System.currentTimeMillis()
                       val indexing = datasetStore
                         .indexVectors(readParallelism, ds)
-                        .take(1000000)
+                        .take(100000)
                         .zipWithIndex
-                        .map {
+                        .mapAsync(parallelism) {
                           case (vec, i) =>
-                            if (i % logInterval == 0 && i > 0) log.info(s"Indexing ${i / logInterval}% complete.")
-                            algorithm.toDocument(i, vec)
+                            Future {
+                              if (i % logInterval == 0 && i > 0) {
+                                val rate = i / (System.currentTimeMillis() - t0).millis.toSeconds.max(1)
+                                log.info(s"Indexing: ${i / logInterval}% at $rate vps.")
+                              }
+                              algorithm.toDocument(i, vec)
+                            }
                         }
                         .runWith(luceneStore.index(parallelism))
                       onComplete(indexing) {
@@ -121,6 +127,7 @@ object Server {
               entity(as[QueryRequest[V]]) {
                 case QueryRequest(vecs, k) =>
                   val logInterval = vecs.length / 100
+                  log.info(s"Logging every $logInterval queries")
                   val querying = for {
                     qargs <- Future.fromTry(queryArgs)
                     searchFunction <- Future.fromTry(algorithm.buildSearchFunction(k, qargs, luceneStore.reader(), mat.executionContext))
@@ -129,8 +136,10 @@ object Server {
                       .map {
                         case (vec, i) =>
                           val res = searchFunction(vec)
-                          if (i % logInterval == 0 && i > 0)
-                            log.info(s"Searching ${i / logInterval}% complete. Found ${res.hits} hits in ${res.time.toMillis} millis.")
+                          if (i % logInterval == 0 && i > 0) {
+                            val rate = i / (System.currentTimeMillis() - t0).millis.toSeconds.max(1)
+                            log.info(s"Searching: ${i / logInterval}% at $rate qps.")
+                          }
                           if (res.hits < count)
                             log.warning(s"Search $i found only ${res.hits} hits.")
                           res

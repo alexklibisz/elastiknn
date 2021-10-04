@@ -78,6 +78,7 @@ public class MatchHashesAndScoreQuery extends Query {
                             }
                         }
                     }
+//                    System.out.printf("Found %d hits\n", counter.numHits());
                     return counter;
                 }
             }

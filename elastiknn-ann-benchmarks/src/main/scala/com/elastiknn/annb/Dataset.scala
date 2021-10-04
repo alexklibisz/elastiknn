@@ -16,5 +16,11 @@ object Dataset {
     val dims = 96
     val count = 10000000
   }
-  val All: List[Dataset[_ <: Vec.KnownDims]] = List(Deep10M)
+  case object MSTuring1M extends Dataset[Vec.DenseFloat] {
+    val name = "msturing-1M"
+    val indexFilePath = "MSTuringANNS/base1b.fbin.crop_nb_1000000"
+    val dims = 100
+    val count = 1000000
+  }
+  val All: List[Dataset[_ <: Vec.KnownDims]] = List(Deep10M, MSTuring1M)
 }

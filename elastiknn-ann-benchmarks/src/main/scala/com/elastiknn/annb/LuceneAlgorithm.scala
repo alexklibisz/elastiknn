@@ -104,17 +104,14 @@ object LuceneAlgorithm {
                 }
               )
               val indexes = new Array[Int](count)
-              val distances = Array.fill(count)(Float.MaxValue)
-              val t0 = System.nanoTime()
               val result = indexSearcher.search(query, count)
               var i = 0
               result.scoreDocs.foreach { td =>
                 val doc = indexReader.document(td.doc, storedFieldsIdOnly)
                 indexes.update(i, doc.getField("id").stringValue().toInt)
-                distances.update(i, exact.similarityToDistance(td.score).toFloat)
                 i += 1
               }
-              LuceneResult((System.nanoTime() - t0).nanos, indexes, distances, result.scoreDocs.length)
+              LuceneResult(indexes, result.scoreDocs.length)
             }
             function
         }
