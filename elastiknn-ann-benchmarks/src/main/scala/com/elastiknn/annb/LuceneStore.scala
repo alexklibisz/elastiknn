@@ -3,10 +3,10 @@ package com.elastiknn.annb
 import akka.Done
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import org.apache.commons.io.FileUtils
+import org.apache.commons.math3.stat.StatUtils
 import org.apache.lucene.index._
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.MMapDirectory
-import org.apache.lucene.util.BytesRef
 
 import java.lang
 import java.nio.file.Path
@@ -27,26 +27,43 @@ trait LuceneStore {
   */
 object LuceneStore {
 
-  private def commas(l: Long): String = l.toString.reverse.grouped(3).mkString(",").reverse
+  final case class FrequencySummary(
+      mean: Float,
+      variance: Float,
+      min: Long,
+      p50: Long,
+      p90: Long,
+      p99: Long,
+      max: Long
+  )
 
   final case class FieldMetrics(
+      /** Name of the field. */
       fieldName: String,
-      numTerms: Long,
-      numDistinctTerms: Long
-  ) {
-    override def toString: String =
-      s"FieldMetrics(fieldName=$fieldName, numTerms=${commas(numTerms)}, numDistinctTerms=${commas(numDistinctTerms)})"
-  }
+      /** Total number of documents with a term for this field. */
+      numDocs: Long,
+      /** Total number of terms stored for this field, across all segments. */
+      numTermsStored: Long,
+      /** Total number of _unique_ terms stored for this field, across all segments. */
+      numDistinctTerms: Long,
+      /**
+        * Terms stored divided by distinct terms.
+        * The higher the value, the more segments need to be visited to match this term.
+        * A value of 1 means each term occurs in only one segment.
+        * A much higher value might indicate the terms should be partitioned more carefully among segments.
+        */
+      termRedundancy: Float,
+      /**
+        * Summary statistics for the documents per term.
+        * A large spread and/or variance indicates there are some very frequent terms and some very in-frequent terms.
+        */
+      numDocsPerTerm: FrequencySummary
+  )
 
-  final case class IndexMetrics(numSegments: Int, numDocs: Long, sizeOnDiskGb: Double, fieldStatistics: Seq[FieldMetrics]) {
-    override def toString: String =
-      s"""IndexMetrics(
-         |  numSegments=$numSegments, 
-         |  numDocs=${commas(numDocs)},
-         |  sizeOnDiskGb=${sizeOnDiskGb.toFloat},
-         |  fieldStatistics=
-         |    ${fieldStatistics.map(_.toString).mkString(",\n")}
-         |)""".stripMargin
+  final case class IndexMetrics(numSegments: Int, numDocs: Long, sizeOnDiskGb: Float, fieldStatistics: Seq[FieldMetrics]) {
+    import io.circe.generic.auto._
+    import io.circe.syntax._
+    def prettySortedJson: String = this.asJson.spaces2
   }
 
   object IndexMetrics {
@@ -63,29 +80,42 @@ object LuceneStore {
           collectionStats = indexSearcher.collectionStatistics(field)
           if collectionStats != null
         } yield {
-          val numTerms = leaves.map(_.reader().terms(field).size()).sum
-          val numDistinctTerms = leaves
+          val numTermsStored = leaves.map(_.reader().terms(field).size()).sum
+          val termToFrequency: Map[String, Double] = leaves
             .map(_.reader())
             .flatMap { r =>
               val terms = r.terms(field)
               val termsEnum = terms.iterator()
               // Actually have to use string here to get accurate metrics.
-              // Other unique identifiers, e.g., hashcode, seem to produce collisions.
-              val arrayBuffer = new ArrayBuffer[String](terms.size().toInt)
+              // Other unique identifiers, e.g., termsEnum.term().hashCode, seem to produce collisions.
+              val arrayBuffer = new ArrayBuffer[(String, Int)](terms.size().toInt)
               while (termsEnum.next() != null) {
-                arrayBuffer.append(termsEnum.term().utf8ToString())
+                arrayBuffer.append((termsEnum.term().utf8ToString(), termsEnum.docFreq()))
               }
               arrayBuffer.toList
             }
-            .distinct
-            .length
+            .groupBy(_._1)
+            .mapValues(_.map(_._2).sum.toDouble)
+          val numDistinctTerms = termToFrequency.size
+          val docsPerTerm = termToFrequency.values.toArray
           FieldMetrics(
-            field,
-            numTerms,
-            numDistinctTerms
+            fieldName = field,
+            numTermsStored = numTermsStored,
+            numDistinctTerms = numDistinctTerms,
+            termRedundancy = numTermsStored * 1f / numDistinctTerms,
+            numDocs = collectionStats.docCount(),
+            numDocsPerTerm = FrequencySummary(
+              StatUtils.mean(docsPerTerm).toFloat,
+              StatUtils.variance(docsPerTerm).toFloat,
+              docsPerTerm.min.toLong,
+              StatUtils.percentile(docsPerTerm, 0.5).toLong,
+              StatUtils.percentile(docsPerTerm, 0.9).toLong,
+              StatUtils.percentile(docsPerTerm, 0.99).toLong,
+              docsPerTerm.max.toLong
+            )
           )
         }
-        val sizeOnDiskGb = FileUtils.sizeOfDirectory(indexDirectoryPath.toFile) / 1e9
+        val sizeOnDiskGb = FileUtils.sizeOfDirectory(indexDirectoryPath.toFile) / 1e9.toFloat
         IndexMetrics(
           numSegments,
           indexReader.numDocs(),
@@ -137,56 +167,7 @@ object LuceneStore {
               )
 
               val indexStatistics = IndexMetrics(indexPath)
-              sys.log.info(indexStatistics.toString)
-
-//              val fieldNames: Seq[String] = leaves.flatMap(_.reader().getFieldInfos.asScala.map(_.name)).distinct
-//
-////              indexSearcher.collectionStatistics()
-//
-//              // Field stats for [v]: field="v",maxDoc=100000,docCount=100000,sumTotalTermFreq=1000000,sumDocFreq=1000000
-//              for {
-//                field <- fieldNames
-//                collectionStats = indexSearcher.collectionStatistics(field)
-//                if collectionStats != null
-//              } {
-//                sys.log.info(
-//                  s"Field stats for [${field}]: " + List(
-////                    s"${collectionStats.sumTotalTermFreq()}",
-//                    collectionStats.toString
-//                  ).mkString(", ")
-//                )
-//              }
-//
-//              // (field -> (term hash code, docs w/ term))
-//              val termCountsByField = for {
-//                field <- fieldNames.filterNot(_ == "id")
-//              } yield (field, for {
-//                leafReader <- leaves.map(_.reader())
-//                terms: Terms = leafReader.terms(field)
-////                termsEnum: TermsEnum = terms.iterator()
-////                _ = termsEnum match {
-////                  case s: org.apache.lucene.codecs.blocktree.SegmentTermsEnum => s.computeBlockStats()
-////                }
-////                _ = println(termsEnum)
-////                _ <- 0L until terms.size()
-////                _ = termsEnum.next()
-////                t = termsEnum.term()
-//              } yield terms.size().max(0))
-//
-//              // Term stats: field [v], termCounts [721621]
-//              // Term stats: field [v], termCounts [775269]
-//
-//              for {
-//                (field, termCounts) <- termCountsByField
-//              } {
-//                sys.log.info(
-//                  s"Term stats: " + List(
-//                    s"field [$field]",
-//                    s"number of terms for this field = [${termCounts.sum}]"
-//                  ).mkString(", ")
-//                )
-//              }
-//              indexReader.close()
+              sys.log.info(indexStatistics.prettySortedJson)
             }
 
             Flow[java.lang.Iterable[IndexableField]]
