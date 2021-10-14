@@ -88,13 +88,18 @@ object Server {
                     case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
                       dataset = Success(ds)
                       val logInterval = ds.count / 100
-                      val readParallelism = parallelism * 2
+                      // TODO: go back to parallelized indexing once index stats are well-understood.
+                      // val readParallelism = parallelism * 2
+                      // val processParallelism = parallelism
+                      // val indexParallelism = parallelism
+                      val readParallelism = parallelism
+                      val processParallelism = parallelism
+                      val indexParallelism = 1
                       val t0 = System.currentTimeMillis()
                       val indexing = datasetStore
                         .indexVectors(readParallelism, ds)
-                        .take(100000)
                         .zipWithIndex
-                        .mapAsync(parallelism) {
+                        .mapAsync(processParallelism) {
                           case (vec, i) =>
                             Future {
                               if (i % logInterval == 0 && i > 0) {
@@ -104,7 +109,7 @@ object Server {
                               algorithm.toDocument(i, vec)
                             }
                         }
-                        .runWith(luceneStore.index(parallelism))
+                        .runWith(luceneStore.index(indexParallelism))
                       onComplete(indexing) {
                         case Success(_) =>
                           log.info(s"Indexing completed in ${(System.currentTimeMillis() - t0).millis.toMinutes} minutes.")

@@ -6,13 +6,15 @@ import org.apache.commons.io.FileUtils
 import org.apache.lucene.index._
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.MMapDirectory
+import org.apache.lucene.util.BytesRef
 
 import java.lang
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import collection.JavaConverters._
 
 trait LuceneStore {
   def indexPath: Path
@@ -25,6 +27,80 @@ trait LuceneStore {
   */
 object LuceneStore {
 
+  private def commas(l: Long): String = l.toString.reverse.grouped(3).mkString(",").reverse
+
+  final case class FieldStatistics(
+      fieldName: String,
+      numTerms: Long,
+      numDistinctTerms: Long
+  ) {
+    override def toString: String =
+      s"FieldStatistics(fieldName=$fieldName, numTerms=${commas(numTerms)}, numDistinctTerms=${commas(numDistinctTerms)})"
+  }
+
+  final case class IndexStatistics(numSegments: Int, numDocs: Long, sizeOnDiskGb: Double, fieldStatistics: Seq[FieldStatistics]) {
+    override def toString: String =
+      s"""IndexStatistics(
+         |  numSegments=$numSegments, 
+         |  numDocs=${commas(numDocs)},
+         |  sizeOnDiskGb=${sizeOnDiskGb.toFloat},
+         |  fieldStatistics=
+         |    ${fieldStatistics.map(_.toString).mkString(",\n")}
+         |)""".stripMargin
+  }
+
+  object IndexStatistics {
+    def apply(indexDirectoryPath: Path): IndexStatistics = {
+      val mmapDirectory = new MMapDirectory(indexDirectoryPath)
+      val indexReader = DirectoryReader.open(mmapDirectory)
+      try {
+        val indexSearcher = new IndexSearcher(indexReader)
+        val numSegments = indexReader.leaves().size()
+        val leaves = indexReader.leaves().iterator().asScala.toList
+        val fields = leaves.flatMap(_.reader().getFieldInfos.asScala.map(_.name)).distinct.sorted
+        val fieldStatistics = for {
+          field <- fields
+          collectionStats = indexSearcher.collectionStatistics(field)
+          if collectionStats != null
+        } yield {
+          val numTerms = leaves.map(_.reader().terms(field).size()).sum
+          val numDistinctTerms = leaves
+            .map(_.reader())
+            .flatMap { r =>
+              val terms = r.terms(field)
+              val termsEnum = terms.iterator()
+              val arrayBuffer = ArrayBuffer.empty[Int]
+              while (termsEnum.next() != null) {
+                val t = termsEnum.term()
+//                val a = new Array[Byte](t.length)
+//                t.bytes.slice(t.offset, t.offset + t.length).copyToArray(a)
+//                println((t.hashCode(), a.hashCode()))
+                arrayBuffer.append(t.hashCode())
+              }
+              arrayBuffer.toList
+            }
+            .distinct
+            .length
+          FieldStatistics(
+            field,
+            numTerms,
+            numDistinctTerms
+          )
+        }
+        val sizeOnDiskGb = FileUtils.sizeOfDirectory(indexDirectoryPath.toFile) / 1e9
+        IndexStatistics(
+          numSegments,
+          indexReader.numDocs(),
+          sizeOnDiskGb,
+          fieldStatistics
+        )
+      } finally {
+        indexReader.close()
+        mmapDirectory.close()
+      }
+    }
+  }
+
   final class Default(val indexPath: Path) extends LuceneStore {
     override def index(parallelism: Int): Sink[lang.Iterable[IndexableField], Future[Done]] =
       Flow
@@ -32,7 +108,7 @@ object LuceneStore {
           case (mat, _) =>
             import mat.{system => sys}
             val runtime = Runtime.getRuntime
-            val ramPerThreadLimitMB: Int = 2047.min((runtime.maxMemory() / 1e6).toInt / runtime.availableProcessors())
+            val ramPerThreadLimitMB: Int = 2047.min((runtime.maxMemory() / 1e6).toInt / parallelism)
             val ixc = new IndexWriterConfig()
               .setMaxBufferedDocs(Int.MaxValue)
               .setRAMBufferSizeMB(Double.MaxValue)
@@ -54,72 +130,65 @@ object LuceneStore {
               sys.log.info(s"Closed directory [$mmd]")
 
               // Collect some statistics about the index and terms.
-              val indexReader = DirectoryReader.open(mmd)
-              val indexSearcher = new IndexSearcher(indexReader)
-              val leaves: Seq[LeafReaderContext] = indexReader.leaves().iterator().asScala.toList
-              val size = FileUtils.sizeOfDirectory(indexPath.toFile) / 1e9
               sys.log.info(
                 "Indexing complete: " + List(
                   s"directory [${indexPath.toFile}]",
                   s"time in stream [${streamDuration.toSeconds}s]",
-                  s"time in closing [${closeDuration.toSeconds}s]",
-                  s"segments [${leaves.length}]",
-                  s"size [${size.formatted("%.2f")}GB]"
+                  s"time in closing [${closeDuration.toSeconds}s]"
                 ).mkString(", ")
               )
-              val fieldNames: Seq[String] = leaves.flatMap(_.reader().getFieldInfos.asScala.map(_.name)).distinct
 
-              // Field stats for [v]: field="v",maxDoc=100000,docCount=100000,sumTotalTermFreq=1000000,sumDocFreq=1000000
+              val indexStatistics = IndexStatistics(indexPath)
+              sys.log.info(indexStatistics.toString)
 
-              for {
-                field <- fieldNames
-                collectionStats = indexSearcher.collectionStatistics(field)
-                if collectionStats != null
-              } {
-                sys.log.info(
-                  s"Field stats for [${field}]: " + List(
-//                    s"${collectionStats.sumTotalTermFreq()}",
-                    collectionStats.toString
-                  ).mkString(", ")
-                )
-              }
-
+//              val fieldNames: Seq[String] = leaves.flatMap(_.reader().getFieldInfos.asScala.map(_.name)).distinct
+//
+////              indexSearcher.collectionStatistics()
+//
+//              // Field stats for [v]: field="v",maxDoc=100000,docCount=100000,sumTotalTermFreq=1000000,sumDocFreq=1000000
+//              for {
+//                field <- fieldNames
+//                collectionStats = indexSearcher.collectionStatistics(field)
+//                if collectionStats != null
+//              } {
+//                sys.log.info(
+//                  s"Field stats for [${field}]: " + List(
+////                    s"${collectionStats.sumTotalTermFreq()}",
+//                    collectionStats.toString
+//                  ).mkString(", ")
+//                )
+//              }
+//
 //              // (field -> (term hash code, docs w/ term))
 //              val termCountsByField = for {
 //                field <- fieldNames.filterNot(_ == "id")
 //              } yield (field, for {
 //                leafReader <- leaves.map(_.reader())
-//                terms = leafReader.terms(field)
-//                termsEnum = terms.iterator()
-//                _ = termsEnum.termState()
-//                _ <- 0L until terms.size()
-//                _ = termsEnum.next()
-//                t = termsEnum.term()
-//              } yield (t.bytes.slice(t.offset, t.length), termsEnum.docFreq()))
+//                terms: Terms = leafReader.terms(field)
+////                termsEnum: TermsEnum = terms.iterator()
+////                _ = termsEnum match {
+////                  case s: org.apache.lucene.codecs.blocktree.SegmentTermsEnum => s.computeBlockStats()
+////                }
+////                _ = println(termsEnum)
+////                _ <- 0L until terms.size()
+////                _ = termsEnum.next()
+////                t = termsEnum.term()
+//              } yield terms.size().max(0))
 //
-//              // Term stats: field [v], distinct terms [486], average docs per term [4897], average segments per term [1]
-//              // Term stats: field [v], distinct terms [416], average docs per term [5777], average segments per term [1]
-//              // Term stats: field [v], distinct terms [478], average docs per term [4974], average segments per term [1]
-//
-//              // Term stats: field [v], distinct terms [533], average docs per term [4486], average segments per term [1]
-//              // Term stats: field [v], distinct terms [485], average docs per term [4920], average segments per term [1]
+//              // Term stats: field [v], termCounts [721621]
+//              // Term stats: field [v], termCounts [775269]
 //
 //              for {
 //                (field, termCounts) <- termCountsByField
 //              } {
-//                val distinctTerms = termCounts.map(_._1).distinct
-//                val avgDocsPerTerm = termCounts.map(_._2).sum / distinctTerms.length
-//                val avgSegmentsPerTerm = termCounts.groupBy(_._1).map(_._2.length).sum / distinctTerms.length
 //                sys.log.info(
 //                  s"Term stats: " + List(
 //                    s"field [$field]",
-//                    s"distinct terms [${distinctTerms.length}]",
-//                    s"average docs per term [$avgDocsPerTerm]",
-//                    s"average segments per term [$avgSegmentsPerTerm]"
+//                    s"number of terms for this field = [${termCounts.sum}]"
 //                  ).mkString(", ")
 //                )
 //              }
-              indexReader.close()
+//              indexReader.close()
             }
 
             Flow[java.lang.Iterable[IndexableField]]
