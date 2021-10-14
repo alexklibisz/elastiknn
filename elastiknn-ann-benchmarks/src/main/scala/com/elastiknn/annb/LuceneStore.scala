@@ -29,18 +29,18 @@ object LuceneStore {
 
   private def commas(l: Long): String = l.toString.reverse.grouped(3).mkString(",").reverse
 
-  final case class FieldStatistics(
+  final case class FieldMetrics(
       fieldName: String,
       numTerms: Long,
       numDistinctTerms: Long
   ) {
     override def toString: String =
-      s"FieldStatistics(fieldName=$fieldName, numTerms=${commas(numTerms)}, numDistinctTerms=${commas(numDistinctTerms)})"
+      s"FieldMetrics(fieldName=$fieldName, numTerms=${commas(numTerms)}, numDistinctTerms=${commas(numDistinctTerms)})"
   }
 
-  final case class IndexStatistics(numSegments: Int, numDocs: Long, sizeOnDiskGb: Double, fieldStatistics: Seq[FieldStatistics]) {
+  final case class IndexMetrics(numSegments: Int, numDocs: Long, sizeOnDiskGb: Double, fieldStatistics: Seq[FieldMetrics]) {
     override def toString: String =
-      s"""IndexStatistics(
+      s"""IndexMetrics(
          |  numSegments=$numSegments, 
          |  numDocs=${commas(numDocs)},
          |  sizeOnDiskGb=${sizeOnDiskGb.toFloat},
@@ -49,8 +49,8 @@ object LuceneStore {
          |)""".stripMargin
   }
 
-  object IndexStatistics {
-    def apply(indexDirectoryPath: Path): IndexStatistics = {
+  object IndexMetrics {
+    def apply(indexDirectoryPath: Path): IndexMetrics = {
       val mmapDirectory = new MMapDirectory(indexDirectoryPath)
       val indexReader = DirectoryReader.open(mmapDirectory)
       try {
@@ -69,26 +69,24 @@ object LuceneStore {
             .flatMap { r =>
               val terms = r.terms(field)
               val termsEnum = terms.iterator()
-              val arrayBuffer = ArrayBuffer.empty[Int]
+              // Actually have to use string here to get accurate metrics.
+              // Other unique identifiers, e.g., hashcode, seem to produce collisions.
+              val arrayBuffer = new ArrayBuffer[String](terms.size().toInt)
               while (termsEnum.next() != null) {
-                val t = termsEnum.term()
-//                val a = new Array[Byte](t.length)
-//                t.bytes.slice(t.offset, t.offset + t.length).copyToArray(a)
-//                println((t.hashCode(), a.hashCode()))
-                arrayBuffer.append(t.hashCode())
+                arrayBuffer.append(termsEnum.term().utf8ToString())
               }
               arrayBuffer.toList
             }
             .distinct
             .length
-          FieldStatistics(
+          FieldMetrics(
             field,
             numTerms,
             numDistinctTerms
           )
         }
         val sizeOnDiskGb = FileUtils.sizeOfDirectory(indexDirectoryPath.toFile) / 1e9
-        IndexStatistics(
+        IndexMetrics(
           numSegments,
           indexReader.numDocs(),
           sizeOnDiskGb,
@@ -138,7 +136,7 @@ object LuceneStore {
                 ).mkString(", ")
               )
 
-              val indexStatistics = IndexStatistics(indexPath)
+              val indexStatistics = IndexMetrics(indexPath)
               sys.log.info(indexStatistics.toString)
 
 //              val fieldNames: Seq[String] = leaves.flatMap(_.reader().getFieldInfos.asScala.map(_.name)).distinct

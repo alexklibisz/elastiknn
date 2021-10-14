@@ -94,7 +94,7 @@ object Server {
                       // val indexParallelism = parallelism
                       val readParallelism = parallelism
                       val processParallelism = parallelism
-                      val indexParallelism = 1
+                      val indexParallelism = 2
                       val t0 = System.currentTimeMillis()
                       val indexing = datasetStore
                         .indexVectors(readParallelism, ds)
