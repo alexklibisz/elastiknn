@@ -28,8 +28,7 @@ object LuceneStore {
         .fromMaterializer {
           case (mat, _) =>
             import mat.{system => sys}
-            val runtime = Runtime.getRuntime
-            val ramPerThreadLimitMB: Int = 2047.min((runtime.maxMemory() / 1e6).toInt / parallelism)
+            val ramPerThreadLimitMB: Int = 2047.min((Runtime.getRuntime.maxMemory() / 1e6).toInt / parallelism)
             val ixc = new IndexWriterConfig()
               .setMaxBufferedDocs(Int.MaxValue)
               .setRAMBufferSizeMB(Double.MaxValue)

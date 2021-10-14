@@ -141,8 +141,9 @@ object Server {
                             val rate = i / (System.currentTimeMillis() - t0).millis.toSeconds.max(1)
                             log.info(s"Searching: ${i / logInterval}% at $rate qps.")
                           }
-                          if (res.hits < count)
+                          if (res.hits < count) {
                             log.warning(s"Search $i found only ${res.hits} hits.")
+                          }
                           res
                       }
                       .runWith(Sink.seq)
