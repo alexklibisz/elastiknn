@@ -82,13 +82,13 @@ object Server {
             path("fit") {
               entity(as[FitRequest]) {
                 case FitRequest(datasetName) =>
-                  log.info(Dataset.All.find(_.name == datasetName).toString)
                   Dataset.All.find(_.name == datasetName) match {
                     // Pattern matching with type parameters requires some ceremony to appease the compiler.
                     case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
                       dataset = Success(ds)
                       val logInterval = ds.count / 100
-                      val readParallelism = parallelism * 2
+                      // val readParallelism = parallelism * 2
+                      val readParallelism = 1
                       val processParallelism = parallelism
                       val indexParallelism = parallelism
                       val t0 = System.currentTimeMillis()
@@ -96,13 +96,13 @@ object Server {
                         .indexVectors(readParallelism, ds)
                         .zipWithIndex
                         .mapAsync(processParallelism) {
-                          case (vec, i) =>
+                          case ((vec, id), progress) =>
                             Future {
-                              if (i % logInterval == 0 && i > 0) {
-                                val rate = i / (System.currentTimeMillis() - t0).millis.toSeconds.max(1)
-                                log.info(s"Indexing: ${i / logInterval}% at $rate vps.")
+                              if (progress % logInterval == 0 && progress > 0) {
+                                val rate = progress / (System.currentTimeMillis() - t0).millis.toSeconds.max(1)
+                                log.info(s"Indexing: ${progress / logInterval}% at $rate vps.")
                               }
-                              algorithm.toDocument(i, vec)
+                              algorithm.toDocument(id, vec)
                             }
                         }
                         .runWith(luceneStore.index(indexParallelism))
@@ -157,8 +157,12 @@ object Server {
             } ~
             path("get_results") {
               results match {
-                case Success(value) => complete(StatusCodes.OK, GetResultsResponse(value))
-                case Failure(ex)    => failWith(ex)
+                case Success(value) =>
+                  // if (value.length == 100) complete(StatusCodes.OK, GetResultsResponse((0 until 100).flatMap(_ => value)))
+                  // else complete(StatusCodes.OK, GetResultsResponse(value))
+                  complete(StatusCodes.OK, GetResultsResponse(value))
+
+                case Failure(ex) => failWith(ex)
               }
             } ~
             path("range_query") {

@@ -36,13 +36,13 @@ object LuceneStore {
               .setMergePolicy(NoMergePolicy.INSTANCE)
             val mmd = new MMapDirectory(indexPath)
             val ixw = new IndexWriter(mmd, ixc)
-            val streamStartedNanos = new AtomicLong()
+            var streamStartedNanos = -1L
             val logStartMessage = () => {
-              streamStartedNanos.set(System.nanoTime())
+              streamStartedNanos = System.nanoTime()
               sys.log.info(s"Indexing to directory [$mmd] with RAM limit [${ramPerThreadLimitMB}mb/thread]")
             }
             val closeAndLogStatistics = () => {
-              val streamDuration = (System.nanoTime() - streamStartedNanos.get()).nanos
+              val streamDuration = (System.nanoTime() - streamStartedNanos).nanos
               val closeStartedNanos = System.nanoTime()
               sys.log.info(s"Closing directory [$mmd]")
               ixw.close()
