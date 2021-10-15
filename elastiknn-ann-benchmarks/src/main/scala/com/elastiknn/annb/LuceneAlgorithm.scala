@@ -4,14 +4,14 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.{ExactModel, L2LshModel}
 import com.klibisz.elastiknn.storage.UnsafeSerialization
 import io.circe.{Decoder, Json}
-import org.apache.lucene.document.{BinaryDocValuesField, Field, FieldType}
+import org.apache.lucene.document.{BinaryDocValuesField, DoubleDocValuesField, Field, FieldType}
 import org.apache.lucene.index.{IndexOptions, IndexReader, IndexableField, LeafReaderContext}
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery}
 import org.apache.lucene.util.BytesRef
 
 import java.util
+import java.util.Random
 import java.util.concurrent.Executor
-import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 trait LuceneAlgorithm[V <: Vec] {
@@ -38,6 +38,8 @@ object LuceneAlgorithm {
 
   private val idFieldName = "id"
   private val vecFieldName = "v"
+  private val vecSortSimilarityFieldName = "v_sort_similarity"
+  private val vecSortAngleFieldName = "v_sort_angle"
 
   private object ElastiknnLuceneTypes {
     val idFieldType = new FieldType()
@@ -59,16 +61,19 @@ object LuceneAlgorithm {
 
     import ElastiknnLuceneTypes._
 
-    private val rng = new java.util.Random(0)
+    private val rng: Random = new java.util.Random(0)
     private val lsh: L2LshModel = new L2LshModel(dims, L, k, w, rng)
-    private val exact = new ExactModel.L2
+    private val exactL2: ExactModel.L2 = new ExactModel.L2
+    private val exactCosine: ExactModel.Cosine = new ExactModel.Cosine
+    private val zeros: Array[Float] = Array.fill[Float](dims)(0f)
 
     override def toDocument(id: Long, vec: Vec.DenseFloat): java.lang.Iterable[IndexableField] = {
       val hashes = lsh.hash(vec.values)
-      // TODO: compare perf of ArrayList vs. LinkedList.
-      val fields = new java.util.ArrayList[IndexableField](hashes.length + 2)
+      val fields = new java.util.ArrayList[IndexableField](hashes.length + 4)
       fields.add(new Field(idFieldName, id.toString, idFieldType))
       fields.add(new BinaryDocValuesField(vecFieldName, new BytesRef(UnsafeSerialization.writeFloats(vec.values))))
+      fields.add(new DoubleDocValuesField(vecSortSimilarityFieldName, exactL2.similarity(zeros, vec.values)))
+      fields.add(new DoubleDocValuesField(vecSortAngleFieldName, exactCosine.similarity(zeros, vec.values)))
       hashes.foreach(hf => fields.add(new Field(vecFieldName, hf.hash, vecFieldType)))
       fields
     }
@@ -99,7 +104,7 @@ object LuceneAlgorithm {
                     if (prevDocID == docID || binaryDocValues.advanceExact(docID)) {
                       val bytesRef = binaryDocValues.binaryValue()
                       val values = UnsafeSerialization.readFloats(bytesRef.bytes, bytesRef.offset, bytesRef.length)
-                      exact.similarity(vec.values, values)
+                      exactL2.similarity(vec.values, values)
                     } else throw new RuntimeException(s"Could not advance to doc ID [$docID].")
                 }
               )

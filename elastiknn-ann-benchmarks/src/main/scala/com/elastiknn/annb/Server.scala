@@ -87,8 +87,7 @@ object Server {
                     case Some(ds: Dataset[V @unchecked]) if datasetClazz.isInstance(ds) =>
                       dataset = Success(ds)
                       val logInterval = ds.count / 100
-                      // val readParallelism = parallelism * 2
-                      val readParallelism = 1
+                      val readParallelism = parallelism * 2
                       val processParallelism = parallelism
                       val indexParallelism = parallelism
                       val t0 = System.currentTimeMillis()

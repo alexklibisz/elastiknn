@@ -3,11 +3,11 @@ package com.elastiknn.annb
 import akka.Done
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import org.apache.lucene.index._
+import org.apache.lucene.search.{Sort, SortField}
 import org.apache.lucene.store.MMapDirectory
 
 import java.lang
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -33,7 +33,13 @@ object LuceneStore {
               .setMaxBufferedDocs(Int.MaxValue)
               .setRAMBufferSizeMB(Double.MaxValue)
               .setRAMPerThreadHardLimitMB(ramPerThreadLimitMB)
-              .setMergePolicy(NoMergePolicy.INSTANCE)
+              .setIndexSort(
+                new Sort(
+                  new SortField("v_sort_similarity", SortField.Type.DOUBLE),
+                  new SortField("v_sort_angle", SortField.Type.DOUBLE)
+                )
+              )
+
             val mmd = new MMapDirectory(indexPath)
             val ixw = new IndexWriter(mmd, ixc)
             var streamStartedNanos = -1L
