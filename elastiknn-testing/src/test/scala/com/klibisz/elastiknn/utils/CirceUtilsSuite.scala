@@ -6,7 +6,7 @@ import io.circe.{Json, JsonObject}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class CirceUtilsSuite extends AnyFunSuite with Matchers with CirceUtils {
 
