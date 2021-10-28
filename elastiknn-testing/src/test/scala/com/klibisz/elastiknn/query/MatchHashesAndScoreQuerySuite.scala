@@ -89,11 +89,11 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         val ex0 = s.explain(q, 0)
         ex0.isMatch shouldBe true
         ex0.getValue.doubleValue() shouldBe 3d
-        ex0.getDescription shouldBe "Document [0] and the query vector share [3] of [6] hashes. Their exact similarity score is [3.000000]."
+        ex0.getDescription shouldBe f"Document [0] and the query vector share [3] of [6] hashes. Their exact similarity score is [${3d}%f]."
         val ex1 = s.explain(q, 1)
         ex1.isMatch shouldBe true
         ex1.getValue.doubleValue() shouldBe 1d
-        ex1.getDescription shouldBe "Document [1] and the query vector share [1] of [6] hashes. Their exact similarity score is [1.000000]."
+        ex1.getDescription shouldBe f"Document [1] and the query vector share [1] of [6] hashes. Their exact similarity score is [${1d}%f]."
     }
   }
 
