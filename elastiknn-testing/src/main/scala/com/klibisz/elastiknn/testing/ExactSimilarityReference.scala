@@ -30,7 +30,7 @@ object ExactSimilarityReference {
   }
 
   val Jaccard: (Vec.SparseBool, Vec.SparseBool) => Double = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
-    val isec = v1.trueIndices.intersect(v2.trueIndices).length
+    val isec = v1.trueIndices.toIndexedSeq.intersect(v2.trueIndices.toIndexedSeq).length
     val denom = v1.trueIndices.length + v2.trueIndices.length - isec
     if (isec == 0 && denom == 0) 1d
     else if (denom > 0) isec * 1d / denom
