@@ -63,7 +63,7 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
 
     for {
       _ <- deleteIfExists(index)
-      _ <- eknn.createIndex(index, 3, 1)
+      _ <- eknn.createIndex(index, 3)
       _ <- eknn.putMapping(index, vecField, idField, mapping)
       _ <- eknn.index(index, vecField, corpus, idField, ids)
       _ <- eknn.execute(refreshIndex(index))
