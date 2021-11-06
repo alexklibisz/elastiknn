@@ -11,7 +11,6 @@ on:
 jobs:
   show-github-context:
     runs-on: ubuntu-20.04
-    if: github.actor == "alexklibisz"
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
@@ -88,7 +87,6 @@ jobs:
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
   publish-snapshots:
-    if: github.actor == "alexklibisz"
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
