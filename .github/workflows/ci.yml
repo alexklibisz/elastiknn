@@ -87,6 +87,8 @@ jobs:
   # Ideally the snapshot release would run only if the tests pass, but right now
   # there's no way to make a job conditional on another job.
   publish-snapshots:
+    if: github.actor == "alexklibisz"
+    needs: [show-github-context, test-jvm, test-python, build-jekyll-site]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -113,6 +115,7 @@ jobs:
           python3 -m pip install setuptools
       - name: Publish to PyPi
         run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+        if: github.event_name == 'pull_request'
       - name: Publish JVM Libraries from PR
         if: github.event_name == 'pull_request'
         run: task jvm:libraries:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
