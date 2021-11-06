@@ -34,7 +34,7 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
 
     for {
       _ <- deleteIfExists(index)
-      _ <- eknn.createIndex(index, 3, 2)
+      _ <- eknn.createIndex(index, 3, 1)
       _ <- eknn.putMapping(index, vecField, idField, mapping)
       _ <- eknn.index(index, vecField, corpus, idField, ids)
       _ <- eknn.execute(refreshIndex(index))
