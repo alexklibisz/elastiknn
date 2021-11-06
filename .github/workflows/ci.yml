@@ -89,7 +89,6 @@ jobs:
   # there's no way to make a job conditional on another job.
   publish-snapshots:
     if: github.actor == "alexklibisz"
-    needs: [show-github-context, test-jvm, test-python, build-jekyll-site]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
