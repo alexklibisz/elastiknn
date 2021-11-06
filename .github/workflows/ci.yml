@@ -88,7 +88,8 @@ jobs:
   # there's no way to make a job conditional on another job.
   publish-snapshots:
     runs-on: ubuntu-20.04
-    if: ${{ github.actor == 'aaaalexklibisz' }}
+    if: ${{ github.actor == 'alexklibisz' }}
+    needs: [show-github-context, test-jvm, test-python]
     steps:
       - uses: actions/checkout@v2
         with:
