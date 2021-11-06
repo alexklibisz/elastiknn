@@ -11,6 +11,7 @@ on:
 jobs:
   show-github-context:
     runs-on: ubuntu-20.04
+    if: github.actor == "alexklibisz"
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
