@@ -157,6 +157,8 @@ configure(api4s, List.of(
             dependencies {
                 api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
                 api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
+                //
+                implementation "org.elasticsearch:elasticsearch-x-content:${esVersion}"
             }
         }
 ))
