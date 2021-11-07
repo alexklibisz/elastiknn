@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.mapper
 
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn._
-import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api.{JavaJsonMap, Mapping, Vec, XContentCodec}
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
@@ -17,7 +16,7 @@ import org.elasticsearch.search.lookup.SourceLookup
 
 import java.util
 import java.util.Collections
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object VectorMapper {
 
@@ -56,9 +55,10 @@ object VectorMapper {
     }
 
   private def incompatible(m: Mapping, v: Vec): Exception =
-    new IllegalArgumentException(
-      s"Mapping [${nospaces(m)}] is not compatible with vector [${nospaces(v)}]"
-    )
+    (Try(XContentCodec.buildUnsafeToString(m)), Try(XContentCodec.buildUnsafeToString(v))) match {
+      case (Success(mapping), Success(vec)) => new IllegalArgumentException(s"Mapping [$mapping] is not compatible with vector [$vec]")
+      case _                                => new IllegalArgumentException(s"Mapping [${m}] is not compatible with vector [${v}]")
+    }
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
   class FieldType(typeName: String, fieldName: String, val mapping: Mapping)

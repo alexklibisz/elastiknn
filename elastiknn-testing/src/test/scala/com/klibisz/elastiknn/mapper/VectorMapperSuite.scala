@@ -1,20 +1,19 @@
 package com.klibisz.elastiknn.mapper
 
-import java.util.UUID
-
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, Mapping, NearestNeighborsQuery, Vec}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.{Indexes, Response}
+import io.circe.JsonObject
 import io.circe.parser.parse
-import io.circe.{Json, JsonObject}
 import io.circe.syntax._
 import org.scalatest._
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -68,7 +67,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
         val json = parse(res.body.get)
         json shouldBe 'right
 
-        val encoded = ElasticsearchCodec.encode(mapping)
+        val encoded = parse(XContentCodec.buildUnsafeToString(mapping)).fold(throw _, identity)
 
         val mappingJsonOpt: Option[JsonObject] = for {
           x <- json.toOption
@@ -127,10 +126,9 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
     } yield forAll(inputs.zip(getResponses)) {
       case ((_, _, vectors, _), getResponses) =>
         getResponses should have length vectors.length
-        val parsedVectors = getResponses.map(_.result.sourceAsString).map(parse)
-        forAll(parsedVectors)(_ shouldBe 'right)
-        val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(vecField -> ElasticsearchCodec.encode(v))))
-        forAll(encodedVectors)(v => parsedVectors should contain(Right(v)))
+        val parsedVectors = getResponses.map(_.result.sourceAsString)
+        val encodedVectors = vectors.map(XContentCodec.buildUnsafeToString[Vec](_))
+        forAll(encodedVectors)(v => parsedVectors should contain(v))
     }
   }
 

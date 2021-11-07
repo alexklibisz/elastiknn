@@ -28,6 +28,9 @@ object XContentCodec {
     bos.toByteArray
   }
 
+  def buildUnsafeToString[T](t: T)(implicit c: XContentCodec[T]): String =
+    new String(buildUnsafeToByteArray(t))
+
   def parseUnsafe[T](p: XContentParser)(implicit c: XContentCodec[T]): T =
     c.parseUnsafe(p)
 

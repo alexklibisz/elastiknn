@@ -152,12 +152,10 @@ def publishConfig(String projectDescription, boolean isScala = false) {
 
 configure(api4s, List.of(
         scalaProjectConfig,
-        publishConfig("Scala case classes and circe codecs for the Elastiknn JSON API", true),
+        publishConfig("Scala case classes and codecs for the Elastiknn JSON API", true),
         {
             dependencies {
-                api "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-                api "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
-                //
+                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
                 implementation "org.elasticsearch:elasticsearch-x-content:${esVersion}"
             }
         }
@@ -186,6 +184,8 @@ configure(benchmarks, List.of(
                 implementation "dev.zio:zio_${scalaShortVersion}:${zioVersion}"
                 implementation "dev.zio:zio-streams_${scalaShortVersion}:${zioVersion}"
                 implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.4.0"
+                implementation "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+                implementation "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
                 implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
                 implementation "ch.qos.logback:logback-classic:1.2.3"
                 implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
@@ -259,6 +259,7 @@ configure(plugin, List.of(scalaProjectConfig, {
         implementation "com.google.guava:guava:28.1-jre"
         runtimeOnly 'com.google.guava:failureaccess:1.0.1'
 
+        implementation "org.scala-lang:scala-library:${scalaFullVersion}"
         runtimeOnly "org.scala-lang:scala-library:${scalaFullVersion}"
     }
 }))
@@ -283,6 +284,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation clientJava
         implementation plugin
         implementation lucene
+        implementation benchmarks
         implementation 'com.typesafe:config:1.4.0'
         implementation "org.scalatest:scalatest_${scalaShortVersion}:3.2.0"
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
@@ -298,5 +300,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
         implementation 'org.pegdown:pegdown:1.4.2'
         implementation 'com.vladsch.flexmark:flexmark-all:0.35.10'
+        implementation "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
+        implementation "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
     }
 }))

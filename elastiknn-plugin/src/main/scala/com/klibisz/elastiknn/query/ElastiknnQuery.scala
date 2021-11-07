@@ -25,10 +25,13 @@ trait ElastiknnQuery[V <: Vec] {
 
 object ElastiknnQuery {
 
-  private def incompatible(q: NearestNeighborsQuery, m: Mapping): Exception = {
-    val msg = s"Query [${ElasticsearchCodec.encode(q).noSpaces}] is not compatible with mapping [${ElasticsearchCodec.encode(m).noSpaces}]"
-    new IllegalArgumentException(msg)
-  }
+  private def incompatible(q: NearestNeighborsQuery, m: Mapping): Exception =
+    (Try(XContentCodec.buildUnsafeToString(q)), Try(XContentCodec.buildUnsafeToString(m))) match {
+      case (Success(query), Success(mapping)) =>
+        new IllegalArgumentException(s"Query [$query] is not compatible with mapping [$mapping]")
+      case _ =>
+        new IllegalArgumentException(s"Query [$q] is not compatible with mapping [$m]")
+    }
 
   def getMapping(context: SearchExecutionContext, field: String): Mapping = {
     import VectorMapper._
