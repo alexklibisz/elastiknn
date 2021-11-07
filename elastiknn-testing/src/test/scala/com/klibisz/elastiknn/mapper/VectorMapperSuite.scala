@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.mapper
 
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentEncoder}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
@@ -67,7 +67,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
         val json = parse(res.body.get)
         json shouldBe Symbol("right")
 
-        val encoded = parse(XContentCodec.buildUnsafeToString(mapping)).fold(throw _, identity)
+        val encoded = parse(XContentEncoder.encodeUnsafeToString(mapping)).fold(throw _, identity)
 
         val mappingJsonOpt: Option[JsonObject] = for {
           x <- json.toOption
@@ -127,7 +127,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       case ((_, _, vectors, _), getResponses) =>
         getResponses should have length vectors.length
         val parsedVectors = getResponses.map(_.result.sourceAsString)
-        val encodedVectors = vectors.map(XContentCodec.buildUnsafeToString[Vec](_))
+        val encodedVectors = vectors.map(XContentEncoder.encodeUnsafeToString[Vec](_))
         forAll(encodedVectors)(v => parsedVectors should contain(v))
     }
   }

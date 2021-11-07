@@ -21,8 +21,8 @@ object KnnQueryBuilder {
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
   private val b64 = BaseEncoding.base64()
-  def encodeB64[T: XContentCodec](t: T): String = b64.encode(XContentCodec.buildUnsafeToByteArray(t))
-  def decodeB64[T: XContentCodec](s: String): T = XContentCodec.parseUnsafeFromByteArray(b64.decode(s))
+  def encodeB64[T: XContentEncoder](t: T): String = b64.encode(XContentEncoder.encodeUnsafeToByteArray(t))
+  def decodeB64[T: XContentDecoder](s: String): T = XContentDecoder.decodeUnsafeFromByteArray(b64.decode(s))
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
     override def read(in: StreamInput): KnnQueryBuilder = {
@@ -35,7 +35,7 @@ object KnnQueryBuilder {
 
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
-      val query = XContentCodec.parseUnsafe[NearestNeighborsQuery](parser)
+      val query = XContentDecoder.decodeUnsafe[NearestNeighborsQuery](parser)
       // Account for sparse bool vecs which need to be sorted.
       val sortedVec = query.vec match {
         case v: Vec.SparseBool if !v.isSorted => v.sorted()
@@ -78,8 +78,14 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
     def unexpected(e: Exception): ElastiknnRuntimeException =
       new ElastiknnRuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
 
+    // We need to get the mapping in order to know how to parse the vector.
+    val sec = c.convertToSearchExecutionContext()
+    val mapping = ElastiknnQuery.getMapping(sec, ixv.field)
+
+    // This is basically an semaphore containing the constructed query.
     val supplier = new SetOnce[KnnQueryBuilder]()
 
+    // Request the actual document in order to construct the query.
     c.registerAsyncAction((client: Client, listener: ActionListener[_]) => {
       client.execute(
         GetAction.INSTANCE,
@@ -90,11 +96,11 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
             if (!response.isExists || asMap == null) listener.onFailure(doesNotExist)
             else if (!asMap.containsKey(ixv.field)) listener.onFailure(doesNotHaveField)
             else {
-              val srcField: Any = asMap.get(ixv.field)
-              srcField match {
-                case srcMap: java.util.Map[String @unchecked, Object @unchecked] if srcMap.isInstanceOf[JavaJsonMap] =>
-                  val vector = XContentCodec.parseUnsafeFromMap[Vec](srcMap)
-                  supplier.set(new KnnQueryBuilder(query.withVec(vector)))
+              val field: Any = asMap.get(ixv.field)
+              field match {
+                case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[JavaJsonMap] =>
+                  val vec = XContentDecoder.decodeUnsafeVecFromMappingAndMap(mapping, map)
+                  supplier.set(new KnnQueryBuilder(query.withVec(vec)))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
                 case _ => listener.onFailure(doesNotHaveField)
               }
