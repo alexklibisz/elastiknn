@@ -29,8 +29,8 @@ object ExactSimilarityReference {
     d1.zip(d2).count { case (a, b) => a == b } * 1d / d1.length
   }
 
-  val Jaccard = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
-    val isec = v1.trueIndices.intersect(v2.trueIndices).length
+  val Jaccard: (Vec.SparseBool, Vec.SparseBool) => Double = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
+    val isec = v1.trueIndices.toIndexedSeq.intersect(v2.trueIndices.toIndexedSeq).length
     val denom = v1.trueIndices.length + v2.trueIndices.length - isec
     if (isec == 0 && denom == 0) 1d
     else if (denom > 0) isec * 1d / denom

@@ -27,7 +27,7 @@ trait ElastiknnRequests {
     * @return Instance of a com.sksamuel.elastic4s.requests.indexes.IndexRequest.
     */
   def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
-    val xcb = XContentFactory.jsonBuilder.rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
+    val xcb = XContentFactory.jsonBuilder().rawField(vecField, ElasticsearchCodec.nospaces(vec)).field(storedIdField, id)
     IndexRequest(index, source = Some(JacksonBuilder.writeAsString(xcb.value)), id = Some(id))
   }
 

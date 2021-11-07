@@ -5,7 +5,7 @@ import java.{lang, util}
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import io.circe.{Encoder, Json, JsonObject}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 trait CirceUtils {
 

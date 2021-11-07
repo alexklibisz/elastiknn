@@ -37,7 +37,7 @@ Elastiknn currently consists of several subprojects managed by Task and Gradle:
 - elastiknn-lucene - Gradle project containing custom Lucene queries implemented in Java.
 - elastiknn-models - Gradle project containing custom similarity models implemented in Java.
 - elastiknn-plugin - Gradle project containing the actual plugin implementation.
-- elastiknn-testing - Gradle project containing Scala tests for all of the other Gradle subprojects.
+- elastiknn-testing - Gradle project containing Scala tests for all the other Gradle subprojects.
 
 The `lucene` and `models` sub-projects are implemented in Java for a few reasons:
 

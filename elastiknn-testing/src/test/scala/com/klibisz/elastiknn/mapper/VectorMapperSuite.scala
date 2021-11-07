@@ -66,7 +66,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
 
         res.body shouldBe defined
         val json = parse(res.body.get)
-        json shouldBe 'right
+        json shouldBe Symbol("right")
 
         val encoded = ElasticsearchCodec.encode(mapping)
 
@@ -128,7 +128,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
       case ((_, _, vectors, _), getResponses) =>
         getResponses should have length vectors.length
         val parsedVectors = getResponses.map(_.result.sourceAsString).map(parse)
-        forAll(parsedVectors)(_ shouldBe 'right)
+        forAll(parsedVectors)(_ shouldBe Symbol("right"))
         val encodedVectors = vectors.map(v => Json.fromJsonObject(JsonObject(vecField -> ElasticsearchCodec.encode(v))))
         forAll(encodedVectors)(v => parsedVectors should contain(Right(v)))
     }

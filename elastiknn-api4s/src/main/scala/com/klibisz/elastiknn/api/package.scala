@@ -40,7 +40,7 @@ package object api {
       }
 
       override def equals(other: Any): Boolean = other match {
-        case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
+        case other: SparseBool => (trueIndices sameElements other.trueIndices) && totalIndices == other.totalIndices
         case _                 => false
       }
 
@@ -63,7 +63,7 @@ package object api {
 
     final case class DenseFloat(values: Array[Float]) extends Vec with KnownDims {
       override def equals(other: Any): Boolean = other match {
-        case other: DenseFloat => other.values.deep == values.deep
+        case other: DenseFloat => other.values sameElements values
         case _                 => false
       }
 
@@ -85,7 +85,7 @@ package object api {
       def apply(values: Float*): DenseFloat = DenseFloat(values.toArray)
 
       def random(length: Int, unit: Boolean = false, scale: Int = 1)(implicit rng: Random): DenseFloat = {
-        val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat * scale))
+        val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian().toFloat * scale))
         if (unit) {
           val norm = math.sqrt(v.values.map(x => x * x).sum).toFloat
           DenseFloat(v.values.map(_ / norm))

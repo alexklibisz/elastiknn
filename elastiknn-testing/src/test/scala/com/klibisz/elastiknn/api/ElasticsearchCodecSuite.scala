@@ -15,7 +15,7 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       val decoded: Either[circe.Error, T] = parsed.flatMap(ElasticsearchCodec.decodeJson[T])
 
       withClue("can't parse the given json string") {
-        parsed shouldBe 'right
+        parsed shouldBe Symbol("right")
       }
 
       withClue("parsed json doesn't encode to match encoded object") {
