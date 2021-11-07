@@ -86,9 +86,10 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         val (b, readOnce) = makeBuilder
         XContentCodec.buildUnsafe[Vec.SparseBool](v, b)
         val s = readOnce()
-        s shouldBe s"""{"total_indices":${v.totalIndices},"true_indices":[${v.trueIndices.mkString(",")}]}"""
+        val fields = Seq(s""""total_indices":${v.totalIndices}""", s""""true_indices":[${v.trueIndices.mkString(",")}]""")
+        s shouldBe s"""{${fields.mkString(",")}}"""
         // Parse from standard object encoding.
-        val p1 = makeParser(s)
+        val p1 = makeParser(s"""{${rng.shuffle(fields).mkString(",")}}""")
         XContentCodec.parseUnsafe[Vec.SparseBool](p1) shouldBe v
         // Parse from shorthand array encoding.
         val p2 = makeParser(s"""[${v.totalIndices},[${v.trueIndices.mkString(",")}]]""")
@@ -113,6 +114,24 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         s shouldBe s"""{${fields.mkString(",")}}"""
         val p1 = makeParser(s"""{${rng.shuffle(fields).mkString(",")}}""")
         XContentCodec.parseUnsafe[Vec.Indexed](p1) shouldBe v
+      }
+    }
+  }
+
+  "Vec" - {
+    "roundtrip" in {
+      for {
+        i <- 0 to 100
+        dfv = Vec.DenseFloat.random(i % 42 + 1)
+        sbv = Vec.SparseBool.random(i % 42 + 1)
+        iv = Vec.Indexed(s"index-$i", s"id-$i", s"field-$i")
+        v = rng.shuffle(Seq(dfv, sbv, iv)).head
+      } yield {
+        val (b, readOnce) = makeBuilder
+        XContentCodec.buildUnsafe[Vec](v, b)
+        val s = readOnce()
+        val p = makeParser(s)
+        XContentCodec.parseUnsafe[Vec](p) shouldBe v
       }
     }
   }

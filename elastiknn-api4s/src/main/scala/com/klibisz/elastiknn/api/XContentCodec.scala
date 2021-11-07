@@ -85,8 +85,8 @@ object XContentCodec {
   private def unexpectedValue(s: String): XContentParseException =
     new XContentParseException(s"Unexpected value [$s]")
 
-  private def unexpectedToken(ts: Seq[Token], p: XContentParser): XContentParseException =
-    new XContentParseException(s"Expected token to be one of [${ts.mkString(",")}] but found [${p.currentToken()}]")
+  private def unexpectedToken(p: XContentParser, ts: Token*): String =
+    s"Expected token to be one of [${ts.mkString(",")}] but found [${p.currentToken()}]"
 
   implicit val similarity: XContentCodec[Similarity] = new XContentCodec[Similarity] {
     override def buildUnsafe(t: Similarity, b: XContentBuilder): Unit = t match {
@@ -109,7 +109,7 @@ object XContentCodec {
           case Keys.ANGULAR => Similarity.Cosine
           case _            => throw unexpectedValue(s1)
         }
-      } else throw unexpectedToken(Seq(Token.VALUE_STRING), p)
+      } else throw new XContentParseException(unexpectedToken(p, Token.VALUE_STRING))
   }
 
   implicit val denseFloatVec: XContentCodec[Vec.DenseFloat] = new XContentCodec[Vec.DenseFloat] {
@@ -138,7 +138,7 @@ object XContentCodec {
         } else throw unexpectedKey(Keys.VALUES, p)
       } else if (p.currentToken() == Token.START_ARRAY) {
         Vec.DenseFloat(parseArray(p))
-      } else throw unexpectedToken(Seq(Token.START_OBJECT, Token.START_ARRAY), p)
+      } else throw new XContentParseException(unexpectedToken(p, Token.START_OBJECT, Token.START_ARRAY))
   }
 
   implicit val sparseBoolVec: XContentCodec[Vec.SparseBool] = new XContentCodec[Vec.SparseBool] {
@@ -165,22 +165,34 @@ object XContentCodec {
         while (p.nextToken() != Token.END_OBJECT) {
           if (p.currentName() == Keys.TRUE_INDICES) {
             if (p.nextToken() == Token.START_ARRAY) trueIndices = parseArray(p)
-            else throw unexpectedToken(Seq(Token.START_ARRAY), p)
+            else throw new XContentParseException(unexpectedToken(p, Token.START_ARRAY))
           } else if (p.currentName() == Keys.TOTAL_INDICES) {
             if (p.nextToken() == Token.VALUE_NUMBER) totalIndices = p.intValue()
-            else throw unexpectedToken(Seq(Token.VALUE_NUMBER), p)
+            else throw new XContentParseException(unexpectedToken(p, Token.VALUE_NUMBER))
           }
         }
       } else if (p.currentToken() == Token.START_ARRAY) {
         if (p.nextToken() == Token.VALUE_NUMBER) totalIndices = p.intValue()
-        else throw unexpectedToken(Seq(Token.VALUE_NUMBER), p)
+        else throw new XContentParseException(unexpectedToken(p, Token.VALUE_NUMBER))
         if (p.nextToken() == Token.START_ARRAY) trueIndices = parseArray(p)
-        else throw unexpectedToken(Seq(Token.START_ARRAY), p)
-      } else throw unexpectedToken(Seq(Token.START_OBJECT, Token.START_ARRAY), p)
+        else throw new XContentParseException(unexpectedToken(p, Token.START_ARRAY))
+      } else throw new XContentParseException(unexpectedToken(p, Token.START_OBJECT, Token.START_ARRAY))
       if (totalIndices == Int.MinValue) throw missingKey(Keys.TOTAL_INDICES)
       else if (trueIndices == None.orNull) throw missingKey(Keys.TRUE_INDICES)
       else Vec.SparseBool(trueIndices, totalIndices)
     }
+  }
+
+  implicit val emptyVec: XContentCodec[Vec.Empty] = new XContentCodec[Vec.Empty] {
+    override def buildUnsafe(t: Vec.Empty, x: XContentBuilder): Unit = {
+      x.startObject()
+      x.endObject()
+    }
+    override def parseUnsafe(p: XContentParser): Vec.Empty =
+      if (p.currentToken() == Token.START_OBJECT) {
+        if (p.nextToken() == Token.END_OBJECT) Vec.Empty()
+        else throw new XContentParseException(unexpectedToken(p, Token.END_OBJECT))
+      } else throw new XContentParseException(unexpectedToken(p, Token.START_OBJECT))
   }
 
   implicit val indexedVec: XContentCodec[Vec.Indexed] = new XContentCodec[Vec.Indexed] {
@@ -203,7 +215,7 @@ object XContentCodec {
             if (name == Keys.INDEX) index = p.text()
             else if (name == Keys.ID) id = p.text()
             else if (name == Keys.FIELD) field = p.text()
-          } else throw unexpectedToken(Seq(Token.VALUE_STRING), p)
+          } else throw new XContentParseException(unexpectedToken(p, Token.VALUE_STRING))
         }
       }
       if (index == None.orNull) throw missingKey(Keys.INDEX)
@@ -214,8 +226,22 @@ object XContentCodec {
   }
 
   implicit val vec: XContentCodec[Vec] = new XContentCodec[Vec] {
-    override def buildUnsafe(t: Vec, x: XContentBuilder): Unit = ???
-    override def parseUnsafe(p: XContentParser): Vec = ???
+    override def buildUnsafe(t: Vec, x: XContentBuilder): Unit = t match {
+      case dfv: Vec.DenseFloat => denseFloatVec.buildUnsafe(dfv, x)
+      case sbv: Vec.SparseBool => sparseBoolVec.buildUnsafe(sbv, x)
+      case iv: Vec.Indexed     => indexedVec.buildUnsafe(iv, x)
+      case empty: Vec.Empty    => emptyVec.buildUnsafe(empty, x)
+    }
+
+    // {"true_indices": [ ... ], "total_indices": 99 }
+    // {"values": [ ... ] }
+    // [ ... ]
+    // {"index": "...", "field": "...", "id": "..." }
+    // { }
+
+    override def parseUnsafe(p: XContentParser): Vec = {
+      ???
+    }
   }
 
   implicit val mapping: XContentCodec[Mapping] = new XContentCodec[Mapping] {
