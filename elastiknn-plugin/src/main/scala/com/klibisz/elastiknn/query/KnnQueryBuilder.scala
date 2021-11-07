@@ -2,20 +2,17 @@ package com.klibisz.elastiknn.query
 
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
-import com.klibisz.elastiknn.api.ElasticsearchCodec._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.utils.CirceUtils
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
-import io.circe.Json
 import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException}
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException}
 
 import java.util.Objects
 
@@ -24,8 +21,8 @@ object KnnQueryBuilder {
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
   private val b64 = BaseEncoding.base64()
-  def encodeB64[T: ElasticsearchCodec](t: T): String = b64.encode(encode(t).noSpaces.getBytes)
-  def decodeB64[T: ElasticsearchCodec](s: String): T = parse(new String(b64.decode(s))).flatMap(decodeJson[T]).toTry.get
+  def encodeB64[T: XContentCodec](t: T): String = b64.encode(XContentCodec.buildUnsafeToByteArray(t))
+  def decodeB64[T: XContentCodec](s: String): T = XContentCodec.parseUnsafeFromByteArray(b64.decode(s))
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
     override def read(in: StreamInput): KnnQueryBuilder = {
@@ -38,9 +35,7 @@ object KnnQueryBuilder {
 
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
-      val map = parser.map()
-      val json: Json = CirceUtils.javaMapEncoder(map)
-      val query = ElasticsearchCodec.decodeJsonGet[NearestNeighborsQuery](json)
+      val query = XContentCodec.parseUnsafe[NearestNeighborsQuery](parser)
       // Account for sparse bool vecs which need to be sorted.
       val sortedVec = query.vec match {
         case v: Vec.SparseBool if !v.isSorted => v.sorted()
@@ -52,7 +47,7 @@ object KnnQueryBuilder {
 
 }
 
-final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
+final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQueryBuilder[KnnQueryBuilder] {
 
   override def doWriteTo(out: StreamOutput): Unit = {
     out.writeString(KnnQueryBuilder.encodeB64(query))
@@ -95,11 +90,14 @@ final case class KnnQueryBuilder(query: NearestNeighborsQuery) extends AbstractQ
             if (!response.isExists || asMap == null) listener.onFailure(doesNotExist)
             else if (!asMap.containsKey(ixv.field)) listener.onFailure(doesNotHaveField)
             else {
-              val srcField: Any = response.getSourceAsMap.get(ixv.field)
-              val srcJson: Json = CirceUtils.encodeAny(srcField)
-              val vector = ElasticsearchCodec.decodeJsonGet[api.Vec](srcJson)
-              supplier.set(copy(query.withVec(vector)))
-              listener.asInstanceOf[ActionListener[Any]].onResponse(null)
+              val srcField: Any = asMap.get(ixv.field)
+              srcField match {
+                case srcMap: java.util.Map[String @unchecked, Object @unchecked] if srcMap.isInstanceOf[JavaJsonMap] =>
+                  val vector = XContentCodec.parseUnsafeFromMap[Vec](srcMap)
+                  supplier.set(new KnnQueryBuilder(query.withVec(vector)))
+                  listener.asInstanceOf[ActionListener[Any]].onResponse(null)
+                case _ => listener.onFailure(doesNotHaveField)
+              }
             }
           }
           override def onFailure(e: Exception): Unit = e match {

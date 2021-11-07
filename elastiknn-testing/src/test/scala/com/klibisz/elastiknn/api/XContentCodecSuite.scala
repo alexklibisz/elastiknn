@@ -24,20 +24,34 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     val p = XContentType.JSON
       .xContent()
       .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, jsonString)
-    p.nextToken()
+    p.nextToken() // Step into the JSON.
     p
   }
 
   "similarity" - {
-    "parse" in {
+    "roundtrip" in {
       for {
         (str, sim) <- Seq(
           ("jaccard", Similarity.Jaccard),
           ("Jaccard", Similarity.Jaccard),
-          ("JACCARD", Similarity.Jaccard)
+          ("JACCARD", Similarity.Jaccard),
+          ("hamming", Similarity.Hamming),
+          ("Hamming", Similarity.Hamming),
+          ("HAMMING", Similarity.Hamming),
+          ("l1", Similarity.L1),
+          ("L1", Similarity.L1),
+          ("l2", Similarity.L2),
+          ("L2", Similarity.L2),
+          ("cosine", Similarity.Cosine),
+          ("Cosine", Similarity.Cosine),
+          ("COSINE", Similarity.Cosine)
         )
       } {
-        val p = makeParser(s""" "$str" """)
+        val (b, readOnce) = makeBuilder
+        XContentCodec.buildUnsafe[Similarity](sim, b)
+        val s = readOnce()
+        s shouldBe s""""$str"""".toLowerCase()
+        val p = makeParser(s)
         XContentCodec.parseUnsafe[Similarity](p) shouldBe sim
       }
     }

@@ -2,8 +2,9 @@ package com.klibisz.elastiknn.api
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import org.elasticsearch.common.xcontent.XContentParser.Token
-import org.elasticsearch.common.xcontent.{XContentBuilder, XContentParseException, XContentParser}
+import org.elasticsearch.common.xcontent._
 
+import java.io.ByteArrayOutputStream
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
@@ -14,11 +15,34 @@ trait XContentCodec[T] {
 
 object XContentCodec {
 
-  def buildUnsafe[T](t: T, x: XContentBuilder)(implicit c: XContentCodec[T]): Unit =
-    c.buildUnsafe(t, x)
+  private val xcJson = XContentType.JSON.xContent()
+
+  def buildUnsafe[T](t: T, b: XContentBuilder)(implicit c: XContentCodec[T]): Unit =
+    c.buildUnsafe(t, b)
+
+  def buildUnsafeToByteArray[T](t: T)(implicit c: XContentCodec[T]): Array[Byte] = {
+    val bos = new ByteArrayOutputStream()
+    val b = new XContentBuilder(XContentType.JSON.xContent(), bos)
+    buildUnsafe(t, b)
+    b.close()
+    bos.toByteArray
+  }
 
   def parseUnsafe[T](p: XContentParser)(implicit c: XContentCodec[T]): T =
     c.parseUnsafe(p)
+
+  def parseUnsafeFromMap[T](m: java.util.Map[String, Object])(implicit c: XContentCodec[T]): T = {
+    val bos = new ByteArrayOutputStream()
+    val builder = XContentBuilder.builder(xcJson).map(m)
+    builder.close()
+    val parser = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, bos.toByteArray)
+    c.parseUnsafe(parser)
+  }
+
+  def parseUnsafeFromByteArray[T](barr: Array[Byte])(implicit c: XContentCodec[T]): T = {
+    val p = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, barr)
+    c.parseUnsafe(p)
+  }
 
   object Keys {
     val ANGULAR = "angular"
@@ -44,22 +68,22 @@ object XContentCodec {
     val VEC = "vec"
   }
 
-  private def wrongKey(k: String, p: XContentParser): XContentParseException =
+  private def unexpectedKey(k: String, p: XContentParser): XContentParseException =
     new XContentParseException(s"Expected key [$k] but found [${p.currentName()}]")
 
-  private def unknownValue(s: String): XContentParseException =
-    new XContentParseException(s"Unknown value [$s]")
+  private def unexpectedValue(s: String): XContentParseException =
+    new XContentParseException(s"Unexpected value [$s]")
 
-  private def wrongToken(ts: Seq[Token], p: XContentParser): XContentParseException =
+  private def unexpectedToken(ts: Seq[Token], p: XContentParser): XContentParseException =
     new XContentParseException(s"Expected token to be one of [${ts.mkString(",")}] but found [${p.currentToken()}]")
 
   implicit val similarity: XContentCodec[Similarity] = new XContentCodec[Similarity] {
-    override def buildUnsafe(t: Similarity, x: XContentBuilder): Unit = t match {
-      case Similarity.Jaccard => x.value(Keys.JACCARD)
-      case Similarity.Hamming => x.value(Keys.HAMMING)
-      case Similarity.L1      => x.value(Keys.L1)
-      case Similarity.L2      => x.value(Keys.L2)
-      case Similarity.Cosine  => x.value(Keys.COSINE)
+    override def buildUnsafe(t: Similarity, b: XContentBuilder): Unit = t match {
+      case Similarity.Jaccard => b.value(Keys.JACCARD)
+      case Similarity.Hamming => b.value(Keys.HAMMING)
+      case Similarity.L1      => b.value(Keys.L1)
+      case Similarity.L2      => b.value(Keys.L2)
+      case Similarity.Cosine  => b.value(Keys.COSINE)
     }
     override def parseUnsafe(p: XContentParser): Similarity =
       if (p.currentToken() == Token.VALUE_STRING) {
@@ -71,9 +95,10 @@ object XContentCodec {
           case Keys.L1      => Similarity.L1
           case Keys.L2      => Similarity.L2
           case Keys.COSINE  => Similarity.Cosine
-          case _            => throw unknownValue(s1)
+          case Keys.ANGULAR => Similarity.Cosine
+          case _            => throw unexpectedValue(s1)
         }
-      } else throw wrongToken(Seq(Token.VALUE_STRING), p)
+      } else throw unexpectedToken(Seq(Token.VALUE_STRING), p)
   }
 
   implicit val denseFloatVector: XContentCodec[Vec.DenseFloat] = new XContentCodec[Vec.DenseFloat] {
@@ -86,10 +111,10 @@ object XContentCodec {
       b.toArray
     }
 
-    override def buildUnsafe(t: Vec.DenseFloat, x: XContentBuilder): Unit = {
-      x.startObject()
-      x.array(Keys.VALUES, t.values)
-      x.endObject()
+    override def buildUnsafe(t: Vec.DenseFloat, b: XContentBuilder): Unit = {
+      b.startObject()
+      b.array(Keys.VALUES, t.values)
+      b.endObject()
     }
 
     @tailrec
@@ -98,10 +123,31 @@ object XContentCodec {
         p.nextToken()
         if (p.currentName() == Keys.VALUES) {
           p.nextToken()
-          parseUnsafe(p)
-        } else throw wrongKey(Keys.VALUES, p)
+          parseUnsafe(p) // Parse as an array.
+        } else throw unexpectedKey(Keys.VALUES, p)
       } else if (p.currentToken() == Token.START_ARRAY) {
         Vec.DenseFloat(parseArray(p))
-      } else throw wrongToken(Seq(Token.START_OBJECT, Token.START_ARRAY), p)
+      } else throw unexpectedToken(Seq(Token.START_OBJECT, Token.START_ARRAY), p)
   }
+
+  implicit val sparseBoolVector: XContentCodec[Vec.SparseBool] = new XContentCodec[Vec.SparseBool] {
+    override def buildUnsafe(t: Vec.SparseBool, b: XContentBuilder): Unit = ???
+    override def parseUnsafe(p: XContentParser): Vec.SparseBool = ???
+  }
+
+  implicit val vec: XContentCodec[Vec] = new XContentCodec[Vec] {
+    override def buildUnsafe(t: Vec, x: XContentBuilder): Unit = ???
+    override def parseUnsafe(p: XContentParser): Vec = ???
+  }
+
+  implicit val mapping: XContentCodec[Mapping] = new XContentCodec[Mapping] {
+    override def buildUnsafe(t: Mapping, b: XContentBuilder): Unit = ???
+    override def parseUnsafe(p: XContentParser): Mapping = ???
+  }
+
+  implicit val nearestNeighborsQuery: XContentCodec[NearestNeighborsQuery] =
+    new XContentCodec[NearestNeighborsQuery] {
+      override def buildUnsafe(t: NearestNeighborsQuery, b: XContentBuilder): Unit = ???
+      override def parseUnsafe(p: XContentParser): NearestNeighborsQuery = ???
+    }
 }

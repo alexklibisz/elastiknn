@@ -3,16 +3,13 @@ package com.klibisz.elastiknn.mapper
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api.ElasticsearchCodec._
-import com.klibisz.elastiknn.api.{ElasticsearchCodec, JavaJsonMap, Mapping, Vec}
+import com.klibisz.elastiknn.api.{JavaJsonMap, Mapping, Vec, XContentCodec}
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
-import io.circe.syntax._
-import io.circe.{Json, JsonObject}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.common.xcontent.XContentParser.Token
 import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper._
 import org.elasticsearch.index.query.SearchExecutionContext
@@ -84,7 +81,7 @@ object VectorMapper {
 
 }
 
-abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
+abstract class VectorMapper[V <: Vec: XContentCodec] { self =>
 
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
@@ -99,11 +96,9 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
     ft
   }
 
-  import com.klibisz.elastiknn.utils.CirceUtils._
-
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: MappingParserContext): Mapper.Builder = {
-      val mapping: Mapping = ElasticsearchCodec.decodeJsonGet[Mapping](node.asJson)
+      val mapping = XContentCodec.parseUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)
       // TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
@@ -112,39 +107,6 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
   }
 
   private final class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder(field) {
-
-    /** Populate the given builder from the given Json. */
-    private def populateXContent(json: Json, builder: XContentBuilder): Unit = {
-      def populate(json: Json): Unit =
-        if (json.isBoolean) json.asBoolean.foreach(builder.value)
-        else if (json.isString) json.asString.foreach(builder.value)
-        else if (json.isNumber) json.asNumber.foreach { n =>
-          lazy val asInt = n.toInt
-          lazy val asLong = n.toLong
-          if (asInt.isDefined) builder.value(asInt.get)
-          else if (asLong.isDefined) builder.value(asLong.get)
-          else builder.value(n.toDouble)
-        }
-        else if (json.isArray) json.asArray.foreach(_.foreach(populate))
-        else if (json.isObject) json.asObject.foreach {
-          _.toIterable.foreach {
-            case (k, v) =>
-              if (v.isObject) {
-                builder.startObject(k)
-                populate(v)
-                builder.endObject()
-              } else if (v.isArray) {
-                builder.startArray(k)
-                populate(v)
-                builder.endArray()
-              } else {
-                builder.field(k)
-                populate(v)
-              }
-          }
-        }
-      populate(json)
-    }
 
     override def build(contentPath: ContentPath): FieldMapper = {
       new FieldMapper(
@@ -157,17 +119,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
         override def parse(context: ParseContext): Unit = {
           val doc = context.doc()
-          val parser = context.parser()
-          val json = {
-            // The XContentParser's current token tells us how to convert its contents into Circe Json which can be
-            // neatly parsed into a vector. If the parser is pointing at a new object, convert it to a map and then
-            // conver to Json. If it's pointing at an array, convert to a list, then to Json. Otherwise it's not
-            // parseable so return a Null Json.
-            if (parser.currentToken() == Token.START_OBJECT) context.parser.map.asJson
-            else if (parser.currentToken() == Token.START_ARRAY) context.parser.list.asJson
-            else Json.Null
-          }
-          val vec = ElasticsearchCodec.decodeJsonGet[V](json)
+          val vec = XContentCodec.parseUnsafe[V](context.parser())
           val fields = checkAndCreateFields(mapping, name, vec).get
           fields.foreach(doc.add)
         }
@@ -179,14 +131,7 @@ abstract class VectorMapper[V <: Vec: ElasticsearchCodec] { self =>
 
         override def doXContentBody(builder: XContentBuilder, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, params)
-          ElasticsearchCodec
-            .encode(mapping)
-            .asObject
-            .map(_.toIterable.filter(_._1 != "type"))
-            .map(JsonObject.fromIterable)
-            .map(Json.fromJsonObject)
-            .foreach(populateXContent(_, builder))
-
+          XContentCodec.buildUnsafe[Mapping](mapping, builder)
         }
 
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
