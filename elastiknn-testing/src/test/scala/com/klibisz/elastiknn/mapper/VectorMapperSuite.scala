@@ -65,7 +65,7 @@ class VectorMapperSuite extends AsyncFunSuite with Matchers with Inspectors with
 
         res.body shouldBe defined
         val json = parse(res.body.get)
-        json shouldBe 'right
+        json shouldBe Symbol("right")
 
         val encoded = parse(XContentCodec.buildUnsafeToString(mapping)).fold(throw _, identity)
 

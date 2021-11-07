@@ -3,10 +3,10 @@ buildscript {
         esVersion = '7.14.1'
         luceneVersion = '8.9.0'
         elastic4sVersion = '7.14.1'
-        circeVersion= '0.14.0-M4'
-        circeGenericExtrasVersion= '0.13.1-M4'
-        scalaShortVersion = '2.12'
-        scalaFullVersion = '2.12.13'
+        circeVersion= '0.14.1'
+        circeGenericExtrasVersion= '0.14.1'
+        scalaShortVersion = '2.13'
+        scalaFullVersion = '2.13.6'
         zioVersion = '1.0.1'
     }
     repositories {
@@ -295,7 +295,7 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation "org.elasticsearch:elasticsearch:${esVersion}"
         implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}"
         implementation "com.storm-enroute:scalameter_${scalaShortVersion}:0.19"
-        implementation "org.scalanlp:breeze_${scalaShortVersion}:1.0"
+        implementation "org.scalanlp:breeze_${scalaShortVersion}:1.3"
         implementation "com.klibisz.futil:futil_${scalaShortVersion}:0.1.2"
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
         implementation 'org.pegdown:pegdown:1.4.2'

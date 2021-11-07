@@ -34,7 +34,7 @@ object DatasetClient {
           val iterManaged = Managed.makeEffect(Source.fromInputStream(new GZIPInputStream(obj.getObjectContent)))(_.close())
           // TODO: Fix S3 API warning when using .take to limit number of vectors.
           // WARNING: Not all bytes were read from the S3ObjectInputStream, aborting HTTP connection. ...
-          val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines.take(n)).getOrElse(src.getLines())))
+          val lines = Stream.fromIteratorManaged(iterManaged.map(src => limit.map(n => src.getLines().take(n)).getOrElse(src.getLines())))
           lines.mapM(s => ZIO.fromEither(decode[T](s)))
         }
 

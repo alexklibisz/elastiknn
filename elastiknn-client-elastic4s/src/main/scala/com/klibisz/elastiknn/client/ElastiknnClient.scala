@@ -11,9 +11,8 @@ import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 

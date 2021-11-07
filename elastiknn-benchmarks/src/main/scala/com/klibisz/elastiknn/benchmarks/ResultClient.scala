@@ -10,7 +10,7 @@ import zio.blocking._
 import zio.stream._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 trait ResultClient {
   def find(experiment: Experiment, query: Query): IO[Throwable, Option[BenchmarkResult]]
@@ -23,7 +23,7 @@ object ResultClient {
   def s3(bucket: String, keyPrefix: String): ZLayer[Has[AmazonS3] with Blocking, Nothing, Has[ResultClient]] = {
 
     def keyGen(exp: Experiment, query: Query): String =
-      s"${keyPrefix}/${exp.copy(queries = Seq(query)).uuid}.json"
+      s"$keyPrefix/${exp.copy(queries = Seq(query)).uuid}.json"
 
     ZLayer.fromServices[AmazonS3, Blocking.Service, ResultClient] {
       case (client, blocking) =>
