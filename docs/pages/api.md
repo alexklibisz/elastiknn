@@ -386,9 +386,8 @@ PUT /my-index/_mapping
             "elastiknn": {
                 "dims": 100,                        # 2
                 "model": "permutation_lsh",         # 3
-                "similarity": "cosine",             # 4
-                "k": 10,                            # 5
-                "repeating": true                   # 6
+                "k": 10,                            # 4
+                "repeating": true                   # 5
             }
         }
     }
@@ -400,9 +399,8 @@ PUT /my-index/_mapping
 |1|Vector datatype. Must be dense float vector.|
 |2|Vector dimensionality.|
 |3|Model type.|
-|4|Similarity. Supports Cosine,[^note-angular-cosine] L1, and L2.|
-|5|The number of top indices to pick.|
-|6|Whether or not to repeat the indices proportionally to their rank. See the notes on repeating above.|
+|4|The number of top indices to pick.|
+|5|Whether to repeat the indices proportionally to their rank. See the notes on repeating above.|
 
 
 ## Nearest Neighbor Queries

@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.client
 
-import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentEncoder}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
 import com.klibisz.elastiknn.client.Elastic4sCompatibility._
 import com.sksamuel.elastic4s.json.{JacksonBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
@@ -27,7 +27,7 @@ trait ElastiknnRequests {
     * @return Instance of a com.sksamuel.elastic4s.requests.indexes.IndexRequest.
     */
   def index(index: String, vecField: String, vec: Vec, storedIdField: String, id: String): IndexRequest = {
-    val xcb = XContentFactory.jsonBuilder().rawField(vecField, XContentEncoder.encodeUnsafeToString(vec)).field(storedIdField, id)
+    val xcb = XContentFactory.jsonBuilder().rawField(vecField, XContentCodec.encodeUnsafeToString(vec)).field(storedIdField, id)
     IndexRequest(index, source = Some(JacksonBuilder.writeAsString(xcb.value)), id = Some(id))
   }
 
@@ -67,7 +67,7 @@ trait ElastiknnRequests {
       s"""
          |{
          |  "properties": {
-         |    "$vecField": ${XContentEncoder.encodeUnsafeToString(vecMapping)},
+         |    "$vecField": ${XContentCodec.encodeUnsafeToString(vecMapping)},
          |    "$storedIdField": {
          |      "type": "keyword",
          |      "store": true

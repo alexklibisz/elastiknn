@@ -26,7 +26,7 @@ trait ElastiknnQuery[V <: Vec] {
 object ElastiknnQuery {
 
   private def incompatible(q: NearestNeighborsQuery, m: Mapping): Exception =
-    (Try(XContentEncoder.encodeUnsafeToString(q)), Try(XContentEncoder.encodeUnsafeToString(m))) match {
+    (Try(XContentCodec.encodeUnsafeToString(q)), Try(XContentCodec.encodeUnsafeToString(m))) match {
       case (Success(query), Success(mapping)) =>
         new IllegalArgumentException(s"Query [$query] is not compatible with mapping [$mapping]")
       case _ =>

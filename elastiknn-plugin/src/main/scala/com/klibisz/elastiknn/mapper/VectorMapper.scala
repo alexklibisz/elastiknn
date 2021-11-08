@@ -78,7 +78,7 @@ object VectorMapper {
 
 }
 
-abstract class VectorMapper[V <: Vec: XContentDecoder] { self =>
+abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encoder] { self =>
 
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
@@ -95,7 +95,7 @@ abstract class VectorMapper[V <: Vec: XContentDecoder] { self =>
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: JavaJsonMap, parserContext: MappingParserContext): Mapper.Builder = {
-      val mapping = XContentDecoder.decodeUnsafeFromMap[Mapping](node)
+      val mapping = XContentCodec.decodeUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)
       // TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
@@ -116,7 +116,7 @@ abstract class VectorMapper[V <: Vec: XContentDecoder] { self =>
 
         override def parse(context: ParseContext): Unit = {
           val doc = context.doc()
-          val vec: V = XContentDecoder.decodeUnsafe[V](context.parser())
+          val vec: V = XContentCodec.decodeUnsafe[V](context.parser())
           val fields = checkAndCreateFields(mapping, name, vec).get
           fields.foreach(doc.add)
         }
@@ -128,7 +128,7 @@ abstract class VectorMapper[V <: Vec: XContentDecoder] { self =>
 
         override def doXContentBody(builder: XContentBuilder, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, params)
-          XContentEncoder.encodeUnsafe[Mapping](mapping, builder)
+          XContentCodec.encodeUnsafe[Mapping](mapping, builder)
         }
 
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)

@@ -21,8 +21,8 @@ object KnnQueryBuilder {
   val NAME: String = s"${ELASTIKNN_NAME}_nearest_neighbors"
 
   private val b64 = BaseEncoding.base64()
-  def encodeB64[T: XContentEncoder](t: T): String = b64.encode(XContentEncoder.encodeUnsafeToByteArray(t))
-  def decodeB64[T: XContentDecoder](s: String): T = XContentDecoder.decodeUnsafeFromByteArray(b64.decode(s))
+  def encodeB64[T: XContentCodec.Encoder](t: T): String = b64.encode(XContentCodec.encodeUnsafeToByteArray(t))
+  def decodeB64[T: XContentCodec.Decoder](s: String): T = XContentCodec.decodeUnsafeFromByteArray(b64.decode(s))
 
   object Reader extends Writeable.Reader[KnnQueryBuilder] {
     override def read(in: StreamInput): KnnQueryBuilder = {
@@ -35,7 +35,7 @@ object KnnQueryBuilder {
 
   object Parser extends QueryParser[KnnQueryBuilder] {
     override def fromXContent(parser: XContentParser): KnnQueryBuilder = {
-      val query = XContentDecoder.decodeUnsafe[NearestNeighborsQuery](parser)
+      val query = XContentCodec.decodeUnsafe[NearestNeighborsQuery](parser)
       // Account for sparse bool vecs which need to be sorted.
       val sortedVec = query.vec match {
         case v: Vec.SparseBool if !v.isSorted => v.sorted()
@@ -99,7 +99,7 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
               val field: Any = asMap.get(ixv.field)
               field match {
                 case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[JavaJsonMap] =>
-                  val vec = XContentDecoder.decodeUnsafeVecFromMappingAndMap(mapping, map)
+                  val vec = XContentCodec.Decoder.decodeUnsafeVecFromMappingAndMap(mapping, map)
                   supplier.set(new KnnQueryBuilder(query.withVec(vec)))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
                 case _ => listener.onFailure(doesNotHaveField)
