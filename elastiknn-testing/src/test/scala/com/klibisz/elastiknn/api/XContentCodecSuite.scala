@@ -6,8 +6,8 @@ import org.scalatest.matchers.should.Matchers
 
 // Use Circe for encoding the expected JSON structures.
 import io.circe._
-import io.circe.literal._
 import io.circe.syntax._
+import io.circe.parser.parse
 
 import scala.util.Random
 
@@ -79,14 +79,20 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     "roundtrip" in {
       for {
         i <- 0 to 100
-        v = Vec.DenseFloat.random(i % 42 + 1)
-      } roundtrip(Map("values" -> v.values).asJson, v)
+        v = Vec.DenseFloat.random(i)
+        expected = Json.obj("values" -> v.values.asJson)
+      } {
+        roundtrip(expected, v)
+      }
     }
     "roundtrip (shorthand)" in {
       for {
         i <- 0 to 100
-        v = Vec.DenseFloat.random(i % 42 + 1)
-      } decode(v.values.asJson, v)
+        v = Vec.DenseFloat.random(i)
+        expected = v.values.asJson
+      } {
+        decode(expected, v)
+      }
     }
   }
 
@@ -94,14 +100,20 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     "roundtrip" in {
       for {
         i <- 0 to 100
-        v = Vec.SparseBool.random(i % 42 + 1)
-      } roundtrip(Map("total_indices" -> v.totalIndices.asJson, "true_indices" -> v.trueIndices.asJson).asJson, v)
+        v = Vec.SparseBool.random(i)
+        expected = Json.obj("total_indices" -> v.totalIndices.asJson, "true_indices" -> v.trueIndices.asJson)
+      } {
+        roundtrip(expected, v)
+      }
     }
     "decode shorthand" in {
       for {
         i <- 0 to 100
-        v = Vec.SparseBool.random(i % 42 + 1)
-      } decode(Seq(v.totalIndices.asJson, v.trueIndices.asJson).asJson, v)
+        v = Vec.SparseBool.random(i)
+        expected = Json.arr(v.totalIndices.asJson, v.trueIndices.asJson)
+      } {
+        decode(expected, v)
+      }
     }
   }
 
@@ -113,7 +125,10 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         id = s"id-$i"
         field = s"field-$i"
         v = Vec.Indexed(index, id, field)
-      } roundtrip(Map("index" -> v.index.asJson, "id" -> v.id.asJson, "field" -> v.field.asJson).asJson, v)
+        expected = Json.obj("index" -> v.index.asJson, "id" -> v.id.asJson, "field" -> v.field.asJson)
+      } {
+        roundtrip(expected, v)
+      }
     }
   }
 
@@ -124,144 +139,249 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
   }
 
   "Mapping" - {
-    "dense float" - {
+    "DenseFloat" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           dims = rng.nextInt()
           mapping = Mapping.DenseFloat(dims)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_dense_float_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "exact".asJson,
               "dims" -> dims.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "sparse bool" - {
+    "SparseBool" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           dims = rng.nextInt()
           mapping = Mapping.SparseBool(dims)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_sparse_bool_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "exact".asJson,
               "dims" -> dims.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "jaccard lsh" - {
+    "JaccardLsh" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           (dims, l, k) = (rng.nextInt(), rng.nextInt(), rng.nextInt())
           mapping = Mapping.JaccardLsh(dims, l, k)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_sparse_bool_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "lsh".asJson,
               "dims" -> dims.asJson,
               "similarity" -> "jaccard".asJson,
               "L" -> l.asJson,
               "k" -> k.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "hamming lsh" - {
+    "HammingLsh" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           (dims, l, k) = (rng.nextInt(), rng.nextInt(), rng.nextInt())
           mapping = Mapping.HammingLsh(dims, l, k)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_sparse_bool_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "lsh".asJson,
               "dims" -> dims.asJson,
               "similarity" -> "hamming".asJson,
               "L" -> l.asJson,
               "k" -> k.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "cosine lsh" - {
+    "CosineLsh" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           (dims, l, k) = (rng.nextInt(), rng.nextInt(), rng.nextInt())
           mapping = Mapping.CosineLsh(dims, l, k)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_dense_float_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "lsh".asJson,
               "dims" -> dims.asJson,
               "similarity" -> "cosine".asJson,
               "L" -> l.asJson,
               "k" -> k.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "l2 lsh" - {
+    "L2Lsh" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           (dims, l, k, w) = (rng.nextInt(), rng.nextInt(), rng.nextInt(), rng.nextInt())
           mapping = Mapping.L2Lsh(dims, l, k, w)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_dense_float_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "lsh".asJson,
               "dims" -> dims.asJson,
               "similarity" -> "l2".asJson,
               "L" -> l.asJson,
               "k" -> k.asJson,
               "w" -> w.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
         }
       }
     }
-    "permutation lsh" - {
+    "PermutationLsh" - {
       "roundtrip" in {
         for {
           _ <- 1 to 100
           (dims, k, repeating) = (rng.nextInt(), rng.nextInt(), rng.nextBoolean())
           mapping = Mapping.PermutationLsh(dims, k, repeating)
-        } {
-          val expected = Map(
+          expected = Json.obj(
             "type" -> "elastiknn_dense_float_vector".asJson,
-            "elastiknn" -> Map(
+            "elastiknn" -> Json.obj(
               "model" -> "permutation_lsh".asJson,
               "dims" -> dims.asJson,
               "k" -> k.asJson,
               "repeating" -> repeating.asJson
-            ).asJson
-          ).asJson
+            )
+          )
+        } {
           roundtrip[Mapping](expected, mapping)
+        }
+      }
+    }
+  }
+
+  "NearestNeighborsQuery" - {
+    val vecChoices = Array(
+      () => Vec.DenseFloat.random(rng.nextInt(100)),
+      () => Vec.Indexed(s"index${rng.nextInt()}", s"id${rng.nextInt()}", s"field${rng.nextInt()}"),
+      () => Vec.SparseBool.random(rng.nextInt(1000)),
+      () => Vec.Empty()
+    )
+
+    def randomVec(): Vec = vecChoices(rng.nextInt(vecChoices.length))()
+
+    def randomSimilarity(): Similarity = Similarity.values(rng.nextInt(Similarity.values.length))
+
+    "Exact" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          sim = randomSimilarity()
+          query = NearestNeighborsQuery.Exact(s"field${rng.nextInt()}", sim, vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "model" -> "exact".asJson,
+            "similarity" -> parse(XContentCodec.encodeUnsafeToString(sim)).fold(fail(_), identity),
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+    }
+    "CosineLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          query = NearestNeighborsQuery.CosineLsh(s"field${rng.nextInt()}", rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "model" -> "lsh".asJson,
+            "similarity" -> "cosine".asJson,
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+    }
+    "HammingLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          query = NearestNeighborsQuery.HammingLsh(s"field${rng.nextInt()}", rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "model" -> "lsh".asJson,
+            "similarity" -> "hamming".asJson,
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+    }
+    "JaccardLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          query = NearestNeighborsQuery.JaccardLsh(s"field${rng.nextInt()}", rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "model" -> "lsh".asJson,
+            "similarity" -> "jaccard".asJson,
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+    }
+    "PermutationLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          sim = randomSimilarity()
+          query = NearestNeighborsQuery.PermutationLsh(s"field${rng.nextInt()}", sim, rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "model" -> "permutation_lsh".asJson,
+            "similarity" -> parse(XContentCodec.encodeUnsafeToString(sim)).fold(fail(_), identity),
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
         }
       }
     }

@@ -78,10 +78,6 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
     def unexpected(e: Exception): ElastiknnRuntimeException =
       new ElastiknnRuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
 
-    // We need to get the mapping in order to know how to parse the vector.
-    val sec = c.convertToSearchExecutionContext()
-    val mapping = ElastiknnQuery.getMapping(sec, ixv.field)
-
     // This is basically an semaphore containing the constructed query.
     val supplier = new SetOnce[KnnQueryBuilder]()
 
@@ -99,7 +95,7 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
               val field: Any = asMap.get(ixv.field)
               field match {
                 case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[JavaJsonMap] =>
-                  val vec = XContentCodec.Decoder.decodeUnsafeVecFromMappingAndMap(mapping, map)
+                  val vec = XContentCodec.decodeUnsafeFromMap[Vec](map)
                   supplier.set(new KnnQueryBuilder(query.withVec(vec)))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
                 case _ => listener.onFailure(doesNotHaveField)

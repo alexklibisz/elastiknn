@@ -290,7 +290,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation 'com.typesafe:config:1.4.0'
         implementation "com.typesafe.scala-logging:scala-logging_${scalaShortVersion}:3.9.2"
         implementation 'com.vladsch.flexmark:flexmark-all:0.35.10'
-        implementation "io.circe:circe-literal_${scalaShortVersion}:${circeVersion}"
         implementation "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
         implementation "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
         implementation 'org.apache.commons:commons-math3:3.6.1'
