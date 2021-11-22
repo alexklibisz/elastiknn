@@ -75,7 +75,6 @@ object VectorMapper {
       (_: SourceLookup) => util.List.of()
     }
   }
-
 }
 
 abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encoder] { self =>

@@ -97,6 +97,7 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
             else if (!asMap.containsKey(ixv.field)) listener.onFailure(doesNotHaveField)
             else {
               // Have to handle both vector JSON formats: object (map) and array (list).
+              // It would be great if we could just get an XContentParser of the document body, but seems we cannot.
               val field: Any = asMap.get(ixv.field)
               field match {
                 case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[java.util.Map[String, Object]] =>
