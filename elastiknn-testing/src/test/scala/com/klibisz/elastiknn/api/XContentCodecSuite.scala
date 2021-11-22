@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.api
 
+import org.elasticsearch.common.xcontent.XContentParseException
 import org.scalatest.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -12,6 +13,8 @@ import io.circe.parser.parse
 import scala.util.Random
 
 class XContentCodecSuite extends AnyFreeSpec with Matchers {
+
+  import XContentCodec._
 
   private implicit val rng: Random = new Random(0)
 
@@ -56,7 +59,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
   }
 
   private def decode[T: XContentCodec.Decoder](expected: Json, t: T): Assertion = {
-    val decoded = XContentCodec.decodeUnsafeFromString[T](randomize(expected))
+    val decoded = decodeUnsafeFromString[T](randomize(expected))
     decoded shouldBe t
   }
 
@@ -87,6 +90,12 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           ("COSINE", Similarity.Cosine)
         )
       } roundtrip[Similarity](Json.fromString(str.toLowerCase), sim)
+    }
+    "errors" in {
+      val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("\"wrong\""))
+      ex1.getMessage shouldBe "Unexpected value [wrong]"
+      val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("99"))
+      ex2.getMessage shouldBe "Expected token to be one of [VALUE_STRING] but found [VALUE_NUMBER]"
     }
   }
 
