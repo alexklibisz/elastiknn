@@ -116,7 +116,8 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
         override def parse(context: ParseContext): Unit = {
           val doc = context.doc()
-          val vec: V = XContentCodec.decodeUnsafe[V](context.parser())
+          val parser = context.parser()
+          val vec: V = XContentCodec.decodeUnsafe[V](parser)
           val fields = checkAndCreateFields(mapping, name, vec).get
           fields.foreach(doc.add)
         }
@@ -128,7 +129,9 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
         override def doXContentBody(builder: XContentBuilder, params: ToXContent.Params): Unit = {
           super.doXContentBody(builder, params)
-          XContentCodec.encodeUnsafe[Mapping](mapping, builder)
+          // Note: encoding method should NOT write the "type" property to the builder.
+          // It has presumably already been written, and writing it again causes a tricky exception.
+          XContentCodec.Encoder.mapping.encodeUnsafeInner(mapping, builder)
         }
 
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)

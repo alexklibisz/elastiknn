@@ -10,7 +10,12 @@ import scala.collection.mutable.ArrayBuffer
 object XContentCodec {
 
   trait Encoder[T] {
-    def encodeUnsafe(t: T, x: XContentBuilder): Unit
+    def encodeUnsafeInner(t: T, b: XContentBuilder): Unit
+    def encodeUnsafe(t: T, b: XContentBuilder): Unit = {
+      b.startObject()
+      encodeUnsafeInner(t, b)
+      b.endObject()
+    }
   }
 
   trait Decoder[T] {
@@ -55,208 +60,275 @@ object XContentCodec {
 
   object Encoder {
 
-    implicit val similarity: Encoder[Similarity] = (t: Similarity, b: XContentBuilder) =>
-      t match {
-        case Similarity.Jaccard => b.value(Names.JACCARD)
-        case Similarity.Hamming => b.value(Names.HAMMING)
-        case Similarity.L1      => b.value(Names.L1)
-        case Similarity.L2      => b.value(Names.L2)
-        case Similarity.Cosine  => b.value(Names.COSINE)
+    implicit val similarity: Encoder[Similarity] = new Encoder[Similarity] {
+      override def encodeUnsafeInner(t: Similarity, b: XContentBuilder): Unit = {
+        t match {
+          case Similarity.Jaccard => b.value(Names.JACCARD)
+          case Similarity.Hamming => b.value(Names.HAMMING)
+          case Similarity.L1      => b.value(Names.L1)
+          case Similarity.L2      => b.value(Names.L2)
+          case Similarity.Cosine  => b.value(Names.COSINE)
+        }
       }
-
-    implicit val denseFloatVec: Encoder[Vec.DenseFloat] = (t: Vec.DenseFloat, b: XContentBuilder) => {
-      b.startObject()
-      b.array(Names.VALUES, t.values)
-      b.endObject()
+      override def encodeUnsafe(t: Similarity, b: XContentBuilder): Unit = encodeUnsafeInner(t, b)
     }
 
-    implicit val sparseBoolVec: Encoder[Vec.SparseBool] = (t: Vec.SparseBool, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.TOTAL_INDICES, t.totalIndices)
-      b.array(Names.TRUE_INDICES, t.trueIndices)
-      b.endObject()
+    implicit val denseFloatVec: Encoder[Vec.DenseFloat] = new Encoder[Vec.DenseFloat] {
+      override def encodeUnsafeInner(t: Vec.DenseFloat, b: XContentBuilder): Unit = {
+        b.array(Names.VALUES, t.values)
+      }
+      override def encodeUnsafe(t: Vec.DenseFloat, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.endObject()
+      }
     }
 
-    implicit val emptyVec: Encoder[Vec.Empty] = (_: Vec.Empty, b: XContentBuilder) => {
-      b.startObject()
-      b.endObject()
+    implicit val sparseBoolVec: Encoder[Vec.SparseBool] = new Encoder[Vec.SparseBool] {
+      override def encodeUnsafeInner(t: Vec.SparseBool, b: XContentBuilder): Unit = {
+        b.field(Names.TOTAL_INDICES, t.totalIndices)
+        b.array(Names.TRUE_INDICES, t.trueIndices)
+      }
+      override def encodeUnsafe(t: Vec.SparseBool, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.endObject()
+      }
     }
 
-    implicit val indexedVec: Encoder[Vec.Indexed] = (t: Vec.Indexed, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.FIELD, t.field)
-      b.field(Names.ID, t.id)
-      b.field(Names.INDEX, t.index)
-      b.endObject()
+    implicit val emptyVec: Encoder[Vec.Empty] = new Encoder[Vec.Empty] {
+      override def encodeUnsafeInner(t: Vec.Empty, b: XContentBuilder): Unit = ()
     }
 
-    implicit val vec: Encoder[Vec] = (t: Vec, b: XContentBuilder) =>
-      t match {
+    implicit val indexedVec: Encoder[Vec.Indexed] = new Encoder[Vec.Indexed] {
+      override def encodeUnsafeInner(t: Vec.Indexed, b: XContentBuilder): Unit = {
+        b.field(Names.FIELD, t.field)
+        b.field(Names.ID, t.id)
+        b.field(Names.INDEX, t.index)
+      }
+    }
+
+    implicit val vec: Encoder[Vec] = new Encoder[Vec] {
+      override def encodeUnsafeInner(t: Vec, b: XContentBuilder): Unit =
+        t match {
+          case dfv: Vec.DenseFloat => denseFloatVec.encodeUnsafeInner(dfv, b)
+          case sbv: Vec.SparseBool => sparseBoolVec.encodeUnsafeInner(sbv, b)
+          case iv: Vec.Indexed     => indexedVec.encodeUnsafeInner(iv, b)
+          case empty: Vec.Empty    => emptyVec.encodeUnsafeInner(empty, b)
+        }
+      override def encodeUnsafe(t: Vec, b: XContentBuilder): Unit = t match {
         case dfv: Vec.DenseFloat => denseFloatVec.encodeUnsafe(dfv, b)
         case sbv: Vec.SparseBool => sparseBoolVec.encodeUnsafe(sbv, b)
         case iv: Vec.Indexed     => indexedVec.encodeUnsafe(iv, b)
         case empty: Vec.Empty    => emptyVec.encodeUnsafe(empty, b)
       }
-
-    implicit val sparseBoolMapping: Encoder[Mapping.SparseBool] = (m: Mapping.SparseBool, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.MODEL, Names.EXACT)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
-      b.endObject()
     }
 
-    implicit val jaccardLshMapping: Encoder[Mapping.JaccardLsh] = (m: Mapping.JaccardLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.LSH_L, m.L)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.LSH_K, m.k)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY, Names.JACCARD)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
-      b.endObject()
-    }
-
-    implicit val hammingLshMapping: Encoder[Mapping.HammingLsh] = (m: Mapping.HammingLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.LSH_L, m.L)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.LSH_K, m.k)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY, Names.HAMMING)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
-      b.endObject()
-    }
-
-    implicit val denseFloatMapping: Encoder[Mapping.DenseFloat] = (m: Mapping.DenseFloat, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.MODEL, Names.EXACT)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
-      b.endObject()
-    }
-
-    implicit val cosineLshMapping: Encoder[Mapping.CosineLsh] = (m: Mapping.CosineLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.LSH_L, m.L)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.LSH_K, m.k)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY, Names.COSINE)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
-      b.endObject()
-    }
-
-    implicit val l2LshMapping: Encoder[Mapping.L2Lsh] = (m: Mapping.L2Lsh, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.LSH_L, m.L)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.LSH_K, m.k)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY, Names.L2)
-      b.field(Names.LSH_W, m.w)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
-      b.endObject()
-    }
-
-    implicit val permutationLshMapping: Encoder[Mapping.PermutationLsh] = (m: Mapping.PermutationLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.startObject(Names.ELASTIKNN)
-      b.field(Names.DIMS, m.dims)
-      b.field(Names.LSH_K, m.k)
-      b.field(Names.MODEL, Names.PERMUTATION_LSH)
-      b.field(Names.REPEATING, m.repeating)
-      b.endObject()
-      b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
-      b.endObject()
-    }
-
-    implicit val mapping: Encoder[Mapping] = (m: Mapping, b: XContentBuilder) =>
-      m match {
-        case m: Mapping.SparseBool     => sparseBoolMapping.encodeUnsafe(m, b)
-        case m: Mapping.JaccardLsh     => jaccardLshMapping.encodeUnsafe(m, b)
-        case m: Mapping.HammingLsh     => hammingLshMapping.encodeUnsafe(m, b)
-        case m: Mapping.DenseFloat     => denseFloatMapping.encodeUnsafe(m, b)
-        case m: Mapping.CosineLsh      => cosineLshMapping.encodeUnsafe(m, b)
-        case m: Mapping.L2Lsh          => l2LshMapping.encodeUnsafe(m, b)
-        case m: Mapping.PermutationLsh => permutationLshMapping.encodeUnsafe(m, b)
+    implicit val sparseBoolMapping: Encoder[Mapping.SparseBool] = new Encoder[Mapping.SparseBool] {
+      override def encodeUnsafeInner(t: Mapping.SparseBool, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.MODEL, Names.EXACT)
+        b.endObject()
       }
-
-    implicit val exactQuery: Encoder[NearestNeighborsQuery.Exact] = (t: NearestNeighborsQuery.Exact, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.FIELD, t.field)
-      b.field(Names.MODEL, Names.EXACT)
-      b.field(Names.SIMILARITY)
-      similarity.encodeUnsafe(t.similarity, b)
-      b.field(Names.VEC)
-      vec.encodeUnsafe(t.vec, b)
-      b.endObject()
-    }
-
-    implicit val jaccardLshQuery: Encoder[NearestNeighborsQuery.JaccardLsh] = (t: NearestNeighborsQuery.JaccardLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.CANDIDATES, t.candidates)
-      b.field(Names.FIELD, t.field)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY)
-      similarity.encodeUnsafe(t.similarity, b)
-      b.field(Names.VEC)
-      vec.encodeUnsafe(t.vec, b)
-      b.endObject()
-    }
-
-    implicit val hammingLshQuery: Encoder[NearestNeighborsQuery.HammingLsh] = (t: NearestNeighborsQuery.HammingLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.CANDIDATES, t.candidates)
-      b.field(Names.FIELD, t.field)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY)
-      similarity.encodeUnsafe(t.similarity, b)
-      b.field(Names.VEC)
-      vec.encodeUnsafe(t.vec, b)
-      b.endObject()
-    }
-
-    implicit val cosineLshQuery: Encoder[NearestNeighborsQuery.CosineLsh] = (t: NearestNeighborsQuery.CosineLsh, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.CANDIDATES, t.candidates)
-      b.field(Names.FIELD, t.field)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.SIMILARITY)
-      similarity.encodeUnsafe(t.similarity, b)
-      b.field(Names.VEC)
-      vec.encodeUnsafe(t.vec, b)
-      b.endObject()
-    }
-
-    implicit val l2LshQuery: Encoder[NearestNeighborsQuery.L2Lsh] = (t: NearestNeighborsQuery.L2Lsh, b: XContentBuilder) => {
-      b.startObject()
-      b.field(Names.CANDIDATES, t.candidates)
-      b.field(Names.FIELD, t.field)
-      b.field(Names.MODEL, Names.LSH)
-      b.field(Names.PROBES, t.probes)
-      b.field(Names.SIMILARITY)
-      similarity.encodeUnsafe(t.similarity, b)
-      b.field(Names.VEC)
-      vec.encodeUnsafe(t.vec, b)
-      b.endObject()
-    }
-
-    implicit val permutationLshQuery: Encoder[NearestNeighborsQuery.PermutationLsh] =
-      (t: NearestNeighborsQuery.PermutationLsh, b: XContentBuilder) => {
+      override def encodeUnsafe(t: Mapping.SparseBool, b: XContentBuilder): Unit = {
         b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val jaccardLshMapping: Encoder[Mapping.JaccardLsh] = new Encoder[Mapping.JaccardLsh] {
+      override def encodeUnsafeInner(t: Mapping.JaccardLsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.LSH_L, t.L)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY, Names.JACCARD)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.JaccardLsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val hammingLshMapping: Encoder[Mapping.HammingLsh] = new Encoder[Mapping.HammingLsh] {
+      override def encodeUnsafeInner(t: Mapping.HammingLsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.LSH_L, t.L)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY, Names.HAMMING)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.HammingLsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_SPARSE_BOOL_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val denseFloatMapping: Encoder[Mapping.DenseFloat] = new Encoder[Mapping.DenseFloat] {
+      override def encodeUnsafeInner(t: Mapping.DenseFloat, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.MODEL, Names.EXACT)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.DenseFloat, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val cosineLshMapping: Encoder[Mapping.CosineLsh] = new Encoder[Mapping.CosineLsh] {
+      override def encodeUnsafeInner(t: Mapping.CosineLsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.LSH_L, t.L)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY, Names.COSINE)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.CosineLsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val l2LshMapping: Encoder[Mapping.L2Lsh] = new Encoder[Mapping.L2Lsh] {
+      override def encodeUnsafeInner(t: Mapping.L2Lsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.LSH_L, t.L)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY, Names.L2)
+        b.field(Names.LSH_W, t.w)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.L2Lsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val permutationLshMapping: Encoder[Mapping.PermutationLsh] = new Encoder[Mapping.PermutationLsh] {
+      override def encodeUnsafeInner(t: Mapping.PermutationLsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.PERMUTATION_LSH)
+        b.field(Names.REPEATING, t.repeating)
+        b.endObject()
+      }
+      override def encodeUnsafe(t: Mapping.PermutationLsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        encodeUnsafeInner(t, b)
+        b.field(Names.TYPE, Names.EKNN_DENSE_FLOAT_VECTOR)
+        b.endObject()
+      }
+    }
+
+    implicit val mapping: Encoder[Mapping] = new Encoder[Mapping] {
+      override def encodeUnsafeInner(t: Mapping, b: XContentBuilder): Unit =
+        t match {
+          case m: Mapping.SparseBool     => sparseBoolMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.JaccardLsh     => jaccardLshMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.HammingLsh     => hammingLshMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.DenseFloat     => denseFloatMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.CosineLsh      => cosineLshMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.L2Lsh          => l2LshMapping.encodeUnsafeInner(m, b)
+          case m: Mapping.PermutationLsh => permutationLshMapping.encodeUnsafeInner(m, b)
+        }
+      override def encodeUnsafe(t: Mapping, b: XContentBuilder): Unit =
+        t match {
+          case m: Mapping.SparseBool     => sparseBoolMapping.encodeUnsafe(m, b)
+          case m: Mapping.JaccardLsh     => jaccardLshMapping.encodeUnsafe(m, b)
+          case m: Mapping.HammingLsh     => hammingLshMapping.encodeUnsafe(m, b)
+          case m: Mapping.DenseFloat     => denseFloatMapping.encodeUnsafe(m, b)
+          case m: Mapping.CosineLsh      => cosineLshMapping.encodeUnsafe(m, b)
+          case m: Mapping.L2Lsh          => l2LshMapping.encodeUnsafe(m, b)
+          case m: Mapping.PermutationLsh => permutationLshMapping.encodeUnsafe(m, b)
+        }
+    }
+
+    implicit val exactQuery: Encoder[NearestNeighborsQuery.Exact] = new Encoder[NearestNeighborsQuery.Exact] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.Exact, b: XContentBuilder): Unit = {
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.EXACT)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+      }
+    }
+
+    implicit val jaccardLshQuery: Encoder[NearestNeighborsQuery.JaccardLsh] = new Encoder[NearestNeighborsQuery.JaccardLsh] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.JaccardLsh, b: XContentBuilder): Unit = {
+        b.field(Names.CANDIDATES, t.candidates)
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+      }
+    }
+
+    implicit val hammingLshQuery: Encoder[NearestNeighborsQuery.HammingLsh] = new Encoder[NearestNeighborsQuery.HammingLsh] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.HammingLsh, b: XContentBuilder): Unit = {
+        b.field(Names.CANDIDATES, t.candidates)
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+      }
+    }
+
+    implicit val cosineLshQuery: Encoder[NearestNeighborsQuery.CosineLsh] = new Encoder[NearestNeighborsQuery.CosineLsh] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.CosineLsh, b: XContentBuilder): Unit = {
+        b.field(Names.CANDIDATES, t.candidates)
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+      }
+    }
+
+    implicit val l2LshQuery: Encoder[NearestNeighborsQuery.L2Lsh] = new Encoder[NearestNeighborsQuery.L2Lsh] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.L2Lsh, b: XContentBuilder): Unit = {
+        b.field(Names.CANDIDATES, t.candidates)
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.PROBES, t.probes)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+      }
+    }
+
+    implicit val permutationLshQuery: Encoder[NearestNeighborsQuery.PermutationLsh] = new Encoder[NearestNeighborsQuery.PermutationLsh] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery.PermutationLsh, b: XContentBuilder): Unit = {
         b.field(Names.CANDIDATES, t.candidates)
         b.field(Names.FIELD, t.field)
         b.field(Names.MODEL, Names.PERMUTATION_LSH)
@@ -264,19 +336,20 @@ object XContentCodec {
         similarity.encodeUnsafe(t.similarity, b)
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
-        b.endObject()
       }
+    }
 
-    implicit val nearestNeighborsQuery: Encoder[NearestNeighborsQuery] =
-      (t: NearestNeighborsQuery, b: XContentBuilder) =>
+    implicit val nearestNeighborsQuery: Encoder[NearestNeighborsQuery] = new Encoder[NearestNeighborsQuery] {
+      override def encodeUnsafeInner(t: NearestNeighborsQuery, b: XContentBuilder): Unit =
         t match {
-          case q: NearestNeighborsQuery.Exact          => exactQuery.encodeUnsafe(q, b)
-          case q: NearestNeighborsQuery.JaccardLsh     => jaccardLshQuery.encodeUnsafe(q, b)
-          case q: NearestNeighborsQuery.HammingLsh     => hammingLshQuery.encodeUnsafe(q, b)
-          case q: NearestNeighborsQuery.CosineLsh      => cosineLshQuery.encodeUnsafe(q, b)
-          case q: NearestNeighborsQuery.L2Lsh          => l2LshQuery.encodeUnsafe(q, b)
-          case q: NearestNeighborsQuery.PermutationLsh => permutationLshQuery.encodeUnsafe(q, b)
+          case q: NearestNeighborsQuery.Exact          => exactQuery.encodeUnsafeInner(q, b)
+          case q: NearestNeighborsQuery.JaccardLsh     => jaccardLshQuery.encodeUnsafeInner(q, b)
+          case q: NearestNeighborsQuery.HammingLsh     => hammingLshQuery.encodeUnsafeInner(q, b)
+          case q: NearestNeighborsQuery.CosineLsh      => cosineLshQuery.encodeUnsafeInner(q, b)
+          case q: NearestNeighborsQuery.L2Lsh          => l2LshQuery.encodeUnsafeInner(q, b)
+          case q: NearestNeighborsQuery.PermutationLsh => permutationLshQuery.encodeUnsafeInner(q, b)
         }
+    }
   }
 
   object Decoder {
@@ -337,64 +410,69 @@ object XContentCodec {
       }
     }
 
-    implicit val vec: Decoder[Vec] = (p: XContentParser) => {
-      var field: Option[String] = None
-      var id: Option[String] = None
-      var index: Option[String] = None
-      var isEmpty: Boolean = false
-      var trueIndices: Option[Array[Int]] = None
-      var totalIndices: Option[Int] = None
-      var values: Option[Array[Float]] = None
-      p.nextToken() match {
-        case Token.START_OBJECT =>
-          isEmpty = true
-          while (p.nextToken() == Token.FIELD_NAME) {
-            isEmpty = false
-            p.currentName() match {
-              case Names.FIELD if p.nextToken() == Token.VALUE_STRING         => field = Some(p.text())
-              case Names.ID if p.nextToken() == Token.VALUE_STRING            => id = Some(p.text())
-              case Names.INDEX if p.nextToken() == Token.VALUE_STRING         => index = Some(p.text())
-              case Names.TRUE_INDICES if p.nextToken() == Token.START_ARRAY   => trueIndices = Some(parseSparseBoolArray(p, 42))
-              case Names.TOTAL_INDICES if p.nextToken() == Token.VALUE_NUMBER => totalIndices = Some(p.intValue())
-              case Names.VALUES if p.nextToken() == Token.START_ARRAY         => values = Some(parseFloatArray(p, 42))
-              case n                                                          => throw new XContentParseException(unexpectedName(n))
-            }
-          }
-        case Token.START_ARRAY =>
-          val t0 = p.nextToken()
-          val n0 = if (t0 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
-          if (t0 == Token.END_ARRAY) values = Some(Array.empty)
-          else {
-            val t1 = p.nextToken()
-            val n1 = if (t1 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
-            (t0, n0, t1, n1) match {
-              case (Token.VALUE_NUMBER, Some(n0), Token.END_ARRAY, _) =>
-                values = Some(Array(n0.floatValue()))
-              case (Token.VALUE_NUMBER, Some(n0), Token.VALUE_NUMBER, Some(n1)) =>
-                values = Some(Array(n0.floatValue(), n1.floatValue()) ++ parseFloatArray(p, 42))
-              case (Token.VALUE_NUMBER, Some(n0), Token.START_ARRAY, None) =>
-                totalIndices = Some(n0.intValue())
-                trueIndices = Some(parseSparseBoolArray(p, 42))
-              case (Token.VALUE_NUMBER, Some(_), _, _) =>
-                throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER, Token.START_ARRAY))
-              case _ =>
-                throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER))
-            }
-          }
-        case _ =>
-          throw new XContentParseException(unexpectedToken(p.currentToken(), Token.START_OBJECT, Token.START_ARRAY))
-      }
-      if (isEmpty) Vec.Empty()
-      else
-        (field, id, index, trueIndices, totalIndices, values) match {
-          case (Some(field), Some(id), Some(index), _, _, _) =>
-            Vec.Indexed(index = index, id = id, field = field)
-          case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
-            Vec.SparseBool(trueIndices, totalIndices)
-          case (_, _, _, _, _, Some(values)) =>
-            Vec.DenseFloat(values)
-          case _ => throw new XContentParseException(unableToConstruct("vector"))
+    implicit val vec: Decoder[Vec] = new Decoder[Vec] {
+      override def decodeUnsafe(p: XContentParser): Vec = {
+        var field: Option[String] = None
+        var id: Option[String] = None
+        var index: Option[String] = None
+        var isEmpty: Boolean = true
+        var trueIndices: Option[Array[Int]] = None
+        var totalIndices: Option[Int] = None
+        var values: Option[Array[Float]] = None
+        if (p.currentToken() != Token.START_OBJECT && p.currentToken() != Token.START_ARRAY) {
+          assertToken(p.nextToken(), Token.START_OBJECT, Token.START_ARRAY)
         }
+        p.currentToken() match {
+          case Token.START_OBJECT =>
+            while (p.nextToken() == Token.FIELD_NAME) {
+              isEmpty = false
+              p.currentName() match {
+                case Names.FIELD if p.nextToken() == Token.VALUE_STRING         => field = Some(p.text())
+                case Names.ID if p.nextToken() == Token.VALUE_STRING            => id = Some(p.text())
+                case Names.INDEX if p.nextToken() == Token.VALUE_STRING         => index = Some(p.text())
+                case Names.TRUE_INDICES if p.nextToken() == Token.START_ARRAY   => trueIndices = Some(parseSparseBoolArray(p, 42))
+                case Names.TOTAL_INDICES if p.nextToken() == Token.VALUE_NUMBER => totalIndices = Some(p.intValue())
+                case Names.VALUES if p.nextToken() == Token.START_ARRAY         => values = Some(parseFloatArray(p, 42))
+                case n                                                          => throw new XContentParseException(unexpectedName(n))
+              }
+            }
+          case Token.START_ARRAY =>
+            isEmpty = false
+            val t0 = p.nextToken()
+            val n0 = if (t0 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
+            if (t0 == Token.END_ARRAY) values = Some(Array.empty)
+            else {
+              val t1 = p.nextToken()
+              val n1 = if (t1 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
+              (t0, n0, t1, n1) match {
+                case (Token.VALUE_NUMBER, Some(n0), Token.END_ARRAY, _) =>
+                  values = Some(Array(n0.floatValue()))
+                case (Token.VALUE_NUMBER, Some(n0), Token.VALUE_NUMBER, Some(n1)) =>
+                  values = Some(Array(n0.floatValue(), n1.floatValue()) ++ parseFloatArray(p, 42))
+                case (Token.VALUE_NUMBER, Some(n0), Token.START_ARRAY, None) =>
+                  totalIndices = Some(n0.intValue())
+                  trueIndices = Some(parseSparseBoolArray(p, 42))
+                case (Token.VALUE_NUMBER, Some(_), _, _) =>
+                  throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER, Token.START_ARRAY))
+                case _ =>
+                  throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER))
+              }
+            }
+          case _ =>
+            throw new XContentParseException(unexpectedToken(p.currentToken(), Token.START_OBJECT, Token.START_ARRAY))
+        }
+        if (isEmpty) Vec.Empty()
+        else
+          (field, id, index, trueIndices, totalIndices, values) match {
+            case (Some(field), Some(id), Some(index), _, _, _) =>
+              Vec.Indexed(index = index, id = id, field = field)
+            case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
+              Vec.SparseBool(trueIndices, totalIndices)
+            case (_, _, _, _, _, Some(values)) =>
+              Vec.DenseFloat(values)
+            case _ => throw new XContentParseException(unableToConstruct("vector"))
+          }
+      }
     }
 
     implicit val denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
@@ -431,7 +509,9 @@ object XContentCodec {
       var k: Option[Int] = None
       var w: Option[Int] = None
       var repeating: Option[Boolean] = None
-      assertToken(p.nextToken(), Token.START_OBJECT)
+      if (p.currentToken() != Token.START_OBJECT) {
+        assertToken(p.nextToken(), Token.START_OBJECT)
+      }
       while (p.nextToken() == Token.FIELD_NAME) {
         (p.currentName(), p.nextToken()) match {
           case (Names.TYPE, Token.VALUE_STRING) => typ = Some(p.text())
@@ -478,7 +558,9 @@ object XContentCodec {
         var probes: Option[Int] = None
         var similarity: Option[Similarity] = None
         var vec: Option[Vec] = None
-        assertToken(p.nextToken(), Token.START_OBJECT)
+        if (p.currentToken() != Token.START_OBJECT) {
+          assertToken(p.nextToken(), Token.START_OBJECT)
+        }
         while (p.nextToken() == Token.FIELD_NAME) {
           p.currentName() match {
             case Names.CANDIDATES if p.nextToken() == Token.VALUE_NUMBER => candidates = Some(p.intValue())
