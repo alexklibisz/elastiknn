@@ -4,10 +4,6 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 package object api {
-
-  type JavaJsonMap = java.util.Map[String, Object]
-  type ScalaJsonMap = Map[String, AnyRef]
-
   sealed trait Similarity
   object Similarity {
     case object Cosine extends Similarity

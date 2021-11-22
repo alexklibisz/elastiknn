@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.mapper
 
-import com.klibisz.elastiknn.api.{JavaJsonMap, Mapping, NearestNeighborsQuery, Vec, XContentCodec}
+import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
 import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient, SilentMatchers}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
@@ -181,33 +181,33 @@ class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatche
       nbrs2.result.hits.hits.head.id shouldBe "v0"
     }
   }
-//
-//  // https://github.com/alexklibisz/elastiknn/issues/177
-//  test("index shorthand sparse bool vectors") {
-//    val (index, dims, vecField, idField) = ("issue-177-sparse", 42, "vec", "id")
-//    val corpus = Vec.SparseBool.randoms(dims, 1000)
-//    val mapping = Mapping.JaccardLsh(dims, 20, 1)
-//    val ixReqs = corpus.zipWithIndex.map {
-//      case (vec, i) =>
-//        val id = s"v$i"
-//        val source = s""" { "$idField": "$id", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
-//        IndexRequest(index, id = Some(id), source = Some(source))
-//    }
-//    for {
-//      _ <- deleteIfExists(index)
-//      _ <- eknn.createIndex(index)
-//      _ <- eknn.putMapping(index, vecField, idField, mapping)
-//      _ <- eknn.execute(bulk(ixReqs))
-//      _ <- eknn.execute(refreshIndex(index))
-//      count <- eknn.execute(count(index).query(existsQuery(vecField)))
-//      nbrs1 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
-//      nbrs2 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, Vec.Indexed(index, "v0", vecField)), 10, idField)
-//    } yield {
-//      count.result.count shouldBe corpus.length
-//      nbrs1.result.hits.hits.length shouldBe 10
-//      nbrs1.result.hits.hits.head.id shouldBe "v0"
-//      nbrs2.result.hits.hits.length shouldBe 10
-//      nbrs2.result.hits.hits.head.id shouldBe "v0"
-//    }
-//  }
+
+  // https://github.com/alexklibisz/elastiknn/issues/177
+  "index shorthand sparse bool vectors" in {
+    val (index, dims, vecField, idField) = ("issue-177-sparse", 42, "vec", "id")
+    val corpus = Vec.SparseBool.randoms(dims, 1000)
+    val mapping = Mapping.JaccardLsh(dims, 20, 1)
+    val ixReqs = corpus.zipWithIndex.map {
+      case (vec, i) =>
+        val id = s"v$i"
+        val source = s""" { "$idField": "$id", "$vecField": [${vec.trueIndices.asJson.noSpaces}, ${vec.totalIndices}] } """
+        IndexRequest(index, id = Some(id), source = Some(source))
+    }
+    for {
+      _ <- deleteIfExists(index)
+      _ <- eknn.createIndex(index)
+      _ <- eknn.putMapping(index, vecField, idField, mapping)
+      _ <- eknn.execute(bulk(ixReqs))
+      _ <- eknn.execute(refreshIndex(index))
+      count <- eknn.execute(count(index).query(existsQuery(vecField)))
+      nbrs1 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, corpus.head), 10, idField)
+      nbrs2 <- eknn.nearestNeighbors(index, NearestNeighborsQuery.JaccardLsh(vecField, 10, Vec.Indexed(index, "v0", vecField)), 10, idField)
+    } yield {
+      count.result.count shouldBe corpus.length
+      nbrs1.result.hits.hits.length shouldBe 10
+      nbrs1.result.hits.hits.head.id shouldBe "v0"
+      nbrs2.result.hits.hits.length shouldBe 10
+      nbrs2.result.hits.hits.head.id shouldBe "v0"
+    }
+  }
 }

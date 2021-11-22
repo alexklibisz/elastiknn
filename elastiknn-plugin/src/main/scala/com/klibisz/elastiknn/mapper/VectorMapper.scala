@@ -94,10 +94,9 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
   }
 
   class TypeParser extends Mapper.TypeParser {
-    override def parse(name: String, node: JavaJsonMap, parserContext: MappingParserContext): Mapper.Builder = {
+    override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {
       val mapping = XContentCodec.decodeUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)
-      // TypeParsers.parseField(builder, name, node, parserContext)
       node.clear()
       builder
     }

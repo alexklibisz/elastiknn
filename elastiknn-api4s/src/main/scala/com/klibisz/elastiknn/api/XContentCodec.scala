@@ -50,6 +50,15 @@ object XContentCodec {
     c.decodeUnsafe(parser)
   }
 
+  def decodeUnsafeFromList[T](l: java.util.List[Object])(implicit c: Decoder[T]): T = {
+    val bos = new ByteArrayOutputStream()
+    val builder = new XContentBuilder(xcJson, bos)
+    builder.value(l)
+    builder.close()
+    val parser = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, bos.toByteArray)
+    c.decodeUnsafe(parser)
+  }
+
   def decodeUnsafeFromString[T](str: String)(implicit d: Decoder[T]): T =
     decodeUnsafeFromByteArray(str.getBytes)
 
@@ -438,25 +447,17 @@ object XContentCodec {
             }
           case Token.START_ARRAY =>
             isEmpty = false
-            val t0 = p.nextToken()
-            val n0 = if (t0 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
-            if (t0 == Token.END_ARRAY) values = Some(Array.empty)
-            else {
-              val t1 = p.nextToken()
-              val n1 = if (t1 == Token.VALUE_NUMBER) Some(p.numberValue()) else None
-              (t0, n0, t1, n1) match {
-                case (Token.VALUE_NUMBER, Some(n0), Token.END_ARRAY, _) =>
-                  values = Some(Array(n0.floatValue()))
-                case (Token.VALUE_NUMBER, Some(n0), Token.VALUE_NUMBER, Some(n1)) =>
-                  values = Some(Array(n0.floatValue(), n1.floatValue()) ++ parseFloatArray(p, 42))
-                case (Token.VALUE_NUMBER, Some(n0), Token.START_ARRAY, None) =>
-                  totalIndices = Some(n0.intValue())
-                  trueIndices = Some(parseSparseBoolArray(p, 42))
-                case (Token.VALUE_NUMBER, Some(_), _, _) =>
-                  throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER, Token.START_ARRAY))
-                case _ =>
-                  throw new XContentParseException(unexpectedToken(t0, Token.VALUE_NUMBER))
-              }
+            p.nextToken() match {
+              case Token.END_ARRAY =>
+                values = Some(Array.empty)
+              case Token.VALUE_NUMBER =>
+                values = Some(p.floatValue() +: parseFloatArray(p, 42))
+              case Token.START_ARRAY =>
+                trueIndices = Some(parseSparseBoolArray(p, 42))
+                assertToken(p.nextToken(), Token.VALUE_NUMBER)
+                totalIndices = Some(p.intValue())
+              case t =>
+                throw new XContentParseException(unexpectedToken(t, Token.END_ARRAY, Token.VALUE_NUMBER, Token.START_ARRAY))
             }
           case _ =>
             throw new XContentParseException(unexpectedToken(p.currentToken(), Token.START_OBJECT, Token.START_ARRAY))

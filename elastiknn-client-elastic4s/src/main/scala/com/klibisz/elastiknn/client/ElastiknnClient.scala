@@ -179,8 +179,9 @@ object ElastiknnClient {
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
           findBulkError(bulkResponse.items) match {
-            case Some(err) => Left(err.asException)
-            case None      => Left(StrictFailureException(s"Unknown bulk execution error [$res] for request [$req]."))
+            case Some(err) =>
+              Left(err.asException)
+            case None => Left(StrictFailureException(s"Unknown bulk execution error [$res] for request [$req]."))
           }
         case other => Right(other)
       }

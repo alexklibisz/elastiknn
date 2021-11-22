@@ -110,7 +110,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
       for {
         i <- 0 to 100
         v = Vec.SparseBool.random(i)
-        expected = Json.arr(v.totalIndices.asJson, v.trueIndices.asJson)
+        expected = Json.arr(v.trueIndices.asJson, v.totalIndices.asJson)
       } {
         decode(expected, v)
       }

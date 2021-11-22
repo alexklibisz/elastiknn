@@ -75,6 +75,10 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
       new ResourceNotFoundException(s"Document with id [${ixv.id}] in index [${ixv.index}] not found")
     def doesNotHaveField: ResourceNotFoundException =
       new ResourceNotFoundException(s"Document with id [${ixv.id}] in index [${ixv.index}] exists, but does not have field [${ixv.field}]")
+    def unexpectedFieldType: ResourceNotFoundException =
+      new ResourceNotFoundException(
+        s"Document with id [${ixv.id}] in index [${ixv.index}] exists, but the field [${ixv.field}] has an unexpected type"
+      )
     def unexpected(e: Exception): ElastiknnRuntimeException =
       new ElastiknnRuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
 
@@ -92,13 +96,18 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
             if (!response.isExists || asMap == null) listener.onFailure(doesNotExist)
             else if (!asMap.containsKey(ixv.field)) listener.onFailure(doesNotHaveField)
             else {
+              // Have to handle both vector JSON formats: object (map) and array (list).
               val field: Any = asMap.get(ixv.field)
               field match {
-                case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[JavaJsonMap] =>
+                case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[java.util.Map[String, Object]] =>
                   val vec = XContentCodec.decodeUnsafeFromMap[Vec](map)
                   supplier.set(new KnnQueryBuilder(query.withVec(vec)))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
-                case _ => listener.onFailure(doesNotHaveField)
+                case lst: java.util.List[Object @unchecked] if lst.isInstanceOf[java.util.List[Object]] =>
+                  val vec = XContentCodec.decodeUnsafeFromList[Vec](lst)
+                  supplier.set(new KnnQueryBuilder(query.withVec(vec)))
+                  listener.asInstanceOf[ActionListener[Any]].onResponse(null)
+                case _ => listener.onFailure(unexpectedFieldType)
               }
             }
           }
