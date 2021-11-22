@@ -31,7 +31,7 @@ Make a Dockerfile like below. The image version (`elasticsearch:A.B.C`) must mat
 
 ```docker
 FROM docker.elastic.co/elasticsearch/elasticsearch:7.14.1
-RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/7.14.1.2/elastiknn-7.14.1.2.zip
+RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/7.14.1.3/elastiknn-7.14.1.3.zip
 ```
 
 Build and run the Dockerfile. If you have any issues please refer to the [official docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)
