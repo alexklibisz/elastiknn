@@ -129,7 +129,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
           super.doXContentBody(builder, params)
           // Note: encoding method should NOT write the "type" property to the builder.
           // It has presumably already been written, and writing it again causes a tricky exception.
-          XContentCodec.Encoder.mapping.encodeUnsafeInner(mapping, builder)
+          XContentCodec.Encoder.mapping.encodeElastiknnObject(mapping, builder)
         }
 
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)

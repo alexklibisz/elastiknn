@@ -138,7 +138,7 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       |  "model": "exact"
       | }
       |}
-      |""".stripMargin.shouldNotDecodeTo[Mapping]
+      |""".stripMargin shouldDecodeTo [Mapping] Mapping.DenseFloat(100)
   }
 
   test("nearest neighbor queries") {

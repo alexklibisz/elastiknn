@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.mapper
 
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
-import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient, SilentMatchers}
+import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
@@ -9,9 +9,7 @@ import com.sksamuel.elastic4s.{Indexes, Response}
 import io.circe.JsonObject
 import io.circe.parser.parse
 import io.circe.syntax._
-import org.scalatest._
 import org.scalatest.freespec.AsyncFreeSpec
-import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.util.UUID
