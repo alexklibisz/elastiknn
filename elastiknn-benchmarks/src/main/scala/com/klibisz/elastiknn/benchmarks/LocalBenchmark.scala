@@ -13,12 +13,12 @@ object LocalBenchmark extends App {
   private val experiments =
     Seq(1).flatMap { shards =>
       Seq(
-//        Experiment(
-//          Dataset.AnnbFashionMnist,
-//          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
-//          Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
-//          shards = shards
-//        ),
+        Experiment(
+          Dataset.AnnbFashionMnist,
+          Mapping.DenseFloat(Dataset.AnnbFashionMnist.dims),
+          Seq(Query(NearestNeighborsQuery.Exact(field, Similarity.L2), k)),
+          shards = shards
+        ),
         Experiment(
           Dataset.AnnbFashionMnist,
           Mapping.L2Lsh(Dataset.AnnbFashionMnist.dims, 75, 4, 7),
@@ -27,14 +27,13 @@ object LocalBenchmark extends App {
             Query(NearestNeighborsQuery.L2Lsh(field, 2000 / shards, 3), k)
           ),
           shards = shards
+        ),
+        Experiment(
+          Dataset.AnnbSift,
+          Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 2),
+          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 5000 / shards, 0), k)),
+          shards = shards
         )
-//        ,
-//        Experiment(
-//          Dataset.AnnbSift,
-//          Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 2),
-//          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 5000 / shards, 0), k)),
-//          shards = shards
-//        )
       )
     }
 
