@@ -343,9 +343,6 @@ object XContentCodec {
     private def unexpectedName(current: String): String =
       s"Unexpected name [$current]"
 
-    private def unexpectedName(current: String, expected: String): String =
-      s"Expected name [$expected] but found [${current}]"
-
     private def unexpectedValue(s: String): String =
       s"Unexpected value [$s]"
 
@@ -358,31 +355,30 @@ object XContentCodec {
     private def assertToken(current: Token, expected: Token*): Unit =
       if (expected.contains(current)) () else throw new XContentParseException(unexpectedToken(current, expected: _*))
 
-//    private def assertName(current: String, expected: String): Unit =
-//      if (current == expected) () else throw new XContentParseException(unexpectedName(current, expected))
-
     private def parseFloatArray(p: XContentParser, expectedLength: Int): Array[Float] = {
-      assertToken(p.currentToken(), Token.START_ARRAY, Token.VALUE_NUMBER)
       val b = new ArrayBuffer[Float](expectedLength)
-      while (p.nextToken() != Token.END_ARRAY) {
-        assertToken(p.currentToken(), Token.VALUE_NUMBER)
-        b.append(p.numberValue().floatValue())
+      p.currentToken() match {
+        case Token.START_ARRAY  => ()
+        case Token.VALUE_NUMBER => b.append(p.floatValue())
+        case t                  => throw new XContentParseException(unexpectedToken(t, Token.START_ARRAY, Token.VALUE_NUMBER))
       }
+      while (p.nextToken() != Token.END_ARRAY) b.append(p.floatValue())
       b.toArray
     }
 
     private def parseSparseBoolArray(p: XContentParser, expectedLength: Int): Array[Int] = {
-      assertToken(p.currentToken(), Token.START_ARRAY, Token.VALUE_NUMBER)
       val b = new ArrayBuffer[Int](expectedLength)
-      while (p.nextToken() != Token.END_ARRAY) {
-        assertToken(p.currentToken(), Token.VALUE_NUMBER)
-        b.append(p.numberValue().intValue())
+      p.currentToken() match {
+        case Token.START_ARRAY  => ()
+        case Token.VALUE_NUMBER => b.append(p.intValue())
+        case t                  => throw new XContentParseException(unexpectedToken(t, Token.START_ARRAY, Token.VALUE_NUMBER))
       }
+      while (p.nextToken() != Token.END_ARRAY) b.append(p.intValue())
       b.toArray
     }
 
     implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
-      assertToken(p.nextToken(), Token.VALUE_STRING)
+      if (p.currentToken() != Token.VALUE_STRING) assertToken(p.nextToken(), Token.VALUE_STRING)
       val s1 = p.text()
       val s2 = s1.toLowerCase
       s2 match {
@@ -428,7 +424,7 @@ object XContentCodec {
               case Token.END_ARRAY =>
                 values = Some(Array.empty)
               case Token.VALUE_NUMBER =>
-                values = Some(p.floatValue() +: parseFloatArray(p, 42))
+                values = Some(parseFloatArray(p, 42))
               case Token.START_ARRAY =>
                 trueIndices = Some(parseSparseBoolArray(p, 42))
                 assertToken(p.nextToken(), Token.VALUE_NUMBER)
