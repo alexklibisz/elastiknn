@@ -33,11 +33,26 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     else shuffle(j).spaces4SortKeys
   }
 
-  private def roundtrip[T: XContentCodec.Encoder: XContentCodec.Decoder](expected: Json, t: T): Assertion = {
-    val encoded = XContentCodec.encodeUnsafeToString(t)
-    encoded shouldBe expected.noSpacesSortKeys
-    val decoded = XContentCodec.decodeUnsafeFromString[T](randomize(expected))
-    decoded shouldBe t
+  private def roundtrip[T: XContentCodec.Encoder: XContentCodec.Decoder: ElasticsearchCodec](expected: Json, t: T): Assertion = {
+    // Encode with XContent and check that it matches the expected JSON w/ sorted keys and no spaces.
+    val encodedXContent: String = XContentCodec.encodeUnsafeToString(t)
+    encodedXContent shouldBe expected.noSpacesSortKeys
+    // Encode with Circe.
+    val encodedCirce: Json = ElasticsearchCodec.encode(t)
+    // Test roundtrip between the two codecs.
+    // Encode -> Decode
+    // Circe -> Circe
+    val decodedCirceCirce = ElasticsearchCodec.decodeJsonGet[T](encodedCirce)
+    decodedCirceCirce shouldBe t
+    // Circe -> XContent
+    val decodedCirceXContent = XContentCodec.decodeUnsafeFromString(encodedCirce.noSpaces)
+    decodedCirceXContent shouldBe t
+    // XContent -> Circe
+    val decodedXContentCirce = ElasticsearchCodec.decodeJsonGet[T](ElasticsearchCodec.parseGet(encodedXContent))
+    decodedXContentCirce shouldBe t
+    // XContent -> XContent
+    val decodedXContentXContent = XContentCodec.decodeUnsafeFromString(randomize(expected))
+    decodedXContentXContent shouldBe t
   }
 
   private def decode[T: XContentCodec.Decoder](expected: Json, t: T): Assertion = {
