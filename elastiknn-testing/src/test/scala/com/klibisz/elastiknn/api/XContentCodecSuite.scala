@@ -93,7 +93,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     }
     "errors" in {
       val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("\"wrong\""))
-      ex1.getMessage shouldBe "Unexpected value [wrong]"
+      ex1.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [wrong]"
       val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("99"))
       ex2.getMessage shouldBe "Expected token to be one of [VALUE_STRING] but found [VALUE_NUMBER]"
     }
@@ -118,6 +118,14 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         decode(expected, v)
       }
     }
+    "errors" in {
+      val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Vec]("""{"values":["wrong"]}"""))
+      ex1.getMessage shouldBe "Expected token to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
+      val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Vec](s"""["wrong"]"""))
+      ex2.getMessage shouldBe "Expected token to be one of [END_ARRAY,START_ARRAY,VALUE_NUMBER] but found [VALUE_STRING]"
+      val ex3 = intercept[XContentParseException](decodeUnsafeFromString[Vec.DenseFloat](s"""[[1,2,3],10]"""))
+      ex3.getMessage shouldBe "Unable to construct [dense float vector] from parsed JSON"
+    }
   }
 
   "Vec.SparseBool" - {
@@ -139,6 +147,14 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         decode(expected, v)
       }
     }
+    "errors" in {
+      val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Vec]("""{"true_indices":10,"total_indices":[0,1,2]}"""))
+      ex1.getMessage shouldBe "Expected [true_indices] to be one of [START_ARRAY] but found [VALUE_NUMBER]"
+      val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Vec](s"""[10,[1,2,3]]"""))
+      ex2.getMessage shouldBe "Expected token to be one of [VALUE_NUMBER] but found [START_ARRAY]"
+      val ex3 = intercept[XContentParseException](decodeUnsafeFromString[Vec.DenseFloat](s"""[[1,2,3],10]"""))
+      ex3.getMessage shouldBe "Unable to construct [dense float vector] from parsed JSON"
+    }
   }
 
   "Vec.Indexed" - {
@@ -154,11 +170,19 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         roundtrip(expected, v)
       }
     }
+    "errors" in {
+      val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Vec]("""{"id":"...","field":"...","index":99}"""))
+      ex1.getMessage shouldBe "Expected [index] to be one of [VALUE_STRING] but found [VALUE_NUMBER]"
+    }
   }
 
   "Vec.Empty" - {
     "roundtrip" in {
       roundtrip(Json.obj(), Vec.Empty())
+    }
+    "errors" in {
+      val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Vec]("""{"...":"..."}"""))
+      ex1.getMessage shouldBe "Unexpected name [...]"
     }
   }
 
@@ -180,6 +204,24 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[Mapping](expected, mapping)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": [1,2,3]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [elastiknn] to be one of [START_OBJECT] but found [START_ARRAY]"
+        val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": {
+            |  "model": "wrong!"
+            | }
+            |}
+            |""".stripMargin))
+        ex2.getMessage shouldBe "Expected [model] to be one of [exact,lsh,permutation_lsh] but found [wrong!]"
+      }
     }
     "SparseBool" - {
       "roundtrip" in {
@@ -197,6 +239,22 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[Mapping](expected, mapping)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_sparse_vector",
+            | "elastiknn": [1,2,3]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [type] to be one of [elastiknn_dense_float_vector,elastiknn_sparse_bool_vector] but found [elastiknn_sparse_vector]"
+        val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_sparse_bool_vector",
+            | "elastiknn": {}
+            |}
+            |""".stripMargin))
+        ex2.getMessage shouldBe "Unable to construct [mapping] from parsed JSON"
       }
     }
     "JaccardLsh" - {

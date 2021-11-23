@@ -2,9 +2,11 @@ package com.klibisz.elastiknn.api
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import org.elasticsearch.common.xcontent.XContentParser.Token
+import org.elasticsearch.common.xcontent.XContentParser.Token._
 import org.elasticsearch.common.xcontent._
 
 import java.io.ByteArrayOutputStream
+import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ArrayBuffer
 
 object XContentCodec {
@@ -340,45 +342,76 @@ object XContentCodec {
 
   object Decoder {
 
-    private def unexpectedName(current: String): String =
-      s"Unexpected name [$current]"
+    private implicit val orderTokens: Ordering[Token] = new Ordering[Token] {
+      override def compare(x: Token, y: Token): Int = x.name().compareTo(y.name())
+    }
+
+    private def unexpectedName(name: String): String =
+      s"Unexpected name [$name]"
 
     private def unexpectedValue(s: String): String =
       s"Unexpected value [$s]"
 
-    private def unexpectedToken(current: Token, expected: Token*): String =
-      s"Expected token to be one of [${expected.mkString(",")}] but found [${current}]"
+    private def unexpectedValue(text: String, expected: SortedSet[String]): String =
+      s"Expected token to be one of [${expected.mkString(",")}] but found [$text]"
+
+    private def unexpectedValue(name: String, text: String, expected: SortedSet[String]): String =
+      s"Expected [$name] to be one of [${expected.mkString(",")}] but found [$text]"
+
+    private def unexpectedToken(name: String, token: Token, expected: SortedSet[Token]): String =
+      s"Expected [$name] to be one of [${expected.mkString(",")}] but found [$token]"
+
+    private def unexpectedToken(token: Token, expected: SortedSet[Token]): String =
+      s"Expected token to be one of [${expected.mkString(",")}] but found [$token]"
 
     private def unableToConstruct(tipe: String): String =
       s"Unable to construct [$tipe] from parsed JSON"
 
-    private def assertToken(current: Token, expected: Token*): Unit =
-      if (expected.contains(current)) () else throw new XContentParseException(unexpectedToken(current, expected: _*))
+    private def assertToken(name: String, token: Token, expected: SortedSet[Token]): Unit =
+      if (expected.contains(token)) () else throw new XContentParseException(unexpectedToken(name, token, expected))
+
+    private def assertToken(token: Token, expected: SortedSet[Token]): Unit =
+      if (expected.contains(token)) () else throw new XContentParseException(unexpectedToken(token, expected))
+
+    private def assertToken(name: String, token: Token, expected: Token): Unit =
+      assertToken(name, token, SortedSet(expected))
+
+    private def assertToken(token: Token, expected: Token): Unit =
+      assertToken(token, SortedSet(expected))
+
+    private def assertValue(name: String, text: String, expected: SortedSet[String]): Unit =
+      if (expected.contains(text)) () else throw new XContentParseException(unexpectedValue(name, text, expected))
 
     private def parseFloatArray(p: XContentParser, expectedLength: Int): Array[Float] = {
       val b = new ArrayBuffer[Float](expectedLength)
       p.currentToken() match {
-        case Token.START_ARRAY  => ()
-        case Token.VALUE_NUMBER => b.append(p.floatValue())
-        case t                  => throw new XContentParseException(unexpectedToken(t, Token.START_ARRAY, Token.VALUE_NUMBER))
+        case START_ARRAY  => ()
+        case VALUE_NUMBER => b.append(p.floatValue())
+        case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
-      while (p.nextToken() != Token.END_ARRAY) b.append(p.floatValue())
+      while (p.nextToken() != END_ARRAY) {
+        assertToken(p.currentToken(), VALUE_NUMBER)
+        b.append(p.floatValue())
+      }
       b.toArray
     }
 
     private def parseSparseBoolArray(p: XContentParser, expectedLength: Int): Array[Int] = {
       val b = new ArrayBuffer[Int](expectedLength)
       p.currentToken() match {
-        case Token.START_ARRAY  => ()
-        case Token.VALUE_NUMBER => b.append(p.intValue())
-        case t                  => throw new XContentParseException(unexpectedToken(t, Token.START_ARRAY, Token.VALUE_NUMBER))
+        case START_ARRAY  => ()
+        case VALUE_NUMBER => b.append(p.intValue())
+        case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
-      while (p.nextToken() != Token.END_ARRAY) b.append(p.intValue())
+      while (p.nextToken() != END_ARRAY) {
+        assertToken(p.currentToken(), VALUE_NUMBER)
+        b.append(p.intValue())
+      }
       b.toArray
     }
 
     implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
-      if (p.currentToken() != Token.VALUE_STRING) assertToken(p.nextToken(), Token.VALUE_STRING)
+      if (p.currentToken() != VALUE_STRING) assertToken(p.nextToken(), VALUE_STRING)
       val s1 = p.text()
       val s2 = s1.toLowerCase
       s2 match {
@@ -388,7 +421,7 @@ object XContentCodec {
         case Names.L2      => Similarity.L2
         case Names.COSINE  => Similarity.Cosine
         case Names.ANGULAR => Similarity.Cosine
-        case _             => throw new XContentParseException(unexpectedValue(s1))
+        case _             => throw new XContentParseException(unexpectedValue(s1, Names.SIMILARITIES))
       }
     }
 
@@ -401,39 +434,51 @@ object XContentCodec {
         var trueIndices: Option[Array[Int]] = None
         var totalIndices: Option[Int] = None
         var values: Option[Array[Float]] = None
-        if (p.currentToken() != Token.START_OBJECT && p.currentToken() != Token.START_ARRAY) {
-          assertToken(p.nextToken(), Token.START_OBJECT, Token.START_ARRAY)
+        if (p.currentToken() != START_OBJECT && p.currentToken() != START_ARRAY) {
+          assertToken(p.nextToken(), SortedSet(START_ARRAY, START_OBJECT))
         }
         p.currentToken() match {
-          case Token.START_OBJECT =>
-            while (p.nextToken() == Token.FIELD_NAME) {
+          case START_OBJECT =>
+            while (p.nextToken() == FIELD_NAME) {
               isEmpty = false
               p.currentName() match {
-                case Names.FIELD if p.nextToken() == Token.VALUE_STRING         => field = Some(p.text())
-                case Names.ID if p.nextToken() == Token.VALUE_STRING            => id = Some(p.text())
-                case Names.INDEX if p.nextToken() == Token.VALUE_STRING         => index = Some(p.text())
-                case Names.TRUE_INDICES if p.nextToken() == Token.START_ARRAY   => trueIndices = Some(parseSparseBoolArray(p, 42))
-                case Names.TOTAL_INDICES if p.nextToken() == Token.VALUE_NUMBER => totalIndices = Some(p.intValue())
-                case Names.VALUES if p.nextToken() == Token.START_ARRAY         => values = Some(parseFloatArray(p, 42))
-                case n                                                          => throw new XContentParseException(unexpectedName(n))
+                case n @ Names.FIELD =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  field = Some(p.text())
+                case n @ Names.ID =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  id = Some(p.text())
+                case n @ Names.INDEX =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  index = Some(p.text())
+                case n @ Names.TRUE_INDICES =>
+                  assertToken(n, p.nextToken(), START_ARRAY)
+                  trueIndices = Some(parseSparseBoolArray(p, 42))
+                case n @ Names.TOTAL_INDICES =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  totalIndices = Some(p.intValue())
+                case n @ Names.VALUES =>
+                  assertToken(n, p.nextToken(), START_ARRAY)
+                  values = Some(parseFloatArray(p, 42))
+                case n => throw new XContentParseException(unexpectedName(n))
               }
             }
-          case Token.START_ARRAY =>
+          case START_ARRAY =>
             isEmpty = false
             p.nextToken() match {
-              case Token.END_ARRAY =>
+              case END_ARRAY =>
                 values = Some(Array.empty)
-              case Token.VALUE_NUMBER =>
+              case VALUE_NUMBER =>
                 values = Some(parseFloatArray(p, 42))
-              case Token.START_ARRAY =>
+              case START_ARRAY =>
                 trueIndices = Some(parseSparseBoolArray(p, 42))
-                assertToken(p.nextToken(), Token.VALUE_NUMBER)
+                assertToken(p.nextToken(), VALUE_NUMBER)
                 totalIndices = Some(p.intValue())
               case t =>
-                throw new XContentParseException(unexpectedToken(t, Token.END_ARRAY, Token.VALUE_NUMBER, Token.START_ARRAY))
+                throw new XContentParseException(unexpectedToken(t, SortedSet(END_ARRAY, START_ARRAY, VALUE_NUMBER)))
             }
           case _ =>
-            throw new XContentParseException(unexpectedToken(p.currentToken(), Token.START_OBJECT, Token.START_ARRAY))
+            throw new XContentParseException(unexpectedToken(p.currentToken(), SortedSet(START_ARRAY, START_OBJECT)))
         }
         if (isEmpty) Vec.Empty()
         else
@@ -483,26 +528,43 @@ object XContentCodec {
       var k: Option[Int] = None
       var w: Option[Int] = None
       var repeating: Option[Boolean] = None
-      if (p.currentToken() != Token.START_OBJECT) {
-        assertToken(p.nextToken(), Token.START_OBJECT)
+      if (p.currentToken() != START_OBJECT) {
+        assertToken(p.nextToken(), START_OBJECT)
       }
-      while (p.nextToken() == Token.FIELD_NAME) {
-        (p.currentName(), p.nextToken()) match {
-          case (Names.TYPE, Token.VALUE_STRING) => typ = Some(p.text())
-          case (Names.ELASTIKNN, Token.START_OBJECT) =>
-            while (p.nextToken() == Token.FIELD_NAME) {
+      while (p.nextToken() == FIELD_NAME) {
+        p.currentName() match {
+          case n @ Names.TYPE =>
+            assertToken(n, p.nextToken(), VALUE_STRING)
+            assertValue(n, p.text(), Names.TYPES)
+            typ = Some(p.text())
+          case n @ Names.ELASTIKNN =>
+            assertToken(n, p.nextToken(), START_OBJECT)
+            while (p.nextToken() == FIELD_NAME) {
               p.currentName() match {
-                case Names.DIMS if p.nextToken() == Token.VALUE_NUMBER       => dims = Some(p.intValue())
-                case Names.LSH_L if p.nextToken() == Token.VALUE_NUMBER      => l = Some(p.intValue())
-                case Names.LSH_K if p.nextToken() == Token.VALUE_NUMBER      => k = Some(p.intValue())
-                case Names.LSH_W if p.nextToken() == Token.VALUE_NUMBER      => w = Some(p.intValue())
-                case Names.MODEL if p.nextToken() == Token.VALUE_STRING      => model = Some(p.text())
-                case Names.REPEATING if p.nextToken() == Token.VALUE_BOOLEAN => repeating = Some(p.booleanValue())
-                case Names.SIMILARITY                                        => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case n                                                       => throw new XContentParseException(unexpectedName(n))
+                case n @ Names.DIMS =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  dims = Some(p.intValue())
+                case n @ Names.LSH_L =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  l = Some(p.intValue())
+                case n @ Names.LSH_K =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  k = Some(p.intValue())
+                case n @ Names.LSH_W =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  w = Some(p.intValue())
+                case n @ Names.MODEL =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  assertValue(n, p.text(), Names.MODELS)
+                  model = Some(p.text())
+                case n @ Names.REPEATING =>
+                  assertToken(n, p.nextToken(), VALUE_BOOLEAN)
+                  repeating = Some(p.booleanValue())
+                case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
+                case n                => throw new XContentParseException(unexpectedName(n))
               }
             }
-          case (n, _) => throw new XContentParseException(unexpectedName(n))
+          case n => throw new XContentParseException(unexpectedName(n))
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -532,18 +594,27 @@ object XContentCodec {
         var probes: Option[Int] = None
         var similarity: Option[Similarity] = None
         var vec: Option[Vec] = None
-        if (p.currentToken() != Token.START_OBJECT) {
-          assertToken(p.nextToken(), Token.START_OBJECT)
+        if (p.currentToken() != START_OBJECT) {
+          assertToken(p.nextToken(), START_OBJECT)
         }
-        while (p.nextToken() == Token.FIELD_NAME) {
+        while (p.nextToken() == FIELD_NAME) {
           p.currentName() match {
-            case Names.CANDIDATES if p.nextToken() == Token.VALUE_NUMBER => candidates = Some(p.intValue())
-            case Names.FIELD if p.nextToken() == Token.VALUE_STRING      => field = Some(p.text())
-            case Names.MODEL if p.nextToken() == Token.VALUE_STRING      => model = Some(p.text())
-            case Names.PROBES if p.nextToken() == Token.VALUE_NUMBER     => probes = Some(p.intValue())
-            case Names.SIMILARITY                                        => similarity = Some(decodeUnsafe[Similarity](p))
-            case Names.VEC                                               => vec = Some(decodeUnsafe[Vec](p))
-            case n                                                       => throw new XContentParseException(unexpectedName(n))
+            case n @ Names.CANDIDATES =>
+              assertToken(n, p.nextToken(), VALUE_NUMBER)
+              candidates = Some(p.intValue())
+            case n @ Names.FIELD =>
+              assertToken(n, p.nextToken(), VALUE_STRING)
+              field = Some(p.text())
+            case n @ Names.MODEL =>
+              assertToken(n, p.nextToken(), VALUE_STRING)
+              assertValue(n, p.text(), Names.MODELS)
+              model = Some(p.text())
+            case n @ Names.PROBES =>
+              assertToken(n, p.nextToken(), VALUE_NUMBER)
+              probes = Some(p.intValue())
+            case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
+            case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
+            case n                => throw new XContentParseException(unexpectedName(n))
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
@@ -594,5 +665,9 @@ object XContentCodec {
     val TYPE = "type"
     val VALUES = "values"
     val VEC = "vec"
+
+    val MODELS: SortedSet[String] = SortedSet(EXACT, LSH, PERMUTATION_LSH)
+    val SIMILARITIES: SortedSet[String] = SortedSet(COSINE, HAMMING, JACCARD, L1, L2)
+    val TYPES: SortedSet[String] = SortedSet(EKNN_SPARSE_BOOL_VECTOR, EKNN_DENSE_FLOAT_VECTOR)
   }
 }
