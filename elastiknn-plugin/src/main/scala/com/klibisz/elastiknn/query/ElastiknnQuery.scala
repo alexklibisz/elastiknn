@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
+import com.klibisz.elastiknn.ElastiknnException.{ElastiknnIllegalArgumentException, ElastiknnRuntimeException}
 import com.klibisz.elastiknn.api.NearestNeighborsQuery._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.mapper.VectorMapper
@@ -26,12 +26,7 @@ trait ElastiknnQuery[V <: Vec] {
 object ElastiknnQuery {
 
   private def incompatible(q: NearestNeighborsQuery, m: Mapping): Exception =
-    (Try(XContentCodec.encodeUnsafeToString(q)), Try(XContentCodec.encodeUnsafeToString(m))) match {
-      case (Success(query), Success(mapping)) =>
-        new IllegalArgumentException(s"Query [$query] is not compatible with mapping [$mapping]")
-      case _ =>
-        new IllegalArgumentException(s"Query [$q] is not compatible with mapping [$m]")
-    }
+    new ElastiknnIllegalArgumentException(s"Query [$q] is not compatible with mapping [$m]")
 
   def getMapping(context: SearchExecutionContext, field: String): Mapping = {
     import VectorMapper._
