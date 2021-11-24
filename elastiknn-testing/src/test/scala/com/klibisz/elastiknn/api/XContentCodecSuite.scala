@@ -277,6 +277,34 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[Mapping](expected, mapping)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_sparse_bool_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "jaccard",
+            |   "L": "33",
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [L] to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
+        val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_sparse_bool_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "jacard",
+            |   "L": 33,
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex2.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [jacard]"
+      }
     }
     "HammingLsh" - {
       "roundtrip" in {
@@ -298,6 +326,21 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[Mapping](expected, mapping)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_sparse_bool_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "hamming",
+            |   "L": "33",
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [L] to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
+      }
     }
     "CosineLsh" - {
       "roundtrip" in {
@@ -318,6 +361,21 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[Mapping](expected, mapping)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "cosine",
+            |   "L": "33",
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [L] to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
       }
     }
     "L2Lsh" - {
@@ -341,6 +399,21 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[Mapping](expected, mapping)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "l2",
+            |   "L": "33",
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [L] to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
+      }
     }
     "PermutationLsh" - {
       "roundtrip" in {
@@ -360,6 +433,18 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[Mapping](expected, mapping)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": {
+            |   "model": "permutation_lsh",
+            |   "repeating": "true"
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [repeating] to be one of [VALUE_BOOLEAN] but found [VALUE_STRING]"
       }
     }
   }
@@ -393,6 +478,17 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[NearestNeighborsQuery](expected, query)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "exact",
+            | "similarity": "jaccard",
+            | "vec": [0,[1,2,3]]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected token to be one of [VALUE_NUMBER] but found [START_ARRAY]"
+      }
     }
     "CosineLsh" - {
       "roundtrip" in {
@@ -410,6 +506,17 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[NearestNeighborsQuery](expected, query)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "lsh",
+            | "similarity": "cosine",
+            | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
       }
     }
     "HammingLsh" - {
@@ -429,6 +536,17 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           roundtrip[NearestNeighborsQuery](expected, query)
         }
       }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "lsh",
+            | "similarity": "hamming",
+            | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
+      }
     }
     "JaccardLsh" - {
       "roundtrip" in {
@@ -446,6 +564,48 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[NearestNeighborsQuery](expected, query)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "lsh",
+            | "similarity": "jaccard",
+            | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
+      }
+    }
+    "L2Lsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomVec()
+          query = NearestNeighborsQuery.L2Lsh(s"field${rng.nextInt()}", rng.nextInt(), rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "probes" -> query.probes.asJson,
+            "model" -> "lsh".asJson,
+            "similarity" -> "l2".asJson,
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "lsh",
+            | "similarity": "l2",
+            | "candidates": 22,
+            | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
       }
     }
     "PermutationLsh" - {
@@ -465,6 +625,17 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
         } {
           roundtrip[NearestNeighborsQuery](expected, query)
         }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "permutation_lsh",
+            | "similarity": "l2",
+            | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
       }
     }
   }

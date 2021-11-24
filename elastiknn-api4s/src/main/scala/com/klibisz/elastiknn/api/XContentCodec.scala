@@ -9,6 +9,9 @@ import java.io.ByteArrayOutputStream
 import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * JSON codec for Elastiknn API types, implemented using the Elasticsearch XContentBuilder and XContentParser.
+  */
 object XContentCodec {
 
   trait Encoder[T] {
@@ -349,9 +352,6 @@ object XContentCodec {
     private def unexpectedName(name: String): String =
       s"Unexpected name [$name]"
 
-    private def unexpectedValue(s: String): String =
-      s"Unexpected value [$s]"
-
     private def unexpectedValue(text: String, expected: SortedSet[String]): String =
       s"Expected token to be one of [${expected.mkString(",")}] but found [$text]"
 
@@ -364,8 +364,8 @@ object XContentCodec {
     private def unexpectedToken(token: Token, expected: SortedSet[Token]): String =
       s"Expected token to be one of [${expected.mkString(",")}] but found [$token]"
 
-    private def unableToConstruct(tipe: String): String =
-      s"Unable to construct [$tipe] from parsed JSON"
+    private def unableToConstruct(typ: String): String =
+      s"Unable to construct [$typ] from parsed JSON"
 
     private def assertToken(name: String, token: Token, expected: SortedSet[Token]): Unit =
       if (expected.contains(token)) () else throw new XContentParseException(unexpectedToken(name, token, expected))
