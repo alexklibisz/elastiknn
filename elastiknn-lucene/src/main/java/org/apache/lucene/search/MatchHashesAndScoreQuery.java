@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -16,7 +17,7 @@ import java.util.function.Function;
 import static java.lang.Math.min;
 
 /**
- * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
+ * Query that finds docs containing the given hashes (Lucene terms), and then applies a scoring function to the
  * docs containing the most matching hashes. Largely based on Lucene's TermsInSetQuery.
  */
 public class MatchHashesAndScoreQuery extends Query {
@@ -227,6 +228,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, hashAndFrequencies, candidates, indexReader, scoreFunctionBuilder);
+        return Objects.hash(field, Arrays.hashCode(hashAndFrequencies), candidates, indexReader, scoreFunctionBuilder);
     }
 }
