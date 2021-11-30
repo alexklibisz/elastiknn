@@ -112,7 +112,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
       ) {
         override def parsesArrayValue(): Boolean = true
 
-        override def parse(context: ParseContext): Unit = {
+        override def parse(context: DocumentParserContext): Unit = {
           val doc = context.doc()
           val parser = context.parser()
           val vec: V = XContentCodec.decodeUnsafe[V](parser)
@@ -120,7 +120,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
           fields.foreach(doc.add)
         }
 
-        override def parseCreateField(context: ParseContext): Unit =
+        override def parseCreateField(context: DocumentParserContext): Unit =
           throw new IllegalStateException("parse() is implemented directly")
 
         override def contentType(): String = CONTENT_TYPE
