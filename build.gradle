@@ -227,7 +227,6 @@ configure(lucene, List.of(
         {
             dependencies {
                 implementation models
-                implementation "org.apache.logging.log4j:log4j-api:2.11.1"
                 implementation "org.apache.lucene:lucene-core:${luceneVersion}"
             }
         }))
