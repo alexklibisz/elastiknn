@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.query
 
 import org.apache.lucene.search.Query
 import org.elasticsearch.common.io.stream.StreamOutput
-import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.query._
 
 /**

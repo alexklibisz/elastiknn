@@ -1,8 +1,8 @@
 buildscript {
     ext {
-        esVersion = '7.15.2'
-        luceneVersion = '8.9.0'
-        elastic4sVersion = '7.15.2'
+        esVersion = '7.16.0'
+        luceneVersion = '8.10.1'
+        elastic4sVersion = '7.16.0'
         circeVersion= '0.14.1'
         circeGenericExtrasVersion= '0.14.1'
         scalaShortVersion = '2.13'
@@ -63,7 +63,7 @@ def configure(Project p, List<Closure> configClosures) {
 def scalaProjectConfig = {
     apply plugin: 'scala'
     tasks.withType(ScalaCompile) {
-        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings", "-Ywarn-unused:imports", "-feature"))
+        scalaCompileOptions.setAdditionalParameters(List.of("-Xfatal-warnings", "-Ywarn-unused:imports"))
     }
     task unifiedScaladocs(type: ScalaDoc, description: 'Generate unified scaladocs', group: 'Documentation') {
         Set docProjects = subprojects.findAll { it.plugins.hasPlugin('scala') }
