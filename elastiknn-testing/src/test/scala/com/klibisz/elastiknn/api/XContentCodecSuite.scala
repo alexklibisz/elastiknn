@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.api
 
-import org.elasticsearch.common.xcontent.XContentParseException
+import org.elasticsearch.xcontent.XContentParseException
 import org.scalatest.Assertion
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers

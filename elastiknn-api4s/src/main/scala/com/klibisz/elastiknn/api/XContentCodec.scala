@@ -1,9 +1,9 @@
 package com.klibisz.elastiknn.api
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
-import org.elasticsearch.common.xcontent.XContentParser.Token
-import org.elasticsearch.common.xcontent.XContentParser.Token._
-import org.elasticsearch.common.xcontent._
+import org.elasticsearch.xcontent.XContentParser.Token
+import org.elasticsearch.xcontent.XContentParser.Token._
+import org.elasticsearch.xcontent._
 
 import java.io.ByteArrayOutputStream
 import scala.collection.immutable.SortedSet

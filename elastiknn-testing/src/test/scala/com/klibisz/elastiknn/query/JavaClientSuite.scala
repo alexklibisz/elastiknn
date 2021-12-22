@@ -10,13 +10,14 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.http.HttpHost
 import org.elasticsearch.action.search.SearchRequest
 import org.elasticsearch.client.{RequestOptions, RestClient, RestHighLevelClient}
-import org.elasticsearch.common.xcontent.json.JsonXContent
-import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
+import org.elasticsearch.xcontent.json.JsonXContent
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.search.builder.SearchSourceBuilder
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayOutputStream
+import scala.annotation.nowarn
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -30,7 +31,12 @@ class JavaClientSuite extends AsyncFunSuite with Matchers with ElasticAsyncClien
     val ids = corpus.indices.map(i => s"v$i")
     val mapping = Mapping.L2Lsh(corpus.head.dims, 50, 1, 2)
 
-    val javaClient = new RestHighLevelClient(RestClient.builder(new HttpHost("localhost", 9200, "http")))
+    // TODO: Migrate to the new client.
+    //  https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/migrate-hlrc.html
+    @nowarn
+    def getClient = new RestHighLevelClient(RestClient.builder(new HttpHost("localhost", 9200, "http")))
+
+    val javaClient = getClient
     val query = new ElastiknnNearestNeighborsQuery.L2Lsh(new api4j.Vector.DenseFloat(corpus.head.values), 20, 2)
     val queryBuilder = new ElastiknnNearestNeighborsQueryBuilder(query, field)
     val searchRequest = new SearchRequest()

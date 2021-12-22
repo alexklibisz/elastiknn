@@ -9,7 +9,7 @@ import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder}
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.{Mapping => _, _}
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.search.lookup.SourceLookup
@@ -72,7 +72,7 @@ object VectorMapper {
     }
     override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
       // TODO: figure out what this is supposed to return. Also see issue #250.
-      (_: SourceLookup) => util.List.of()
+      (lookup: SourceLookup, ignoredValues: util.List[AnyRef]) => util.List.of()
     }
   }
 }
@@ -103,11 +103,11 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
   private final class Builder(field: String, mapping: Mapping) extends FieldMapper.Builder(field) {
 
-    override def build(contentPath: ContentPath): FieldMapper = {
+    override def build(context: MapperBuilderContext): FieldMapper =
       new FieldMapper(
         field,
-        new VectorMapper.FieldType(CONTENT_TYPE, contentPath.pathAsText(name), mapping),
-        multiFieldsBuilder.build(this, contentPath),
+        new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(name), mapping),
+        multiFieldsBuilder.build(this, context),
         copyTo.build()
       ) {
         override def parsesArrayValue(): Boolean = true
@@ -134,7 +134,6 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
       }
-    }
 
     override def getParameters: util.List[FieldMapper.Parameter[_]] = util.List.of()
   }
