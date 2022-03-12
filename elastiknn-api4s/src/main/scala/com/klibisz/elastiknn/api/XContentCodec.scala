@@ -349,9 +349,6 @@ object XContentCodec {
       override def compare(x: Token, y: Token): Int = x.name().compareTo(y.name())
     }
 
-    private def unexpectedName(name: String): String =
-      s"Unexpected name [$name]"
-
     private def unexpectedValue(text: String, expected: SortedSet[String]): String =
       s"Expected token to be one of [${expected.mkString(",")}] but found [$text]"
 
@@ -426,6 +423,7 @@ object XContentCodec {
     }
 
     implicit val vec: Decoder[Vec] = new Decoder[Vec] {
+
       override def decodeUnsafe(p: XContentParser): Vec = {
         var field: Option[String] = None
         var id: Option[String] = None
@@ -460,7 +458,8 @@ object XContentCodec {
                 case n @ Names.VALUES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
                   values = Some(parseFloatArray(p, 42))
-                case n => throw new XContentParseException(unexpectedName(n))
+                case n =>
+                  p.nextToken()
               }
             }
           case START_ARRAY =>
@@ -489,7 +488,9 @@ object XContentCodec {
               Vec.SparseBool(trueIndices, totalIndices)
             case (_, _, _, _, _, Some(values)) =>
               Vec.DenseFloat(values)
-            case _ => throw new XContentParseException(unableToConstruct("vector"))
+            case _ =>
+              println((field, id, index, trueIndices, totalIndices, values))
+              throw new XContentParseException(unableToConstruct("vector"))
           }
       }
     }
@@ -561,10 +562,10 @@ object XContentCodec {
                   assertToken(n, p.nextToken(), VALUE_BOOLEAN)
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case n                => throw new XContentParseException(unexpectedName(n))
+                case _                => p.nextToken()
               }
             }
-          case n => throw new XContentParseException(unexpectedName(n))
+          case _ => p.nextToken()
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -614,7 +615,7 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case n                => throw new XContentParseException(unexpectedName(n))
+            case n                => p.nextToken()
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
