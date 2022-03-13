@@ -77,10 +77,7 @@ tasks:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
       - "{{ .CMD_GRADLE }} assemble"
-      - echo {{ .VERSION }} > release.md
-      - echo "" >> release.md
-      - "git log $(git tag | grep -v SNAPSHOT | tail -n1)...HEAD --format='- %h: %s' >> release.md"
-      - hub release create -p -F release.md -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release create -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
     desc: Run Elasticsearch using gradle
