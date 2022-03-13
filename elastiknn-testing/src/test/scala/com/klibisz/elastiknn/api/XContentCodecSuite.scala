@@ -18,16 +18,27 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
 
   private implicit val rng: Random = new Random(0)
 
-  private def shuffle(j: Json): Json = j.asObject match {
+  private def shuffle(original: Json): Json = original.asObject match {
     case Some(obj) =>
       val entries = obj.toIterable
-      val shuffledValues = entries.map { case (k, v) => (k, shuffle(v)) }
-      val shuffledKeys = rng.shuffle(shuffledValues).toList
-      Json.obj(shuffledKeys: _*)
-    case None => j
+      val shuffledChildren = entries.map { case (k, v) => (k, shuffle(v)) }
+      val shuffledThisLevel = rng.shuffle(shuffledChildren).toList
+      val shuffled = Json.obj(shuffledThisLevel: _*)
+      shuffled
+    case None => original
   }
 
-  private def randomize(j: Json): String = {
+  private def addExtraKeys(original: Json): Json = original.asObject match {
+    case Some(_) =>
+      val junk = Json.obj(
+        "extra_int" -> Json.fromInt(rng.nextInt()),
+        "extra_string" -> Json.fromString(rng.nextString(rng.nextInt(10)))
+      )
+      original.deepMerge(junk)
+    case None => original
+  }
+
+  private def toString(j: Json): String = {
     val d = rng.nextFloat()
     if (d < 0.2) shuffle(j).noSpaces
     else if (d < 0.4) shuffle(j).spaces2
@@ -36,39 +47,66 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     else shuffle(j).spaces4SortKeys
   }
 
-  private def roundtrip[T: XContentCodec.Encoder: XContentCodec.Decoder: ElasticsearchCodec](expected: Json, t: T): Assertion = {
+  private def randomize(j: Json, addExtraKeys: Boolean): String =
+    if (addExtraKeys) toString(shuffle(this.addExtraKeys(j))) else toString(shuffle(j))
+
+  private def roundtrip[T: XContentCodec.Encoder: XContentCodec.Decoder: ElasticsearchCodec](
+      expectedJson: Json,
+      expectedObject: T,
+      addExtraKeys: Boolean = true
+  ): Assertion = {
     // Encode with XContent and check that it matches the expected JSON w/ sorted keys and no spaces.
-    val encodedXContent: String = XContentCodec.encodeUnsafeToString(t)
-    encodedXContent shouldBe expected.noSpacesSortKeys
+    val encodedXContent: String = XContentCodec.encodeUnsafeToString(expectedObject)
+    encodedXContent shouldBe expectedJson.noSpacesSortKeys
     // Encode with Circe.
-    val encodedCirce: Json = ElasticsearchCodec.encode(t)
+    val encodedCirce: Json = ElasticsearchCodec.encode(expectedObject)
     // Test roundtrip between the two codecs.
     // Encode -> Decode
     // Circe -> Circe
     val decodedCirceCirce = ElasticsearchCodec.decodeJsonGet[T](encodedCirce)
-    decodedCirceCirce shouldBe t
+    decodedCirceCirce shouldBe expectedObject
     // Circe -> XContent
     val decodedCirceXContent = XContentCodec.decodeUnsafeFromString(encodedCirce.noSpaces)
-    decodedCirceXContent shouldBe t
+    decodedCirceXContent shouldBe expectedObject
     // XContent -> Circe
     val decodedXContentCirce = ElasticsearchCodec.decodeJsonGet[T](ElasticsearchCodec.parseGet(encodedXContent))
-    decodedXContentCirce shouldBe t
+    decodedXContentCirce shouldBe expectedObject
     // XContent -> XContent
-    val decodedXContentXContent = XContentCodec.decodeUnsafeFromString(randomize(expected))
-    decodedXContentXContent shouldBe t
+    val randomized = randomize(expectedJson, addExtraKeys)
+    val decodedXContentXContent = XContentCodec.decodeUnsafeFromString(randomized)
+    decodedXContentXContent shouldBe expectedObject
   }
 
-  private def decode[T: XContentCodec.Decoder](expected: Json, t: T): Assertion = {
-    val decoded = decodeUnsafeFromString[T](randomize(expected))
-    decoded shouldBe t
+  private def decode[T: XContentCodec.Decoder](expectedJson: Json, expectedObject: T, addExtraKeys: Boolean = false): Assertion = {
+    val decoded = decodeUnsafeFromString[T](randomize(expectedJson, addExtraKeys))
+    decoded shouldBe expectedObject
   }
 
   "test utilities" - {
-    "shuffled" in {
-      val j = Json.obj("foo" -> "1".asJson, "nest" -> Json.obj("foo" -> "1".asJson, "bar" -> "2".asJson)).asJson
-      val shuffled = (0 to 100).map(_ => randomize(j))
+    "randomize" in {
+      import io.circe.syntax._
+      import io.circe.parser
+      val originalObject = Json.obj("foo" -> "1".asJson, "nest" -> Json.obj("foo" -> "1".asJson, "bar" -> "2".asJson)).asJson
+      val shuffled = (0 to 100).map(_ => randomize(originalObject, false))
+      // If you just look at the strings, there should be several variations.
       shuffled.distinct.length shouldBe >=(5)
+      // If you parse the strings back to Json objects, there should only be one, the original object.
+      shuffled.map(parser.parse).distinct shouldBe List(Right(originalObject))
     }
+    "randomize with extra keys" in {
+      val originalObject = Json.obj("foo" -> "1".asJson, "nest" -> Json.obj("foo" -> "1".asJson, "bar" -> "2".asJson)).asJson
+      val shuffled = (0 to 100).map(_ => randomize(originalObject, true))
+      // Both strings and Json objects should vary, as we've added extra keys.
+      shuffled.distinct.length shouldBe >=(5)
+      shuffled.map(parser.parse(_).fold(fail(_), identity)).distinct.length shouldBe >=(5)
+    }
+  }
+
+  "fails to decode vector with extra keys in it" in {
+    val vec = Vec.DenseFloat.random(10)
+    val string = s"""{ "extra": "junk", "values": ${vec.values.asJson.noSpaces}, "more": "junk" }"""
+    val result = decodeUnsafeFromString[Vec](string)
+    result shouldBe vec
   }
 
   "Similarity" - {
@@ -178,11 +216,11 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
 
   "Vec.Empty" - {
     "roundtrip" in {
-      roundtrip(Json.obj(), Vec.Empty())
+      roundtrip(Json.obj(), Vec.Empty(), addExtraKeys = false)
     }
     "errors" in {
       val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Vec]("""{"...":"..."}"""))
-      ex1.getMessage shouldBe "Unexpected name [...]"
+      ex1.getMessage shouldBe "Unable to construct [vector] from parsed JSON"
     }
   }
 
