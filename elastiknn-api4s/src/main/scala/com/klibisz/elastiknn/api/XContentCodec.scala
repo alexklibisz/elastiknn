@@ -458,8 +458,7 @@ object XContentCodec {
                 case n @ Names.VALUES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
                   values = Some(parseFloatArray(p, 42))
-                case n =>
-                  p.nextToken()
+                case _ => p.nextToken()
               }
             }
           case START_ARRAY =>
@@ -489,7 +488,6 @@ object XContentCodec {
             case (_, _, _, _, _, Some(values)) =>
               Vec.DenseFloat(values)
             case _ =>
-              println((field, id, index, trueIndices, totalIndices, values))
               throw new XContentParseException(unableToConstruct("vector"))
           }
       }
@@ -615,7 +613,7 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case n                => p.nextToken()
+            case _                => p.nextToken()
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
