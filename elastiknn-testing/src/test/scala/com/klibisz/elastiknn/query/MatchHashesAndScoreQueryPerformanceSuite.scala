@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
-import org.apache.lucene.codecs.lucene87.Lucene87Codec
+import org.apache.lucene.backward_codecs.lucene87.Lucene87Codec
 import org.apache.lucene.document.Document
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite

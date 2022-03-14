@@ -1,8 +1,8 @@
 package com.klibisz.elastiknn.codec
 
 import org.apache.lucene.codecs._
-import org.apache.lucene.codecs.lucene70.Lucene70DocValuesFormat
-import org.apache.lucene.codecs.lucene84.Lucene84Codec
+import org.apache.lucene.backward_codecs.lucene70.Lucene70DocValuesFormat
+import org.apache.lucene.backward_codecs.lucene84.Lucene84Codec
 
 class Elastiknn84Codec extends Codec(ElastiknnCodecService.ELASTIKNN_84) {
   private val luceneCodec: Codec = new Lucene84Codec()
@@ -16,4 +16,5 @@ class Elastiknn84Codec extends Codec(ElastiknnCodecService.ELASTIKNN_84) {
   override def liveDocsFormat(): LiveDocsFormat = luceneCodec.liveDocsFormat()
   override def compoundFormat(): CompoundFormat = luceneCodec.compoundFormat()
   override def pointsFormat(): PointsFormat = luceneCodec.pointsFormat()
+  override def knnVectorsFormat(): KnnVectorsFormat = luceneCodec.knnVectorsFormat()
 }
