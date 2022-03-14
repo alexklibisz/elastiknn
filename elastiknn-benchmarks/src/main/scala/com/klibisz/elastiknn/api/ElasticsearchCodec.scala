@@ -187,9 +187,9 @@ object ElasticsearchCodec { esc =>
         modelOpt = c.value.findAllByKey(MODEL).headOption.flatMap(_.asString)
         simOpt = c.value.findAllByKey(SIMILARITY).headOption.flatMap(esc.decodeJson[Similarity](_).toOption)
         mapping <- (typ, modelOpt, simOpt) match {
-          case (EKNN_SPARSE_BOOL_VECTOR, None, None) =>
+          case (EKNN_SPARSE_BOOL_VECTOR, None | Some(EXACT), None) =>
             esc.decode[Mapping.SparseBool](c)
-          case (EKNN_DENSE_FLOAT_VECTOR, None, None) =>
+          case (EKNN_DENSE_FLOAT_VECTOR, None | Some(EXACT), None) =>
             esc.decode[Mapping.DenseFloat](c)
           case (EKNN_SPARSE_BOOL_VECTOR, Some(LSH), Some(Similarity.Jaccard)) =>
             esc.decode[Mapping.JaccardLsh](c)
@@ -201,7 +201,7 @@ object ElasticsearchCodec { esc =>
             esc.decode[Mapping.L2Lsh](c)
           case (EKNN_DENSE_FLOAT_VECTOR, Some(PERMUTATION_LSH), _) => esc.decode[Mapping.PermutationLsh](c)
           case _ =>
-            val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [$simOpt}]"
+            val msg = s"Incompatible $TYPE [$typ], $MODEL [$modelOpt], $SIMILARITY [$simOpt]"
             fail[Mapping](msg)
         }
       } yield mapping

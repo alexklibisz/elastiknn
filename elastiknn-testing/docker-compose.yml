@@ -22,6 +22,7 @@ services:
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
+      - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ports:
       - "9200:9200"
@@ -43,7 +44,9 @@ services:
       - discovery.zen.ping.unicast.hosts=elasticsearch_master
       - node.master=false
       - bootstrap.memory_lock=true
-      - ES_JAVA_OPTS=-Xms4G -Xmx4G
+      - ES_JAVA_OPTS=-Xms4G -Xmx4G -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=8097 -Dcom.sun.management.jmxremote.rmi.port=8097 -Djava.rmi.server.hostname=localhost
+    ports:
+      - "8097:8097"
     ulimits:
       nofile:
         soft: 65536

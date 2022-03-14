@@ -4,18 +4,14 @@ import scala.annotation.tailrec
 import scala.util.Random
 
 package object api {
-
-  type JavaJsonMap = java.util.Map[String, Object]
-  type ScalaJsonMap = Map[String, AnyRef]
-
   sealed trait Similarity
   object Similarity {
-    case object Jaccard extends Similarity
+    case object Cosine extends Similarity
     case object Hamming extends Similarity
+    case object Jaccard extends Similarity
     case object L1 extends Similarity
     case object L2 extends Similarity
-    case object Cosine extends Similarity
-    val values: Seq[Similarity] = Seq(Jaccard, Hamming, L1, L2, Cosine)
+    val values: Seq[Similarity] = Vector(Cosine, Jaccard, Hamming, L1, L2)
   }
 
   sealed trait Vec
@@ -40,7 +36,7 @@ package object api {
       }
 
       override def equals(other: Any): Boolean = other match {
-        case other: SparseBool => trueIndices.deep == other.trueIndices.deep && totalIndices == other.totalIndices
+        case other: SparseBool => (trueIndices sameElements other.trueIndices) && totalIndices == other.totalIndices
         case _                 => false
       }
 
@@ -63,7 +59,7 @@ package object api {
 
     final case class DenseFloat(values: Array[Float]) extends Vec with KnownDims {
       override def equals(other: Any): Boolean = other match {
-        case other: DenseFloat => other.values.deep == values.deep
+        case other: DenseFloat => other.values sameElements values
         case _                 => false
       }
 
@@ -85,7 +81,7 @@ package object api {
       def apply(values: Float*): DenseFloat = DenseFloat(values.toArray)
 
       def random(length: Int, unit: Boolean = false, scale: Int = 1)(implicit rng: Random): DenseFloat = {
-        val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian.toFloat * scale))
+        val v = DenseFloat((0 until length).toArray.map(_ => rng.nextGaussian().toFloat * scale))
         if (unit) {
           val norm = math.sqrt(v.values.map(x => x * x).sum).toFloat
           DenseFloat(v.values.map(_ / norm))
@@ -137,19 +133,19 @@ package object api {
     def withVec(v: Vec): NearestNeighborsQuery
   }
   object NearestNeighborsQuery {
-    final case class Exact(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
-      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
-    }
-
     sealed trait ApproximateQuery extends NearestNeighborsQuery {
       def candidates: Int
       def withCandidates(candidates: Int): ApproximateQuery
     }
 
-    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
+    final case class Exact(field: String, similarity: Similarity, vec: Vec = Vec.Empty()) extends NearestNeighborsQuery {
+      override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
+    }
+
+    final case class CosineLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
-      override def similarity: Similarity = Similarity.Jaccard
+      override def similarity: Similarity = Similarity.Cosine
     }
 
     final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
@@ -158,10 +154,10 @@ package object api {
       override def similarity: Similarity = Similarity.Hamming
     }
 
-    final case class CosineLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
+    final case class JaccardLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
-      override def similarity: Similarity = Similarity.Cosine
+      override def similarity: Similarity = Similarity.Jaccard
     }
 
     final case class L2Lsh(field: String, candidates: Int, probes: Int = 0, vec: Vec = Vec.Empty()) extends ApproximateQuery {
@@ -175,6 +171,5 @@ package object api {
       override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
       override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
     }
-
   }
 }

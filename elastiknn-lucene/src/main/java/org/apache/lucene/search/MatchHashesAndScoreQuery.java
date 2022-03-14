@@ -1,12 +1,10 @@
 package org.apache.lucene.search;
 
+import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
-import com.klibisz.elastiknn.models.HashAndFreq;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,7 +15,7 @@ import java.util.function.Function;
 import static java.lang.Math.min;
 
 /**
- * Query that finds docs containing the given hashes hashes (Lucene terms), and then applies a scoring function to the
+ * Query that finds docs containing the given hashes (Lucene terms), and then applies a scoring function to the
  * docs containing the most matching hashes. Largely based on Lucene's TermsInSetQuery.
  */
 public class MatchHashesAndScoreQuery extends Query {
@@ -31,7 +29,6 @@ public class MatchHashesAndScoreQuery extends Query {
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
-    private final Logger logger;
 
     public MatchHashesAndScoreQuery(final String field,
                                     final HashAndFreq[] hashAndFrequencies,
@@ -47,7 +44,6 @@ public class MatchHashesAndScoreQuery extends Query {
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
-        this.logger = LogManager.getLogger(getClass().getName());
     }
 
     @Override
@@ -84,11 +80,12 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                if (counter.numHits() < candidates) {
-                    logger.warn(String.format(
-                            "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
-                            counter.numHits(), candidates));
-                }
+                // TODO: Add back this logging once log4j mess has settled.
+//                if (counter.numHits() < candidates) {
+//                logger.warn(String.format(
+//                        "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
+//                        counter.numHits(), candidates));
+//                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 

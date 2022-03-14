@@ -42,7 +42,7 @@ object SearchClient {
               Task.fromFuture(_ => client.execute(t))
 
             def blockUntilReady(): ZIO[Clock, Throwable, Unit] = {
-              val check = clusterHealth.waitForStatus(HealthStatus.Yellow).timeout("90s")
+              val check = clusterHealth().waitForStatus(HealthStatus.Yellow).timeout("90s")
               val sched = Schedule.recurs(20) && Schedule.spaced(Duration(10, TimeUnit.SECONDS))
               execute(check).retry(sched).map(_ => ())
             }
@@ -96,7 +96,7 @@ object SearchClient {
                   for {
                     (dur, res) <- ZIO.fromFuture(_ => client.nearestNeighbors(index, query, k, "id")).timed
                     _ <- if (i % 100 == 0) log.info(s"Completed query [$i] in [$index] in [${dur.toMillis}] ms") else ZIO.succeed(())
-                  } yield QueryResult(res.result.hits.hits.map(_.score), res.result.took)
+                  } yield QueryResult(res.result.hits.hits.toIndexedSeq.map(_.score), res.result.took)
               }
 
             def deleteIndex(index: String): Task[Unit] = execute(ElasticDsl.deleteIndex(index)).map(_ => ())

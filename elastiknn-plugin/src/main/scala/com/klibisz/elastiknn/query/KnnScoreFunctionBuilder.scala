@@ -6,7 +6,7 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationExc
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
-import org.elasticsearch.common.xcontent.{ToXContent, XContentBuilder, XContentParser}
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScoreFunctionParser}
 

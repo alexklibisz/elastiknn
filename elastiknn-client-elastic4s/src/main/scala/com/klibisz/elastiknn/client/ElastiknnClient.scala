@@ -11,9 +11,8 @@ import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
@@ -179,8 +178,9 @@ object ElastiknnClient {
       res.result match {
         case bulkResponse: BulkResponse if bulkResponse.hasFailures =>
           findBulkError(bulkResponse.items) match {
-            case Some(err) => Left(err.asException)
-            case None      => Left(StrictFailureException(s"Unknown bulk execution error [$res] for request [$req]."))
+            case Some(err) =>
+              Left(err.asException)
+            case None => Left(StrictFailureException(s"Unknown bulk execution error [$res] for request [$req]."))
           }
         case other => Right(other)
       }
