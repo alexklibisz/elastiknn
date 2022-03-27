@@ -16,7 +16,7 @@ docker build -t ann-benchmarks-elastiknn -f install/Dockerfile.elastiknn .
 Setting `--runs 5` actually matters a lot, since the JVM takes some time to "warm up".
 
 ```
-python run.py --dataset glove-100-angular --algorithm elastiknn-exact --runs 5 --count 100
+python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 5 --count 100
 ```
 
 **Plot results for a specific dataset**
