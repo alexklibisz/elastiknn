@@ -2,9 +2,21 @@
 
 This directory contains an integration with [ann-benchmarks](https://github.com/erikbern/ann-benchmarks), which is the primary benchmark suite for Elastiknn.
 
+## Requirements
+
+- Python3 installed
+- Docker installed
+
 ## Recipes
 
 ### Hello World
+
+This is useful for making sure our environment is setup correctly to run the benchmarks.
+
+
+
+Run the Elastiknn 
+
 
 ### Run benchmarks in containers
 
