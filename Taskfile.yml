@@ -6,6 +6,7 @@ vars:
   PROJECT_ROOT:
     sh: pwd
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
+  MAVEN_URL: https://repo1.maven.org/maven2/com/klibisz/elastiknn
   CMD_GRADLE: "./gradlew --console=plain"
   SITE_SSH_ALIAS: elastiknn-site
   SITE_MAIN_DIR: elastiknn.com
