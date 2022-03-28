@@ -44,4 +44,8 @@ The only requirements is an Elasticsearch cluster with security disabled, access
 
 ### Generate a blog post with the latest results
 
-This is the primary way we report benchmark results. 
+This is the primary way we report benchmark results.
+
+### Run benchmarks with VisualVM for profiling
+
+### Run benchmarks with Intellij debugging
