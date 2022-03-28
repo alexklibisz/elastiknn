@@ -1,0 +1,53 @@
+version: '3'
+
+tasks:
+  submodule:
+    desc: Setup the ann-benchmarks submodule
+    status:
+      - ls ann-benchmarks/.git
+    cmds:
+      - git submodule update --init ann-benchmarks
+
+  venv:
+    desc: Create python virtual environment
+    preconditions:
+      - python3.6 --version
+    dir: ann-benchmarks
+    cmds:
+      - python3.6 -m pip install --quiet virtualenv
+      - python3.6 -m virtualenv -p python3.6 venv
+
+  clean:
+    desc: Delete python virtual environment
+    cmds:
+      - rm -rf venv
+
+  requirements:
+    desc: Install python dependencies from requirements.txt
+    deps:
+      - venv
+    cmds:
+      - venv/bin/pip install --quiet -r requirements.txt
+
+  build:
+    desc: Build the ann-benchmarks and ann-benchmarks-elastiknn docker images
+    dir: ann-benchmarks
+    deps:
+      - update-submodule
+    preconditions:
+      - docker --version
+    cmds:
+      - docker build -t ann-benchmarks -f install/Dockerfile .
+      - docker build -t ann-benchmarks-elastiknn -f install/Dockerfile.elastiknn .
+
+  test:
+    desc: Run ann-benchmarks using the elastiknn algo on random data.
+    dir: ann-benchmarks
+    deps:
+      - venv
+      - requirements
+    cmds:
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png

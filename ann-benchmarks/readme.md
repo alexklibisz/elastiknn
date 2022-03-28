@@ -4,19 +4,29 @@ This directory contains an integration with [ann-benchmarks](https://github.com/
 
 ## Requirements
 
-- Python3 installed
-- Docker installed
+- Task ([taskfile.dev](https://taskfile.dev/#/installation))
+- Python3.6 (`python3.6` executable on the path)
+- Docker
 
 ## Recipes
 
+### Setup Environment
+
+```bash
+# Build a local virtual environment
+$ task annb:venv
+
+# Install the python dependencies.
+$ task annb:requirements
+```
+
 ### Hello World
 
-This is useful for making sure our environment is setup correctly to run the benchmarks.
+This is useful for making sure the environment is setup correctly to run the benchmarks.
 
-
-
-Run the Elastiknn 
-
+```bash
+task annb:test
+```
 
 ### Run benchmarks in containers
 
