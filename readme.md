@@ -19,6 +19,7 @@ Are you using Elastiknn? If so, please consider submitting a pull request to lis
 
 - [Apache Jackrabbit](https://jackrabbit.apache.org): Uses Elastiknn for image similarity search
 - [rep0st](https://github.com/ReneHollander/rep0st): Uses Elastiknn for reverse image lookups in a set of millions of images
+- [Orlo](https://orlo.tech): Uses Elastiknn for indexing deep text understanding in text to provide interesting insights
 
 ## Builds
 
