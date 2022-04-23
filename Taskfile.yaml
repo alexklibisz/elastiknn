@@ -13,17 +13,20 @@ vars:
   SITE_ARCH_DIR: archive.elastiknn.com
 
 includes:
-  jvm: Taskfile.jvm.yml
-  py: 
-    taskfile: client-python/Taskfile.yml
-    dir: client-python
+  jvm:
+    taskfile: taskfiles/Taskfile.jvm.yaml
+    dir: .
   cluster:
-    taskfile: Taskfile.cluster.yml
+    taskfile: taskfiles/Taskfile.cluster.yaml
+    dir: .
+  py:
+    taskfile: taskfiles/Taskfile.python.yaml
+    dir: client-python
   docs:
-    taskfile: docs/Taskfile.yml
+    taskfile: taskfiles/Taskfile.docs.yaml
     dir: docs
   benchmarks:
-    taskfile: elastiknn-benchmarks/Taskfile.yml
+    taskfile: taskfiles/Taskfile.benchmarks.yaml
     dir: elastiknn-benchmarks
   
 tasks:

@@ -25,6 +25,11 @@ tasks:
       - docker-compose up --detach --build --force-recreate
       - python3 cluster_ready.py
 
+  start:
+    desc: Alias for run.
+    cmds:
+      - task: run
+
   minio:run:
     dir: elastiknn-testing
     deps:
