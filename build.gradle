@@ -2,7 +2,7 @@ buildscript {
     ext {
         esVersion = '8.0.0'
         luceneVersion = '9.0.0'
-        elastic4sVersion = '7.16.3'
+        elastic4sVersion = '8.0.0'
         circeVersion= '0.14.1'
         circeGenericExtrasVersion= '0.14.1'
         scalaShortVersion = '2.13'
@@ -15,8 +15,8 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
-        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.31'
+        classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
+        classpath 'gradle.plugin.com.github.maiflai:gradle-scalatest:0.32'
         classpath "org.elasticsearch.gradle:build-tools:${esVersion}"
     }
 }
@@ -36,7 +36,7 @@ allprojects {
 }
 
 subprojects {
-    // apply plugin: 'java'
+    apply plugin: 'java'
     apply plugin: 'java-library'
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -164,6 +164,7 @@ configure(api4s, List.of(
 configure(benchmarks, List.of(
         scalaProjectConfig,
         {
+            apply plugin: 'java'
             apply plugin: 'application'
             apply plugin: 'com.github.johnrengelman.shadow'
 

@@ -6,23 +6,27 @@ vars:
   PROJECT_ROOT:
     sh: pwd
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
+  MAVEN_URL: https://repo1.maven.org/maven2/com/klibisz/elastiknn
   CMD_GRADLE: "./gradlew --console=plain"
   SITE_SSH_ALIAS: elastiknn-site
   SITE_MAIN_DIR: elastiknn.com
   SITE_ARCH_DIR: archive.elastiknn.com
 
 includes:
-  jvm: Taskfile.jvm.yml
-  py: 
-    taskfile: client-python/Taskfile.yml
-    dir: client-python
+  jvm:
+    taskfile: taskfiles/Taskfile.jvm.yaml
+    dir: .
   cluster:
-    taskfile: Taskfile.cluster.yml
+    taskfile: taskfiles/Taskfile.cluster.yaml
+    dir: .
+  py:
+    taskfile: taskfiles/Taskfile.python.yaml
+    dir: client-python
   docs:
-    taskfile: docs/Taskfile.yml
+    taskfile: taskfiles/Taskfile.docs.yaml
     dir: docs
   benchmarks:
-    taskfile: elastiknn-benchmarks/Taskfile.yml
+    taskfile: taskfiles/Taskfile.benchmarks.yaml
     dir: elastiknn-benchmarks
   
 tasks:
