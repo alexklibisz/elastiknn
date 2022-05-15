@@ -9,8 +9,8 @@ for i in range(1, 121):
     if res.getcode() == 200:
       print("\nElasticsearch is ready")
       sys.exit(0)
-  except ConnectionResetError as e:
-    print('.', end='' if i % 10 else '\n')
+  except (ConnectionRefusedError, ConnectionResetError) as e:
+    print('.', end='')
     sys.stdout.flush()
     pass
   sleep(1)

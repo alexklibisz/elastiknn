@@ -15,10 +15,6 @@ services:
       - node.name=elasticsearch_master
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
-      - node.master=true
-      - node.data=false
-      - node.ml=false
-      - node.ingest=false
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin=*
@@ -41,9 +37,8 @@ services:
     environment:
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
-      - discovery.zen.ping.unicast.hosts=elasticsearch_master
-      - node.master=false
       - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms4G -Xmx4G -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=8097 -Dcom.sun.management.jmxremote.rmi.port=8097 -Djava.rmi.server.hostname=localhost
     ports:
       - "8097:8097"
