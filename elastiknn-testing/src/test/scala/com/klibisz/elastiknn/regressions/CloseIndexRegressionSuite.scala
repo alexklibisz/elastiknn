@@ -26,18 +26,4 @@ class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with Elastic
       _ <- deleteIfExists(index)
     } yield Assertions.succeed
   }
-
-  test("close index with elastiknn setting") {
-    val index = "issue-215-close-elastiknn"
-    val corpus = Vec.DenseFloat.randoms(42, 10000)
-    for {
-      _ <- deleteIfExists(index)
-      _ <- eknn.execute(createIndex(index).shards(1).indexSetting("elastiknn", true))
-      _ <- eknn.index(index, "vec", corpus, "id", corpus.indices.map(_ + 1).map(_.toString))
-      _ <- eknn.execute(refreshIndex(index))
-      _ <- eknn.execute(forceMerge(index).maxSegments(1))
-      _ <- eknn.execute(closeIndex(index))
-      _ <- deleteIfExists(index)
-    } yield Assertions.succeed
-  }
 }

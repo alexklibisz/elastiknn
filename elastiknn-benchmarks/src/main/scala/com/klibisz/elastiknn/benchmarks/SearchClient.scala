@@ -20,10 +20,12 @@ trait SearchClient {
   def blockUntilReady(): ZIO[Clock, Throwable, Unit]
   def indexExists(index: String): Task[Boolean]
   def buildIndex(index: String, mapping: Mapping, shards: Int, vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long]
-  def search(index: String,
-             queries: Stream[Throwable, NearestNeighborsQuery],
-             k: Int,
-             par: Int): ZStream[Logging with Clock, Throwable, QueryResult]
+  def search(
+      index: String,
+      queries: Stream[Throwable, NearestNeighborsQuery],
+      k: Int,
+      par: Int
+  ): ZStream[Logging with Clock, Throwable, QueryResult]
   def deleteIndex(index: String): Task[Unit]
   def close(): Task[Unit]
 }
@@ -53,10 +55,12 @@ object SearchClient {
                 case _: RuntimeException                       => ZIO.succeed(false)
               }
 
-            def buildIndex(index: String,
-                           mapping: Mapping,
-                           shards: Int,
-                           vectors: Stream[Throwable, Vec]): ZIO[Logging with Clock, Throwable, Long] =
+            def buildIndex(
+                index: String,
+                mapping: Mapping,
+                shards: Int,
+                vectors: Stream[Throwable, Vec]
+            ): ZIO[Logging with Clock, Throwable, Long] =
               for {
                 _ <- log.info(s"Creating index [$index] with [0] replicas and [$shards] shards")
                 _ <- indexExists(index)
@@ -65,7 +69,7 @@ object SearchClient {
                     .replicas(0)
                     .shards(shards)
                     .indexSetting("refresh_interval", "-1")
-                    .indexSetting("elastiknn", true))
+                )
                 _ <- execute(ElastiknnRequests.putMapping(index, "vec", "id", mapping))
                 n <- vectors
                   .grouped(200)
@@ -87,10 +91,12 @@ object SearchClient {
                 _ <- execute(refreshIndex(index))
               } yield n
 
-            def search(index: String,
-                       queries: Stream[Throwable, NearestNeighborsQuery],
-                       k: Int,
-                       par: Int): ZStream[Logging with Clock, Throwable, QueryResult] =
+            def search(
+                index: String,
+                queries: Stream[Throwable, NearestNeighborsQuery],
+                k: Int,
+                par: Int
+            ): ZStream[Logging with Clock, Throwable, QueryResult] =
               queries.zipWithIndex.mapMPar(par) {
                 case (query, i) =>
                   for {

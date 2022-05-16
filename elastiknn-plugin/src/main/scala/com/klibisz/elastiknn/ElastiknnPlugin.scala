@@ -27,7 +27,7 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
     }
   }
 
-  override def getSettings: util.List[Setting[_]] = Collections.emptyList()
+  override def getSettings: util.List[Setting[_]] = Collections.singletonList(ElastiknnPlugin.Settings.elastiknn)
 
   override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
     Collections.singletonList(
@@ -35,6 +35,18 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
     )
 
   override def getEngineFactory(indexSettings: IndexSettings): Optional[EngineFactory] = {
-    Optional.empty()
+    if (indexSettings.getValue(ElastiknnPlugin.Settings.elastiknn)) Optional.empty()
+    else Optional.empty()
+  }
+}
+
+object ElastiknnPlugin {
+
+  object Settings {
+
+    // Setting: index.elastiknn
+    // Previously used to determine whether elastiknn can control the codec used for the index to improve performance.
+    val elastiknn: Setting[java.lang.Boolean] =
+      Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope)
   }
 }
