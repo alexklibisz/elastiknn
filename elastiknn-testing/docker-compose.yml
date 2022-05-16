@@ -13,7 +13,7 @@ services:
     container_name: elasticsearch_master
     environment:
       - node.name=elasticsearch_master
-      - node.roles=master,data
+      - node.roles=master
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
       - bootstrap.memory_lock=true

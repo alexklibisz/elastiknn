@@ -4,6 +4,9 @@ import org.apache.lucene.codecs._
 import org.apache.lucene.backward_codecs.lucene70.Lucene70DocValuesFormat
 import org.apache.lucene.backward_codecs.lucene84.Lucene84Codec
 
+/**
+  * No longer used as of Elasticsearch 8.0.0. Kept for backwards-compatibility.
+  */
 class Elastiknn84Codec extends Codec("Elastiknn84Codec") {
   private val luceneCodec: Codec = new Lucene84Codec()
   override def docValuesFormat(): DocValuesFormat = new Lucene70DocValuesFormat()

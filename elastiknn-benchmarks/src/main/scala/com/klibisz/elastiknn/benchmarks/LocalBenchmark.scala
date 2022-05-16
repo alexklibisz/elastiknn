@@ -27,14 +27,13 @@ object LocalBenchmark extends App {
             Query(NearestNeighborsQuery.L2Lsh(field, 2000 / shards, 3), k)
           ),
           shards = shards
+        ),
+        Experiment(
+          Dataset.AnnbSift,
+          Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 2),
+          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 5000 / shards, 0), k)),
+          shards = shards
         )
-//        ,
-//        Experiment(
-//          Dataset.AnnbSift,
-//          Mapping.L2Lsh(Dataset.AnnbSift.dims, 100, 4, 2),
-//          Seq(Query(NearestNeighborsQuery.L2Lsh(field, 5000 / shards, 0), k)),
-//          shards = shards
-//        )
       )
     }
 
