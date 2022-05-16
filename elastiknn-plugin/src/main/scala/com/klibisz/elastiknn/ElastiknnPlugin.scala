@@ -27,7 +27,7 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
     }
   }
 
-  override def getSettings: util.List[Setting[_]] = Collections.singletonList(ElastiknnPlugin.Settings.elastiknn)
+  override def getSettings: util.List[Setting[_]] = Collections.emptyList()
 
   override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
     Collections.singletonList(
@@ -36,53 +36,5 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
 
   override def getEngineFactory(indexSettings: IndexSettings): Optional[EngineFactory] = {
     Optional.empty()
-//    if (indexSettings.getValue(ElastiknnPlugin.Settings.elastiknn)) Optional.of {
-//      new EngineFactory {
-//        val codecService = new ElastiknnCodecService
-//        override def newReadWriteEngine(config: EngineConfig): Engine = {
-//          new InternalEngine(
-//            new EngineConfig(
-//              config.getShardId,
-//              config.getThreadPool,
-//              config.getIndexSettings,
-//              config.getWarmer,
-//              config.getStore,
-//              config.getMergePolicy,
-//              config.getAnalyzer,
-//              config.getSimilarity,
-//              codecService,
-//              config.getEventListener,
-//              config.getQueryCache,
-//              config.getQueryCachingPolicy,
-//              config.getTranslogConfig,
-//              config.getFlushMergesAfter,
-//              config.getExternalRefreshListener,
-//              config.getInternalRefreshListener,
-//              config.getIndexSort,
-//              config.getCircuitBreakerService,
-//              config.getGlobalCheckpointSupplier,
-//              config.retentionLeasesSupplier,
-//              config.getPrimaryTermSupplier,
-//              config.getSnapshotCommitSupplier,
-//              config.getLeafSorter
-//            )
-//          )
-//        }
-//      }
-//    }
-//    else Optional.empty()
   }
-}
-
-object ElastiknnPlugin {
-
-  object Settings {
-
-    // Setting: index.elastiknn
-    // Determines whether elastiknn can control the codec used for the index.
-    // Highly recommended to set to true. Elastiknn will still work without it, but will be much slower.
-    val elastiknn: Setting[java.lang.Boolean] =
-      Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope)
-  }
-
 }
