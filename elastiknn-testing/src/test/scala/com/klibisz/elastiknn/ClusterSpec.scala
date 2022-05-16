@@ -27,13 +27,13 @@ class ClusterSpec extends AsyncFunSuite with Matchers with Elastic4sMatchers wit
     }
   }
 
-  test("started four nodes") {
+  test("started two nodes") {
     for {
       catNodesRes <- client.execute(catNodes())
     } yield {
       catNodesRes.shouldBeSuccess
       catNodesRes.result should have length 2
-      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("cdfhilrstw", "mr")
+      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("d", "dm")
     }
   }
 

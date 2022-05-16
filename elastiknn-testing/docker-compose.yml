@@ -13,6 +13,7 @@ services:
     container_name: elasticsearch_master
     environment:
       - node.name=elasticsearch_master
+      - node.roles=master,data
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
       - bootstrap.memory_lock=true
@@ -35,8 +36,11 @@ services:
       context: ../elastiknn-plugin
       dockerfile: Dockerfile
     environment:
+      - node.name=elasticsearch_data
+      - node.roles=data
       - cluster.name=docker-cluster
       - cluster.initial_master_nodes=elasticsearch_master
+      - discovery.seed_hosts=elasticsearch_master
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms4G -Xmx4G -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=8097 -Dcom.sun.management.jmxremote.rmi.port=8097 -Djava.rmi.server.hostname=localhost
