@@ -6,12 +6,14 @@ Elasticsearch plugin for similarity search on dense floating point and sparse bo
 
 **[Comprehensive documentation is hosted at elastiknn.com](https://elastiknn.com)**
 
-If you're looking to contribute to Elastiknn, please see developer-guide.md.
-
 ## Support
 
-- For questions, ides, feature requests, and other discussion, start a [Github discussion](https://github.com/alexklibisz/elastiknn/discussions).
-- For obvious bugs and feature requests, post a [Github issue](https://github.com/alexklibisz/elastiknn/issues).
+- For questions, ideas, feature requests, and other discussion, start a [Github discussion](https://github.com/alexklibisz/elastiknn/discussions).
+- For obvious bugs, post a [Github issue](https://github.com/alexklibisz/elastiknn/issues).
+
+## Contributing
+
+To contribute to Elastiknn, please see developer-guide.md.
 
 ## Users
 
