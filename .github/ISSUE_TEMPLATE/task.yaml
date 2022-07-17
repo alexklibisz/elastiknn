@@ -1,0 +1,24 @@
+name: Task
+description: Describe a task to complete in Elastiknn. This is generally only for maintainers.
+body:
+  - type: textarea
+    attributes:
+      label: Background
+      description: Please describe what you are trying to do.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Deliverables
+      description: Provide a checklist of items which need to be completed to consider this task complete
+      placeholder: |
+        - [ ] Deliverable 1 is complete.
+        - [ ] Deliverable 2 is complete.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Related Issues
+      description: Describe any related issues and how they relate to this task.
+      placeholder: |
+        This is blocked by #N.
