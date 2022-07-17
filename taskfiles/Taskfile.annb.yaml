@@ -16,18 +16,12 @@ tasks:
     cmds:
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
+      - venv/bin/pip install -r requirements.txt
 
   clean:
     desc: Delete python virtual environment
     cmds:
       - rm -rf venv
-
-  requirements:
-    desc: Install python dependencies from requirements.txt
-    deps:
-      - venv
-    cmds:
-      - venv/bin/pip install --quiet -r requirements.txt
 
   build:
     desc: Build the ann-benchmarks and ann-benchmarks-elastiknn docker images
@@ -41,13 +35,36 @@ tasks:
       - docker build -t ann-benchmarks-elastiknn -f install/Dockerfile.elastiknn .
 
   test:
-    desc: Run ann-benchmarks using the elastiknn algo on random data.
+    desc: Run ann-benchmarks using the Elastiknn algo on random data.
     dir: ann-benchmarks
     deps:
       - venv
       - requirements
     cmds:
+      - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300
       - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300
       - sudo chmod -R 777 results/
       - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png
+
+  benchmark-release-fashion-mnist:
+    desc: Run ann-benchmarks using released Elastiknn on the SIFT dataset.
+    deps:
+      - venv
+      - requirements
+    cmds:
+      - venv/bin/python install.py --algorithm elastiknn
+      - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --output plot-fashion-mnist-784-euclidean.png
+
+  benchmark-local-fashion-mnist:
+    desc: Run ann-benchmarks using the local Elastiknn branch.
+    deps:
+      - venv
+      - requirements
+    cmds:
+      - venv/bin/python install.py --algorithm elastiknn
+      - venv/bin/python run.py --dataset sift-128-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset sift-128-euclidean --output plot-sift-128-euclidean.png
