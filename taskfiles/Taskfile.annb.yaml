@@ -41,12 +41,11 @@ tasks:
     dir: ann-benchmarks
     deps:
       - venv
-      - requirements
     cmds:
       - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force
       - sudo chmod -R 777 results/
-      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --output plot-fashion-mnist-784-euclidean.png
+      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --output plot-official-fashion-mnist.png
 
   benchmark-local-fashion-mnist:
     desc: Run ann-benchmarks using the local Elastiknn branch.
@@ -57,4 +56,4 @@ tasks:
       - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset sift-128-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
       - sudo chmod -R 777 results/
-      - venv/bin/python plot.py --dataset sift-128-euclidean --output plot-sift-128-euclidean.png
+      - venv/bin/python plot.py --dataset sift-128-euclidean --output plot-local-fashion-mnist.png
