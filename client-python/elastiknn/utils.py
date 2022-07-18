@@ -27,6 +27,8 @@ def dealias_metric(metric: str) -> str:
     mlower = metric.lower()
     if mlower == 'euclidean':
         return 'l2'
+    elif mlower == 'angular':
+        return 'cosine'
     else:
         return mlower
 

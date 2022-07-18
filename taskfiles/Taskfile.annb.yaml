@@ -1,0 +1,59 @@
+version: '3'
+
+tasks:
+  submodule:
+    desc: Setup the ann-benchmarks submodule
+    status:
+      - ls ann-benchmarks/.git
+    cmds:
+      - git submodule update --init ann-benchmarks
+
+  install:
+    desc: Install dependencies
+    preconditions:
+      - python3.6 --version
+    dir: ann-benchmarks
+    deps:
+      - submodule
+    cmds:
+      - pwd
+      - python3.6 -m pip install --quiet virtualenv
+      - python3.6 -m virtualenv -p python3.6 venv
+      - venv/bin/pip install --quiet -r requirements.txt
+      - venv/bin/python install.py --algorithm elastiknn
+
+  clean:
+    desc: Delete artifacts
+    cmds:
+      - rm -rf venv
+
+  test:
+    desc: Run ann-benchmarks using the Elastiknn algo on random data.
+    dir: ann-benchmarks
+    deps:
+      - install
+    cmds:
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300 --local
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300 --local
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png
+
+  benchmark-official-fashion-mnist:
+    desc: Run ann-benchmarks using released Elastiknn on the SIFT dataset.
+    dir: ann-benchmarks
+    deps:
+      - install
+    cmds:
+      - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --output plot-official-fashion-mnist.png
+
+  benchmark-local-fashion-mnist:
+    desc: Run ann-benchmarks using the local Elastiknn branch.
+    dir: ann-benchmarks
+    deps:
+      - install
+    cmds:
+      - venv/bin/python run.py --dataset sift-128-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
+      - sudo chmod -R 777 results/
+      - venv/bin/python plot.py --dataset sift-128-euclidean --output plot-local-fashion-mnist.png

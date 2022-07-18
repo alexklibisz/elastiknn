@@ -11,6 +11,7 @@ tasks:
 
   assemble:
     cmds:
+      - rm -rf elastiknn-plugin/build/distributions/*.zip
       - "{{ .CMD_GRADLE }} assemble"
 
   run:
