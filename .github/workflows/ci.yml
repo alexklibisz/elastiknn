@@ -70,6 +70,10 @@ jobs:
         with:
           python-version: '3.6'
       - run: sudo snap install task --classic
+      - name: Initialize Submodule
+        run: task annb:submodule
+      - name: Install Dependencies
+        run: task annb:install
       - name: Run Cluster
         run: task cluster:run
       - name: Test

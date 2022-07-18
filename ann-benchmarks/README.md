@@ -16,8 +16,8 @@ This directory contains an integration with [ann-benchmarks](https://github.com/
 # Checkout the ann-benchmarks submodule.
 $ task annb:submodule
 
-# Build a local virtual environment
-$ task annb:venv
+# Install the Python and Docker dependencies.
+$ task annb:instal
 ```
 
 ### Quick test
@@ -38,7 +38,7 @@ Run the ann-benchmarks against a previously-released version of Elastiknn, all i
 This benchmark constrains Elasticsearch to a single CPU core and will vary based on your hardware (primarily CPU).  
 
 ```bash
-# Fashion MNIST dataset (smallest, fastest option)
+# Fashion MNIST dataset.
 task annb:benchmark-official-fashion-mnist
 ```
 
