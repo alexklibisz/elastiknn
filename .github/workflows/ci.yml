@@ -68,7 +68,7 @@ jobs:
           java-version: 17
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6.5'
+          python-version: '3.6'
       - run: sudo snap install task --classic
       - name: Run Cluster
         run: task cluster:run
