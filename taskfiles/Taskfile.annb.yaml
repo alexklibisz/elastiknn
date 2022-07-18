@@ -13,6 +13,8 @@ tasks:
     preconditions:
       - python3.6 --version
     dir: ann-benchmarks
+    deps:
+      - submodule
     cmds:
       - pwd
       - python3.6 -m pip install --quiet virtualenv
