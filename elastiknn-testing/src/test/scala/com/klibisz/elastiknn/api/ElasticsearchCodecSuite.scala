@@ -1,5 +1,8 @@
 package com.klibisz.elastiknn.api
 
+import com.klibisz.elastiknn.api.ElasticsearchCodec._
+import com.klibisz.elastiknn.api.XContentCodec.Decoder._
+import com.klibisz.elastiknn.api.XContentCodec.Encoder._
 import io.circe
 import io.circe._
 import org.scalatest.Assertion
@@ -218,7 +221,5 @@ class ElasticsearchCodecSuite extends AnyFunSuite with Matchers {
       Similarity.Cosine,
       Vec.DenseFloat(1f, 2f, 3f)
     )
-
   }
-
 }

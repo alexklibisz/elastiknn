@@ -14,6 +14,7 @@ import scala.util.Random
 
 case class Result(similarity: Similarity, values: Vector[Double])
 object Result {
+
   implicit val codec: Codec[Result] = deriveCodec[Result]
 }
 
