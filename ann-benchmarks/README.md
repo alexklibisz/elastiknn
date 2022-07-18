@@ -1,6 +1,6 @@
 # ANN-Benchmarks Integration
 
-This directory contains an integration with [ann-benchmarks](https://github.com/erikbern/ann-benchmarks), which is the primary benchmark suite for Elastiknn and many other nearest neighbor algorithms.
+This directory contains an integration with [ann-benchmarks](https://github.com/erikbern/ann-benchmarks), the primary tool for benchmarking Elastiknn.
 
 ## Requirements
 
@@ -13,11 +13,11 @@ This directory contains an integration with [ann-benchmarks](https://github.com/
 ### Setup Environment
 
 ```bash
-# Checkout the ann-benchmarks submodule.
+# Checkout the ann-benchmarks repo as a submodule.
 $ task annb:submodule
 
-# Install the Python and Docker dependencies.
-$ task annb:instal
+# Install Python and Docker dependencies.
+$ task annb:install
 ```
 
 ### Quick test
@@ -25,7 +25,7 @@ $ task annb:instal
 Make sure the environment is configured correctly.
 
 ```bash
-# Start the cluster.
+# Start the local cluster.
 task cluster:start
 
 # Test the released build.
@@ -34,7 +34,7 @@ task annb:test
 
 ### Benchmark a previous Elastiknn release
 
-Run the ann-benchmarks against a previously-released version of Elastiknn, all in a container.
+Run ann-benchmarks on a previously-released version of Elastiknn, all in a container.
 This benchmark constrains Elasticsearch to a single CPU core and will vary based on your hardware (primarily CPU).  
 
 ```bash
@@ -42,10 +42,10 @@ This benchmark constrains Elasticsearch to a single CPU core and will vary based
 task annb:benchmark-official-fashion-mnist
 ```
 
-### Benchmark any version of Elastiknn
+### Benchmark Elastiknn on the local branch
 
-Run the an-benchmarks against an instance of Elastiknn available at `http://localhost:9200`.
-This can be any version of Elastiknn, even a remote server, as long as it's available on localhost:9200. 
+Run the an-benchmarks on an instance of Elastiknn available at `http://localhost:9200`.
+This can be any version of Elastiknn, even a remote server, as long as it's available on `http://localhost:9200`. 
 This is particularly useful for testing performance-sensitive changes before merging. 
 
 ```bash
