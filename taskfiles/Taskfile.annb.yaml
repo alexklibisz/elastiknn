@@ -14,6 +14,7 @@ tasks:
       - python3.6 --version
     dir: ann-benchmarks
     cmds:
+      - pwd
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
       - venv/bin/pip install -r requirements.txt
@@ -23,32 +24,21 @@ tasks:
     cmds:
       - rm -rf venv
 
-  build:
-    desc: Build the ann-benchmarks and ann-benchmarks-elastiknn docker images
-    dir: ann-benchmarks
-    deps:
-      - update-submodule
-    preconditions:
-      - docker --version
-    cmds:
-      - docker build -t ann-benchmarks -f install/Dockerfile .
-      - docker build -t ann-benchmarks-elastiknn -f install/Dockerfile.elastiknn .
-
   test:
     desc: Run ann-benchmarks using the Elastiknn algo on random data.
     dir: ann-benchmarks
     deps:
       - venv
-      - requirements
     cmds:
       - venv/bin/python install.py --algorithm elastiknn
-      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300
-      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300 --local
+      - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300 --local
       - sudo chmod -R 777 results/
       - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png
 
-  benchmark-release-fashion-mnist:
+  benchmark-official-fashion-mnist:
     desc: Run ann-benchmarks using released Elastiknn on the SIFT dataset.
+    dir: ann-benchmarks
     deps:
       - venv
       - requirements
@@ -60,9 +50,9 @@ tasks:
 
   benchmark-local-fashion-mnist:
     desc: Run ann-benchmarks using the local Elastiknn branch.
+    dir: ann-benchmarks
     deps:
       - venv
-      - requirements
     cmds:
       - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset sift-128-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
