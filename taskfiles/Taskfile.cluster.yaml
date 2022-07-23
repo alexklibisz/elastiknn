@@ -21,7 +21,6 @@ tasks:
       - install-docker-compose
       - stop
     cmds:
-      - sudo sysctl -w vm.max_map_count=262144
       - task: assemble
       - docker-compose up --detach --build --force-recreate
       - python3 cluster_ready.py
