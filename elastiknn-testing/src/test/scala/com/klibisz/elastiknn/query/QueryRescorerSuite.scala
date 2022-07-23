@@ -84,7 +84,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
       _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
         val reqs = batch.map {
           case (id, vec, color) =>
-            val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+            val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
             indexInto(index).id(id).source(docSource)
         }
         eknn.execute(bulk(reqs))

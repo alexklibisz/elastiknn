@@ -1,30 +1,27 @@
 package com.klibisz.elastiknn.testing
 
+import com.klibisz.elastiknn.api.{Similarity, Vec, XContentCodecCirceBridge}
+import com.klibisz.elastiknn.models.ExactSimilarityFunction
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax._
+
 import java.io.FileOutputStream
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
-
-import com.klibisz.elastiknn.api.{Similarity, Vec}
-import io.circe._
-import com.klibisz.elastiknn.api.ElasticsearchCodec._
-import com.klibisz.elastiknn.models.ExactSimilarityFunction
-import io.circe.syntax._
-import io.circe.generic.semiauto._
-
 import scala.util.Random
 
 case class Result(similarity: Similarity, values: Vector[Double])
-object Result {
-
+object Result extends XContentCodecCirceBridge {
   implicit val codec: Codec[Result] = deriveCodec[Result]
 }
 
 case class Query(vector: Vec, results: Seq[Result])
-object Query {
+object Query extends XContentCodecCirceBridge {
   implicit val codec: Codec[Query] = deriveCodec[Query]
 }
 
 case class TestData(corpus: Vector[Vec], queries: Vector[Query])
-object TestData {
+object TestData extends XContentCodecCirceBridge {
 
   implicit val codec: Codec[TestData] = deriveCodec[TestData]
 
