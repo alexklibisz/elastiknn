@@ -35,7 +35,7 @@ tasks:
     cmds:
       - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --timeout 300 --local
       - venv/bin/python run.py --docker-tag ann-benchmarks-elastiknn --max-n-algorithms 5 --dataset random-xs-20-angular --run-disabled --batch --timeout 300 --local
-      - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
+      - sudo chmod -R 777 results
       - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png
 
   benchmark-official-fashion-mnist:
