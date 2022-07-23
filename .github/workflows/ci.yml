@@ -23,7 +23,10 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 17
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
+          sudo sysctl -w vm.max_map_count=262144
       - name: Compile
         run: task jvm:compile
       - name: Docs
@@ -48,7 +51,10 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+         sudo snap install task --classic
+         sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task py:docs
       - name: Run Cluster
@@ -69,7 +75,10 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.6'
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
+          sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
         run: task annb:submodule
       - name: Install Dependencies
@@ -86,7 +95,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
       - uses: olafurpg/setup-scala@v10
         with:
           java-version: 17
@@ -99,7 +110,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
       - name: Compile Jekyll Site
         run: |
           chmod -R 777 docs
