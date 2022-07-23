@@ -1,7 +1,0 @@
-images:
-  namespace: ${imageNamespace}
-  tag: v${version}
-  pullPolicy: IfNotPresent
-useDefaultArtifactRepo: true
-minio:
-  install: true
