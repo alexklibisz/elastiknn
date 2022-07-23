@@ -75,16 +75,19 @@ object ElasticsearchCodec { esc =>
     def ++(other: Json): Json = j.deepMerge(other)
   }
 
-  def encode[T: ElasticsearchCodec](t: T): Json = implicitly[ElasticsearchCodec[T]].apply(t)
-  def nospaces[T: ElasticsearchCodec](t: T): String = encode(t).noSpaces
-  def decode[T: ElasticsearchCodec](c: HCursor): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].apply(c)
-  def decodeJson[T: ElasticsearchCodec](j: Json): Either[DecodingFailure, T] = implicitly[ElasticsearchCodec[T]].decodeJson(j)
+  implicit def getEncoder[T: ElasticsearchCodec]: Encoder[T] = (a: T) => implicitly[ElasticsearchCodec[T]].apply(a)
+  implicit def getDecoder[T: ElasticsearchCodec]: Decoder[T] = (c: HCursor) => implicitly[ElasticsearchCodec[T]].apply(c)
+
+  def encode[T: Encoder](t: T): Json = implicitly[Encoder[T]].apply(t)
+  def nospaces[T: Encoder](t: T): String = encode(t).noSpaces
+  def decode[T: Decoder](c: HCursor): Either[DecodingFailure, T] = implicitly[Decoder[T]].apply(c)
+  def decodeJson[T: Decoder](j: Json): Either[DecodingFailure, T] = implicitly[Decoder[T]].decodeJson(j)
   def parse(s: String): Either[circe.Error, Json] = io.circe.parser.parse(s)
 
   // Danger zone.
-  def decodeGet[T: ElasticsearchCodec](c: HCursor): T = decode[T](c).toTry.get
-  def decodeJsonGet[T: ElasticsearchCodec](j: Json): T = decodeJson[T](j).toTry.get
-  def parseGet[T: ElasticsearchCodec](s: String): Json = parse(s).toTry.get
+  def decodeGet[T: Decoder](c: HCursor): T = decode[T](c).toTry.get
+  def decodeJsonGet[T: Decoder](j: Json): T = decodeJson[T](j).toTry.get
+  def parseGet(s: String): Json = parse(s).toTry.get
 
   implicit val similarity: ESC[Similarity] = new ESC[Similarity] {
     // Circe's default enumeration codec is case-sensitive and gives useless errors.
@@ -260,5 +263,4 @@ object ElasticsearchCodec { esc =>
         }
       } yield nnq
   }
-
 }

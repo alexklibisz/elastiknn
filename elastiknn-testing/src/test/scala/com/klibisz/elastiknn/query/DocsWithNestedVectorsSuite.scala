@@ -39,8 +39,8 @@ class DocsWithNestedVectorsSuite extends AsyncFunSuite with Matchers with Inspec
         xMapping.startObject("properties")
         xDoc.startObject(f)
       }
-      xMapping.rawField(subFields.last, ElasticsearchCodec.mapping(mapping).spaces2)
-      xDoc.rawField(subFields.last, ElasticsearchCodec.vec(vec).spaces2)
+      xMapping.rawField(subFields.last, XContentCodec.encodeUnsafeToString(mapping))
+      xDoc.rawField(subFields.last, XContentCodec.encodeUnsafeToString(vec))
       subFields.init.foreach { _ =>
         xMapping.endObject()
         xMapping.endObject()

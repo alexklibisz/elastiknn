@@ -267,7 +267,6 @@ configure(testing, List.of(scalaProjectConfig, {
     }
 
     dependencies {
-        implementation benchmarks
         implementation clientElastic4s
         implementation lucene
         implementation models

@@ -22,8 +22,8 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
     val dims = 10
     val n = 100
 
-    val genDF = () => ElasticsearchCodec.nospaces(Vec.DenseFloat.random(dims))
-    val genSB = () => ElasticsearchCodec.nospaces(Vec.SparseBool.random(dims))
+    val genDF = () => XContentCodec.encodeUnsafeToString(Vec.DenseFloat.random(dims))
+    val genSB = () => XContentCodec.encodeUnsafeToString(Vec.SparseBool.random(dims))
 
     // (Field name, mapping, function to generate a random vector, query to execute)
     // Some of them are intentionally duplicated.
@@ -42,7 +42,7 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
     // Define a mapping with one field for each of the above fields.
     val combinedMapping = {
       val vecFields = fields.map {
-        case (name, mapping, _, _) => s""" "$name": ${ElasticsearchCodec.nospaces(mapping)} """
+        case (name, mapping, _, _) => s""" "$name": ${XContentCodec.encodeUnsafeToString(mapping)} """
       }
       s"""
        |{
