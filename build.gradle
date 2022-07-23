@@ -46,7 +46,6 @@ subprojects {
 
 // Make sub-projects easy to reference.
 Project api4s = project(':api4s')
-Project benchmarks = project(':benchmarks')
 Project clientElastic4s = project(':client-elastic4s')
 Project lucene = project(':lucene')
 Project models = project(':models')
@@ -159,44 +158,6 @@ configure(api4s, List.of(
             }
         }
 ))
-
-configure(benchmarks, List.of(
-        scalaProjectConfig,
-        {
-            apply plugin: 'java'
-            apply plugin: 'application'
-            apply plugin: 'com.github.johnrengelman.shadow'
-
-            application {
-                mainClassName = project.hasProperty("mainClass") ? project.getProperty("mainClass") : 'com.klibisz.elastiknn.benchmarks.Enqueue'
-            }
-
-            shadowJar {
-                // This is needed to preserve the META-INF directory from lucene-core.
-                mergeServiceFiles()
-            }
-
-            dependencies {
-                implementation clientElastic4s
-                implementation lucene
-                implementation models
-                implementation plugin
-                implementation "ch.qos.logback:logback-classic:1.2.3"
-                implementation "com.amazonaws:aws-java-sdk-s3:1.11.781"
-                implementation "com.github.scopt:scopt_${scalaShortVersion}:4.0.0-RC2"
-                implementation "com.nrinaudo:kantan.csv-generic_${scalaShortVersion}:0.6.1"
-                implementation "dev.zio:zio_${scalaShortVersion}:${zioVersion}"
-                implementation "dev.zio:zio-logging-slf4j_${scalaShortVersion}:0.4.0"
-                implementation "dev.zio:zio-streams_${scalaShortVersion}:${zioVersion}"
-                implementation "io.circe:circe-generic-extras_${scalaShortVersion}:${circeGenericExtrasVersion}"
-                implementation "io.circe:circe-parser_${scalaShortVersion}:${circeVersion}"
-
-                // Without this you get a warning: WARNING: JAXB is unavailable. Will fallback to SDK implementation which may be
-                // less performant.If you are using Java 9+, you will need to include javax.xml.bind:jaxb-api as a dependency.
-                implementation 'javax.xml:jaxb-api:2.1'
-                implementation "org.scala-lang:scala-library:${scalaFullVersion}"
-            }
-        }))
 
 configure(clientElastic4s, List.of(
         scalaProjectConfig,

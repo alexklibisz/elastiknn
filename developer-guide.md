@@ -34,12 +34,12 @@ Elastiknn currently consists of several subprojects managed by Task and Gradle:
 
 - client-python - Python client.
 - elastiknn-api4s - Gradle project containing Scala case classes that model the Elastiknn API.
-- elastiknn-benchmarks - Gradle project containing Scala code and infrastructure for benchmarking. 
 - elastiknn-client-elastic4s - Gradle project containing a Scala client based on [Elastic4s](https://github.com/sksamuel/elastic4s).
 - elastiknn-lucene - Gradle project containing custom Lucene queries implemented in Java.
 - elastiknn-models - Gradle project containing custom similarity models implemented in Java.
 - elastiknn-plugin - Gradle project containing the actual plugin implementation.
 - elastiknn-testing - Gradle project containing Scala tests for all the other Gradle subprojects.
+- ann-benchmarks - Python project for benchmarking based on [erikbern/ann-benchmarks](https://github.com/erikbern/ann-benchmarks).
 
 The `lucene` and `models` sub-projects are implemented in Java for a few reasons:
 

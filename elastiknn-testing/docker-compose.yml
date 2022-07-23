@@ -54,15 +54,3 @@ services:
       memlock:
         soft: -1
         hard: -1
-
-  # Minio to mimick S3 for benchmarks.
-  minio:
-    image: minio/minio
-    command: server /data
-    environment:
-      - MINIO_ACCESS_KEY=${AWS_ACCESS_KEY_ID:-elastiknn}
-      - MINIO_SECRET_KEY=${AWS_SECRET_ACCESS_KEY:-elastiknn}
-    ports:
-      - "9000:9000"
-    volumes:
-      - ".minio:/data"
