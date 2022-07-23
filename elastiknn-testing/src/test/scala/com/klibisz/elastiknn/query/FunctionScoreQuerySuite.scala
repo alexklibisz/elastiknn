@@ -31,7 +31,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
 
     // Test with multiple mappings/queries.
     val queryVec = Vec.DenseFloat.random(dims)
-    val mappingsAndQueries = Seq(
+    val mappingsAndQueries: Seq[(Mapping, Seq[NearestNeighborsQuery])] = Seq(
       Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
         NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
         NearestNeighborsQuery.Exact("vec", Similarity.Cosine, queryVec),
@@ -52,7 +52,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         s"""
            |{
            |  "properties": {
-           |    "vec": ${ElasticsearchCodec.mapping(mapping).noSpaces},
+           |    "vec": ${XContentCodec.encodeUnsafeToString(mapping)},
            |    "color": { "type": "keyword" }
            |  }
            |}
@@ -74,7 +74,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
            |    "function_score": {
            |      "query": { "term": { "color": "blue" } },
            |      "boost_mode": "replace",
-           |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(q)}
+           |      "elastiknn_nearest_neighbors": ${XContentCodec.encodeUnsafeToString(q)}
            |    }
            |  }
            |}
@@ -90,7 +90,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
            |      "boost_mode": "sum",
            |      "functions": [
            |        {
-           |          "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)},
+           |          "elastiknn_nearest_neighbors": ${XContentCodec.encodeUnsafeToString(query)},
            |          "weight": 3
            |        }
            |      ]
@@ -106,7 +106,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
           val reqs = batch.map {
             case (id, vec, color) =>
-              val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+              val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
               indexInto(index).id(id).source(docSource)
           }
           eknn.execute(bulk(reqs))
@@ -165,7 +165,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         s"""
            |{
            |  "properties": {
-           |    "vec": ${ElasticsearchCodec.mapping(mapping).noSpaces},
+           |    "vec": ${XContentCodec.encodeUnsafeToString(mapping)},
            |    "color": { "type": "keyword" },
            |    "id": { "type": "keyword", "store": true }
            |  }
@@ -187,7 +187,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
            |  "query": {
            |    "function_score": {
            |      "query": { "term": { "color": "blue" } },
-           |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(q)}
+           |      "elastiknn_nearest_neighbors": ${XContentCodec.encodeUnsafeToString(q)}
            |    }
            |  }
            |}
@@ -201,7 +201,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
            |    "function_score": {
            |      "query": { "term": { "color": "blue" } },
            |      "min_score": 0,
-           |      "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(q)}
+           |      "elastiknn_nearest_neighbors": ${XContentCodec.encodeUnsafeToString(q)}
            |    }
            |  }
            |}
@@ -214,7 +214,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
           val reqs = batch.map {
             case (id, vec, color) =>
-              val docSource = s"""{ "id": "$id", "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+              val docSource = s"""{ "id": "$id", "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
               indexInto(index).id(id).source(docSource)
           }
           eknn.execute(bulk(reqs))

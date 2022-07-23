@@ -263,5 +263,4 @@ object ElasticsearchCodec { esc =>
         }
       } yield nnq
   }
-
 }
