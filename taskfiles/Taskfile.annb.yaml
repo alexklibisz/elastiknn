@@ -32,11 +32,16 @@ tasks:
     dir: ann-benchmarks
     deps:
       - install
+    env:
+      PYTHONPATH: "$PYTHONPATH:{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - venv/bin/python run.py --algorithm elastiknn-exact --max-n-algorithms 5 --dataset random-xs-20-euclidean --run-disabled --timeout 300 --local --force --runs 1
-      - venv/bin/python run.py --algorithm elastiknn-l2lsh --max-n-algorithms 5 --dataset random-xs-20-euclidean --run-disabled --timeout 300 --local --force --runs 1
-      - sudo chmod -R 777 results
-      - venv/bin/python plot.py --dataset random-xs-20-angular --output plot.png
+      - sudo rm -rf results/random-xs-20-euclidean
+      - venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - ls results/random-xs-20-euclidean/10/elastiknn-exact
+      - venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - ls results/random-xs-20-euclidean/10/elastiknn-l2lsh
+      - sudo chmod -R 777 results/random-xs-20-euclidean
+      - venv/bin/python plot.py --dataset random-xs-20-euclidean --output plot.png
 
   benchmark-official-fashion-mnist:
     desc: Run ann-benchmarks using released Elastiknn on the SIFT dataset.
