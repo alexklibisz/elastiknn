@@ -33,7 +33,7 @@ tasks:
     deps:
       - install
     cmds:
-      - venv/bin/python --version
+      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn')"
       - sudo rm -rf results/random-xs-20-euclidean
       - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-exact
