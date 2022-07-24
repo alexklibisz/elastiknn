@@ -20,6 +20,7 @@ tasks:
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
       - venv/bin/pip install --quiet -r requirements.txt
+      - venv/bin/pip install --quiet dataclasses
       - venv/bin/python install.py --algorithm elastiknn
 
   clean:
