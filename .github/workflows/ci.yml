@@ -91,21 +91,6 @@ jobs:
         if: failure()
         run: task cluster:logs
 
-  build-examples:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
-      - uses: olafurpg/setup-scala@v10
-        with:
-          java-version: 17
-      - name: Build SBT client example
-        run: |
-          task jvm:libraries:publish:local
-          cd examples/scala-sbt-client-usage && sbt -batch run
-
   build-jekyll-site:
     runs-on: ubuntu-20.04
     steps:
