@@ -15,13 +15,15 @@ tasks:
     dir: ann-benchmarks
     deps:
       - submodule
+    env:
+      PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - pwd
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
       - venv/bin/pip install --quiet -r requirements.txt
       - venv/bin/pip install --quiet elasticsearch==7.17.4 dataclasses-json==0.3.7 tqdm==4.61.1
       - venv/bin/python install.py --algorithm elastiknn
+      - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn')"
 
   clean:
     desc: Delete artifacts
@@ -33,12 +35,13 @@ tasks:
     dir: ann-benchmarks
     deps:
       - install
+    env:
+      PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn')"
       - sudo rm -rf results/random-xs-20-euclidean
-      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-exact
-      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-l2lsh
       - sudo chmod -R 777 results/random-xs-20-euclidean
       - venv/bin/python plot.py --dataset random-xs-20-euclidean --output plot.png
