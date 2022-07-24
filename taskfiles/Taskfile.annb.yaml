@@ -20,7 +20,7 @@ tasks:
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
       - venv/bin/pip install --quiet -r requirements.txt
-      - venv/bin/pip install --quiet dataclasses
+      - venv/bin/pip install --quiet dataclasses elasticsearch==7.17.4
       - venv/bin/python install.py --algorithm elastiknn
 
   clean:
