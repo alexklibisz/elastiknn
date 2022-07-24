@@ -32,15 +32,12 @@ tasks:
     dir: ann-benchmarks
     deps:
       - install
-    env:
-      PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - echo $PYTHONPATH
       - venv/bin/python --version
       - sudo rm -rf results/random-xs-20-euclidean
-      - venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-exact
-      - venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
+      - PYTHONPATH="{{ .PROJECT_ROOT }}/client-python" venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-l2lsh
       - sudo chmod -R 777 results/random-xs-20-euclidean
       - venv/bin/python plot.py --dataset random-xs-20-euclidean --output plot.png
