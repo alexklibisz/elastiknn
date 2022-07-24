@@ -21,9 +21,10 @@ tasks:
       - python3.6 -m pip install --quiet virtualenv
       - python3.6 -m virtualenv -p python3.6 venv
       - venv/bin/pip install --quiet -r requirements.txt
-      - venv/bin/pip install --quiet elasticsearch==7.17.4 dataclasses-json==0.3.7 tqdm==4.61.1
-      - venv/bin/python install.py --algorithm elastiknn
+      # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
+      - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn')"
+      - venv/bin/python install.py --algorithm elastiknn
 
   clean:
     desc: Delete artifacts
