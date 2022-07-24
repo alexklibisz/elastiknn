@@ -33,7 +33,7 @@ tasks:
     deps:
       - install
     env:
-      PYTHONPATH: "$PYTHONPATH:{{ .PROJECT_ROOT }}/client-python"
+      PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
       - echo $PYTHONPATH
       - sudo rm -rf results/random-xs-20-euclidean
