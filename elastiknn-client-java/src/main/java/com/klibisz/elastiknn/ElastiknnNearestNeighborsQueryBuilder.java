@@ -3,6 +3,7 @@ package com.klibisz.elastiknn;
 import com.klibisz.elastiknn.api4j.ElastiknnNearestNeighborsQuery;
 import com.klibisz.elastiknn.api4j.Vector;
 import org.apache.lucene.search.Query;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.AbstractQueryBuilder;
@@ -82,5 +83,10 @@ public class ElastiknnNearestNeighborsQueryBuilder extends AbstractQueryBuilder<
     @Override
     public String getWriteableName() {
         return "elastiknn_nearest_neighbors";
+    }
+
+    @Override
+    public Version getMinimalSupportedVersion() {
+        return Version.V_EMPTY;
     }
 }

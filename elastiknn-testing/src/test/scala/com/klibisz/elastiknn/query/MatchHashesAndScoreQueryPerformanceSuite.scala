@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.testing.LuceneSupport
-import org.apache.lucene.codecs.lucene90.Lucene90Codec
+import org.apache.lucene.codecs.lucene92.Lucene92Codec
 import org.apache.lucene.document.Document
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -22,7 +22,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends AnyFunSuite with Matchers
 //    Thread.sleep(1000)
 //  }
 
-  class BenchmarkCodec extends Lucene90Codec
+  class BenchmarkCodec extends Lucene92Codec
 
   test("indexing and searching on scale of GloVe-25") {
     implicit val rng: Random = new Random(0)

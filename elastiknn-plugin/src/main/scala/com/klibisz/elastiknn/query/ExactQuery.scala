@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.query
 
 import java.util.Objects
-
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
 import org.apache.lucene.document.BinaryDocValuesField
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext}
-import org.apache.lucene.search.{DocValuesFieldExistsQuery, Explanation, Query}
+import org.apache.lucene.search.{Explanation, FieldExistsQuery, Query}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, FunctionScoreQuery, LeafScoreFunction, ScoreFunction}
 
@@ -16,7 +15,7 @@ class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: 
     extends ElastiknnQuery[V] {
 
   override def toLuceneQuery(indexReader: IndexReader): Query = {
-    val subQuery = new DocValuesFieldExistsQuery(field)
+    val subQuery = new FieldExistsQuery(field)
     val func = toScoreFunction(indexReader)
     new FunctionScoreQuery(subQuery, func)
   }
