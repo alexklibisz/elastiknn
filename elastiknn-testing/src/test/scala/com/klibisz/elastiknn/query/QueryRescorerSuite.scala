@@ -29,7 +29,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
 
   // Test with multiple mappings/queries.
   val queryVec = Vec.DenseFloat.random(dims)
-  val mappingsAndQueries = Seq(
+  val mappingsAndQueries: Seq[(Mapping, Seq[NearestNeighborsQuery])] = Seq(
     Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
       NearestNeighborsQuery.Exact("vec", Similarity.Cosine, queryVec),
@@ -51,7 +51,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
       s"""
          |{
          |  "properties": {
-         |    "vec": ${ElasticsearchCodec.mapping(mapping).noSpaces},
+         |    "vec": ${XContentCodec.encodeUnsafeToString(mapping)},
          |    "color": {
          |      "type": "keyword"
          |    }
@@ -69,7 +69,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
          |    "window_size": $candidates,
          |    "query": {
          |      "rescore_query": {
-         |        "elastiknn_nearest_neighbors": ${ElasticsearchCodec.nospaces(query)}
+         |        "elastiknn_nearest_neighbors": ${XContentCodec.encodeUnsafeToString(query)}
          |      },
          |      "query_weight": 0,
          |      "rescore_query_weight": 1
@@ -84,7 +84,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
       _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
         val reqs = batch.map {
           case (id, vec, color) =>
-            val docSource = s"""{ "vec": ${ElasticsearchCodec.nospaces(vec)}, "color": "$color" }"""
+            val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
             indexInto(index).id(id).source(docSource)
         }
         eknn.execute(bulk(reqs))

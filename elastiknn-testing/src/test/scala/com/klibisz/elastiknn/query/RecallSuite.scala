@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.query
 
-import java.util.UUID
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.testing.{ElasticAsyncClient, Query, TestData}
 import com.sksamuel.elastic4s.ElasticDsl._
@@ -11,6 +10,7 @@ import org.scalatest.concurrent.AsyncCancelAfterFailure
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash
 

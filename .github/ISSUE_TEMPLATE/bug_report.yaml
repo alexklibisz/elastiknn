@@ -1,0 +1,49 @@
+name: Bug Report
+description: Report a bug in Elastiknn.
+labels: ["bug"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Support guidelines
+      description: Please read the support guidelines before proceeding.
+      options:
+        - label: I've read the [support guidelines](https://github.com/alexklibisz/elastiknn/blob/master/readme.md#support)
+          required: true
+  - type: textarea
+    attributes:
+      label: Background
+      description: Please describe what you are trying to do.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Bug
+      description: Please describe what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Elastiknn Version
+      placeholder: 1.2.3.4
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Platform
+      placeholder: Kubernetes, Docker, my laptop, etc.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Please describe the steps to reproduce the bug.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Additional info
+      description: Please provide any additional information that seems useful.

@@ -40,7 +40,6 @@ tasks:
     # Checks that none of the libraries have been published yet.
     status:
       - curl -f -s -o /dev/null {{ .MAVEN_URL }}/lucene/{{ .VERSION }}/lucene-{{ .VERSION }}.pom
-      - curl -f -s -o /dev/null {{ .MAVEN_URL }}/client-java/{{ .VERSION }}/client-java-{{ .VERSION }}.pom
       - curl -f -s -o /dev/null {{ .MAVEN_URL }}/client-elastic4s_2.13/{{ .VERSION }}/client-elastic4s_2.13-{{ .VERSION }}.pom
       - curl -f -s -o /dev/null {{ .MAVEN_URL }}/api4s_2.13/{{ .VERSION }}/api4s_2.13-{{ .VERSION }}.pom
     cmds:

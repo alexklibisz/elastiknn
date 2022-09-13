@@ -25,9 +25,9 @@ includes:
   docs:
     taskfile: taskfiles/Taskfile.docs.yaml
     dir: docs
-  benchmarks:
-    taskfile: taskfiles/Taskfile.benchmarks.yaml
-    dir: elastiknn-benchmarks
+  annb:
+    taskfile: taskfiles/Taskfile.annb.yaml
+    dir: ann-benchmarks
   
 tasks:
   clean:

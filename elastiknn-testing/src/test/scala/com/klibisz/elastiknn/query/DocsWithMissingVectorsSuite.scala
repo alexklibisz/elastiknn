@@ -27,7 +27,7 @@ class DocsWithMissingVectorsSuite extends AsyncFunSuite with Matchers with Inspe
       s"""
          |{
          |  "properties": {
-         |    "$vecField": ${ElasticsearchCodec.encode(vecMapping).spaces2},
+         |    "$vecField": ${XContentCodec.encodeUnsafeToString(vecMapping)},
          |    "$idField": { "type": "keyword" }
          |  }
          |}
