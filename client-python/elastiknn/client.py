@@ -57,8 +57,7 @@ class ElastiknnClient(object):
                 }
             }
         }
-        return self.es.transport.perform_request("PUT", f"/{index}/_mapping", body=body,
-                                                 headers={"Content-Type": "application/json"})
+        return self.es.indices.put_mapping(body, index=index)
 
     def index(self, index: str, vec_field: str, vecs: Iterable[Vec.Base], stored_id_field: str, ids: Iterable[str], refresh: bool = False) -> Tuple[int, List[Dict]]:
         """Index (i.e. store) the given vectors at the given index and field with the optional ids.

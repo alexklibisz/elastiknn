@@ -23,7 +23,10 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 17
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
+          sudo sysctl -w vm.max_map_count=262144
       - name: Compile
         run: task jvm:compile
       - name: Docs
@@ -48,11 +51,12 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+         sudo snap install task --classic
+         sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task py:docs
-      - name: Publish Local
-        run: task jvm:libraries:publish:local
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -61,35 +65,48 @@ jobs:
         if: failure()
         run: task cluster:logs
 
-  build-examples:
+  test-benchmarks:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - run: sudo snap install task --classic
-      - uses: olafurpg/setup-scala@v10
+      - uses: actions/setup-java@v1
         with:
           java-version: 17
-      - name: Build SBT client example
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Misc. Setup
         run: |
-          task jvm:libraries:publish:local
-          cd examples/scala-sbt-client-usage && sbt -batch run
+          sudo snap install task --classic
+          sudo sysctl -w vm.max_map_count=262144
+      - name: Initialize Submodule
+        run: task annb:submodule
+      - name: Install Dependencies
+        run: task annb:install
+      - name: Run Cluster
+        run: task cluster:run
+      - name: Test
+        run: task annb:test
+      - name: Cluster Logs
+        if: failure()
+        run: task cluster:logs
 
   build-jekyll-site:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - run: sudo snap install task --classic
+      - name: Misc. Setup
+        run: |
+          sudo snap install task --classic
       - name: Compile Jekyll Site
         run: |
           chmod -R 777 docs
           task docs:compile
 
-  # Ideally the snapshot release would run only if the tests pass, but right now
-  # there's no way to make a job conditional on another job.
   publish-snapshots:
     runs-on: ubuntu-20.04
     if: ${{ github.actor == 'alexklibisz' }}
-    needs: [show-github-context, test-jvm, test-python]
+    needs: [show-github-context, test-jvm, test-python, test-benchmarks]
     steps:
       - uses: actions/checkout@v2
         with:

@@ -8,9 +8,11 @@ If you're reading this, there's a chance you'd like to contribute to Elastiknn. 
 
 ### Prerequisites
 
-You need at least the following software installed: git, Java 14, Python3, docker, docker-compose, and [task](https://taskfile.dev).
-I'm assuming you're running on a Linux or OSX operating system. I have no idea if any of this will work on Windows.
-There might be other software which is missing. If so, please submit an issue or PR.
+You need at least the following software installed: git, Java 17, Python3.7, docker, docker-compose, and [task](https://taskfile.dev).
+I'm assuming you're running on a Linux or MacOS operating system. 
+I have no idea if any of this will work on Windows.
+There might be other software which is missing. 
+If so, please submit an issue or PR.
 
 ### Run a local Elasticsearch instance with the plugin installed
 
@@ -32,12 +34,12 @@ Elastiknn currently consists of several subprojects managed by Task and Gradle:
 
 - client-python - Python client.
 - elastiknn-api4s - Gradle project containing Scala case classes that model the Elastiknn API.
-- elastiknn-benchmarks - Gradle project containing Scala code and infrastructure for benchmarking. 
 - elastiknn-client-elastic4s - Gradle project containing a Scala client based on [Elastic4s](https://github.com/sksamuel/elastic4s).
 - elastiknn-lucene - Gradle project containing custom Lucene queries implemented in Java.
 - elastiknn-models - Gradle project containing custom similarity models implemented in Java.
 - elastiknn-plugin - Gradle project containing the actual plugin implementation.
 - elastiknn-testing - Gradle project containing Scala tests for all the other Gradle subprojects.
+- ann-benchmarks - Python project for benchmarking based on [erikbern/ann-benchmarks](https://github.com/erikbern/ann-benchmarks).
 
 The `lucene` and `models` sub-projects are implemented in Java for a few reasons:
 
@@ -91,7 +93,12 @@ Running this small local cluster exercises those code paths.
 
 ### Benchmarking and Profiling
 
-TODO
+See ann-benchmarks/README.md
+
+### Miscellaneous Quirks
+
+- To run Elasticsearch on Linux, you need to increase the `vm.max_map_count` setting. [See the Elasticsearch docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html)
+- To run ann-benchmarks on MacOS, you might need to `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`. [See this Stackoverflow answer.](https://stackoverflow.com/a/52230415) 
 
 ## Nearest Neighbors Search
 

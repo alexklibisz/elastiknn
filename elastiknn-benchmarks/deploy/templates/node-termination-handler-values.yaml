@@ -1,4 +1,0 @@
-enableSpotInterruptionDraining: true
-enableScheduledEventDraining: false
-nodeSelector:
-  "node.kubernetes.io/lifecycle": spot
