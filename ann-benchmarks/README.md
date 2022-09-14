@@ -49,8 +49,8 @@ This can be any version of Elastiknn, even a remote server, as long as it's avai
 This is particularly useful for testing performance-sensitive changes before merging. 
 
 ```bash
-# Run the local cluster.
-task cluster:run
+# Start the local cluster.
+task cluster:start
 
 # Fashion MNIST dataset.
 task annb:benchmark-local-fashion-mnist
