@@ -244,10 +244,6 @@ configure(testing, List.of(scalaProjectConfig, {
         implementation 'org.apache.commons:commons-math3:3.6.1'
         implementation "org.apache.lucene:lucene-analysis-common:${luceneVersion}"
         implementation "org.apache.lucene:lucene-backward-codecs:${luceneVersion}"
-=========
-        implementation "org.apache.lucene:lucene-analyzers-common:${luceneVersion}"
-        implementation "org.apache.lucene:lucene-codecs:${luceneVersion}"
->>>>>>>>> Temporary merge branch 2
         implementation "org.elasticsearch:elasticsearch:${esVersion}"
         implementation 'org.pegdown:pegdown:1.4.2'
         implementation "org.scala-lang:scala-library:${scalaFullVersion}"
