@@ -1,4 +1,5 @@
 from urllib.request import Request, urlopen
+from urllib.error import URLError
 import sys
 from time import sleep
 sys.stdout.write("Waiting for elasticsearch health endpoint")
@@ -9,7 +10,7 @@ for i in range(1, 121):
     if res.getcode() == 200:
       print("\nElasticsearch is ready")
       sys.exit(0)
-  except (ConnectionRefusedError, ConnectionResetError) as e:
+  except (ConnectionRefusedError, ConnectionResetError, URLError) as e:
     print('.', end='')
     sys.stdout.flush()
     pass
