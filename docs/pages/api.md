@@ -21,9 +21,7 @@ PUT /my-index
 {
   "settings": {
     "index": {
-      "number_of_shards": 1,          # 1  
-      "elastiknn": true               # 2
-       
+      "number_of_shards": 1  # 1
     }
   }
 }
@@ -31,8 +29,7 @@ PUT /my-index
 
 |#|Description|
 |:--|:--|
-|1|The number of shards in your index. Like all Elasticsearch queries, Elastiknn queries execute once per shard in parallel. This means you can generally speed up your queries by adding more shards to the index.|
-|2|Setting this to `true` (default is `false`) yields a significant performance improvement for Elastiknn on Elasticsearch versions 7.7.x and beyond. The reason is a bit involved: Elastiknn stores vectors as binary doc values. Setting this to `true` tells Elastiknn to use a non-default Lucene setting to store doc values. Specifically, it uses the `Lucene87Codec` with `BEST_SPEED` instead of `BEST_COMPRESSION`. The default `BEST_COMPRESSION` setting saves space on disk but makes reading vectors significantly slower. If you really need to save space on disk or need to [freeze](https://www.elastic.co/guide/en/elasticsearch/reference/current/freeze-index-api.html) the index, then you should set this to `false`.|
+|1|The number of shards in your index. Like all Elasticsearch queries, Elastiknn queries execute in parallel across shards. This means you can generally speed up your queries by adding more shards to the index.|
 
 ## Vectors
 
