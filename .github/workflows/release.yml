@@ -34,8 +34,6 @@ jobs:
           python3 -m pip install setuptools
       - name: Publish Python Docs
         run: task py:publish-docs
-      - name: Publish JVM Docs
-        run: task jvm:docs:publish
       - name: Publish Site
         run: |
           mkdir -p docs/_site
@@ -43,8 +41,6 @@ jobs:
           task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
-      - name: Publish to Sonatype
-        run: task jvm:libraries:publish:release
       - name: Publish to Github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
