@@ -7,7 +7,6 @@ buildscript {
         circeGenericExtrasVersion= '0.14.1'
         scalaShortVersion = '2.13'
         scalaFullVersion = '2.13.6'
-        zioVersion = '1.0.1'
     }
     repositories {
         maven {
