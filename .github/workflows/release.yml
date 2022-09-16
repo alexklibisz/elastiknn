@@ -21,8 +21,6 @@ jobs:
           python-version: '3.7.5'
       - name: Setup Release Credentials
         env:
-          GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-          GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
@@ -34,8 +32,6 @@ jobs:
           python3 -m pip install setuptools
       - name: Publish Python Docs
         run: task py:publish-docs
-      - name: Publish JVM Docs
-        run: task jvm:docs:publish
       - name: Publish Site
         run: |
           mkdir -p docs/_site
@@ -43,8 +39,6 @@ jobs:
           task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
-      - name: Publish to Sonatype
-        run: task jvm:libraries:publish:release
       - name: Publish to Github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
