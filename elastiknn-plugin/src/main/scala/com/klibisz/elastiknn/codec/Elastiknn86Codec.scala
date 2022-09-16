@@ -5,7 +5,7 @@ import org.apache.lucene.backward_codecs.lucene86.Lucene86Codec
 import org.apache.lucene.codecs._
 
 /**
-  * No longer used as of Elasticsearch 8.0.0. Kept for backwards-compatibility.
+  * No longer used as of Elasticsearch 8. Kept for backwards-compatibility.
   */
 class Elastiknn86Codec extends Codec("Elastiknn86Codec") {
   private val luceneCodec: Codec = new Lucene86Codec()
