@@ -12,9 +12,9 @@ class TestClient:
         id_field = "id"
         mapping = Mapping.SparseBool(dims=dim)
 
-        eknn.es.indices.delete(index, ignore=[400, 404])
+        eknn.es.indices.delete(index=index, ignore_unavailable=True)
         eknn.es.indices.refresh()
-        eknn.es.indices.create(index)
+        eknn.es.indices.create(index=index)
         eknn.es.indices.refresh()
         m = eknn.put_mapping(index, vec_field, mapping, "id")
 

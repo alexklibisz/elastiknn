@@ -1,7 +1,7 @@
 from urllib.request import Request, urlopen
 import sys
 from time import sleep
-print("Waiting for elasticsearch health endpoint...")
+sys.stdout.write("Waiting for elasticsearch health endpoint")
 req = Request("http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s")
 for i in range(1, 121):
   try:
@@ -9,8 +9,8 @@ for i in range(1, 121):
     if res.getcode() == 200:
       print("\nElasticsearch is ready")
       sys.exit(0)
-  except ConnectionResetError as e:
-    print('.', end='' if i % 10 else '\n')
+  except (ConnectionRefusedError, ConnectionResetError) as e:
+    print('.', end='')
     sys.stdout.flush()
     pass
   sleep(1)

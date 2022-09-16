@@ -43,15 +43,15 @@ class ElastiknnModel(object):
             self._index = f"{ELASTIKNN_NAME}-{int(time())}"
             self._logger.warning(f"index was not given, using {self._index} instead")
 
-        self._eknn.es.indices.delete(self._index, ignore=[400, 404])
-        body = dict(settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
-        self._eknn.es.indices.create(self._index, body=json.dumps(body))
+        self._eknn.es.indices.delete(index=self._index, ignore_unavailable=True)
+        # body = dict(settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
+        self._eknn.es.indices.create(index=self._index, settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
         self._eknn.put_mapping(self._index, self._vec_field, mapping, self._stored_id_field)
 
         self._logger.info(f"indexing {len(X)} vectors into index {self._index}")
         ids = map(lambda i: str(i + 1), range(len(X)))  # Add one because 0 is an invalid id in ES.
         self._eknn.index(self._index, self._vec_field, vecs, self._stored_id_field, ids, refresh=True)
-        self._eknn.es.indices.forcemerge(self._index, params=dict(max_num_segments=1))
+        self._eknn.es.indices.forcemerge(index=self._index, max_num_segments=1)
         self._eknn.index(self._index, self._vec_field, [], self._stored_id_field, [], refresh=True)
 
 
