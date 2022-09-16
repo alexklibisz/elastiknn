@@ -34,7 +34,7 @@ jobs:
       - name: Docs
         run: task jvm:docs
       - name: Publish Local
-        run: task jvm:libraries:publish:local
+        run: task jvm:plugin:publish:local
       - name: Run Cluster
         run: task cluster:run
       - name: Test

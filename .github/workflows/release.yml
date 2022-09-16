@@ -21,8 +21,6 @@ jobs:
           python-version: '3.7.5'
       - name: Setup Release Credentials
         env:
-          GPG_SECRET_B64: ${{ secrets.GPG_SECRET_B64 }}
-          GRADLE_PROPERTIES_B64: ${{ secrets.GRADLE_PROPERTIES_B64 }}
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}

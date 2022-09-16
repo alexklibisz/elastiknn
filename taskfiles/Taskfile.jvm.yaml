@@ -25,11 +25,6 @@ tasks:
     cmds:
       - "{{ .CMD_GRADLE }} test"
 
-  libraries:publish:local:
-    desc: Publish a local release of JVM libraries
-    cmds:
-      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
-
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
     sources:
