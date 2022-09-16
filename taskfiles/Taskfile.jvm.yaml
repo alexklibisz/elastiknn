@@ -25,37 +25,6 @@ tasks:
     cmds:
       - "{{ .CMD_GRADLE }} test"
 
-  libraries:publish:local:
-    desc: Publish a local release of JVM libraries
-    cmds:
-      - "{{ .CMD_GRADLE }} publishToMavenLocal -x signMavenPublication -Pversion={{ .VERSION }}"
-
-  libraries:publish:snapshot:
-    desc: Publish a snapshot release of JVM libraries to Sonatype
-    cmds:
-      - "{{ .CMD_GRADLE }} publish -Pversion={{ .VERSION }}"
-
-  libraries:publish:release:
-    desc: Publish an official release of JVM libraries to Sonatype
-    # Checks that none of the libraries have been published yet.
-    status:
-      - curl -f -s -o /dev/null {{ .MAVEN_URL }}/lucene/{{ .VERSION }}/lucene-{{ .VERSION }}.pom
-      - curl -f -s -o /dev/null {{ .MAVEN_URL }}/client-elastic4s_2.13/{{ .VERSION }}/client-elastic4s_2.13-{{ .VERSION }}.pom
-      - curl -f -s -o /dev/null {{ .MAVEN_URL }}/api4s_2.13/{{ .VERSION }}/api4s_2.13-{{ .VERSION }}.pom
-    cmds:
-      - "{{ .CMD_GRADLE }} publish"
-
-  docs:publish:
-    desc: Publish documentation to the website
-    status:
-      - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/scaladoc/index.html
-    cmds:
-      - "{{ .CMD_GRADLE }} unifiedScaladocs"
-      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
-      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}
-      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_MAIN_DIR }}/{{ .VERSION }}
-      - rsync -av --delete build/docs/scaladoc {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs
-
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
     sources:

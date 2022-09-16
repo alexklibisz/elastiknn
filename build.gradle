@@ -81,75 +81,8 @@ def scalaProjectConfig = {
     }
 }
 
-def publishConfig(String projectDescription, boolean isScala = false) {
-    return {
-
-        // Have to do it this way because gradle.properties doesn't expand `~`, `$HOME`, etc.
-        ext."signing.secretKeyRingFile" = "${System.getProperty("user.home")}/.gnupg/secring.gpg"
-
-        apply plugin: 'maven-publish'
-        apply plugin: 'signing'
-        task sourceJar(type: Jar) {
-            classifier 'sources'
-            from sourceSets.main.allSource
-        }
-        task javadocJar(type: Jar) {
-            classifier 'javadoc'
-            from javadoc.destinationDir
-        }
-        publishing {
-            publications {
-                maven(MavenPublication) {
-                    artifactId = isScala ? "${project.name}_${scalaShortVersion}" : project.name
-                    from components.java
-                    artifact tasks.sourceJar
-                    artifact tasks.javadocJar
-                    pom {
-                        groupId = "com.klibisz.elastiknn"
-                        name = "${rootProject.group}:${artifactId}"
-                        description = projectDescription
-                        url = 'https://github.com/alexklibisz/elastiknn'
-                        licenses {
-                            license {
-                                name = 'Apache 2.0'
-                                url = 'https://choosealicense.com/licenses/apache-2.0/'
-                            }
-                        }
-                        developers {
-                            developer {
-                                id = 'alexklibisz'
-                                name = 'Alex Klibisz'
-                                email = 'aklibisz@gmail.com'
-                            }
-                        }
-                        scm {
-                            connection = 'scm:git:git://github.com/alexklibisz/elastiknn.git'
-                            developerConnection = 'scm:git:ssh://github.com/alexklibisz/elastiknn.git'
-                            url = 'https://github.com/alexklibisz/elastiknn'
-                        }
-                    }
-
-                }
-            }
-            repositories {
-                maven {
-                    url = version.contains('SNAPSHOT') ? "https://oss.sonatype.org/content/repositories/snapshots/" : "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-                    credentials {
-                        username = project.properties.getOrDefault('sonatypeUsername', 'wrong')
-                        password = project.properties.getOrDefault('sonatypePassword', 'wrong')
-                    }
-                }
-            }
-        }
-        signing {
-            sign publishing.publications
-        }
-    }
-}
-
 configure(api4s, List.of(
         scalaProjectConfig,
-        publishConfig("Scala case classes and JSON codecs for the Elastiknn JSON API", true),
         {
             dependencies {
                 implementation "org.elasticsearch:elasticsearch-x-content:${esVersion}"
@@ -160,7 +93,6 @@ configure(api4s, List.of(
 
 configure(clientElastic4s, List.of(
         scalaProjectConfig,
-        publishConfig("Scala client for Elastiknn, based on elastic4s", true),
         {
             dependencies {
                 api api4s
@@ -169,11 +101,9 @@ configure(clientElastic4s, List.of(
             }
         }))
 
-configure(models, List.of(
-        publishConfig("Exact and approximate similarity models used in Elastiknn", false)))
+configure(models, Collections.emptyList())
 
 configure(lucene, List.of(
-        publishConfig("Custom Lucene queries used in Elastiknn"),
         {
             dependencies {
                 implementation models
