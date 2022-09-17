@@ -4,6 +4,7 @@ import java.util.Objects
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
+import org.elasticsearch.Version
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
@@ -29,6 +30,8 @@ final class KnnScoreFunctionBuilder(val query: NearestNeighborsQuery, val weight
   override def doToFunction(context: SearchExecutionContext): ScoreFunction = {
     ElastiknnQuery(query, context).map(_.toScoreFunction(context.getIndexReader)).get
   }
+
+  override def getMinimalSupportedVersion: Version = Version.V_EMPTY
 }
 
 object KnnScoreFunctionBuilder {
