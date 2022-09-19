@@ -16,6 +16,7 @@ jobs:
           fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/setup-java@v3
         with:
+          distribution: 'adopt'
           java-version: 17
           cache: 'gradle'
       - uses: actions/setup-python@v2
