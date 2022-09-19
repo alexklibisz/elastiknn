@@ -1,3 +1,4 @@
+
 name: Release
 on:
   push:
@@ -13,9 +14,10 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0 # Needed for git-based changelog.
-      - uses: actions/setup-java@v1
+      - uses: actions/setup-java@v3
         with:
           java-version: 17
+          cache: 'gradle'
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
