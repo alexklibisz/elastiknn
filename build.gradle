@@ -85,7 +85,7 @@ configure(api4s, List.of(
         scalaProjectConfig,
         {
             dependencies {
-                implementation "org.elasticsearch:elasticsearch-x-content:${esVersion}"
+                implementation org.elasticsearch:elasticsearch-x-content:${esVersion}"
                 implementation "org.scala-lang:scala-library:${scalaFullVersion}"
             }
         }
