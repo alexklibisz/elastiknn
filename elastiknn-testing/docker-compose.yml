@@ -18,7 +18,7 @@ services:
       - cluster.initial_master_nodes=elasticsearch_master
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
-      - http.cors.allow-origin=*
+      - http.cors.allow-origin='*'
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms700m -Xmx700m
     ports:
