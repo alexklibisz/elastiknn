@@ -1,7 +1,7 @@
 buildscript {
     ext {
-        esVersion = '8.1.3'
-        luceneVersion = '9.0.0'
+        esVersion = '8.2.0'
+        luceneVersion = '9.1.0'
         elastic4sVersion = '8.0.0'
         circeVersion= '0.14.1'
         circeGenericExtrasVersion= '0.14.1'

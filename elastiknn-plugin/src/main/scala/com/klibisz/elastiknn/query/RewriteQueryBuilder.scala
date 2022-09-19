@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import org.apache.lucene.search.Query
+import org.elasticsearch.Version
 import org.elasticsearch.common.io.stream.StreamOutput
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.query._
@@ -21,4 +22,6 @@ private[query] case class RewriteQueryBuilder(f: QueryRewriteContext => QueryBui
   def doEquals(other: RewriteQueryBuilder): Boolean = throw ex
   def doHashCode(): Int = throw ex
   def getWriteableName: String = throw ex
+
+  def getMinimalSupportedVersion: Version = throw ex
 }
