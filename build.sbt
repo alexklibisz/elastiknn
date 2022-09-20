@@ -57,15 +57,21 @@ lazy val `elastiknn-models` = project
     )
   )
 
+import ElasticsearchPluginPlugin.autoImport._
+
 lazy val `elastiknn-plugin` = project
   .in(file("elastiknn-plugin"))
+  .enablePlugins(ElasticsearchPluginPlugin)
   .dependsOn(`elastiknn-api4s`, `elastiknn-lucene`)
   .settings(
+    elasticsearchPluginName := "elastiknn",
+    elasticsearchVersion := ElasticsearchVersion,
+    elasticsearchPluginDescription := "...",
+    elasticsearchPluginVersion := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",
-      "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion,
-      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion
+      "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion
     )
   )
 
