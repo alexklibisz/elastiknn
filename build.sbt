@@ -70,8 +70,7 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginVersion := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
-      "com.google.guava" % "failureaccess" % "1.0.1",
-      "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion
+      "com.google.guava" % "failureaccess" % "1.0.1"
     )
   )
 

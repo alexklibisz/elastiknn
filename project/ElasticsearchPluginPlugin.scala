@@ -1,5 +1,6 @@
-import sbt.{Def, _}
 import sbt.Keys._
+import sbt.internal.graph.backend.SbtUpdateReport
+import sbt.{Def, _}
 
 object ElasticsearchPluginPlugin extends AutoPlugin {
 
@@ -20,16 +21,30 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
   private def bundlePluginTask: Def.Initialize[Task[Unit]] = Def.task {
     val log = sLog.value
-    // allDependencies
-    val jars = (Compile / dependencyClasspathAsJars)
-      .value
-      .filterNot {
-        af: Attributed[File] =>
-          af.data.getPath.contains("org/elasticsearch/elasticsearch") ||
-            af.data.getPath.contains("org/apache/lucene/lucene")
-      }
-    jars.sortBy(_.data.getName).foreach(j => println(j.data.getName))
-    println(jars.length)
+
+    // Figure out how to get rid of elasticsearch and its transitive dependencies.
+
+    val ignoredModules = for {
+      c <- Classpaths.updateTask.value.configurations
+      if c.configuration.name == "compile"
+    } yield {
+      println((c.configuration.name, c.modules.length, c.details.length))
+      val moduleGraph = SbtUpdateReport.fromConfigurationReport(c, projectID.value)
+      println(moduleGraph.nodes.length)
+      println(moduleGraph.edges.length)
+      moduleGraph.edges.foreach(println(_))
+    }
+
+//    // allDependencies
+//    val jars = (Compile / dependencyClasspathAsJars)
+//      .value
+//      .filterNot {
+//        af: Attributed[File] =>
+//          af.data.getPath.contains("org/elasticsearch/elasticsearch") ||
+//            af.data.getPath.contains("org/apache/lucene/lucene")
+//      }
+//    jars.sortBy(_.data.getName).foreach(j => println(j.data.getName))
+//    println(jars.length)
     log.info(s"This is the bundlePlugin task: ${elasticsearchPluginVersion.value}, ${elasticsearchPluginDescription.value}, ${elasticsearchPluginName.value}")
   }
 }
