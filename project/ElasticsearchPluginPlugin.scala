@@ -1,4 +1,5 @@
 import sbt.Keys._
+import sbt.internal.graph
 import sbt.internal.graph.{GraphModuleId, ModuleGraph}
 import sbt.internal.graph.backend.SbtUpdateReport
 import sbt.{Def, _}
@@ -23,17 +24,31 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   private def bundlePluginTask: Def.Initialize[Task[Unit]] = Def.task {
     val log = sLog.value
 
+    def buildDependencyMap(cr: ConfigurationReport): Map[ModuleID, List[ModuleID]] = {
+      val moduleGraph = SbtUpdateReport.fromConfigurationReport(cr, projectID.value)
+      val dependencyMap = moduleGraph.dependencyMap
+      val emptyModules = moduleGraph.nodes.map(_.id).filterNot(dependencyMap.contains).map(g => g.organization % g.name % g.version -> List.empty).toMap
+      emptyModules ++ dependencyMap
+        .map {
+          case (k,vv) => (k.organization % k.name % k.version) -> vv.toList.map(_.id).map(v => v.organization % v.name % v.version)
+        }
+      }
+
+    def transitiveDependencyExists(dependencyMap: Map[ModuleID, List[ModuleID]])(from: ModuleID, to: ModuleID): Boolean =
+        dependencyMap.get(from) match {
+          case None => false
+          case Some(lst) => lst.contains(to) || lst.exists(transitiveDependencyExists(dependencyMap)(_, to))
+        }
+
     // We have to exclude Elasticsearch and any of its transitive dependencies in order to keep the zip file small.
     // To do this, traverse the ModuleGraph and build a list of any module that depends on the Elasticsearch module.
-    // TODO: Figure out how to also ignore transitive dependencies of Elasticsearch.
     val esMod = elasticsearchModule(elasticsearchVersion.value)
     val ignoredModules: Seq[ModuleID] = esMod +: (for {
       cr <- Classpaths.updateTask.value.configurations
       if cr.configuration.name == Configurations.Compile.name
-      mg = SbtUpdateReport.fromConfigurationReport(cr, projectID.value)
-      (from, to) <- mg.edges
-      if from.organization == esMod.organization && from.name == esMod.name && from.version == esMod.revision
-    } yield to.organization % to.name % to.version)
+      dm = buildDependencyMap(cr)
+      mod <- dm.keys.toList.filter(transitiveDependencyExists(dm)(esMod, _))
+    } yield mod)
 
     val jars = (Compile / dependencyClasspathAsJars)
       .value
@@ -46,7 +61,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
           ignoredModules.contains(moduleId)
       }
 
-    jars.map(_.data.getName).sorted.foreach(println(_))
+
 
 //    log.info(s"This is the bundlePlugin task: ${elasticsearchPluginVersion.value}, ${elasticsearchPluginDescription.value}, ${elasticsearchPluginName.value}")
   }
