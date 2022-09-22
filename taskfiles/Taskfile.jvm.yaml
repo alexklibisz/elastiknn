@@ -5,25 +5,22 @@ tasks:
   clean:
     desc: Clean all JVM artifacts
     cmds:
+      - sbt clean
       - "{{ .CMD_GRADLE }} clean"
 
   compile:
     desc: Compile all JVM source code using Gradle
     sources:
-      - build.gradle
+      - build.sbt
+      - project/**
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScalaDocs"
-
-  docs:
-    desc: Generate JVM docs using Gradle
-    cmds:
-      - "{{ .CMD_GRADLE }} unifiedScaladocs"
+      - sbt compile Test/compile
 
   test:
     desc: Run JVM tests using Gradle
     cmds:
-      - "{{ .CMD_GRADLE }} test"
+      - sbt test
 
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
