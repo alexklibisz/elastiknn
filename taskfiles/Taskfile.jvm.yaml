@@ -28,15 +28,16 @@ tasks:
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
     sources:
-      - build.gradle
+      - build.sbt
+      - project/**
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - sbt bundlePlugin
 
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - sbt bundlePlugin
       - hub release delete {{ .VERSION }} || true
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
@@ -45,7 +46,7 @@ tasks:
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - sbt bundlePlugin
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
