@@ -10,6 +10,8 @@ trait ElasticsearchPluginKeys {
 
   lazy val elasticsearchPluginDescription = settingKey[String]("The plugin description.")
 
+  lazy val elasticsearchPluginClassname = settingKey[String]("The name of the class to load, fully-qualified.")
+
   lazy val bundlePlugin = taskKey[Unit]("Bundle the plugin to a zip file that can be installed in an Elasticsearch node.")
 
 }

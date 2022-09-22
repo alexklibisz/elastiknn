@@ -75,9 +75,10 @@ lazy val `elastiknn-plugin` = project
     name := "elastiknn",
     version := ElastiknnVersion,
     elasticsearchPluginName := "elastiknn",
-    elasticsearchVersion := ElasticsearchVersion,
+    elasticsearchPluginClassname := "com.klibisz.elastiknn.ElastiknnPlugin",
     elasticsearchPluginDescription := "...",
     elasticsearchPluginVersion := ElastiknnVersion,
+    elasticsearchVersion := ElasticsearchVersion,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1"
