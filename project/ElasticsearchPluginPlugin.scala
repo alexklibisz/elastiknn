@@ -40,7 +40,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
           case Some(lst) => lst.contains(to) || lst.exists(transitiveDependencyExists(dependencyMap)(_, to))
         }
 
-    // We have to exclude Elasticsearch and any of its transitive dependencies in order to keep the zip file small.
+    // We have to ignore Elasticsearch and any of its transitive dependencies in order to keep the zip file small.
     // To do this, traverse the ModuleGraph and build a list of any module that depends on the Elasticsearch module.
     val esMod = elasticsearchModule(elasticsearchVersion.value)
     val ignoredModules: Seq[ModuleID] = esMod +: (for {
@@ -50,7 +50,8 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       mod <- dm.keys.toList.filter(transitiveDependencyExists(dm)(esMod, _))
     } yield mod)
 
-    val jars = (Compile / dependencyClasspathAsJars)
+    val packageJar: File = (Compile / packageBin).value
+    val dependencyJars: Seq[File] = (Compile / dependencyClasspathAsJars)
       .value
       .filterNot {
         af: Attributed[File] =>
@@ -60,6 +61,9 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
           val moduleId = moduleIdOpt.getOrElse(throw new IllegalStateException(s"JAR ${af.data.getName} missing required ModuleID metadata"))
           ignoredModules.contains(moduleId)
       }
+      .map(_.data)
+
+    (packageJar +: dependencyJars).map(_.getPath).sorted.foreach(println)
 
 
 

@@ -8,10 +8,10 @@ lazy val Elastic4sVersion = "8.0.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.1.0"
 
-lazy val elastiknn = project
+lazy val `elastiknn-root` = project
   .in(file("."))
   .settings(
-    name := "elastiknn"
+    name := "elastiknn-root"
   )
   .aggregate(
     `elastiknn-api4s`,
@@ -25,6 +25,8 @@ lazy val elastiknn = project
 lazy val `elastiknn-api4s` = project
   .in(file("elastiknn-api4s"))
   .settings(
+    name := "api4s",
+    version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
     )
@@ -34,6 +36,8 @@ lazy val `elastiknn-client-elastic4s` = project
   .in(file("elastiknn-client-elastic4s"))
   .dependsOn(`elastiknn-api4s`)
   .settings(
+    name := "client-elastic4s",
+    version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     )
@@ -43,6 +47,8 @@ lazy val `elastiknn-lucene` = project
   .in(file("elastiknn-lucene"))
   .dependsOn(`elastiknn-models`)
   .settings(
+    name := "lucene",
+    version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion
     )
@@ -51,6 +57,8 @@ lazy val `elastiknn-lucene` = project
 lazy val `elastiknn-models` = project
   .in(file("elastiknn-models"))
   .settings(
+    name := "models",
+    version := ElastiknnVersion,
     javacOptions ++= Seq(
       // Needed for @ForceInline annotation.
       "--add-exports", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
@@ -64,6 +72,8 @@ lazy val `elastiknn-plugin` = project
   .enablePlugins(ElasticsearchPluginPlugin)
   .dependsOn(`elastiknn-api4s`, `elastiknn-lucene`)
   .settings(
+    name := "elastiknn",
+    version := ElastiknnVersion,
     elasticsearchPluginName := "elastiknn",
     elasticsearchVersion := ElasticsearchVersion,
     elasticsearchPluginDescription := "...",
