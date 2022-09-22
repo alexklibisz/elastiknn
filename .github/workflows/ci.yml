@@ -33,8 +33,6 @@ jobs:
           sudo sysctl -w vm.max_map_count=262144
       - name: Compile
         run: task jvm:compile
-      - name: Docs
-        run: task jvm:docs
       - name: Publish Local
         run: task jvm:plugin:publish:local
       - name: Run Cluster
