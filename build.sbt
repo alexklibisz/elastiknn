@@ -1,12 +1,11 @@
-
 Global / scalaVersion := "2.13.6"
 
 lazy val CirceVersion = "0.14.1"
 lazy val CirceGenericExtrasVersion = "0.14.1"
-lazy val ElasticsearchVersion = "8.2.1"
+lazy val ElasticsearchVersion = "8.4.2"
 lazy val Elastic4sVersion = "8.0.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.1.0"
+lazy val LuceneVersion = "9.3.0"
 
 lazy val `elastiknn-root` = project
   .in(file("."))
@@ -61,7 +60,8 @@ lazy val `elastiknn-models` = project
     version := ElastiknnVersion,
     javacOptions ++= Seq(
       // Needed for @ForceInline annotation.
-      "--add-exports", "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+      "--add-exports",
+      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     )
   )
 

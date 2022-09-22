@@ -84,7 +84,6 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       s"""
         |# Elasticsearch plugin descriptor file
         |# This file must exist as 'plugin-descriptor.properties' inside a plugin.
-        |type=isolated
         |version=${elasticsearchPluginVersion.value}
         |name=${elasticsearchPluginName.value}
         |description=${elasticsearchPluginDescription.value}
