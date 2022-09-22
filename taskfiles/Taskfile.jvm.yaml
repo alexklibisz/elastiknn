@@ -36,7 +36,7 @@ tasks:
     cmds:
       - sbt bundlePlugin
       - hub release delete {{ .VERSION }} || true
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
@@ -44,7 +44,7 @@ tasks:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
       - sbt bundlePlugin
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
     desc: Run Elasticsearch using gradle
