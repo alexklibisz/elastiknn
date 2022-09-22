@@ -7,6 +7,8 @@ lazy val Elastic4sVersion = "8.0.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.3.0"
 
+lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
+
 lazy val `elastiknn-root` = project
   .in(file("."))
   .settings(
@@ -28,7 +30,8 @@ lazy val `elastiknn-api4s` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-client-elastic4s` = project
@@ -39,7 +42,8 @@ lazy val `elastiknn-client-elastic4s` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-lucene` = project
@@ -50,7 +54,8 @@ lazy val `elastiknn-lucene` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-models` = project
@@ -62,7 +67,8 @@ lazy val `elastiknn-models` = project
       // Needed for @ForceInline annotation.
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
 
 import ElasticsearchPluginPlugin.autoImport._
@@ -82,7 +88,8 @@ lazy val `elastiknn-plugin` = project
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1"
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-testing` = project
@@ -105,5 +112,6 @@ lazy val `elastiknn-testing` = project
       "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion % Test,
       "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion % Test,
       "org.pegdown" % "pegdown" % "1.4.2" % Test
-    )
+    ),
+    scalacOptions ++= ScalacOptions
   )
