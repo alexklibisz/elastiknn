@@ -21,10 +21,26 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies ++= Seq(elasticsearchModule(elasticsearchVersion.value)),
-    bundlePlugin := bundlePluginTaskImpl.value
+    bundlePlugin := bundlePluginTaskImpl.value,
+    run := runImpl.value
   )
 
   private def elasticsearchModule(version: String): ModuleID = "org.elasticsearch" % "elasticsearch" % version
+
+  private def runImpl = Def.task {
+    val log = sLog.value
+    log.info("This is the run task")
+    val forkRun = new ForkRun(ForkOptions())
+    forkRun.run(
+      "org.elasticsearch.bootstrap.Elasticsearch",
+      (Compile / fullClasspath).value.map(_.data),
+      Seq(
+        "--data-dir",
+        "/tmp/elastiknn"
+      ),
+      log
+    )
+  }
 
   private def bundlePluginTaskImpl: Def.Initialize[Task[Unit]] = Def.task {
     val log = sLog.value
