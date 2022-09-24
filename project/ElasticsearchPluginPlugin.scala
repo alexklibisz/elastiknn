@@ -42,17 +42,6 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     elasticsearchPluginDownloadDistribution := elasticsearchPluginDownloadDistributionImpl.value
   )
 
-  private def elasticsearchPluginRunImpl = Def.taskDyn {
-    elasticsearchPluginRunGeneralImpl("", elasticsearchPluginRunSettings.value)
-  }
-
-  private def elasticsearchPluginDebugImpl = Def.taskDyn {
-    elasticsearchPluginRunGeneralImpl(
-      "-Xdebug -Xrunjdwp:transport=dt_socket,server=n,suspend=y,address=5005",
-      elasticsearchPluginDebugSettings.value
-    )
-  }
-
   private def elasticsearchModule(version: String): ModuleID = "org.elasticsearch" % "elasticsearch" % version
 
   private def elasticsearchPluginBundleImpl: Def.Initialize[Task[File]] = Def.task {
@@ -116,6 +105,17 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     IO.zip(files.map(f => (f -> f.getName)), zipFile, None)
     log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files.")
     zipFile
+  }
+
+  private def elasticsearchPluginRunImpl = Def.taskDyn {
+    elasticsearchPluginRunGeneralImpl("", elasticsearchPluginRunSettings.value)
+  }
+
+  private def elasticsearchPluginDebugImpl = Def.taskDyn {
+    elasticsearchPluginRunGeneralImpl(
+      "-Xdebug -Xrunjdwp:transport=dt_socket,server=n,suspend=y,address=5005",
+      elasticsearchPluginDebugSettings.value
+    )
   }
 
   private def elasticsearchPluginDownloadDistributionImpl: Def.Initialize[Task[File]] = Def.task {
