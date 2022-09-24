@@ -81,9 +81,6 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     val distributionDirectory: File = elasticsearchPluginDownloadDistribution.value
 
     // Try to remove the plugin just in case it was already installed.
-
-    // Files.deleteIfExists((distributionDirectory / "plugins" / elasticsearchPluginName.value).toPath)
-
     val procUninstallPlugin = Process(s"./bin/elasticsearch-plugin remove ${elasticsearchPluginName.value}", distributionDirectory)
     procUninstallPlugin.! // Don't care if it fails.
 
@@ -99,7 +96,25 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
   private def elasticsearchPluginDebugImpl: Def.Initialize[Task[Unit]] = Def.task {
     val log = sLog.value
-    log.info("This is the debug task")
+    val pluginBundle: File = elasticsearchPluginBundle.value
+    val distributionDirectory: File = elasticsearchPluginDownloadDistribution.value
+
+    // Try to remove the plugin just in case it was already installed.
+    val procUninstallPlugin = Process(s"./bin/elasticsearch-plugin remove ${elasticsearchPluginName.value}", distributionDirectory)
+    procUninstallPlugin.! // Don't care if it fails.
+
+    // Install the plugin.
+    val procInstallPlugin = Process(s"./bin/elasticsearch-plugin install --verbose --batch ${pluginBundle.toURI}", distributionDirectory)
+    procInstallPlugin.!! // Run in foreground and throw on non-zero exit.
+
+    // Run the Elasticsearch cluster with the plugin installed.
+    val procRunElasticsearch =
+      Process(
+        s"./bin/elasticsearch -Expack.security.enabled=false -Ecluster.name=${name.value}-cluster",
+        distributionDirectory,
+        ("ES_JAVA_OPTS" -> "-Xdebug -Xrunjdwp:transport=dt_socket,server=n,suspend=y,address=5005")
+      )
+    procRunElasticsearch.! // Don't care if it fails.
   }
 
   private def elasticsearchPluginBundleImpl: Def.Initialize[Task[File]] = Def.task {
