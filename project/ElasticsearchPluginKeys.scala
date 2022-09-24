@@ -1,17 +1,14 @@
 import sbt._
 
 trait ElasticsearchPluginKeys {
-
   lazy val elasticsearchVersion = settingKey[String]("The Elasticsearch version for this plugin.")
-
   lazy val elasticsearchPluginVersion = settingKey[String]("The plugin version.")
-
   lazy val elasticsearchPluginName = settingKey[String]("The plugin name.")
-
   lazy val elasticsearchPluginDescription = settingKey[String]("The plugin description.")
-
   lazy val elasticsearchPluginClassname = settingKey[String]("The name of the class to load, fully-qualified.")
-
-  lazy val bundlePlugin = taskKey[Unit]("Bundle the plugin to a zip file that can be installed in an Elasticsearch node.")
-
+  lazy val elasticsearchPluginDownloadDistribution =
+    taskKey[File]("Download the Elasticsearch distribution from https://www.elastic.co/downloads/elasticsearch.")
+  lazy val elasticsearchPluginRun = taskKey[Unit]("...")
+  lazy val elasticsearchPluginDebug = taskKey[Unit]("...")
+  lazy val elasticsearchPluginBundle = taskKey[File]("Bundle the plugin to a zip file that can be installed in an Elasticsearch node.")
 }

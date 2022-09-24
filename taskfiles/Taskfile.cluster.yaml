@@ -12,7 +12,7 @@ tasks:
   assemble:
     cmds:
       - rm -rf elastiknn-plugin/target/*.zip
-      - sbt elastiknn-plugin/bundlePlugin
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
 
   run:
     desc: Run local docker-compose cluster.

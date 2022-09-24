@@ -29,12 +29,12 @@ tasks:
       - project/**
       - "elastiknn-*/**"
     cmds:
-      - sbt bundlePlugin
+      - sbt elasticsearchPluginBundle
 
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - sbt bundlePlugin
+      - sbt elasticsearchPluginBundle
       - hub release delete {{ .VERSION }} || true
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
@@ -43,7 +43,7 @@ tasks:
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - sbt bundlePlugin
+      - sbt elasticsearchPluginBundle
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
   run:gradle:
