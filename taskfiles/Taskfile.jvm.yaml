@@ -5,8 +5,7 @@ tasks:
   clean:
     desc: Clean all JVM artifacts
     cmds:
-      - sbt clean
-      - "{{ .CMD_GRADLE }} clean"
+      - find . -name target | xargs rm -rf
 
   compile:
     desc: Compile all JVM source code using Gradle
@@ -25,11 +24,11 @@ tasks:
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
     sources:
-      - build.sbt
-      - project/**
+      - "**/*.sbt"
+      - "**/*.scala"
       - "elastiknn-*/**"
     cmds:
-      - sbt elasticsearchPluginBundle
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
 
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
@@ -43,17 +42,15 @@ tasks:
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - sbt elasticsearchPluginBundle
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
-  run:gradle:
-    desc: Run Elasticsearch using gradle
+  run:
+    desc: Run Elasticsearch using SBT
     cmds:
-      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
+      - sbt elastiknn-plugin/elasticsearchPluginRun
 
-  run:debug:
+  debug:
     desc: Run Elasticsearch in debug mode using gradle
     cmds:
-      - task: run:gradle
-        vars: 
-          DEBUG: "--debug-jvm"
+      - sbt elastiknn-plugin/elasticsearchPluginDebug
