@@ -6,6 +6,7 @@ trait ElasticsearchPluginKeys {
   lazy val elasticsearchPluginName = settingKey[String]("The plugin name.")
   lazy val elasticsearchPluginDescription = settingKey[String]("The plugin description.")
   lazy val elasticsearchPluginClassname = settingKey[String]("The name of the class to load, fully-qualified.")
+  lazy val elasticsearchPluginDistributionDirectory = settingKey[File]("The directory where the Elasticsearch distribution is downloaded.")
   lazy val elasticsearchPluginDownloadDistribution =
     taskKey[File]("Download the Elasticsearch distribution from https://www.elastic.co/downloads/elasticsearch.")
   lazy val elasticsearchPluginRun = taskKey[Unit]("...")

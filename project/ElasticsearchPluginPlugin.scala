@@ -1,10 +1,12 @@
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.logging.log4j.core.util.FileUtils
 import sbt.Keys._
 import sbt.internal.graph.backend.SbtUpdateReport
 import sbt.{Def, _}
 
 import java.nio.file.{Files, StandardCopyOption}
 import java.util.zip.GZIPInputStream
+import scala.sys.process.{Process, ProcessLogger}
 
 /**
   * SBT plugin providing functionality to run and build an Elasticsearch plugin.
@@ -26,6 +28,10 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value
     ),
+    cleanFiles ++= Seq(
+      elasticsearchPluginDistributionDirectory.value
+    ),
+    elasticsearchPluginDistributionDirectory := (Compile / target).value / s"elasticsearch-${elasticsearchVersion.value}",
     elasticsearchPluginBundle := elasticsearchPluginBundleImpl.value,
     elasticsearchPluginRun := elasticsearchPluginRunImpl.value,
     elasticsearchPluginDebug := elasticsearchPluginDebugImpl.value,
@@ -41,35 +47,54 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       val arch = System.getProperty("os.arch")
       if (osName.contains("mac")) s"darwin-$arch"
       else if (osName.contains("nix") || osName.contains("nux")) s"linux-$arch"
-      else throw new RuntimeException(s"Unknown operating system $osName, $arch")
+      else throw new RuntimeException(s"Unsupported operating system $osName, $arch")
     }
     val distributionFilename = s"elasticsearch-${elasticsearchVersion.value}-$elasticsearchVersionSuffix.tar.gz"
     val distributionUrl = new URL(s"https://artifacts.elastic.co/downloads/elasticsearch/$distributionFilename")
-    val downloadParentDirectory = (Compile / target).value
-    val distributionDirectory = downloadParentDirectory / s"elasticsearch-${elasticsearchVersion.value}"
+    val distributionDirectory = elasticsearchPluginDistributionDirectory.value
+    val distributionParentDirectory = elasticsearchPluginDistributionDirectory.value.getParentFile
     if (!distributionDirectory.exists()) {
-      log.info(s"Downloading Elasticsearch distribution from ${distributionUrl} to ${distributionDirectory}")
+      log.info(s"Downloading Elasticsearch distribution from $distributionUrl to $distributionDirectory")
       val urlInputStream = distributionUrl.openStream()
       val gzipInputStream = new GZIPInputStream(urlInputStream)
       val tarInputStream = new TarArchiveInputStream(gzipInputStream)
-      var currentEntry = tarInputStream.getNextTarEntry
-      while (currentEntry != null) {
-        val entryFile = downloadParentDirectory / currentEntry.getName
-        log.debug(s"Processing distribution entry ${currentEntry.getName}")
-        if (currentEntry.isDirectory && !entryFile.exists()) Files.createDirectories(entryFile.toPath)
-        else if (currentEntry.isFile) Files.copy(tarInputStream, entryFile.toPath, StandardCopyOption.REPLACE_EXISTING)
-        currentEntry = tarInputStream.getNextTarEntry
+      while (tarInputStream.getNextTarEntry != null) {
+        val entry = tarInputStream.getCurrentEntry
+        log.debug(s"Processing distribution entry ${entry.getName}")
+        val entryFile = distributionParentDirectory / entry.getName
+        if (entry.isDirectory && !entryFile.exists()) Files.createDirectories(entryFile.toPath)
+        else if (entry.isFile) {
+          Files.copy(tarInputStream, entryFile.toPath)
+          if (entry.getMode == 493) entryFile.setExecutable(true, true)
+        }
       }
       urlInputStream.close()
     } else {
-      log.info(s"Found Elasticsearch distribution at $distributionDirectory. Skipping download.")
+      log.info(s"Found Elasticsearch distribution at $distributionParentDirectory. Skipping download.")
     }
     distributionDirectory
   }
 
   private def elasticsearchPluginRunImpl: Def.Initialize[Task[Unit]] = Def.task {
     val log = sLog.value
+    val pluginBundle: File = elasticsearchPluginBundle.value
+    val distributionDirectory: File = elasticsearchPluginDownloadDistribution.value
 
+    // Try to remove the plugin just in case it was already installed.
+
+    // Files.deleteIfExists((distributionDirectory / "plugins" / elasticsearchPluginName.value).toPath)
+
+    val procUninstallPlugin = Process(s"./bin/elasticsearch-plugin remove ${elasticsearchPluginName.value}", distributionDirectory)
+    procUninstallPlugin.! // Don't care if it fails.
+
+    // Install the plugin.
+    val procInstallPlugin = Process(s"./bin/elasticsearch-plugin install --verbose --batch ${pluginBundle.toURI}", distributionDirectory)
+    procInstallPlugin.!! // Run in foreground and throw on non-zero exit.
+
+    // Run the Elasticsearch cluster with the plugin installed.
+    val procRunElasticsearch =
+      Process(s"./bin/elasticsearch -Expack.security.enabled=false -Ecluster.name=${name.value}-cluster", distributionDirectory)
+    procRunElasticsearch.! // Don't care if it fails.
   }
 
   private def elasticsearchPluginDebugImpl: Def.Initialize[Task[Unit]] = Def.task {
@@ -136,7 +161,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     val files = List(pluginDescriptorFile, pluginJar) ++ pluginMetadataFiles ++ dependencyJars
     val zipFile = (Compile / target).value / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip"
     IO.zip(files.map(f => (f -> f.getName)), zipFile, None)
-    log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files")
+    log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files.")
     zipFile
   }
 }
