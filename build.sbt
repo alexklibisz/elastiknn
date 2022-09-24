@@ -29,7 +29,7 @@ lazy val `elastiknn-api4s` = project
     name := "api4s",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion % Provided
+      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
     ),
     scalacOptions ++= ScalacOptions
   )
@@ -53,7 +53,7 @@ lazy val `elastiknn-lucene` = project
     name := "lucene",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.apache.lucene" % "lucene-core" % LuceneVersion % Provided
+      "org.apache.lucene" % "lucene-core" % LuceneVersion
     ),
     scalacOptions ++= ScalacOptions
   )
@@ -76,7 +76,10 @@ import ElasticsearchPluginPlugin.autoImport._
 lazy val `elastiknn-plugin` = project
   .in(file("elastiknn-plugin"))
   .enablePlugins(ElasticsearchPluginPlugin)
-  .dependsOn(`elastiknn-api4s`, `elastiknn-lucene`)
+  .dependsOn(
+    `elastiknn-api4s`,
+    `elastiknn-lucene`
+  )
   .settings(
     name := "elastiknn",
     version := ElastiknnVersion,
