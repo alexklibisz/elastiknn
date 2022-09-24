@@ -20,33 +20,25 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   import autoImport._
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
-    libraryDependencies ++= Seq(elasticsearchModule(elasticsearchVersion.value)),
+    libraryDependencies ++= Seq(
+      "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value % Provided
+    ),
     bundlePlugin := bundlePluginTaskImpl.value,
     run := runImpl.value
   )
 
-  private def elasticsearchModule(version: String): ModuleID = "org.elasticsearch" % "elasticsearch" % version
-
   private def runImpl = Def.task {
     val log = sLog.value
     log.info("This is the run task")
-    val forkRun = new ForkRun(ForkOptions())
-    forkRun.run(
-      "org.elasticsearch.bootstrap.Elasticsearch",
-      (Compile / fullClasspath).value.map(_.data),
-      Seq(
-        "--data-dir",
-        "/tmp/elastiknn"
-      ),
-      log
-    )
   }
 
   private def bundlePluginTaskImpl: Def.Initialize[Task[Unit]] = Def.task {
+    // Inspired by https://github.com/shikhar/eskka
     val log = sLog.value
-
-    // Generate plugin properties.
-    val properties =
+    val pluginDescriptorFile: File = (Compile / target).value / "plugin-descriptor.properties"
+    pluginDescriptorFile.deleteOnExit()
+    IO.write(
+      pluginDescriptorFile,
       s"""
          |# Elasticsearch plugin descriptor file
          |# This file must exist as 'plugin-descriptor.properties' inside a plugin.
@@ -57,75 +49,21 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
          |java.version=${System.getProperty("java.specification.version")}
          |elasticsearch.version=${elasticsearchVersion.value}
          |""".stripMargin.stripLeading
-
-    // Build up the list of JARs that need to go in the zip file.
-    // We need to remove Elasticsearch and all of its dependencies, which requires some careful munging.
-    // The official elasticsearch plugin does this by distinguishing runtime and compile dependencies.
-    // I don't know of a way to do this in SBT.
-    val jars: Seq[sbt.File] = {
-      def buildDependencyMap(cr: ConfigurationReport): Map[ModuleID, List[ModuleID]] = {
-        val moduleGraph = SbtUpdateReport.fromConfigurationReport(cr, projectID.value)
-        val dependencyMap = moduleGraph.dependencyMap
-        val emptyModules =
-          moduleGraph.nodes.map(_.id).filterNot(dependencyMap.contains).map(g => g.organization % g.name % g.version -> List.empty).toMap
-        emptyModules ++ dependencyMap
-          .map {
-            case (k, vv) => (k.organization % k.name % k.version) -> vv.toList.map(_.id).map(v => v.organization % v.name % v.version)
-          }
-      }
-
-      def transitiveDependencyExists(dependencyMap: Map[ModuleID, List[ModuleID]])(from: ModuleID, to: ModuleID): Boolean =
-        dependencyMap.get(from) match {
-          case None      => false
-          case Some(lst) => lst.contains(to) || lst.exists(transitiveDependencyExists(dependencyMap)(_, to))
-        }
-
-      val esMod = elasticsearchModule(elasticsearchVersion.value)
-      val ignoredModules: Seq[ModuleID] = esMod +: (for {
-        cr <- Classpaths.updateTask.value.configurations
-        if cr.configuration.name == Configurations.Compile.name
-        dm = buildDependencyMap(cr)
-        mod <- dm.keys.toList.filter(transitiveDependencyExists(dm)(esMod, _))
-      } yield mod)
-      val packageJar: File = (Compile / packageBin).value
-      val dependencyJars: Seq[File] = (Compile / dependencyClasspathAsJars).value
-        .filterNot { af: Attributed[File] =>
-          val moduleIdOpt = af.metadata.entries.map(_.value).collectFirst {
-            case m: ModuleID => m.organization % m.name % m.revision
-          }
-          val moduleId =
-            moduleIdOpt.getOrElse(throw new IllegalStateException(s"JAR ${af.data.getName} missing required ModuleID metadata"))
-          ignoredModules.contains(moduleId)
-        }
-        .map(_.data)
-      packageJar +: dependencyJars
+    )
+    val pluginMetadataFiles = ((Compile / sourceDirectory).value / "plugin-metadata").listFiles()
+    val pluginJar: File = (Compile / packageBin).value
+    val internalDependencyJars = (Compile / internalDependencyAsJars).value.map(_.data)
+    val runtimeDependencyJars = Classpaths.updateTask.value.select(configuration = configurationFilter("runtime"))
+    val files = List(pluginDescriptorFile, pluginJar) ++ pluginMetadataFiles ++ runtimeDependencyJars ++ internalDependencyJars
+    val elasticsearchLuceneJars = files.filter(f => f.getPath.contains("org/elasticsearch") || f.getPath.contains("org/apache/lucene"))
+    if (elasticsearchLuceneJars.nonEmpty) {
+      val msg = s"Found Elasticsearch and Lucene JARs on the runtime classpath." ++
+        s" Elasticsearch and Lucene dependencies should use the % Provided dependency configuration."
+      log.error(msg ++ s"\n[${elasticsearchLuceneJars.mkString(", ")}]")
+      throw new IllegalStateException(msg)
     }
-
-    val pluginMetadataDirectory = (Compile / sourceDirectory).value / "plugin-metadata"
-    val allFilesOnDisk: Seq[sbt.File] = (jars ++ pluginMetadataDirectory.listFiles)
-
-    // Build the zip file.
-    val targetDirectory = (Compile / target).value
-    val zipFile = targetDirectory / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip"
-    val zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFile))
-
-    // Add files from disk.
-    allFilesOnDisk.foreach { f =>
-      val zipEntry = new ZipEntry(f.getName)
-      val fileInputStream = new FileInputStream(f)
-      zipOutputStream.putNextEntry(zipEntry)
-      zipOutputStream.write(fileInputStream.readAllBytes())
-      fileInputStream.close()
-    }
-
-    // Add plugin properties.
-    val zipEntry = new ZipEntry("plugin-descriptor.properties")
-    zipOutputStream.putNextEntry(zipEntry)
-    zipOutputStream.write(properties.getBytes)
-
-    // Close the stream to write.
-    zipOutputStream.close()
-
-    log.info(s"Generated plugin file ${zipFile.getPath} containing ${allFilesOnDisk.length + 1} files")
+    val zipFile = (Compile / target).value / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip"
+    IO.zip(files.map(f => (f -> f.getName)), zipFile, None)
+    log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files")
   }
 }

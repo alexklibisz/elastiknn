@@ -29,7 +29,7 @@ lazy val `elastiknn-api4s` = project
     name := "api4s",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
+      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion % Provided
     ),
     scalacOptions ++= ScalacOptions
   )
@@ -53,7 +53,7 @@ lazy val `elastiknn-lucene` = project
     name := "lucene",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.apache.lucene" % "lucene-core" % LuceneVersion
+      "org.apache.lucene" % "lucene-core" % LuceneVersion % Provided
     ),
     scalacOptions ++= ScalacOptions
   )
@@ -100,6 +100,8 @@ lazy val `elastiknn-testing` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion,
       "io.circe" %% "circe-parser" % CirceVersion,
+      "org.apache.lucene" % "lucene-core" % LuceneVersion,
+      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion,
       "org.scalanlp" %% "breeze" % "1.3",
       "org.scalatest" %% "scalatest" % "3.2.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
