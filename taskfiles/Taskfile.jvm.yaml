@@ -5,57 +5,52 @@ tasks:
   clean:
     desc: Clean all JVM artifacts
     cmds:
-      - "{{ .CMD_GRADLE }} clean"
+      - find . -name target | xargs rm -rf
 
   compile:
     desc: Compile all JVM source code using Gradle
     sources:
-      - build.gradle
+      - build.sbt
+      - project/**
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} compileScala compileJava compileTestScala compileTestJava unifiedScalaDocs"
-
-  docs:
-    desc: Generate JVM docs using Gradle
-    cmds:
-      - "{{ .CMD_GRADLE }} unifiedScaladocs"
+      - sbt compile Test/compile
 
   test:
     desc: Run JVM tests using Gradle
     cmds:
-      - "{{ .CMD_GRADLE }} test"
+      - sbt test
 
   plugin:publish:local:
     desc: Publish a local snapshot of the plugin
     sources:
-      - build.gradle
+      - "**/*.sbt"
+      - "**/*.scala"
       - "elastiknn-*/**"
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
 
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
+      - sbt elasticsearchPluginBundle
       - hub release delete {{ .VERSION }} || true
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
   plugin:publish:release:
     desc: Publish an official release to Github
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - "{{ .CMD_GRADLE }} assemble"
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/build/distributions/elastiknn-*.zip {{ .VERSION }}
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
+      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
-  run:gradle:
-    desc: Run Elasticsearch using gradle
+  run:
+    desc: Run Elasticsearch using SBT
     cmds:
-      - "{{ .CMD_GRADLE }} :plugin:run --data-dir={{ .DATA_DIR | default \"/tmp/elastiknn\" }} -Dtests.heap.size={{ .HEAP | default \"4G\" }} -Dtests.es.thread_pool.search.size={{ .THREADS | default 1 }} {{ .DEBUG }}"
+      - sbt elastiknn-plugin/elasticsearchPluginRun
 
-  run:debug:
+  debug:
     desc: Run Elasticsearch in debug mode using gradle
     cmds:
-      - task: run:gradle
-        vars: 
-          DEBUG: "--debug-jvm"
+      - sbt elastiknn-plugin/elasticsearchPluginDebug

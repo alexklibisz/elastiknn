@@ -4,6 +4,7 @@ target
 release.md
 *.csv
 .task
+.bsp
 
 # Ignore Gradle GUI config
 gradle-app.setting

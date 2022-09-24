@@ -39,7 +39,7 @@ Build and run the Dockerfile. If you have any issues please refer to the [offici
 ```sh
 $ docker build -t elastiknn-example .
 $ sudo sysctl -w vm.max_map_count=262144 # Have to do this on Ubuntu host; not sure about others.
-$ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elastiknn-example
+$ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" elastiknn-example
 ```
 
 In another terminal, use curl to check the health status and make sure the plugin is installed.

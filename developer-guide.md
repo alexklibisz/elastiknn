@@ -8,8 +8,8 @@ If you're reading this, there's a chance you'd like to contribute to Elastiknn. 
 
 ### Prerequisites
 
-You need at least the following software installed: git, Java 17, Python3.7, docker, docker-compose, and [task](https://taskfile.dev).
-I'm assuming you're running on a Linux or MacOS operating system. 
+You need at least the following software installed: git, Java 17, Python3.7, SBT, docker, docker-compose, and [task](https://taskfile.dev).
+I'm assuming you're running on a Linux or MacOS operating system.
 I have no idea if any of this will work on Windows.
 There might be other software which is missing. 
 If so, please submit an issue or PR.
@@ -19,7 +19,7 @@ If so, please submit an issue or PR.
 Once you have the prerequisites installed, clone the project and run:
 
 ```
-task jvm:run:gradle
+task jvm:run
 ```
 
 This starts a local instance of Elasticsearch with the plugin installed. 
@@ -33,12 +33,12 @@ You should see the usual Elasticsearch JSON response containing the version, clu
 Elastiknn currently consists of several subprojects managed by Task and Gradle:
 
 - client-python - Python client.
-- elastiknn-api4s - Gradle project containing Scala case classes that model the Elastiknn API.
-- elastiknn-client-elastic4s - Gradle project containing a Scala client based on [Elastic4s](https://github.com/sksamuel/elastic4s).
-- elastiknn-lucene - Gradle project containing custom Lucene queries implemented in Java.
-- elastiknn-models - Gradle project containing custom similarity models implemented in Java.
-- elastiknn-plugin - Gradle project containing the actual plugin implementation.
-- elastiknn-testing - Gradle project containing Scala tests for all the other Gradle subprojects.
+- elastiknn-api4s - SBT project containing Scala case classes that model the Elastiknn API.
+- elastiknn-client-elastic4s - SBT project containing a Scala client based on [Elastic4s](https://github.com/sksamuel/elastic4s).
+- elastiknn-lucene - SBT project containing custom Lucene queries implemented in Java.
+- elastiknn-models - SBT project containing custom similarity models implemented in Java.
+- elastiknn-plugin - SBT project containing the actual plugin implementation.
+- elastiknn-testing - SBT project containing Scala tests for all the other Gradle subprojects.
 - ann-benchmarks - Python project for benchmarking based on [erikbern/ann-benchmarks](https://github.com/erikbern/ann-benchmarks).
 
 The `lucene` and `models` sub-projects are implemented in Java for a few reasons:
@@ -46,12 +46,10 @@ The `lucene` and `models` sub-projects are implemented in Java for a few reasons
 1. It makes it easier to ask questions on the Lucene issue tracker and mailing list.
 2. They are the most CPU-bound parts of the codebase. While Scala's abstractions are nicer than Java's, they sometimes 
    have a surprising performance cost (e.g., boxing).
-3. It makes them more likely to be useful to other JVM developers. In particular the `models` project, which can be used
-   to hash vectors and compute similarities in any JVM app.
 
-### Build tools: Task and Gradle
+### Build tools: Task and SBT
 
-Gradle manages the plugin and all of the JVM (i.e. Java and Scala) subprojects.
+SBT manages the plugin and all the Java and Scala subprojects.
 
 Task is used to define command aliases with simple dependencies.
 This makes it relatively easy to run tests, generate docs, publish artifacts, etc. all from one file.
@@ -60,7 +58,7 @@ This makes it relatively easy to run tests, generate docs, publish artifacts, et
 
 I recommend using IntelliJ Idea to work on the Gradle projects and Pycharm to work on the client-python project.
 
-IntelliJ should immediately recognize the Gradle project when you open the `elastiknn` directory.
+Install the IntelliJ Scala plugin, and then IntelliJ will recognize the SBT project when you open the `elastiknn` directory.
 
 PyCharm can be a bit of a different story. 
 You should first create a virtual environment in `client-python/venv`.
@@ -71,7 +69,7 @@ Then you should setup PyCharm to use the interpreter in `client-python/venv`.
 
 Elastiknn has a fairly thorough test suite.
 
-To run it, you'll first need to run `task cluster:run` or `task jvm:run:gradle` to start a local Elasticsearch server.
+To run it, you'll first need to run `task cluster:run` or `task jvm:run` to start a local Elasticsearch server.
 
 Then, run `task jvm:test` to run the Gradle test suite, or `task py:test` to run the smaller Python test suite.
 
@@ -81,9 +79,11 @@ You can attach IntelliJ's debugger to a local Elasticsearch process.
 This can be immensely helpful when dealing with bugs or just figuring out how the code is structured.
 
 First, open your project in IntelliJ and run the `Debug Elasticsearch` target (usually in the upper right corner).
-Then just run `task jvm:run:debug` in your terminal.
+Then just run `task jvm:debug` in your terminal.
 
-Now you should be able to set and hit breakpoints in IntelliJ.
+Now you can set and hit breakpoints in IntelliJ.
+To try it out, open the RestPluginsAction.java file in IntelliJ, add a breakpoint in the `getTableWithHeader` method, and run `curl localhost:9200/_cat/plugins`.
+IntelliJ should stop execution at your breakpoint.
 
 ### Local Cluster
 

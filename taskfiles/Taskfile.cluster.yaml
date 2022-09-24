@@ -11,8 +11,8 @@ tasks:
 
   assemble:
     cmds:
-      - rm -rf elastiknn-plugin/build/distributions/*.zip
-      - "{{ .CMD_GRADLE }} assemble"
+      - rm -rf elastiknn-plugin/target/*.zip
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
 
   run:
     desc: Run local docker-compose cluster.
