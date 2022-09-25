@@ -95,6 +95,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.6'
+          cache: 'pip'
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -103,11 +104,11 @@ jobs:
         run: task annb:submodule
       - name: Install Dependencies
         run: task annb:install
-      - name: Pull Build Cache
+      - name: Pull Build Cache from S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: sbt pullRemoteCache
+        run: sbt pullRemoteCache compile
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -152,6 +153,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
+          cache: 'pip'
       - run: |
           sudo snap install task --classic
           sudo snap install hub --classic
