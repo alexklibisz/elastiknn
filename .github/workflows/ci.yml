@@ -102,7 +102,7 @@ jobs:
           cache: 'pip'
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.event.ref_name }}
+          key: ci-${{ github.ref_name }}
           restore-keys: |
             ci-master
           path: |
