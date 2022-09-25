@@ -34,9 +34,9 @@ jobs:
           cache: 'sbt'
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.ref_name }}
+          key: ci-${{ github.job }}-${{ github.ref_name }}
           restore-keys: |
-            ci-master
+            ci-${{ github.job }}-master
           path: |
             **/target/**/*
       - name: Debug cache
@@ -75,9 +75,9 @@ jobs:
           cache: 'pip'
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.ref_name }}
+          key: ci-${{ github.job }}-${{ github.ref_name }}
           restore-keys: |
-            ci-master
+            ci-${{ github.job }}-master
           path: |
             **/target/**/*
       - name: Misc. Setup
@@ -110,9 +110,9 @@ jobs:
           cache: 'pip'
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.ref_name }}
+          key: ci-${{ github.job }}-${{ github.ref_name }}
           restore-keys: |
-            ci-master
+            ci-${{ github.job }}-master
           path: |
             **/target/**/*
       - name: Misc. Setup
@@ -170,9 +170,9 @@ jobs:
           cache: 'pip'
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.ref_name }}
+          key: ci-${{ github.job }}-${{ github.ref_name }}
           restore-keys: |
-            ci-master
+            ci-${{ github.job }}-master
           path: |
             **/target/**/*.class
             **/target/**/succeeded_tests
