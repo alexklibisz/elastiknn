@@ -37,8 +37,7 @@ jobs:
           restore-keys: |
             ci-master
           path: |
-            **/target/**/classes/**/*.class
-            **/target/**/succeeded_tests
+            **/target/**/*
       - name: Debug cache
         run: |
           find . -name '*.class'
@@ -79,8 +78,7 @@ jobs:
           restore-keys: |
             ci-master
           path: |
-            **/target/**/classes/**/*.class
-            **/target/**/succeeded_tests
+            **/target/**/*
       - name: Misc. Setup
         run: |
          sudo snap install task --classic
@@ -115,8 +113,7 @@ jobs:
           restore-keys: |
             ci-master
           path: |
-            **/target/**/classes/**/*.class
-            **/target/**/succeeded_tests
+            **/target/**/*
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
