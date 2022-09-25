@@ -31,10 +31,10 @@ jobs:
         run: |
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
+      - name: Initialize SBT
+        run: sbt version
       - name: Compile
-        run: task jvm:compile
-      - name: Publish Local
-        run: task jvm:plugin:publish:local
+        run: sbt compile Test/compile
       - name: Run Cluster
         run: task cluster:run
       - name: Test

@@ -28,10 +28,12 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value
     ),
     cleanFiles ++= Seq(
-      elasticsearchPluginDistributionDirectory.value
+      elasticsearchPluginDistributionDirectory.value,
+      elasticsearchPluginBundleFile.value
     ),
     elasticsearchPluginDistributionDirectory := (Compile / target).value / s"elasticsearch-${elasticsearchVersion.value}",
     elasticsearchPluginBundle := elasticsearchPluginBundleImpl.value,
+    elasticsearchPluginBundleFile := (Compile / target).value / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip",
     elasticsearchPluginRunSettings := Seq(
       "xpack.security.enabled=false",
       s"cluster.name=${elasticsearchPluginName.value}-sbt-cluster"
@@ -101,7 +103,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     }
 
     val files = List(pluginDescriptorFile, pluginJar) ++ pluginMetadataFiles ++ dependencyJars
-    val zipFile = (Compile / target).value / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip"
+    val zipFile = elasticsearchPluginBundleFile.value
     IO.zip(files.map(f => (f -> f.getName)), zipFile, None)
     log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files.")
     zipFile

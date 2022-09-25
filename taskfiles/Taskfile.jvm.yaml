@@ -7,33 +7,15 @@ tasks:
     cmds:
       - find . -name target | xargs rm -rf
 
-  compile:
-    desc: Compile all JVM source code using Gradle
-    sources:
-      - build.sbt
-      - project/**
-      - "elastiknn-*/**"
-    cmds:
-      - sbt compile Test/compile
-
   test:
     desc: Run JVM tests using Gradle
     cmds:
       - sbt test
 
-  plugin:publish:local:
-    desc: Publish a local snapshot of the plugin
-    sources:
-      - "**/*.sbt"
-      - "**/*.scala"
-      - "elastiknn-*/**"
-    cmds:
-      - sbt elastiknn-plugin/elasticsearchPluginBundle
-
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
-      - sbt elasticsearchPluginBundle
+      - sbt elastiknn-plugin/elasticsearchPluginBundle
       - hub release delete {{ .VERSION }} || true
       - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 

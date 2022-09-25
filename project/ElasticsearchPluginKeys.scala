@@ -2,6 +2,8 @@ import sbt._
 
 trait ElasticsearchPluginKeys {
   // Settings.
+  lazy val elasticsearchPluginBundleFile =
+    settingKey[File]("The Elasticsearch plugin zip file produced via `sbt elasticsearchBundlePlugin`.")
   lazy val elasticsearchPluginClassname =
     settingKey[String]("The name of the class to load, fully-qualified.")
   lazy val elasticsearchPluginDescription =
