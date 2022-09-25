@@ -54,7 +54,7 @@ jobs:
       - name: Test
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCES
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS }}
         run: |
           find . -name succeeded_tests | xargs md5sum
           sbt elastiknn-testing/testQuick
