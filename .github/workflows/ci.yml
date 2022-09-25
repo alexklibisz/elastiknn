@@ -34,7 +34,9 @@ jobs:
       - name: Initialize SBT
         run: sbt update
       - name: Compile without Cache
-        run: sbt clean compile Test/compile clean
+        run: |
+          sbt compile Test/compile
+          find . -name target | xargs rm -rf # hard clean
       - name: Pull Build Cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
