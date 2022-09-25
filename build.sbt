@@ -9,18 +9,10 @@ lazy val LuceneVersion = "9.3.0"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 
-lazy val BuildCacheSettings = Seq(
-  remoteCacheResolvers += "S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache",
-  pushRemoteCacheTo := Some("S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache"),
-  Compile / pushRemoteCacheConfiguration ~= (_.withOverwrite(true)),
-  Test / pushRemoteCacheConfiguration ~= (_.withOverwrite(true))
-)
-
 lazy val `elastiknn-root` = project
   .in(file("."))
   .settings(
-    name := "elastiknn-root",
-    BuildCacheSettings
+    name := "elastiknn-root"
   )
   .aggregate(
     `elastiknn-api4s`,
@@ -39,8 +31,7 @@ lazy val `elastiknn-api4s` = project
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-client-elastic4s` = project
@@ -52,8 +43,7 @@ lazy val `elastiknn-client-elastic4s` = project
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-lucene` = project
@@ -65,8 +55,7 @@ lazy val `elastiknn-lucene` = project
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-models` = project
@@ -79,8 +68,7 @@ lazy val `elastiknn-models` = project
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
 
 import ElasticsearchPluginPlugin.autoImport._
@@ -104,8 +92,7 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1"
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-testing` = project
@@ -131,6 +118,5 @@ lazy val `elastiknn-testing` = project
       "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion % Test,
       "org.pegdown" % "pegdown" % "1.4.2" % Test
     ),
-    scalacOptions ++= ScalacOptions,
-    BuildCacheSettings
+    scalacOptions ++= ScalacOptions
   )
