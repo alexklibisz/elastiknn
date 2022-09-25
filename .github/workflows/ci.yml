@@ -32,13 +32,15 @@ jobs:
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Initialize SBT
-        run: sbt version
+        run: sbt update
+      - name: Compile without Cache
+        run: sbt clean compile Test/compile clean
       - name: Pull Build Cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: sbt pullRemoteCache
-      - name: Compile
+      - name: Compile with Cache
         run: sbt compile Test/compile
       - name: Run Cluster
         run: task cluster:run
