@@ -1,3 +1,3 @@
 -J-Xmx4096M
 -J-Xms1024M
--XX:+UseG1GC
+-J-XX:+UseG1GC
