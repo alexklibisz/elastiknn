@@ -29,6 +29,7 @@ jobs:
           cache: 'sbt'
       - name: Misc. Setup
         run: |
+          git branch --show-current
           sudo snap install task --classic
           sudo snap install aws-cli --classic
           sudo sysctl -w vm.max_map_count=262144
@@ -52,6 +53,7 @@ jobs:
         run: task cluster:run
       - name: Test
         run: |
+          git branch --show-current
           find . -name succeeded_tests | xargs md5sum
           sbt elastiknn-testing/testQuick
           find . -name succeeded_tests | xargs md5sum
