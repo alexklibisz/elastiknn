@@ -54,7 +54,7 @@ jobs:
       - name: Test and push cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           task jvm:clean
           sbt clean compile Test/compile testQuick testQuick pushRemoteCache
@@ -63,7 +63,7 @@ jobs:
       - name: Pull cache and test
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           task jvm:clean
           aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
