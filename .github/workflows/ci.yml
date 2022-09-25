@@ -33,41 +33,42 @@ jobs:
           sudo snap install task --classic
           sudo snap install aws-cli --classic
           sudo sysctl -w vm.max_map_count=262144
-      - name: Initialize SBT
-        run: sbt update
-      - name: Compile without Cache
-        run: |
-          task jvm:clean
-          sbt compile Test/compile
-          task jvm:clean
-      - name: Pull Build Cache
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          sbt pullRemoteCache
-          aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
-      - name: Compile with Cache
-        run: sbt compile Test/compile
+#      - name: Initialize SBT
+#        run: sbt update
+#      - name: Compile without Cache
+#        run: |
+#          task jvm:clean
+#          sbt compile Test/compile
+#          task jvm:clean
+#      - name: Pull Build Cache
+#        env:
+#          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#        run: |
+#          sbt pullRemoteCache
+#          aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
+#      - name: Compile with Cache
+#        run: sbt compile Test/compile
       - name: Run Cluster
         run: task cluster:run
-      - name: Test
+      - name: Test and push cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS }}
         run: |
-          find . -name succeeded_tests | xargs md5sum
-          sbt elastiknn-testing/testQuick
-          find . -name succeeded_tests | xargs md5sum
-          
+          task jvm:clean
+          sbt clean compile Test/compile testQuick testQuick pushRemoteCache
+          find . -name succeeded_tests | xargs cat
           aws s3 sync --exclude '*' --include '**/succeeded_tests' . s3://elastiknn-sbt-build-cache/succeeded_tests/
-          find . -name succeeded_tests | xargs rm -rf
-          
+      - name: Pull cache and test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS }}
+        run: |
+          task jvm:clean
           aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
-          find . -name succeeded_tests | xargs md5sum
-          
-          sbt elastiknn-testing/testQuick
-          find . -name succeeded_tests | xargs md5sum
+          find . -name succeeded_tests | xargs cat
+          sbt clean pullRemoteCache compile Test/compile testQuick
       - name: Push Build Cache
         if: github.event_name == 'push'
         env:
