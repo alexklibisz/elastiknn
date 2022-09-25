@@ -55,6 +55,7 @@ jobs:
           find . -name succeeded_tests | xargs md5sum
           sbt elastiknn-testing/testQuick
           find . -name succeeded_tests | xargs md5sum
+          sbt elastiknn-testing/testQuick
       - name: Push Build Cache
         if: github.event_name == 'push'
         env:
