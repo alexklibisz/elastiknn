@@ -23,7 +23,7 @@ tasks:
       - venv/bin/pip install --quiet -r requirements.txt
       # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
       - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
-      - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn')"
+      - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
       - venv/bin/python install.py --algorithm elastiknn
 
   clean:
@@ -64,6 +64,7 @@ tasks:
     deps:
       - install
     env:
+      PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES"
     cmds:
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
