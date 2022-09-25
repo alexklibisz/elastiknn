@@ -52,12 +52,22 @@ jobs:
       - name: Run Cluster
         run: task cluster:run
       - name: Test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCES
         run: |
-          git branch --show-current
           find . -name succeeded_tests | xargs md5sum
           sbt elastiknn-testing/testQuick
           find . -name succeeded_tests | xargs md5sum
+          
+          aws s3 sync --exclude '*' --include '**/succeeded_tests' . s3://elastiknn-sbt-build-cache/succeeded_tests/
+          find . -name succeeded_tests | xargs rm -rf
+          
+          aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
+          find . -name succeeded_tests | xargs md5sum
+          
           sbt elastiknn-testing/testQuick
+          find . -name succeeded_tests | xargs md5sum
       - name: Push Build Cache
         if: github.event_name == 'push'
         env:

@@ -19,11 +19,14 @@ object BuildCachePlugin extends AutoPlugin {
 
   // This build cache is currently only available to the AWS IAM user used by Elastiknn's CI.
   // If you don't have permissions, running pullRemoteCache will fail gracefully with warnings.
+  private val s3BaseUrl = "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache"
   private val s3RemoteCacheResolver =
     "S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache"
 
   override lazy val projectSettings = Seq(
-    remoteCacheResolvers += s3RemoteCacheResolver,
+    remoteCacheResolvers ++= Seq(
+      "S3 Remote Cache" at s"$s3BaseUrl/master"
+    ),
     pushRemoteCacheTo := Some(s3RemoteCacheResolver),
     Compile / pushRemoteCacheConfiguration ~= (_.withOverwrite(true)),
     Test / pushRemoteCacheConfiguration ~= (_.withOverwrite(true))
