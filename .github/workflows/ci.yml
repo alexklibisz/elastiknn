@@ -173,8 +173,7 @@ jobs:
           restore-keys: |
             ci-${{ github.job }}-master
           path: |
-            **/target/**/*.class
-            **/target/**/succeeded_tests
+            **/target/**/*
       - run: |
           sudo snap install task --classic
           sudo snap install hub --classic
