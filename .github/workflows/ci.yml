@@ -39,6 +39,10 @@ jobs:
           path: |
             **/target/**/*.class
             **/target/**/succeeded_tests
+      - name: Debug cache
+        run: |
+          find . -name '*.class'
+          find . -name succeeded_tests
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -49,7 +53,7 @@ jobs:
       - name: Run Cluster
         run: task cluster:run
       - name: Test
-        run: task jvm:test
+        run: sbt testQuick
       - name: Cluster Logs
         if: failure()
         run: task cluster:logs
