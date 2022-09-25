@@ -32,6 +32,9 @@ jobs:
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
@@ -39,6 +42,9 @@ jobs:
         run: task jvm:test
       - name: Push Build Cache
         if: github.event_name == 'push'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: sbt pushRemoteCache
       - name: Cluster Logs
         if: failure()
@@ -64,7 +70,9 @@ jobs:
       - name: Docs
         run: task py:docs
       - name: Pull Build Cache
-        run: sbt pullRemoteCache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -95,6 +103,9 @@ jobs:
       - name: Install Dependencies
         run: task annb:install
       - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
@@ -150,12 +161,19 @@ jobs:
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: |
+          sbt pullRemoteCache
+          task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish Plugin from Master
         if: github.event_name == 'push'
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
+          sbt pullRemoteCache
           task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
