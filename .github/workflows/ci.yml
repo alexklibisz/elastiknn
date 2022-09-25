@@ -79,7 +79,7 @@ jobs:
           restore-keys: |
             ci-master
           path: |
-            **/target/**/*.class
+            **/target/**/classes/**/*.class
             **/target/**/succeeded_tests
       - name: Misc. Setup
         run: |
@@ -115,7 +115,7 @@ jobs:
           restore-keys: |
             ci-master
           path: |
-            **/target/**/*.class
+            **/target/**/classes/**/*.class
             **/target/**/succeeded_tests
       - name: Misc. Setup
         run: |
