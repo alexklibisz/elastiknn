@@ -51,7 +51,10 @@ jobs:
       - name: Run Cluster
         run: task cluster:run
       - name: Test
-        run: sbt elastiknn-testing/testQuick
+        run: |
+          find . -name succeeded_tests | xargs md5sum
+          sbt elastiknn-testing/testQuick
+          find . -name succeeded_tests | xargs md5sum
       - name: Push Build Cache
         if: github.event_name == 'push'
         env:
