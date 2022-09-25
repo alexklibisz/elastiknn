@@ -23,6 +23,7 @@ jobs:
     steps:
       - name: Debug
         run: |
+          echo ${{ github.job }}
           echo ${{ github.ref }}
           echo ${{ github.ref_name }}
       - uses: actions/checkout@v2
