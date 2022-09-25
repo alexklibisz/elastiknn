@@ -30,6 +30,7 @@ jobs:
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
+          sudo snap install awscli --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Initialize SBT
         run: sbt update
@@ -42,19 +43,23 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: sbt pullRemoteCache
+        run: |
+          sbt pullRemoteCache
+          aws s3 sync s3://elastiknn-sbt-build-cache/succeeded_tests/ .
       - name: Compile with Cache
         run: sbt compile Test/compile
-      - name: Run Cluster
-        run: task cluster:run
-      - name: Test
-        run: task jvm:test
+#      - name: Run Cluster
+#        run: task cluster:run
+#      - name: Test
+#        run: task jvm:test
       - name: Push Build Cache
-        if: github.event_name == 'push'
+#        if: github.event_name == 'push'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: sbt pushRemoteCache
+        run: |
+          sbt pushRemoteCache
+          aws s3 sync --exclude '*' --include '**/succeeded_tests' . s3://elastiknn-sbt-build-cache/succeeded_tests/
       - name: Cluster Logs
         if: failure()
         run: task cluster:logs
