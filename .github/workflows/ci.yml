@@ -41,9 +41,8 @@ jobs:
             **/target/**/*
       - name: Debug cache
         run: |
-          find . -name '*.class'
+          find . -name target | xargs du -hs
           find . -name succeeded_tests
-          find . -name '*.class' | xargs rm -rf
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
