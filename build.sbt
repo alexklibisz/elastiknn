@@ -1,4 +1,4 @@
-Global / scalaVersion := "2.13.6"
+Global / scalaVersion := "2.13.9"
 
 lazy val CirceVersion = "0.14.1"
 lazy val CirceGenericExtrasVersion = "0.14.1"
