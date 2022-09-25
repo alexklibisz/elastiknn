@@ -28,7 +28,6 @@ object XContentCodec {
     protected def vectorType: String
     private[elastiknn] def encodeElastiknnObject(t: T, b: XContentBuilder): Unit
     override def encodeUnsafe(t: T, b: XContentBuilder): Unit = {
-      println("bye")
       b.startObject()
       encodeElastiknnObject(t, b)
       b.field(Names.TYPE, vectorType)

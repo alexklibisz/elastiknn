@@ -10,8 +10,8 @@ tasks:
   compile:
     desc: Compile all JVM source code using Gradle
     sources:
-      - build.sbt
-      - project/**
+      - "**/*.sbt"
+      - "**/*.scala"
       - "elastiknn-*/**"
     cmds:
       - sbt compile Test/compile

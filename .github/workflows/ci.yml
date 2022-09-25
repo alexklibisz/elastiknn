@@ -31,14 +31,15 @@ jobs:
         run: |
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
-      - name: Compile
-        run: task jvm:compile
-      - name: Publish Local
-        run: task jvm:plugin:publish:local
+      - name: Pull Build Cache
+        run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
       - name: Test
         run: task jvm:test
+      - name: Push Build Cache
+        if: github.event_name == 'push'
+        run: sbt pushRemoteCache
       - name: Cluster Logs
         if: failure()
         run: task cluster:logs
@@ -62,6 +63,8 @@ jobs:
          sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task py:docs
+      - name: Pull Build Cache
+        run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -91,6 +94,8 @@ jobs:
         run: task annb:submodule
       - name: Install Dependencies
         run: task annb:install
+      - name: Pull Build Cache
+        run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
       - name: Test

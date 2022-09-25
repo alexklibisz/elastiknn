@@ -10,8 +10,8 @@ lazy val LuceneVersion = "9.3.0"
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 
 lazy val BuildCacheSettings = Seq(
-  remoteCacheResolvers += "S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/",
-  pushRemoteCacheTo := Some("S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/"),
+  remoteCacheResolvers += "S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache",
+  pushRemoteCacheTo := Some("S3 Remote Cache" at "s3://elastiknn-sbt-build-cache.s3-us-east-1.amazonaws.com/remote_cache"),
   Compile / pushRemoteCacheConfiguration ~= (_.withOverwrite(true)),
   Test / pushRemoteCacheConfiguration ~= (_.withOverwrite(true))
 )
