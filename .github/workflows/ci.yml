@@ -35,8 +35,6 @@ jobs:
         run: sbt version
       - name: Compile
         run: sbt compile Test/compile
-      - name: Publish Local
-        run: task jvm:plugin:publish:local
       - name: Run Cluster
         run: task cluster:run
       - name: Test

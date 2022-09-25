@@ -12,11 +12,6 @@ tasks:
     cmds:
       - sbt test
 
-  plugin:publish:local:
-    desc: Publish a local snapshot of the plugin
-    cmds:
-      - sbt elastiknn-plugin/elasticsearchPluginBundle
-
   plugin:publish:snapshot:
     desc: Publish a snapshot release to Github
     cmds:
