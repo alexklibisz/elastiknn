@@ -19,7 +19,7 @@ jobs:
   
   test-jvm:
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v3
@@ -32,13 +32,29 @@ jobs:
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Initialize SBT
-        run: sbt version
-      - name: Compile
+        run: sbt update
+      - name: Compile without Cache
+        run: |
+          task jvm:clean
+          sbt compile Test/compile
+          task jvm:clean
+      - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: sbt pullRemoteCache
+      - name: Compile with Cache
         run: sbt compile Test/compile
       - name: Run Cluster
         run: task cluster:run
       - name: Test
         run: task jvm:test
+      - name: Push Build Cache
+        if: github.event_name == 'push'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: sbt pushRemoteCache
       - name: Cluster Logs
         if: failure()
         run: task cluster:logs
@@ -62,6 +78,11 @@ jobs:
          sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task py:docs
+      - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -83,6 +104,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.6'
+          cache: 'pip'
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -91,6 +113,11 @@ jobs:
         run: task annb:submodule
       - name: Install Dependencies
         run: task annb:install
+      - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: sbt pullRemoteCache
       - name: Run Cluster
         run: task cluster:run
       - name: Test
@@ -135,6 +162,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
+          cache: 'pip'
       - run: |
           sudo snap install task --classic
           sudo snap install hub --classic
@@ -142,6 +170,11 @@ jobs:
       - name: Publish to PyPi
         run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'
+      - name: Pull Build Cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: sbt pullRemoteCache
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
