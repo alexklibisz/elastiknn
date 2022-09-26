@@ -100,6 +100,7 @@ lazy val `elastiknn-testing` = project
   .dependsOn(`elastiknn-client-elastic4s`, `elastiknn-plugin`)
   .settings(
     Test / parallelExecution := false,
+    Test / logBuffered := false,
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion,
       "io.circe" %% "circe-parser" % CirceVersion,
