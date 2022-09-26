@@ -17,7 +17,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
 
   val ft = VectorMapper.denseFloatVector.luceneFieldType
 
-  test("example from the paper") {
+  test("example from paper") {
     val mapping = Mapping.PermutationLsh(6, 4, true)
     val mlsh = new PermutationLshModel(mapping.k, mapping.repeating)
     val vec = Vec.DenseFloat(0.1f, -0.3f, -0.4f, 0, 0.2f)
