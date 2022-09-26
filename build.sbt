@@ -101,6 +101,7 @@ lazy val `elastiknn-testing` = project
   .settings(
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD"),
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion,
       "io.circe" %% "circe-parser" % CirceVersion,
