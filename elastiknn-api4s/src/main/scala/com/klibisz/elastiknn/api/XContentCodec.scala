@@ -10,8 +10,7 @@ import scala.collection.immutable.SortedSet
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * JSON codec for Elastiknn API types, implemented using the Elasticsearch
-  * XContentBuilder and XContentParser.
+  * JSON codec for Elastiknn API types, implemented using the Elasticsearch XContentBuilder and XContentParser.
   */
 object XContentCodec {
 
