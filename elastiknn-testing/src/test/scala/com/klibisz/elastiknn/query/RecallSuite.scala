@@ -6,7 +6,6 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import futil.Futil
-import org.scalatest.DoNotDiscover
 import org.scalatest.concurrent.AsyncCancelAfterFailure
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
