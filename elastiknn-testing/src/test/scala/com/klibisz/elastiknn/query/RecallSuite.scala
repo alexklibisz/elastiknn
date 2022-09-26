@@ -26,7 +26,6 @@ import scala.util.hashing.MurmurHash3.orderedHash
   *   the same query, I have seen different results at times. This seems to be an effect at the Elasticsearch level.
   *   I've tested at the Lucene (sans ES) level and that seems to be reliably deterministic.
   */
-@DoNotDiscover
 class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with AsyncCancelAfterFailure {
 
   // Each test case consists of setting up one Mapping and then running several queries against that mapping.
