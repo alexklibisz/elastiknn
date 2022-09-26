@@ -22,18 +22,19 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          restore-keys: |
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+          path: |
+            **/target/**/*
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: actions/cache@v3
-        with:
-          key: ci-${{ github.job }}-${{ github.ref_name }}
-          restore-keys: |
-            ci-${{ github.job }}-master
-          path: |
-            **/target/**/*
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -45,8 +46,11 @@ jobs:
         run: task cluster:run
       - name: Test
         run: sbt testQuick
+      - name: Stop Cluster
+        if: always()
+        run: task cluster:stop
       - name: Cluster Logs
-        if: failure()
+        if: always()
         run: task cluster:logs
       
   test-python:
@@ -54,6 +58,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          restore-keys: |
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+          path: |
+            **/target/**/*
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
@@ -63,13 +75,6 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - uses: actions/cache@v3
-        with:
-          key: ci-${{ github.job }}-${{ github.ref_name }}
-          restore-keys: |
-            ci-${{ github.job }}-master
-          path: |
-            **/target/**/*
       - name: Misc. Setup
         run: |
          sudo snap install task --classic
@@ -81,7 +86,7 @@ jobs:
       - name: Test
         run: task py:test
       - name: Cluster Logs
-        if: failure()
+        if: always()
         run: task cluster:logs
 
   test-benchmarks:
@@ -89,6 +94,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          restore-keys: |
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+          path: |
+            **/target/**/*
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
@@ -98,13 +111,6 @@ jobs:
         with:
           python-version: '3.6'
           cache: 'pip'
-      - uses: actions/cache@v3
-        with:
-          key: ci-${{ github.job }}-${{ github.ref_name }}
-          restore-keys: |
-            ci-${{ github.job }}-master
-          path: |
-            **/target/**/*
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -118,7 +124,7 @@ jobs:
       - name: Test
         run: task annb:test
       - name: Cluster Logs
-        if: failure()
+        if: always()
         run: task cluster:logs
 
   build-jekyll-site:
@@ -142,6 +148,14 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0 # Needed for git-based changelog.
+      - uses: actions/cache@v3
+        with:
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          restore-keys: |
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+          path: |
+            **/target/**/*
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
@@ -158,14 +172,8 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - uses: actions/cache@v3
-        with:
-          key: ci-${{ github.job }}-${{ github.ref_name }}
-          restore-keys: |
-            ci-${{ github.job }}-master
-          path: |
-            **/target/**/*
-      - run: |
+      - name: Misc. Setup
+        run: |
           sudo snap install task --classic
           sudo snap install hub --classic
           python3 -m pip install setuptools
