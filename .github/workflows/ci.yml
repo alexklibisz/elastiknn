@@ -31,9 +31,10 @@ jobs:
           echo ${{ github.event.after }}
       - uses: actions/cache@v3
         with:
-          key: ci-${{ github.job }}-${{ github.ref_name }}
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
           restore-keys: |
-            ci-${{ github.job }}-master
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
+            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
           path: |
             **/target/**/*
       - uses: actions/setup-java@v3
