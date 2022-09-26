@@ -35,7 +35,6 @@ jobs:
           restore-keys: |
             ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
             ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
-            ci-${{ github.job }}-master
           path: |
             **/target/**/*
       - uses: actions/setup-java@v3
