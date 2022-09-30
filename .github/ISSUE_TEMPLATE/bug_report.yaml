@@ -7,7 +7,7 @@ body:
       label: Support guidelines
       description: Please read the support guidelines before proceeding.
       options:
-        - label: I've read the [support guidelines](https://github.com/alexklibisz/elastiknn/blob/master/readme.md#support)
+        - label: I've read the [support guidelines](https://github.com/alexklibisz/elastiknn/blob/main/readme.md#support)
           required: true
   - type: textarea
     attributes:

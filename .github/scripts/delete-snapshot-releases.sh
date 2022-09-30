@@ -16,7 +16,7 @@ do
 done
 
 # Delete snapshots from master.
-TAGS=$(hub release | grep "MASTER[0-9]*-SNAPSHOT" || true)
+TAGS=$(hub release | grep "MAIN[0-9]*-SNAPSHOT" || true)
 for T in $TAGS;
 do
   hub release delete "$T"
