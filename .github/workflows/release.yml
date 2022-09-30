@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/cache@v3
         with:
-          key: ${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}
+          key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
           restore-keys: |
             ${{ github.workflow }}.${{ github.job }}
           path: |
