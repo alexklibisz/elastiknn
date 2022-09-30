@@ -3,10 +3,10 @@ name: "CI"
 on:
   pull_request:
     branches:
-      - master
+      - main
   push:
     branches:
-      - master
+      - main
 
 jobs:
   show-github-context:
@@ -185,10 +185,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
-      - name: Publish Plugin from Master
+      - name: Publish Plugin from Main
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MASTER${{ github.run_number }}-SNAPSHOT
+          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MAIN{{ github.run_number }}-SNAPSHOT
