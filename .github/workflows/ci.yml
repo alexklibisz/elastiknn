@@ -150,6 +150,8 @@ jobs:
           key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
           restore-keys: |
             ${{ github.workflow }}.${{ github.job }}
+          path: |
+            **/target/**/*
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
