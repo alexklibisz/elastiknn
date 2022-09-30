@@ -20,7 +20,7 @@ services:
       - http.cors.enabled=true
       - http.cors.allow-origin='*'
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms500m -Xmx500m
+#      - ES_JAVA_OPTS=-Xms500m -Xmx500m
     ports:
       - "9200:9200"
     mem_limit: 700m
@@ -46,7 +46,7 @@ services:
       - discovery.seed_hosts=elasticsearch_master
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms1100m -Xmx1100m
+#      - ES_JAVA_OPTS=-Xms1100m -Xmx1100m
     ports:
       - "8097:8097"
     mem_limit: 1300m
