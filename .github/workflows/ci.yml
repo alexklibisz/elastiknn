@@ -24,10 +24,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/cache@v3
         with:
-          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}
           restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+            ${{ github.workflow }}.${{ github.job }}
           path: |
             **/target/**/*
       - uses: actions/setup-java@v3
@@ -60,10 +59,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/cache@v3
         with:
-          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}
           restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+            ${{ github.workflow }}.${{ github.job }}
           path: |
             **/target/**/*
       - uses: actions/setup-java@v3
@@ -96,10 +94,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/cache@v3
         with:
-          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}
           restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
+            ${{ github.workflow }}.${{ github.job }}
           path: |
             **/target/**/*
       - uses: actions/setup-java@v3
@@ -150,12 +147,9 @@ jobs:
           fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/cache@v3
         with:
-          key: ${{ github.workflow }}.${{ github.job }}.${{ github.event.after }}
+          key: ${{ github.workflow }}.${{ github.job }}.${{ github.run_number }}
           restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.before }}
-            ${{ github.workflow }}.${{ github.job }}.${{ github.event.pull_request.base.sha }}
-          path: |
-            **/target/**/*
+            ${{ github.workflow }}.${{ github.job }}
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
@@ -191,4 +185,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MAIN{{ github.run_number }}-SNAPSHOT
+          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT
