@@ -35,6 +35,7 @@ tasks:
     dir: elastiknn-testing
     cmds:
       - docker-compose logs
+      - docker ps -a
 
   stop:
     desc: Stop local docker-compose cluster.

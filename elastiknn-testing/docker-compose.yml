@@ -20,11 +20,11 @@ services:
       - http.cors.enabled=true
       - http.cors.allow-origin='*'
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms700m -Xmx700m
+#      - ES_JAVA_OPTS=-Xms500m -Xmx500m
     ports:
       - "9200:9200"
-    mem_limit: 1000m
-    mem_reservation: 1000m
+    mem_limit: 700m
+    mem_reservation: 700m
     cpus: 0.5
     ulimits:
       nofile:
@@ -46,11 +46,11 @@ services:
       - discovery.seed_hosts=elasticsearch_master
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms700m -Xmx700m -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=8097 -Dcom.sun.management.jmxremote.rmi.port=8097 -Djava.rmi.server.hostname=localhost
+#      - ES_JAVA_OPTS=-Xms1100m -Xmx1100m
     ports:
       - "8097:8097"
-    mem_limit: 1000m
-    mem_reservation: 1000m
+    mem_limit: 1300m
+    mem_reservation: 1300m
     cpus: 1
     ulimits:
       nofile:
