@@ -25,7 +25,7 @@ tasks:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
       - sbt elastiknn-plugin/elasticsearchPluginBundle
-      - gh release create --generate-notes -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
+      - gh release create --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
 
   run:
     desc: Run Elasticsearch using SBT
