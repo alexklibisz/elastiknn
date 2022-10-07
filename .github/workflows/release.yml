@@ -25,6 +25,11 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: 17
+          cache: 'sbt'
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
