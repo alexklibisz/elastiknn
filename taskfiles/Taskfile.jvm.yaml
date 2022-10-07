@@ -16,8 +16,8 @@ tasks:
     desc: Publish a snapshot release to Github
     cmds:
       - sbt elastiknn-plugin/elasticsearchPluginBundle
-      - hub release delete {{ .VERSION }} || true
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
+      - gh release delete {{ .VERSION }} --yes || true
+      - gh release create --prerelease --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
 
   plugin:publish:release:
     desc: Publish an official release to Github
@@ -25,7 +25,7 @@ tasks:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
       - sbt elastiknn-plugin/elasticsearchPluginBundle
-      - hub release create -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
+      - gh release create --generate-notes -m {{ .VERSION }} -p -a elastiknn-plugin/target/elastiknn-*.zip {{ .VERSION }}
 
   run:
     desc: Run Elasticsearch using SBT

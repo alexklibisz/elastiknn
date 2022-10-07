@@ -10,7 +10,7 @@ do
   for T in $TAGS;
   do
     echo "Deleting $T"
-    hub release delete "$T"
+    gh release delete "$T" --yes
     git push --delete origin "$T"
   done
 done
@@ -19,6 +19,6 @@ done
 TAGS=$(hub release | grep "MAIN[0-9]*-SNAPSHOT" || true)
 for T in $TAGS;
 do
-  hub release delete "$T"
+  gh release delete "$T" --yes
   git push --delete origin "$T"
 done
