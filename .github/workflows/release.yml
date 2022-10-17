@@ -7,8 +7,12 @@ on:
 
   workflow_dispatch:
 
-jobs:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
+jobs:
   release-docs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
