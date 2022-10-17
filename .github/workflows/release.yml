@@ -21,6 +21,8 @@ jobs:
       - name: Generate Site
         run: |
           sudo snap install task --classic
+          mkdir -p docs/_site
+          chmod -R 777 docs
           task docs:compile
       - name: Configure Pages
         uses: actions/configure-pages@v2
