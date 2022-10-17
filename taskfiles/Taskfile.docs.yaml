@@ -10,6 +10,7 @@ tasks:
   compile:
     desc: Compile docs into a static site.
     cmds:
+      - rm -rf _site
       - docker-compose run --rm compile
 
   publish:
