@@ -136,6 +136,7 @@ jobs:
         run: |
           chmod -R 777 docs
           task docs:compile
+          ls -la docs/*
 
   publish-snapshots:
     runs-on: ubuntu-20.04
