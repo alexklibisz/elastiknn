@@ -10,9 +10,8 @@ toc_icon: cog
 
 ## Python client
 
-
 The Python client provides a pythonic interface for using Elastiknn.
-This includes a low level client that roughly mirrors the [Scala client](/scala-client), as well as a higher level "model" that mimics the scikit-learn interface.
+This includes a low level HTTP client as well as a higher level "model" that mimics the scikit-learn interface.
 
 **Install**
 
@@ -20,8 +19,7 @@ This includes a low level client that roughly mirrors the [Scala client](/scala-
 
 **Documentation**
 
-- **<a href="/docs/pdoc" target="_blank">PDoc for latest release</a>**
-- <a href="https://archive.elastiknn.com" target="_blank">Archived docs from previous releases</a>
+- **<a href="/docs/pdoc" target="_blank">Docs for latest release</a>**
 
 **Versions**
 
