@@ -135,8 +135,8 @@ jobs:
       - name: Compile Jekyll Site
         run: |
           ls -la docs/*
-          chmod -R 777 docs
           task docs:compile
+          sudo chown -R runner:docker docs/_site 
           ls -la docs/*
 
   publish-snapshots:
