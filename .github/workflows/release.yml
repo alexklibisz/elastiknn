@@ -75,18 +75,10 @@ jobs:
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SSH_CONFIG_B64: ${{ secrets.SSH_CONFIG_B64 }}
-          SSH_IDRSA_B64: ${{ secrets.SSH_IDRSA_B64 }}
         run: ./.github/scripts/setup-env.sh
       - run: |
           sudo snap install task --classic
           python3 -m pip install setuptools
-      - name: Publish Site
-        run: |
-          mkdir -p docs/_site
-          chmod -R 777 docs
-          task docs:publish
       - name: Publish to PyPi
         run: task py:publish-release
       - name: Publish to Github

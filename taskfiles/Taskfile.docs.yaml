@@ -1,7 +1,6 @@
 version: '3'
 
 tasks:
-
   dev:
     desc: Start local development server.
     cmds:
@@ -12,13 +11,3 @@ tasks:
     cmds:
       - rm -rf _site
       - docker-compose run --rm compile
-
-  publish:
-    desc: Publish docs to elastiknn.com server.
-    status:
-      - curl -f -o /dev/null https://{{ .SITE_MAIN_DIR }}/{{ .VERSION }}.html
-    cmds:
-      - task: compile
-        force: True
-      - echo {{ .VERSION }} > _site/{{ .VERSION }}.html
-      - rsync -av --delete --exclude docs _site/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}
