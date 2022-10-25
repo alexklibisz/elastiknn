@@ -35,6 +35,7 @@ jobs:
       - name: Generate Python Docs
         run: |
           task py:docs
+          chmod -R 777 docs
           mkdir -p docs/_site/docs
           mv client-python/pdoc/elastiknn docs/_site/docs/pdoc
       - name: Configure Pages
