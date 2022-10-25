@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   release-docs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -80,8 +80,6 @@ jobs:
       - run: |
           sudo snap install task --classic
           python3 -m pip install setuptools
-      - name: Publish Python Docs
-        run: task py:publish-docs
       - name: Publish Site
         run: |
           mkdir -p docs/_site
