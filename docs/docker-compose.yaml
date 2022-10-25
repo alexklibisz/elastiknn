@@ -33,4 +33,3 @@ services:
         bundle exec jekyll build
     environment:
       - JEKYLL_ENV=production
-    privileged: true
