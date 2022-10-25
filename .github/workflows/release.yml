@@ -26,16 +26,17 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - name: Generate Jekyll Site
+      - name: Misc. Setup
         run: |
           sudo snap install task --classic
-          mkdir -p docs/_site
-          chmod -R 777 docs
+      - name: Generate Jekyll Site
+        run: |
+          sudo chown -R runneradmin:runneradmin docs
           task docs:compile
+          sudo chown -R runner:docker docs
       - name: Generate Python Docs
         run: |
           task py:docs
-          chmod -R 777 docs
           mkdir -p docs/_site/docs
           mv client-python/pdoc/elastiknn docs/_site/docs/pdoc
       - name: Configure Pages
