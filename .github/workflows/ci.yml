@@ -134,7 +134,7 @@ jobs:
           sudo snap install task --classic
       - name: Compile Jekyll Site
         run: |
-          ls -la docs/*
+          chmod -R 777 docs/_site
           task docs:compile
           sudo chown -R runner:docker docs/_site 
           ls -la docs/*
