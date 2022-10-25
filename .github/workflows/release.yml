@@ -22,12 +22,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Generate Site
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7.5'
+          cache: 'pip'
+      - name: Generate Jekyll Site
         run: |
           sudo snap install task --classic
           mkdir -p docs/_site
           chmod -R 777 docs
           task docs:compile
+      - name: Generate Python Docs
+        run: |
+          task py:docs
+          mkdir -p docs/_site/docs
+          mv client-python/pdoc/elastiknn docs/_site/docs/pdoc
       - name: Configure Pages
         uses: actions/configure-pages@v2
       - name: Upload Pages Artifact

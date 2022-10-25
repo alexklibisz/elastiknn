@@ -50,6 +50,7 @@ tasks:
     cmds:
       - rm -rf pdoc
       - venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
+      - ls -la pdoc/elastiknn
     
   publish-local:
     desc: Publish python library locally
@@ -66,18 +67,6 @@ tasks:
       - task: publish-local
         force: True
       - venv/bin/python -m twine upload -r testpypi --verbose dist/*
-
-  publish-docs:
-    desc: Publish python docs to elastiknn.com server
-    status:
-      - curl -f -s -o /dev/null https://{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc/index.html
-    cmds:
-      - task: docs
-        force: True
-      - ssh {{ .SITE_SSH_ALIAS }} mkdir -p {{ .SITE_ARCH_DIR }}/{{ .VERSION }}
-      - rsync -av --delete pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_ARCH_DIR }}/{{ .VERSION }}/pdoc
-      - rsync -av --delete pdoc/elastiknn/ {{ .SITE_SSH_ALIAS }}:{{ .SITE_MAIN_DIR }}/docs/pdoc
-    
 
   publish-release:
     desc: Publish python library to pypi
