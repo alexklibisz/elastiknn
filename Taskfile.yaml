@@ -6,28 +6,105 @@ vars:
   PROJECT_ROOT:
     sh: pwd
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
-  MAVEN_URL: https://repo1.maven.org/maven2/com/klibisz/elastiknn
 
-includes:
-  jvm:
-    taskfile: taskfiles/Taskfile.jvm.yaml
-    dir: .
-  cluster:
-    taskfile: taskfiles/Taskfile.cluster.yaml
-    dir: .
-  py:
-    taskfile: taskfiles/Taskfile.python.yaml
-    dir: client-python
-  docs:
-    taskfile: taskfiles/Taskfile.docs.yaml
-    dir: docs
-  annb:
-    taskfile: taskfiles/Taskfile.annb.yaml
-    dir: ann-benchmarks
-  
 tasks:
   clean:
     desc: Call clean commands in included taskfiles
     deps: 
-      - jvm:clean
-      - py:clean
+      - jvmClean
+      - pyClean
+
+  installDockerCompose:
+    desc: Install docker-compose using pip
+    status:
+      - docker-compose --version
+    cmds:
+      - python3 -m pip install docker-compose
+
+  jvmClean:
+    desc: Clean all JVM artifacts
+    cmds:
+      - find . -name target -type d | xargs rm -rf
+
+  jvmTest:
+    desc: Run JVM tests using SBT
+    cmds:
+      - sbt -client test
+
+  jvmCompile:
+    desc: Compile Scala and Java code using SBT
+    cmds:
+      - sbt -client compile Test/compile
+
+  jvmAssemble:
+    desc: Build the plugin bundle using SBT
+    cmds:
+      - rm -rf elastiknn-plugin/target/*.zip
+      - sbt -client elastiknn-plugin/elasticsearchPluginBundle
+
+  jvmRunLocal:
+    desc: Run a local Elasticsearch cluster with the plugin using SBT
+    cmds:
+      - sbt -client elastiknn-plugin/elasticsearchPluginRun
+
+  jvmRunLocalDebug:
+    desc: Run a local Elasticsearch cluster in debug mode with the plugin using SBT
+    cmds:
+      - sbt -client elastiknn-plugin/elasticsearchPluginDebug
+
+  jvmPublishSnapshot:
+    desc: Publish a snapshot of the plugin to Github
+    deps:
+      - jvmAssemble
+    cmds:
+      - gh release delete {{ .VERSION }} --yes || true
+      - gh release create --prerelease --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
+
+  jvmPublishRelease:
+    desc: Publish an official release to Github
+    deps:
+      - jvmAssemble
+    status:
+      - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
+    cmds:
+      - gh release create --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
+
+  dockerRunTestingCluster:
+    desc: Run a local cluster for testing using docker-compose.
+    deps:
+      - installDockerCompose
+      - jvmAssemble
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
+      - python3 docker/cluster_ready.py
+
+  dockerStopTestingCluster:
+    desc: Stop the local testing cluster.
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml down
+
+  dockerLogTestingCluster:
+    desc: Print logs from the testing cluster
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml logs
+      - docker ps -a
+
+  dockerRunBenchmarkingCluster:
+    desc: Run a local cluster for benchmarking using docker-compose.
+    deps:
+      - installDockerCompose
+      - jvmAssemble
+    cmds:
+      - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
+      - python3 docker/cluster_ready.py
+
+  dockerStopBenchmarkingCluster:
+    desc: Stop the local benchmarking cluster.
+    cmds:
+      - docker-compose -f docker/docker-compose.benchmarking.yaml down
+
+  dockerLogBenchmarkingCluster:
+    desc: Print logs from the benchmarking cluster
+    cmds:
+      - docker-compose -f docker/docker-compose.benchmarking.yaml logs
+      - docker ps -a
