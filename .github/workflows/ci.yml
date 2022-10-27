@@ -42,15 +42,15 @@ jobs:
         run: |
           sbt update compile Test/compile elasticsearchPluginBundle
       - name: Run Cluster
-        run: task cluster:run
+        run: task dockerRunTestingCluster
       - name: Test
-        run: sbt testQuick
+        run: sbt -client testQuick
       - name: Stop Cluster
         if: always()
-        run: task cluster:stop
+        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
-        run: task cluster:logs
+        run: task dockerLogTestingCluster
       
   test-python:
     runs-on: ubuntu-20.04

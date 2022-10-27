@@ -14,12 +14,45 @@ tasks:
       - jvmClean
       - pyClean
 
-  installDockerCompose:
-    desc: Install docker-compose using pip
-    status:
-      - docker-compose --version
+  dockerLogBenchmarkingCluster:
+    desc: Print logs from the benchmarking cluster
     cmds:
-      - python3 -m pip install docker-compose
+      - docker-compose -f docker/docker-compose.benchmarking.yaml logs
+      - docker ps -a
+
+  dockerLogTestingCluster:
+    desc: Print logs from the testing cluster
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml logs
+      - docker ps -a
+
+  dockerRunBenchmarkingCluster:
+    desc: Run a local cluster for benchmarking using docker-compose.
+    deps:
+      - installDockerCompose
+      - jvmAssemble
+    cmds:
+      - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
+      - python3 docker/cluster_ready.py
+
+  dockerRunTestingCluster:
+    desc: Run a local cluster for testing using docker-compose.
+    deps:
+      - installDockerCompose
+      - jvmAssemble
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
+      - python3 docker/cluster_ready.py
+
+  dockerStopBenchmarkingCluster:
+    desc: Stop the local benchmarking cluster.
+    cmds:
+      - docker-compose -f docker/docker-compose.benchmarking.yaml down
+
+  dockerStopTestingCluster:
+    desc: Stop the local testing cluster.
+    cmds:
+      - docker-compose -f docker/docker-compose.testing.yaml down
 
   jvmClean:
     desc: Clean all JVM artifacts
@@ -52,14 +85,6 @@ tasks:
     cmds:
       - sbt -client elastiknn-plugin/elasticsearchPluginDebug
 
-  jvmPublishSnapshot:
-    desc: Publish a snapshot of the plugin to Github
-    deps:
-      - jvmAssemble
-    cmds:
-      - gh release delete {{ .VERSION }} --yes || true
-      - gh release create --prerelease --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
-
   jvmPublishRelease:
     desc: Publish an official release to Github
     deps:
@@ -69,42 +94,103 @@ tasks:
     cmds:
       - gh release create --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
 
-  dockerRunTestingCluster:
-    desc: Run a local cluster for testing using docker-compose.
+  jvmPublishSnapshot:
+    desc: Publish a snapshot of the plugin to Github
     deps:
-      - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
-      - python3 docker/cluster_ready.py
+      - gh release delete {{ .VERSION }} --yes || true
+      - gh release create --prerelease --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
 
-  dockerStopTestingCluster:
-    desc: Stop the local testing cluster.
+  installDockerCompose:
+    desc: Install docker-compose using pip
+    status:
+      - docker-compose --version
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml down
+      - python3 -m pip install docker-compose
 
-  dockerLogTestingCluster:
-    desc: Print logs from the testing cluster
+  pyCreateVenv:
+    desc: Create python virtual environment
+    dir: client-python
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml logs
-      - docker ps -a
+      - python3 --version
+      - python3 -m pip install --quiet virtualenv
+      - python3 -m virtualenv -p python3.7 venv
+      - touch requirements.txt
+    generates:
+      - venv
+    status:
+      - test -d venv
 
-  dockerRunBenchmarkingCluster:
-    desc: Run a local cluster for benchmarking using docker-compose.
+  pyClean:
+    desc: Delete python virtual environment
+    dir: client-python
+    cmds:
+      - rm -rf venv
+
+  pyInstallRequirements:
+    desc: Install python dependencies from requirements.txt
+    dir: client-python
     deps:
-      - installDockerCompose
-      - jvmAssemble
+      - pyCreateVenv
+    sources:
+      - venv/bin/*
+      - setup.py
+      - requirements*txt
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
-      - python3 docker/cluster_ready.py
+      - venv/bin/pip install --quiet -r requirements.txt
+      - venv/bin/pip install --quiet -r requirements-build.txt
 
-  dockerStopBenchmarkingCluster:
-    desc: Stop the local benchmarking cluster.
+  pyTest:
+    desc: Run python tests against local cluster
+    dir: client-python
+    deps:
+      - pyInstallRequirements
+    sources:
+      - elastiknn/**/*.py
+      - setup.py
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml down
+      - venv/bin/python -m pytest -v -s -o log_cli=True
 
-  dockerLogBenchmarkingCluster:
-    desc: Print logs from the benchmarking cluster
+  pyDocs:
+    desc: Generate python docs
+    dir: client-python
+    deps:
+      - pyInstallRequirements
+    sources:
+      - elastiknn/**/*.py
+      - setup.py
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml logs
-      - docker ps -a
+      - rm -rf pdoc
+      - venv/bin/pdoc3 --html elastiknn -c show_type_annotations=True -o pdoc
+      - ls -la pdoc/elastiknn
+
+  pyPublishLocal:
+    desc: Publish python library locally
+    dir: client-python
+    deps:
+      - pyInstallRequirements
+    cmds:
+      - rm -rf dist
+      - venv/bin/python setup.py --version {{ .VERSION }} sdist bdist_wheel
+      - ls dist
+
+  pyPublishSnapshot:
+    desc: Publish python library to testpypi
+    dir: client-python
+    cmds:
+      - task: publish-local
+        force: True
+      - venv/bin/python -m twine upload -r testpypi --verbose dist/*
+
+  pyPublishRelease:
+    desc: Publish python library to pypi
+    dir: client-python
+    status:
+      - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
+    cmds:
+      - task: publish-local
+        force: True
+      - task: docs
+        force: True
+      - venv/bin/python -m twine upload -r pypi --verbose dist/*
