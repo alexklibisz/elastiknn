@@ -78,14 +78,17 @@ jobs:
          sudo snap install task --classic
          sudo sysctl -w vm.max_map_count=262144
       - name: Docs
-        run: task py:docs
+        run: task pyDocs
       - name: Run Cluster
-        run: task cluster:run
+        run: task dockerRunTestingCluster
       - name: Test
-        run: task py:test
+        run: task pyTest
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
-        run: task cluster:logs
+        run: task dockerLogTestingCluster
 
   test-benchmarks:
     runs-on: ubuntu-20.04
