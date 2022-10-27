@@ -128,6 +128,19 @@ tasks:
     cmds:
       - docker-compose -f docker/docker-compose.testing.yaml down
 
+  docsDev:
+    desc: Start local development server.
+    dir: docs
+    cmds:
+      - docker-compose up dev
+
+  docsCompile:
+    desc: Compile docs into a static site.
+    dir: docs
+    cmds:
+      - rm -rf _site
+      - docker-compose run --rm compile
+
   jvmClean:
     desc: Clean all JVM artifacts
     cmds:
