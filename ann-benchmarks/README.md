@@ -14,10 +14,10 @@ This directory contains an integration with [ann-benchmarks](https://github.com/
 
 ```bash
 # Checkout the ann-benchmarks repo as a submodule.
-$ task annb:submodule
+$ task annbCreateSubmodule
 
 # Install Python and Docker dependencies.
-$ task annb:install
+$ task annbInstallRequirements
 ```
 
 ### Quick test
@@ -26,10 +26,10 @@ Make sure the environment is configured correctly.
 
 ```bash
 # Start the local cluster.
-task cluster:start
+task dockerRunTestingCluster
 
 # Test the released build.
-task annb:test
+task annbTest
 ```
 
 ### Benchmark a previous Elastiknn release
@@ -39,7 +39,7 @@ This benchmark constrains Elasticsearch to a single CPU core and will vary based
 
 ```bash
 # Fashion MNIST dataset.
-task annb:benchmark-official-fashion-mnist
+task annbRunOfficialFashionMnist
 ```
 
 ### Benchmark Elastiknn on the local branch
@@ -50,8 +50,8 @@ This is particularly useful for testing performance-sensitive changes before mer
 
 ```bash
 # Start the local cluster.
-task cluster:start
+task dockerRunTestingCluster
 
 # Fashion MNIST dataset.
-task annb:benchmark-local-fashion-mnist
+task annbRunOfficialFashionMnist
 ```

@@ -19,7 +19,7 @@ If so, please submit an issue or PR.
 Once you have the prerequisites installed, clone the project and run:
 
 ```
-task jvm:run
+task jvmRunLocal
 ```
 
 This starts a local instance of Elasticsearch with the plugin installed. 
@@ -62,16 +62,16 @@ Install the IntelliJ Scala plugin, and then IntelliJ will recognize the SBT proj
 
 PyCharm can be a bit of a different story. 
 You should first create a virtual environment in `client-python/venv`.
-You can do this by running `task py:venv`. Even if the tests fail, it will still create the virtual environment.
+You can do this by running `task pyVenv`. Even if the tests fail, it will still create the virtual environment.
 Then you should setup PyCharm to use the interpreter in `client-python/venv`. 
 
 ### Testing
 
 Elastiknn has a fairly thorough test suite.
 
-To run it, you'll first need to run `task cluster:run` or `task jvm:run` to start a local Elasticsearch server.
+To run it, you'll first need to run `task dockerRunTestingCluster` or `task jvmRun` to start a local Elasticsearch server.
 
-Then, run `task jvm:test` to run the Gradle test suite, or `task py:test` to run the smaller Python test suite.
+Then, run `task jvmTest` to run the SBT test suite, or `task pyTest` to run the smaller Python test suite.
 
 ### Debugging
 
@@ -79,7 +79,7 @@ You can attach IntelliJ's debugger to a local Elasticsearch process.
 This can be immensely helpful when dealing with bugs or just figuring out how the code is structured.
 
 First, open your project in IntelliJ and run the `Debug Elasticsearch` target (usually in the upper right corner).
-Then just run `task jvm:debug` in your terminal.
+Then just run `task jvmRunLocalDebug` in your terminal.
 
 Now you can set and hit breakpoints in IntelliJ.
 To try it out, open the RestPluginsAction.java file in IntelliJ, add a breakpoint in the `getTableWithHeader` method, and run `curl localhost:9200/_cat/plugins`.
@@ -87,7 +87,7 @@ IntelliJ should stop execution at your breakpoint.
 
 ### Local Cluster
 
-Use `task cluster:run` to run a local cluster with one master node and one data node (using docker-compose).
+Use `task dockerRunTestingCluster` to run a local cluster with one master node and one data node (using docker-compose).
 There are a couple parts of the codebase that deal with serializing queries for use in a distributed environment.
 Running this small local cluster exercises those code paths.
 
