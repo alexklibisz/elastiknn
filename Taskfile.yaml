@@ -271,7 +271,7 @@ tasks:
     desc: Publish python library to testpypi
     dir: client-python
     cmds:
-      - task: publish-local
+      - task: pyPublishLocal
         force: True
       - venv/bin/python -m twine upload -r testpypi --verbose dist/*
 
