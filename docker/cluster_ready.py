@@ -9,7 +9,7 @@ for i in range(1, 121):
     if res.getcode() == 200:
       print("\nElasticsearch is ready")
       sys.exit(0)
-  except (ConnectionRefusedError, ConnectionResetError) as e:
+  except (Exception) as e:
     print('.', end='')
     sys.stdout.flush()
     pass

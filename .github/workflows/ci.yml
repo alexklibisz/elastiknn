@@ -182,17 +182,17 @@ jobs:
           sudo snap install task --classic
           python3 -m pip install setuptools
       - name: Publish to PyPi
-        run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+        run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: task jvmPublishSnapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish Plugin from Main
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT
+          task jvmPublishSnapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT
