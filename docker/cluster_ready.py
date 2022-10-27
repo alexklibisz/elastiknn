@@ -3,7 +3,7 @@ import sys
 from time import sleep
 sys.stdout.write("Waiting for elasticsearch health endpoint")
 req = Request("http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s")
-for i in range(1, 121):
+for i in range(1, 31):
   try:
     res = urlopen(req)
     if res.getcode() == 200:

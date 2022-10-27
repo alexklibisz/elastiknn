@@ -9,11 +9,11 @@ services:
     environment:
       - node.name=elasticsearch_master
       - cluster.name=docker-cluster
-      - cluster.initial_master_nodes=elasticsearch_master
       - bootstrap.memory_lock=true
       - http.cors.enabled=true
       - http.cors.allow-origin='*'
       - xpack.security.enabled=false
+      - discovery.type=single-node
     ports:
       - "9200:9200"
     mem_limit: 12000m
