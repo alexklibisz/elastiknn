@@ -39,7 +39,6 @@ tasks:
       # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
       - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
-      - venv/bin/python install.py --algorithm elastiknn
 
   annbRunLocalFashionMnist:
     desc: Run ann-benchmarks using the local Elastiknn branch.
@@ -49,10 +48,14 @@ tasks:
     env:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES"
+      RESULTS_DIR: ../../docs/pages/performance/fashion-mnist
     cmds:
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
       - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
-      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output plot-local-fashion-mnist.png
+      - mkdir -p $RESULTS_DIR
+      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
+      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - cat $RESULTS_DIR/results.md
 
   annbRunOfficialFashionMnist:
     desc: Run ann-benchmarks using released Elastiknn on the SIFT dataset.
@@ -60,6 +63,7 @@ tasks:
     deps:
       - annbInstallRequirements
     cmds:
+      - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force
       - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output plot-official-fashion-mnist.png
