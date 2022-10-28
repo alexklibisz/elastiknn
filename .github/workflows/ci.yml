@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   show-github-context:
     timeout-minutes: 1
@@ -42,15 +46,15 @@ jobs:
         run: |
           sbt update compile Test/compile elasticsearchPluginBundle
       - name: Run Cluster
-        run: task cluster:run
+        run: task dockerRunTestingCluster
       - name: Test
-        run: sbt testQuick
+        run: task jvmTestQuick
       - name: Stop Cluster
         if: always()
-        run: task cluster:stop
+        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
-        run: task cluster:logs
+        run: task dockerLogTestingCluster
       
   test-python:
     runs-on: ubuntu-20.04
@@ -78,14 +82,17 @@ jobs:
          sudo snap install task --classic
          sudo sysctl -w vm.max_map_count=262144
       - name: Docs
-        run: task py:docs
+        run: task pyDocs
       - name: Run Cluster
-        run: task cluster:run
+        run: task dockerRunTestingCluster
       - name: Test
-        run: task py:test
+        run: task pyTest
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
-        run: task cluster:logs
+        run: task dockerLogTestingCluster
 
   test-benchmarks:
     runs-on: ubuntu-20.04
@@ -113,16 +120,19 @@ jobs:
           sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
-        run: task annb:submodule
+        run: task annbCreateSubmodule
       - name: Install Dependencies
-        run: task annb:install
+        run: task annbInstallRequirements
       - name: Run Cluster
-        run: task cluster:run
+        run: task dockerRunTestingCluster
       - name: Test
-        run: task annb:test
+        run: task annbTest
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
-        run: task cluster:logs
+        run: task dockerLogTestingCluster
 
   build-jekyll-site:
     runs-on: ubuntu-20.04
@@ -135,7 +145,7 @@ jobs:
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
-          task docs:compile
+          task docsCompile
           sudo chown -R runner:docker docs 
           ls -la docs/*
 
@@ -172,17 +182,17 @@ jobs:
           sudo snap install task --classic
           python3 -m pip install setuptools
       - name: Publish to PyPi
-        run: task py:publish-snapshot VERSION=$(cat version)-dev${{ github.run_number }}
+        run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'
       - name: Publish Plugin from PR
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:plugin:publish:snapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
+        run: task jvmPublishSnapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
       - name: Publish Plugin from Main
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
-          task jvm:plugin:publish:snapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT
+          task jvmPublishSnapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT

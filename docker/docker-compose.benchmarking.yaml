@@ -1,0 +1,28 @@
+version: "2"
+
+services:
+  elasticsearch_master:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: elasticsearch_master
+    environment:
+      - node.name=elasticsearch_master
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - http.cors.enabled=true
+      - http.cors.allow-origin='*'
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    mem_limit: 12000m
+    mem_reservation: 12000m
+    cpus: 2
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1

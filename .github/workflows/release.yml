@@ -32,11 +32,11 @@ jobs:
       - name: Generate Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
-          task docs:compile
+          task docsCompile
           sudo chown -R runner:docker docs
       - name: Generate Python Docs
         run: |
-          task py:docs
+          task pyDocs
           mkdir -p docs/_site/docs
           mv client-python/pdoc/elastiknn docs/_site/docs/pdoc
       - name: Configure Pages
@@ -80,8 +80,8 @@ jobs:
           sudo snap install task --classic
           python3 -m pip install setuptools
       - name: Publish to PyPi
-        run: task py:publish-release
+        run: task pyPublishRelease
       - name: Publish to Github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvm:plugin:publish:release
+        run: task jvmPublishRelease

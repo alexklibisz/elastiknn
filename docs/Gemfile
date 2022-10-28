@@ -27,3 +27,6 @@ end
 gem "wdm", "~> 0.1.1", :install_if => Gem.win_platform?
 
 gem "minimal-mistakes-jekyll", "~> 4.23.0"
+
+# https://github.com/jekyll/jekyll/issues/8523
+gem "webrick"
