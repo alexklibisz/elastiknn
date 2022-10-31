@@ -10,16 +10,13 @@ classes: wide
 
 ## Method
 
-The results on this page are produced by running the following on a [2018 Mac Mini](https://support.apple.com/kb/SP782?locale=en_US) (6-Core i7, 64GB RAM variant):
-
-1. Start a single-node Elastiknn cluster in a Docker container with a 12000m memory limit and 2 CPU limit. The exact configuration is in elastiknn/docker/docker-compose.benchmarking.yaml.
-2. Run the Elastiknn variant of the [ann-benchmarks](https://github.com/erikbern/ann-benchmarks) client, with the `--local` flag, so it uses the local cluster. The exact commands are in elastiknn/Taskfile.yaml.
-3. Parse the results with a Python script that converts them to some nice Markdown tables, embedded below.
+The results on this page are produced by running elastiknn on the ann-benchmarks benchmark on a [2018 Mac Mini](https://support.apple.com/kb/SP782?locale=en_US) (6-Core i7, 64GB RAM variant):
+The exact command is `annbRunOfficialFashionMnist` in the elastiknn/Taskfile.yaml.
 
 **Caveats**
 
 * This is a single-node benchmark, so latency from cluster communication is eliminated.
-* The client and server run on the same host, so latency from client/server communication is minimized.
+* The client and server run in the same container, so latency from client/server communication is minimized.
 
 ## Results
 
