@@ -1,3 +1,4 @@
+
 version: '3'
 
 vars:
@@ -62,11 +63,16 @@ tasks:
     dir: ann-benchmarks/ann-benchmarks
     deps:
       - annbInstallRequirements
+    env:
+      RESULTS_DIR: ../../docs/pages/performance/fashion-mnist
     cmds:
       - venv/bin/python install.py --algorithm elastiknn
-      - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force
+      - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 3 --force
       - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
-      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output plot-official-fashion-mnist.png
+      - mkdir -p $RESULTS_DIR
+      - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
+      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - cat $RESULTS_DIR/results.md
 
   annbTest:
     desc: Run ann-benchmarks using the Elastiknn algo on random data.
