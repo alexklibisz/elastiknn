@@ -291,8 +291,8 @@ tasks:
     status:
       - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
     cmds:
-      - task: publish-local
+      - task: pyPublishLocal
         force: True
-      - task: docs
+      - task: pyDocs
         force: True
       - venv/bin/python -m twine upload -r pypi --verbose dist/*
