@@ -82,6 +82,4 @@ jobs:
       - name: Publish to PyPi
         run: task pyPublishRelease
       - name: Publish to Github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvmPublishRelease
