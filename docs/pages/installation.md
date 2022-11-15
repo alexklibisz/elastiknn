@@ -30,8 +30,8 @@ Make a Dockerfile like below. The image version (`elasticsearch:A.B.C`) must mat
 `A.B.C` is the Elasticsearch version. `.x` just refers to an incremental version of Elastiknn on top of `A.B.C`.
 
 ```docker
-FROM docker.elastic.co/elasticsearch/elasticsearch:7.17.6
-RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/7.17.6.0/elastiknn-7.17.6.0.zip
+FROM docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/7.17.7.0/elastiknn-7.17.7.0.zip
 ```
 
 Build and run the Dockerfile. If you have any issues please refer to the [official docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)
