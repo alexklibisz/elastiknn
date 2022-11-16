@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - 'cross-build-7.17.6'
   push:
     branches:
       - master
