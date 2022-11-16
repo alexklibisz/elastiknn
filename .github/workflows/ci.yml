@@ -106,7 +106,6 @@ jobs:
 
   publish-snapshots:
     runs-on: ubuntu-20.04
-    if: ${{ github.actor == 'alexklibisz' }}
     needs: [show-github-context, test-jvm, test-python, test-benchmarks]
     steps:
       - uses: actions/checkout@v2
