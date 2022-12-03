@@ -59,6 +59,7 @@ lazy val `elastiknn-lucene` = project
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
       "org.scalatest" %% "scalatest" % "3.2.0" % Test,
       "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
+
     ),
     scalacOptions ++= ScalacOptions
   )
@@ -87,7 +88,7 @@ lazy val `elastiknn-plugin` = project
   .enablePlugins(ElasticsearchPluginPlugin)
   .dependsOn(
     `elastiknn-api4s`,
-    `elastiknn-lucene`
+    `elastiknn-lucene` % "compile->compile;test->test"
   )
   .settings(
     name := "elastiknn",
@@ -111,7 +112,11 @@ lazy val `elastiknn-plugin` = project
 
 lazy val `elastiknn-testing` = project
   .in(file("elastiknn-testing"))
-  .dependsOn(`elastiknn-client-elastic4s`, `elastiknn-plugin`)
+  .dependsOn(
+    `elastiknn-client-elastic4s`,
+    `elastiknn-plugin`,
+    `elastiknn-lucene` % "test->test"
+  )
   .settings(
     Test / parallelExecution := false,
     Test / logBuffered := false,

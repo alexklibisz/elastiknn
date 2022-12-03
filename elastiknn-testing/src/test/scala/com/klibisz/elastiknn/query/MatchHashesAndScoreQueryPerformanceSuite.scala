@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
-import com.klibisz.elastiknn.testing.LuceneSupport
+import com.klibisz.elastiknn.lucene.LuceneSupport
 import org.apache.lucene.codecs.lucene94.Lucene94Codec
 import org.apache.lucene.document.Document
 import org.scalatest.funsuite.AnyFunSuite

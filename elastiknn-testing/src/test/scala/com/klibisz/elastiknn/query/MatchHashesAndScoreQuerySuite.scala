@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
-import com.klibisz.elastiknn.testing.LuceneSupport
+import com.klibisz.elastiknn.lucene.LuceneSupport
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}

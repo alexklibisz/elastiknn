@@ -1,19 +1,19 @@
 package com.klibisz.elastiknn.lucene
 
 import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.codecs.Codec
 import org.apache.lucene.index._
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.store.MMapDirectory
-import org.elasticsearch.common.lucene.Lucene
 
 import java.nio.file.Files
 
 trait LuceneSupport {
 
-  def indexAndSearch[I, S](codec: Codec = Codec.getDefault, analyzer: Analyzer = Lucene.KEYWORD_ANALYZER)(
-    index: IndexWriter => I
-  )(search: (IndexReader, IndexSearcher) => S): (I, S) = {
+  def indexAndSearch[I, S](codec: Codec = Codec.getDefault, analyzer: Analyzer = new KeywordAnalyzer())(
+                            index: IndexWriter => I
+                          )(search: (IndexReader, IndexSearcher) => S): (I, S) = {
     val tmpDir = Files.createTempDirectory(null).toFile
     val indexDir = new MMapDirectory(tmpDir.toPath)
     val indexWriterCfg = new IndexWriterConfig(analyzer).setCodec(codec)
