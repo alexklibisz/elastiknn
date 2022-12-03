@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn.models
 
 import breeze.linalg.DenseVector
 import com.klibisz.elastiknn.api.Vec

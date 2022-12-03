@@ -1,20 +1,18 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.testing.ExactSimilarityReference
-import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers with LazyLogging {
+class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers {
 
   private val reps = 1000
   private val tol = 1e-7
   private val seed = System.currentTimeMillis()
   private implicit val rng = new Random(seed)
-  logger.info(s"Testing with seed $seed")
+  info(s"Testing with seed $seed")
 
   describe("L2 Similarity") {
 

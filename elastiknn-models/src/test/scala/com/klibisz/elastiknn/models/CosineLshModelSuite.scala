@@ -1,13 +1,12 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.testing.LuceneSupport
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class CosineLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
+class CosineLshModelSuite extends AnyFunSuite with Matchers {
 
   test("model is invariant to vector magnitude") {
     implicit val rng: Random = new Random(0)

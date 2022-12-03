@@ -16,7 +16,8 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.util.Random
 
-class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatchers with ElasticAsyncClient {
+class
+VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatchers with ElasticAsyncClient {
 
   implicit val rng: Random = new Random(0)
 

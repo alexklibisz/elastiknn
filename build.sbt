@@ -56,13 +56,16 @@ lazy val `elastiknn-lucene` = project
     name := "lucene",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.apache.lucene" % "lucene-core" % LuceneVersion
+      "org.apache.lucene" % "lucene-core" % LuceneVersion,
+      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
+      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
     ),
     scalacOptions ++= ScalacOptions
   )
 
 lazy val `elastiknn-models` = project
   .in(file("elastiknn-models"))
+  .dependsOn(`elastiknn-api4s` % "test->test")
   .settings(
     name := "models",
     version := ElastiknnVersion,
@@ -71,7 +74,10 @@ lazy val `elastiknn-models` = project
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.0" % Test
+    )
   )
 
 import ElasticsearchPluginPlugin.autoImport._
@@ -93,7 +99,12 @@ lazy val `elastiknn-plugin` = project
     elasticsearchVersion := ElasticsearchVersion,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
-      "com.google.guava" % "failureaccess" % "1.0.1"
+      "com.google.guava" % "failureaccess" % "1.0.1",
+      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
+      "org.scalanlp" %% "breeze" % "1.3" % Test,
+      "io.circe" %% "circe-parser" % CirceVersion % Test,
+      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
+      "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
     ),
     scalacOptions ++= ScalacOptions
   )
