@@ -29,7 +29,10 @@ lazy val `elastiknn-api4s` = project
     name := "api4s",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
+      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
+      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
+      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
+      "io.circe" %% "circe-parser" % CirceVersion % Test,
     ),
     scalacOptions ++= ScalacOptions
   )
