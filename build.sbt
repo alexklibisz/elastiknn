@@ -21,8 +21,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
-    `elastiknn-plugin`,
-    `elastiknn-testing`
+    `elastiknn-plugin`
   )
 
 lazy val `elastiknn-api4s` = project
@@ -124,36 +123,4 @@ lazy val `elastiknn-plugin` = project
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument("-oD"),
-  )
-
-lazy val `elastiknn-testing` = project
-  .in(file("elastiknn-testing"))
-  .dependsOn(
-    `elastiknn-client-elastic4s`,
-    `elastiknn-plugin`,
-    `elastiknn-lucene` % "test->test"
-  )
-  .settings(
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD"),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion,
-      "io.circe" %% "circe-parser" % CirceVersion,
-      "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion,
-      "org.scalanlp" %% "breeze" % "1.3",
-      "org.scalatest" %% "scalatest" % "3.2.0",
-      "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-      "com.klibisz.futil" %% "futil" % "0.1.2" % Test,
-      "com.typesafe" % "config" % "1.4.0" % Test,
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2" % Test,
-      "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-      "org.apache.commons" % "commons-math3" % "3.6.1" % Test,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
-      "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion % Test,
-      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion % Test,
-      "org.pegdown" % "pegdown" % "1.4.2" % Test
-    ),
-    scalacOptions ++= ScalacOptions
   )
