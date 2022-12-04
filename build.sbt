@@ -1,3 +1,5 @@
+import ElasticsearchPluginPlugin.autoImport._
+
 Global / scalaVersion := "2.13.9"
 
 lazy val CirceVersion = "0.14.1"
@@ -81,15 +83,15 @@ lazy val `elastiknn-models` = project
     )
   )
 
-import ElasticsearchPluginPlugin.autoImport._
-
 lazy val `elastiknn-plugin` = project
   .in(file("elastiknn-plugin"))
   .enablePlugins(ElasticsearchPluginPlugin)
   .dependsOn(
     `elastiknn-api4s`,
-    `elastiknn-lucene` % "compile->compile;test->test"
+    `elastiknn-lucene` % "compile->compile;test->test",
+    `elastiknn-client-elastic4s` % "compile->test"
   )
+  .configs(IntegrationTest.extend(Test))
   .settings(
     name := "elastiknn",
     version := ElastiknnVersion,
@@ -107,7 +109,8 @@ lazy val `elastiknn-plugin` = project
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    Defaults.itSettings
   )
 
 lazy val `elastiknn-testing` = project
