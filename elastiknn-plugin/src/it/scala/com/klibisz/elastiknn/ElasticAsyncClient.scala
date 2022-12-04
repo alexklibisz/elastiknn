@@ -9,7 +9,7 @@ import org.scalatest.AsyncTestSuite
 import scala.concurrent.Future
 import scala.util.Success
 
-trait ElasticAsyncClientSupport {
+trait ElasticAsyncClient {
 
   this: AsyncTestSuite =>
 

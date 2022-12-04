@@ -1,7 +1,6 @@
-package com.klibisz.elastiknn.regressions
+package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.scalatest.Assertions
 import org.scalatest.funsuite.AsyncFunSuite

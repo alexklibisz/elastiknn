@@ -4,7 +4,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class ClusterCatTests extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClientSupport {
+class ClusterCatSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers with ElasticAsyncClient {
 
   test("returns health") {
     for {

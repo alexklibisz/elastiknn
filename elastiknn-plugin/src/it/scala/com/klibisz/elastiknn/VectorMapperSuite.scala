@@ -1,7 +1,6 @@
-package com.klibisz.elastiknn.mapper
+package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
-import com.klibisz.elastiknn.testing.{Elastic4sMatchers, ElasticAsyncClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.requests.get.GetResponse
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
@@ -16,8 +15,7 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.util.Random
 
-class
-VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatchers with ElasticAsyncClient {
+class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatchers with ElasticAsyncClient {
 
   implicit val rng: Random = new Random(0)
 
