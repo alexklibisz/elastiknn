@@ -1,21 +1,17 @@
-package com.klibisz.elastiknn.query
+package org.apache.lucene.search
 
-import com.klibisz.elastiknn.mapper.VectorMapper
+import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
-import com.klibisz.elastiknn.lucene.LuceneSupport
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
-import org.apache.lucene.search.{IndexSearcher, MatchHashesAndScoreQuery, TermQuery}
 import org.scalatest._
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ArrayBuffer
 
 class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with LuceneSupport {
-
-  val ft: FieldType = VectorMapper.denseFloatVector.luceneFieldType
 
   test("empty harness") {
     indexAndSearch() { (_: IndexWriter) => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
@@ -40,8 +36,8 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   test("no repeating values") {
     indexAndSearch() { w =>
       val d = new Document()
-      d.add(new Field("vec", writeInt(42), ft))
-      d.add(new Field("vec", writeInt(99), ft))
+      d.add(new Field("vec", writeInt(42), HashFieldType.HASH_FIELD_TYPE))
+      d.add(new Field("vec", writeInt(99), HashFieldType.HASH_FIELD_TYPE))
       w.addDocument(d)
     } {
       case (r, s) =>
@@ -69,8 +65,8 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   test("repeating terms") {
     indexAndSearch() { w =>
       val (d1, d2) = (new Document(), new Document())
-      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), ft)))
-      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), ft)))
+      Array(3, 3, 3, 8, 8, 7).foreach(i => d1.add(new Field("vec", writeInt(i), HashFieldType.HASH_FIELD_TYPE)))
+      Array(9, 9, 9, 6, 6, 1).foreach(i => d2.add(new Field("vec", writeInt(i), HashFieldType.HASH_FIELD_TYPE)))
       w.addDocument(d1)
       w.addDocument(d2)
     } {
@@ -101,7 +97,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
     indexAndSearch() { w =>
       for (_ <- 0 until 10) {
         val d = new Document()
-        Array(1, 2, 3, 4, 5).foreach(i => d.add(new Field("vec", writeInt(i), ft)))
+        Array(1, 2, 3, 4, 5).foreach(i => d.add(new Field("vec", writeInt(i), HashFieldType.HASH_FIELD_TYPE)))
         w.addDocument(d)
       }
     } {
@@ -135,7 +131,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         Array(1, 2)
       ).foreach { arr =>
         val d = new Document()
-        arr.foreach(i => d.add(new Field("vec", writeInt(i), ft)))
+        arr.foreach(i => d.add(new Field("vec", writeInt(i), HashFieldType.HASH_FIELD_TYPE)))
         w.addDocument(d)
       }
     } {

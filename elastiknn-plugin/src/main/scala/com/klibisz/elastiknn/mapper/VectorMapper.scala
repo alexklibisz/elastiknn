@@ -3,16 +3,17 @@ package com.klibisz.elastiknn.mapper
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.lucene.HashFieldType
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
-import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
+import org.apache.lucene.index.{IndexableField, Term}
 import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.{Mapping => _, _}
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.search.lookup.SourceLookup
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 
 import java.util
 import java.util.Collections
@@ -82,15 +83,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  final def luceneFieldType: LuceneFieldType = {
-    // TODO 7.9.2: is there a way (or a need) to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
-    val ft = new LuceneFieldType()
-    ft.setTokenized(false)
-    ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
-    ft.setOmitNorms(true)
-    ft.freeze()
-    ft
-  }
+  final def luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {

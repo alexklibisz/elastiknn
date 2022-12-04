@@ -1,9 +1,8 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.mapper.VectorMapper
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
-import com.klibisz.elastiknn.lucene.LuceneSupport
+import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import org.apache.lucene.codecs.lucene94.Lucene94Codec
 import org.apache.lucene.document.Document
 import org.scalatest.funsuite.AnyFunSuite
@@ -11,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
 
-class MatchHashesAndScoreQueryPerformanceSuite extends AnyFunSuite with Matchers with LuceneSupport {
+class HashingQueryPerformanceSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
 //  // Hacky way to give you some time for setting up the Profiler :)
 //  import java.nio.file.{Files, Path}
@@ -31,7 +30,7 @@ class MatchHashesAndScoreQueryPerformanceSuite extends AnyFunSuite with Matchers
     val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0))
     val exactFunc = ExactSimilarityFunction.L2
     val field = "vec"
-    val fieldType = VectorMapper.denseFloatVector.luceneFieldType
+    val fieldType = HashFieldType.HASH_FIELD_TYPE
     indexAndSearch(codec = new BenchmarkCodec) { w =>
       val t0 = System.currentTimeMillis()
       for {
@@ -53,5 +52,4 @@ class MatchHashesAndScoreQueryPerformanceSuite extends AnyFunSuite with Matchers
         info(s"Ran [${queryVecs.length}] searches in [${System.currentTimeMillis() - t0}] ms.")
     }
   }
-
 }
