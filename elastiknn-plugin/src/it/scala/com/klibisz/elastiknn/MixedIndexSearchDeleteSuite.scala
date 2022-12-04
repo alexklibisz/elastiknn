@@ -1,7 +1,7 @@
-package com.klibisz.elastiknn.query
+package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.testing._
+import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl._
 import futil.Futil
 import org.scalatest._

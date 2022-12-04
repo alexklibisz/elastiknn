@@ -1,7 +1,6 @@
-package com.klibisz.elastiknn.query
+package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.testing.ElasticAsyncClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.scalatest.Inspectors
 import org.scalatest.funsuite.AsyncFunSuite

@@ -1,8 +1,8 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn
 
 import java.io.FileOutputStream
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
-import com.klibisz.elastiknn.api.{Similarity, Vec, XContentCodecCirceBridge}
+import com.klibisz.elastiknn.api.{Similarity, Vec, XContentCodec}
 import io.circe._
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
 import io.circe.syntax._
@@ -87,4 +87,21 @@ object Generate {
     write(genDenseFloat(dims, 5000, 50, 100, unit = true), "testdata-densefloat-unit.json.gz")
   }
 
+}
+
+trait XContentCodecCirceBridge {
+  implicit def encoderFromXContent[T: XContentCodec.Encoder]: Encoder[T] = new Encoder[T] {
+    override def apply(a: T): Json = {
+      val s = XContentCodec.encodeUnsafeToString(a)
+      val p = io.circe.parser.parse(s)
+      p.fold(throw _, identity)
+    }
+  }
+  implicit def fromXContentCodecDecoder[T: XContentCodec.Decoder]: Decoder[T] = new Decoder[T] {
+    override def apply(c: HCursor): Decoder.Result[T] = {
+      val s = c.value.noSpacesSortKeys
+      val t = XContentCodec.decodeUnsafeFromString[T](s)
+      Right(t)
+    }
+  }
 }

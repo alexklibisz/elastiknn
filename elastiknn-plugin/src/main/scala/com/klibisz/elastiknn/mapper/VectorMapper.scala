@@ -83,7 +83,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  final def luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
+  final val luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {

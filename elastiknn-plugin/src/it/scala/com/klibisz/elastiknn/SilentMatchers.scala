@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.testing
+package com.klibisz.elastiknn
 
 import org.scalatest.matchers.should.Matchers
 

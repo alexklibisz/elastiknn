@@ -36,7 +36,10 @@ lazy val `elastiknn-api4s` = project
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD")
   )
 
 lazy val `elastiknn-client-elastic4s` = project
@@ -63,7 +66,10 @@ lazy val `elastiknn-lucene` = project
       "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
 
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD")
   )
 
 lazy val `elastiknn-models` = project
@@ -80,7 +86,10 @@ lazy val `elastiknn-models` = project
     scalacOptions ++= ScalacOptions,
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.0" % Test
-    )
+    ),
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD")
   )
 
 lazy val `elastiknn-plugin` = project
@@ -107,10 +116,14 @@ lazy val `elastiknn-plugin` = project
       "org.scalanlp" %% "breeze" % "1.3" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
+      "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
+      "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     scalacOptions ++= ScalacOptions,
-    Defaults.itSettings
+    Defaults.itSettings,
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD"),
   )
 
 lazy val `elastiknn-testing` = project
