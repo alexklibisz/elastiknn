@@ -57,7 +57,7 @@ jobs:
       - name: Run Cluster
         run: task dockerRunTestingCluster
       - name: Run Integration Tests
-        run: jvmIntegrationTestQuick
+        run: task jvmIntegrationTestQuick
       - name: Stop Cluster
         if: always()
         run: task dockerStopTestingCluster
