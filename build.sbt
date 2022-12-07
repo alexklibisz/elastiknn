@@ -97,7 +97,7 @@ lazy val `elastiknn-plugin` = project
   .dependsOn(
     `elastiknn-api4s`,
     `elastiknn-lucene` % "compile->compile;test->test",
-    `elastiknn-client-elastic4s` % "compile->test"
+    `elastiknn-client-elastic4s` % "test->compile"
   )
   .configs(IntegrationTest.extend(Test))
   .settings(
