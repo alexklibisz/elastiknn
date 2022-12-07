@@ -71,7 +71,7 @@ Elastiknn has a fairly thorough test suite.
 
 To run it, you'll first need to run `task dockerRunTestingCluster` or `task jvmRun` to start a local Elasticsearch server.
 
-Then, run `task jvmTest` to run the SBT test suite, or `task pyTest` to run the smaller Python test suite.
+Then, run `task jvmUnitTest` to run the SBT test suite, or `task pyTest` to run the smaller Python test suite.
 
 ### Debugging
 

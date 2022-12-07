@@ -156,16 +156,6 @@ tasks:
     cmds:
       - find . -name target -type d | xargs rm -rf
 
-  jvmTest:
-    desc: Run JVM tests using SBT
-    cmds:
-      - sbt -client test
-
-  jvmTestQuick:
-    desc: Run JVM tests using SBT, but only the ones that were recompiled
-    cmds:
-      - sbt -client testQuick
-
   jvmCompile:
     desc: Compile Scala and Java code using SBT
     cmds:
@@ -176,6 +166,26 @@ tasks:
     cmds:
       - rm -rf elastiknn-plugin/target/*.zip
       - sbt -client elastiknn-plugin/elasticsearchPluginBundle
+
+  jvmIntegrationTest:
+    desc: Run JVM tests using SBT
+    cmds:
+      - sbt -client IntegrationTest/test
+
+  jvmIntegrationTestQuick:
+    desc: Run JVM tests using SBT, but only the ones that were recompiled
+    cmds:
+      - sbt -client IntegrationTest/testQuick
+
+  jvmUnitTest:
+    desc: Run JVM tests using SBT
+    cmds:
+      - sbt -client test
+
+  jvmUnitTestQuick:
+    desc: Run JVM tests using SBT, but only the ones that were recompiled
+    cmds:
+      - sbt -client testQuick
 
   jvmRunLocal:
     desc: Run a local Elasticsearch cluster with the plugin using SBT
