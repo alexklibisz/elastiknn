@@ -10,6 +10,12 @@ lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.4.1"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
+lazy val TestSettings = Seq(
+  Test / parallelExecution := false,
+  Test / logBuffered := false,
+  Test / testOptions += Tests.Argument("-oD"),
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0" % Test
+)
 
 lazy val `elastiknn-root` = project
   .in(file("."))
@@ -31,14 +37,10 @@ lazy val `elastiknn-api4s` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
-      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
-      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
     ),
     scalacOptions ++= ScalacOptions,
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD")
+    TestSettings
   )
 
 lazy val `elastiknn-client-elastic4s` = project
@@ -50,7 +52,8 @@ lazy val `elastiknn-client-elastic4s` = project
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    TestSettings
   )
 
 lazy val `elastiknn-lucene` = project
@@ -61,14 +64,10 @@ lazy val `elastiknn-lucene` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
-
+      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
     ),
     scalacOptions ++= ScalacOptions,
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD")
+    TestSettings
   )
 
 lazy val `elastiknn-models` = project
@@ -83,12 +82,7 @@ lazy val `elastiknn-models` = project
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
     scalacOptions ++= ScalacOptions,
-    libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.0" % Test
-    ),
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD")
+    TestSettings
   )
 
 lazy val `elastiknn-plugin` = project
@@ -111,7 +105,6 @@ lazy val `elastiknn-plugin` = project
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",
-      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
       "org.scalanlp" %% "breeze" % "1.3" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
@@ -120,7 +113,5 @@ lazy val `elastiknn-plugin` = project
     ),
     scalacOptions ++= ScalacOptions,
     Defaults.itSettings,
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD"),
+    TestSettings
   )

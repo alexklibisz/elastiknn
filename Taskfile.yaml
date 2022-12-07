@@ -125,7 +125,7 @@ tasks:
       - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml up --detach --force-recreate
+      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
       - python3 docker/cluster_ready.py
 
   dockerStopBenchmarkingCluster:
