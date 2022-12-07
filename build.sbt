@@ -73,7 +73,7 @@ lazy val `elastiknn-lucene` = project
 
 lazy val `elastiknn-models` = project
   .in(file("elastiknn-models"))
-  .dependsOn(`elastiknn-api4s` % "test->test")
+  .dependsOn(`elastiknn-api4s` % "test->compile")
   .settings(
     name := "models",
     version := ElastiknnVersion,

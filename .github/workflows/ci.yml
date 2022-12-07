@@ -49,6 +49,11 @@ jobs:
           sbt update compile Test/compile elasticsearchPluginBundle
       - name: Run Unit Tests
         run: task jvmUnitTestQuick
+      - name: Debug
+        run: |
+          task jvmAssemble
+          cd elastiknn-plugin/target
+          unzip -l elastiknn-8.5.2.0.zip
       - name: Run Cluster
         run: task dockerRunTestingCluster
       - name: Run Integration Tests
