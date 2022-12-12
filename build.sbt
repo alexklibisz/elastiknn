@@ -1,3 +1,5 @@
+import ElasticsearchPluginPlugin.autoImport._
+
 Global / scalaVersion := "2.13.9"
 
 lazy val CirceVersion = "0.14.1"
@@ -8,6 +10,12 @@ lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.4.1"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
+lazy val TestSettings = Seq(
+  Test / parallelExecution := false,
+  Test / logBuffered := false,
+  Test / testOptions += Tests.Argument("-oD"),
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0" % Test
+)
 
 lazy val `elastiknn-root` = project
   .in(file("."))
@@ -19,8 +27,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
-    `elastiknn-plugin`,
-    `elastiknn-testing`
+    `elastiknn-plugin`
   )
 
 lazy val `elastiknn-api4s` = project
@@ -29,9 +36,11 @@ lazy val `elastiknn-api4s` = project
     name := "api4s",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion
+      "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
+      "io.circe" %% "circe-parser" % CirceVersion % Test,
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    TestSettings
   )
 
 lazy val `elastiknn-client-elastic4s` = project
@@ -43,7 +52,8 @@ lazy val `elastiknn-client-elastic4s` = project
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    TestSettings
   )
 
 lazy val `elastiknn-lucene` = project
@@ -53,13 +63,16 @@ lazy val `elastiknn-lucene` = project
     name := "lucene",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "org.apache.lucene" % "lucene-core" % LuceneVersion
+      "org.apache.lucene" % "lucene-core" % LuceneVersion,
+      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    TestSettings
   )
 
 lazy val `elastiknn-models` = project
   .in(file("elastiknn-models"))
+  .dependsOn(`elastiknn-api4s` % "test->compile")
   .settings(
     name := "models",
     version := ElastiknnVersion,
@@ -68,18 +81,19 @@ lazy val `elastiknn-models` = project
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    TestSettings
   )
-
-import ElasticsearchPluginPlugin.autoImport._
 
 lazy val `elastiknn-plugin` = project
   .in(file("elastiknn-plugin"))
   .enablePlugins(ElasticsearchPluginPlugin)
   .dependsOn(
     `elastiknn-api4s`,
-    `elastiknn-lucene`
+    `elastiknn-lucene` % "compile->compile;test->test",
+    `elastiknn-client-elastic4s` % "test->compile"
   )
+  .configs(IntegrationTest.extend(Test))
   .settings(
     name := "elastiknn",
     version := ElastiknnVersion,
@@ -90,35 +104,14 @@ lazy val `elastiknn-plugin` = project
     elasticsearchVersion := ElasticsearchVersion,
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
-      "com.google.guava" % "failureaccess" % "1.0.1"
-    ),
-    scalacOptions ++= ScalacOptions
-  )
-
-lazy val `elastiknn-testing` = project
-  .in(file("elastiknn-testing"))
-  .dependsOn(`elastiknn-client-elastic4s`, `elastiknn-plugin`)
-  .settings(
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD"),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion,
-      "io.circe" %% "circe-parser" % CirceVersion,
-      "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion,
-      "org.scalanlp" %% "breeze" % "1.3",
-      "org.scalatest" %% "scalatest" % "3.2.0",
+      "com.google.guava" % "failureaccess" % "1.0.1",
+      "org.scalanlp" %% "breeze" % "1.3" % Test,
+      "io.circe" %% "circe-parser" % CirceVersion % Test,
+      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
-      "com.klibisz.futil" %% "futil" % "0.1.2" % Test,
-      "com.typesafe" % "config" % "1.4.0" % Test,
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2" % Test,
-      "com.vladsch.flexmark" % "flexmark-all" % "0.35.10" % Test,
-      "org.apache.commons" % "commons-math3" % "3.6.1" % Test,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
-      "org.apache.lucene" % "lucene-backward-codecs" % LuceneVersion % Test,
-      "org.elasticsearch" % "elasticsearch" % ElasticsearchVersion % Test,
-      "org.pegdown" % "pegdown" % "1.4.2" % Test
+      "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
-    scalacOptions ++= ScalacOptions
+    scalacOptions ++= ScalacOptions,
+    Defaults.itSettings,
+    TestSettings
   )

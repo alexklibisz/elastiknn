@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   show-github-context:
+    name: "Show Github Context"
     timeout-minutes: 1
     runs-on: ubuntu-20.04
     env:
@@ -22,10 +23,11 @@ jobs:
       - run: echo $GITHUB_CONTEXT
   
   test-jvm:
+    name: "Test JVM Code"
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v3
         with:
           key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
@@ -45,10 +47,17 @@ jobs:
       - name: Compile
         run: |
           sbt update compile Test/compile elasticsearchPluginBundle
+      - name: Run Unit Tests
+        run: task jvmUnitTestQuick
+      - name: Debug
+        run: |
+          task jvmAssemble
+          cd elastiknn-plugin/target
+          unzip -l elastiknn-8.5.2.0.zip
       - name: Run Cluster
         run: task dockerRunTestingCluster
-      - name: Test
-        run: task jvmTestQuick
+      - name: Run Integration Tests
+        run: task jvmIntegrationTestQuick
       - name: Stop Cluster
         if: always()
         run: task dockerStopTestingCluster
@@ -57,10 +66,11 @@ jobs:
         run: task dockerLogTestingCluster
       
   test-python:
+    name: Test Python Code
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v3
         with:
           key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
@@ -95,10 +105,11 @@ jobs:
         run: task dockerLogTestingCluster
 
   test-benchmarks:
+    name: Test Benchmarks
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/cache@v3
         with:
           key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
@@ -135,10 +146,11 @@ jobs:
         run: task dockerLogTestingCluster
 
   build-jekyll-site:
+    name: Test Jekyll Site
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Misc. Setup
         run: |
           sudo snap install task --classic
@@ -150,11 +162,12 @@ jobs:
           ls -la docs/*
 
   publish-snapshots:
+    name: Publish Snapshots
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     needs: [show-github-context, test-jvm, test-python, test-benchmarks]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/cache@v3

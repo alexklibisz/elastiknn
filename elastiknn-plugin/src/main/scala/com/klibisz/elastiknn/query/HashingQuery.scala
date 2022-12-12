@@ -1,9 +1,8 @@
 package com.klibisz.elastiknn.query
 
-import java.util.Objects
-
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq, HashingFunction}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq}
+import com.klibisz.elastiknn.storage.StoredVec.Decoder
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
 import org.apache.lucene.document.{Field, FieldType}
 import org.apache.lucene.index.{IndexReader, IndexableField, LeafReaderContext, PostingsEnum}
@@ -11,11 +10,13 @@ import org.apache.lucene.search.{DocIdSetIterator, Explanation, MatchHashesAndSc
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 
-class HashingQuery[V <: Vec, S <: StoredVec](field: String,
-                                             queryVec: V,
-                                             candidates: Int,
-                                             hashes: Array[HashAndFreq],
-                                             simFunc: ExactSimilarityFunction[V, S])(implicit codec: StoredVec.Codec[V, S])
+import java.util.Objects
+
+class HashingQuery[V <: Vec, S <: StoredVec: Decoder](field: String,
+                                                      queryVec: V,
+                                                      candidates: Int,
+                                                      hashes: Array[HashAndFreq],
+                                                      simFunc: ExactSimilarityFunction[V, S])
     extends ElastiknnQuery[V] {
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
@@ -80,7 +81,7 @@ class HashingQuery[V <: Vec, S <: StoredVec](field: String,
 
 object HashingQuery {
 
-  def index[M <: Mapping, V <: Vec: StoredVec.Encoder, S <: StoredVec, F <: HashingFunction[M, V, S]](
+  def index[M <: Mapping, V <: Vec: StoredVec.Encoder](
       field: String,
       fieldType: FieldType,
       vec: V,
@@ -88,5 +89,4 @@ object HashingQuery {
     val f = new Field(field, h.hash, fieldType)
     (0 until h.freq).map(_ => f)
   }
-
 }
