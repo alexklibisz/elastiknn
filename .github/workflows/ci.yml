@@ -40,9 +40,10 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
+      - name: Install Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: |
-          sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Compile
         run: |
@@ -82,9 +83,10 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
+      - name: Install Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: |
-         sudo snap install task --classic
          sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task pyDocs
@@ -121,9 +123,10 @@ jobs:
         with:
           python-version: '3.6'
           cache: 'pip'
+      - name: Install Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: |
-          sudo snap install task --classic
           sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
         run: task annbCreateSubmodule
@@ -146,9 +149,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
+      - name: Install Task
+        uses: arduino/setup-task@v1
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -185,9 +187,10 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
+      - name: Install Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: |
-          sudo snap install task --classic
           python3 -m pip install setuptools
       - name: Publish to PyPi
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
