@@ -48,9 +48,9 @@ jobs:
       - name: Misc. Setup
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
-        run: sbt jvmCompile
+        run: task jvmCompile
       - name: Assemble
-        run: sbt jvmAssemble
+        run: task jvmAssemble
       - name: Run Unit Tests
         run: task jvmUnitTestQuick
       - name: Run Cluster
