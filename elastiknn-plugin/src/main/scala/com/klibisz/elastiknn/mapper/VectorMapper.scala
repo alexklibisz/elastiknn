@@ -72,6 +72,9 @@ object VectorMapper {
       }
     }
     override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
+
+      throw new RuntimeException(s"valueFetcher(${context}, ${format})")
+
       // TODO: figure out what this is supposed to return. Also see issue #250.
       new ValueFetcher {
         override def fetchValues(source: Source, doc: Int, ignoredValues: util.List[AnyRef]): util.List[AnyRef] = util.List.of()
