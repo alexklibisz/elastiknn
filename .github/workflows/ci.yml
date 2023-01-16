@@ -46,6 +46,8 @@ jobs:
         with:
           version: 1.8.0
       - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Increase MMAP Limits
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
@@ -92,6 +94,8 @@ jobs:
         with:
           version: 1.8.0
       - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Increase MMAP Limits
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Docs
@@ -131,6 +135,8 @@ jobs:
         with:
           version: 1.8.0
       - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v4
         with:
           python-version: '3.6'
@@ -160,6 +166,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -201,6 +209,8 @@ jobs:
           python-version: '3.7.15'
           cache: 'pip'
       - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Setuptools
         run: python3 -m pip install setuptools
       - name: Publish to PyPi
