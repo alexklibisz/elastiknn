@@ -162,7 +162,7 @@ jobs:
       - uses: arduino/setup-task@v1
       - name: Compile Jekyll Site
         run: |
-          sudo chown -R root:root docs
+          sudo chown -R runneradmin:runneradmin docs
           task docsCompile
           sudo chown -R runner:docker docs 
           ls -la docs/*
