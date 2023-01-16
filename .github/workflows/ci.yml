@@ -110,7 +110,8 @@ jobs:
   test-benchmarks:
     name: Test Benchmarks
     runs-on:
-      - ubuntu-22.04
+      # Has to remain on ubuntu 20 and python 3.6 until ann-benchmarks is upgraded.
+      - ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
