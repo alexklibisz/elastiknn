@@ -53,12 +53,12 @@ jobs:
         run: task dockerRunTestingCluster
       - name: Run Integration Tests
         run: task jvmIntegrationTestQuick
-      - name: Stop Cluster
-        if: always()
-        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
         run: task dockerLogTestingCluster
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
       
   test-python:
     name: Test Python Code
@@ -92,12 +92,12 @@ jobs:
         run: task dockerRunTestingCluster
       - name: Test
         run: task pyTest
-      - name: Stop Cluster
-        if: always()
-        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
         run: task dockerLogTestingCluster
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
 
   test-benchmarks:
     name: Test Benchmarks
@@ -133,12 +133,12 @@ jobs:
         run: task dockerRunTestingCluster
       - name: Test
         run: task annbTest
-      - name: Stop Cluster
-        if: always()
-        run: task dockerStopTestingCluster
       - name: Cluster Logs
         if: always()
         run: task dockerLogTestingCluster
+      - name: Stop Cluster
+        if: always()
+        run: task dockerStopTestingCluster
 
   build-jekyll-site:
     name: Test Jekyll Site
