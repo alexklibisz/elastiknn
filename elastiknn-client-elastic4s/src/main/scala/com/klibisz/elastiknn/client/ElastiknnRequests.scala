@@ -48,7 +48,7 @@ trait ElastiknnRequests {
       .search(index)
       .query(query)
       .fetchSource(false)
-      .storedFields("_none_")
+      // .storedFields("_none_")
       .docValues(Seq(storedIdField))
       .preference(query.hashCode.toString)
       .size(k)
