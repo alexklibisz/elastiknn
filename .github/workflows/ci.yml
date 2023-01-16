@@ -86,7 +86,7 @@ jobs:
           cache: 'sbt'
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.7.5'
+          python-version: '3.7.15'
           cache: 'pip'
       - uses: jtalk/setup-sbt@v2
         with:
@@ -197,7 +197,7 @@ jobs:
           version: 1.8.0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.7.5'
+          python-version: '3.7.15'
           cache: 'pip'
       - uses: arduino/setup-task@v1
       - name: Setup Setuptools
