@@ -16,7 +16,7 @@ jobs:
   show-github-context:
     name: "Show Github Context"
     timeout-minutes: 1
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
