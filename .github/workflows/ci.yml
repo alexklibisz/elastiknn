@@ -82,7 +82,7 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.7.5'
           cache: 'pip'
@@ -129,7 +129,7 @@ jobs:
           version: 1.8.0
       - name: Setup Task
         uses: arduino/setup-task@v1
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.6'
           cache: 'pip'
@@ -193,7 +193,7 @@ jobs:
       - uses: jtalk/setup-sbt@v2
         with:
           version: 1.8.0
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.7.5'
           cache: 'pip'
