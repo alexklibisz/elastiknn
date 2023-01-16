@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   release-docs:
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -25,9 +26,9 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -49,7 +50,8 @@ jobs:
         uses: actions/deploy-pages@v1
 
   release:
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
@@ -71,13 +73,15 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Release Credentials
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         run: ./.github/scripts/setup-env.sh
-      - run: |
-          sudo snap install task --classic
-          python3 -m pip install setuptools
+      - name: Setup Setuptools
+        run: python3 -m pip install setuptools
       - name: Publish to PyPi
         run: task pyPublishRelease
       - name: Publish to Github
