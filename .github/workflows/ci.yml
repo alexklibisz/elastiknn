@@ -16,7 +16,8 @@ jobs:
   show-github-context:
     name: "Show Github Context"
     timeout-minutes: 1
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
@@ -24,7 +25,8 @@ jobs:
   
   test-jvm:
     name: "Test JVM Code"
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
@@ -40,13 +42,15 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
-          sudo sysctl -w vm.max_map_count=262144
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Increase MMAP Limits
+        run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
-        run: |
-          sbt update compile Test/compile elasticsearchPluginBundle
+        run: task jvmCompile
+      - name: Assemble
+        run: task jvmAssemble
       - name: Run Unit Tests
         run: task jvmUnitTestQuick
       - name: Run Cluster
@@ -62,7 +66,8 @@ jobs:
       
   test-python:
     name: Test Python Code
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -78,14 +83,15 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.7.5'
+          python-version: '3.7.15'
           cache: 'pip'
-      - name: Misc. Setup
-        run: |
-         sudo snap install task --classic
-         sudo sysctl -w vm.max_map_count=262144
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Increase MMAP Limits
+        run: sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task pyDocs
       - name: Run Cluster
@@ -101,7 +107,9 @@ jobs:
 
   test-benchmarks:
     name: Test Benchmarks
-    runs-on: ubuntu-20.04
+    runs-on:
+      # Has to remain on ubuntu 20 and python 3.6 until ann-benchmarks is upgraded.
+      - ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -117,14 +125,15 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: actions/setup-python@v2
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.6'
           cache: 'pip'
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
-          sudo sysctl -w vm.max_map_count=262144
+      - name: Increase MMAP Limits
+        run: sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
         run: task annbCreateSubmodule
       - name: Install Dependencies
@@ -142,13 +151,14 @@ jobs:
 
   build-jekyll-site:
     name: Test Jekyll Site
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -158,7 +168,8 @@ jobs:
 
   publish-snapshots:
     name: Publish Snapshots
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     needs: [show-github-context, test-jvm, test-python, test-benchmarks]
     steps:
@@ -181,14 +192,15 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.7.5'
+          python-version: '3.7.15'
           cache: 'pip'
-      - name: Misc. Setup
-        run: |
-          sudo snap install task --classic
-          python3 -m pip install setuptools
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Setuptools
+        run: python3 -m pip install setuptools
       - name: Publish to PyPi
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'

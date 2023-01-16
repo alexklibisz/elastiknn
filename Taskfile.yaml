@@ -159,7 +159,7 @@ tasks:
   jvmCompile:
     desc: Compile Scala and Java code using SBT
     cmds:
-      - sbt -client ";compile;Test/compile"
+      - sbt -client "compile; Test/compile; IntegrationTest/compile"
 
   jvmAssemble:
     desc: Build the plugin bundle using SBT
