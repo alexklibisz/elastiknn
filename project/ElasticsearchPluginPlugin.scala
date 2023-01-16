@@ -161,15 +161,15 @@ ElasticsearchPluginPlugin extends AutoPlugin {
     val pluginBundle: File = elasticsearchPluginBundle.value
     val distributionDirectory: File = elasticsearchPluginDownloadDistribution.value
 
-    // Try to remove the plugin just in case it was already installed.
+    log.info(s"Removing the plugin just in case it was already installed")
     val procUninstallPlugin = Process(s"./bin/elasticsearch-plugin remove ${elasticsearchPluginName.value}", distributionDirectory)
     procUninstallPlugin.! // Don't care if it fails.
 
-    // Install the plugin.
+    log.info("Installing the plugin")
     val procInstallPlugin = Process(s"./bin/elasticsearch-plugin install --verbose --batch ${pluginBundle.toURI}", distributionDirectory)
     procInstallPlugin.!! // Run in foreground and throw on non-zero exit.
 
-    // Run the Elasticsearch cluster with the plugin installed.
+    log.info(s"Run the elasticsearch cluster with the plugin installed")
     val settings = esSettings.map("-E" ++ _).mkString(" ")
     val procRunElasticsearch = Process(
       s"./bin/elasticsearch $settings",

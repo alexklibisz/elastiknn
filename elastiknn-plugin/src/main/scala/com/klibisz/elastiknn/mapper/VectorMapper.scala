@@ -12,7 +12,7 @@ import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
 import org.elasticsearch.index.mapper.{Mapping => _, _}
 import org.elasticsearch.index.query.SearchExecutionContext
-import org.elasticsearch.search.lookup.SourceLookup
+import org.elasticsearch.search.lookup.Source
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 
 import java.util
@@ -73,7 +73,7 @@ object VectorMapper {
     }
     override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
       // TODO: figure out what this is supposed to return. Also see issue #250.
-      (lookup: SourceLookup, ignoredValues: util.List[AnyRef]) => util.List.of()
+      (source: Source, doc: Int, ignoredValues: util.List[AnyRef]) => util.List.of()
     }
   }
 }
