@@ -16,7 +16,8 @@ jobs:
   show-github-context:
     name: "Show Github Context"
     timeout-minutes: 1
-    runs-on: self-hosted
+    runs-on:
+      - ubuntu-22.04
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
@@ -24,7 +25,8 @@ jobs:
   
   test-jvm:
     name: "Test JVM Code"
-    runs-on: self-hosted
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
@@ -43,9 +45,8 @@ jobs:
       - uses: jtalk/setup-sbt@v2
         with:
           version: 1.8.0
-      - name: Setup Task
-        uses: arduino/setup-task@v1
-      - name: Misc. Setup
+      - uses: arduino/setup-task@v1
+      - name: Increase MMAP Limits
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
         run: task jvmCompile
@@ -66,7 +67,8 @@ jobs:
       
   test-python:
     name: Test Python Code
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -89,9 +91,8 @@ jobs:
       - uses: jtalk/setup-sbt@v2
         with:
           version: 1.8.0
-      - name: Setup Task
-        uses: arduino/setup-task@v1
-      - name: Misc. Setup
+      - uses: arduino/setup-task@v1
+      - name: Increase MMAP Limits
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Docs
         run: task pyDocs
@@ -108,7 +109,8 @@ jobs:
 
   test-benchmarks:
     name: Test Benchmarks
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -127,13 +129,12 @@ jobs:
       - uses: jtalk/setup-sbt@v2
         with:
           version: 1.8.0
-      - name: Setup Task
-        uses: arduino/setup-task@v1
+      - uses: arduino/setup-task@v1
       - uses: actions/setup-python@v4
         with:
           python-version: '3.6'
           cache: 'pip'
-      - name: Misc. Setup
+      - name: Increase MMAP Limits
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
         run: task annbCreateSubmodule
@@ -152,12 +153,12 @@ jobs:
 
   build-jekyll-site:
     name: Test Jekyll Site
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Task
-        uses: arduino/setup-task@v1
+      - uses: arduino/setup-task@v1
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -167,7 +168,8 @@ jobs:
 
   publish-snapshots:
     name: Publish Snapshots
-    runs-on: ubuntu-20.04
+    runs-on:
+      - ubuntu-22.04
     timeout-minutes: 10
     needs: [show-github-context, test-jvm, test-python, test-benchmarks]
     steps:
@@ -197,8 +199,7 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - name: Setup Task
-        uses: arduino/setup-task@v1
+      - uses: arduino/setup-task@v1
       - name: Setup Setuptools
         run: python3 -m pip install setuptools
       - name: Publish to PyPi
