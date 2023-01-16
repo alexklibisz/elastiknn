@@ -40,8 +40,9 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - name: Setup SBT
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - uses: jtalk/setup-sbt@v2
+        with:
+          version: 1.8.0
       - name: Setup Task
         uses: arduino/setup-task@v1
       - name: Misc. Setup
@@ -85,8 +86,9 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - name: Setup SBT
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - uses: jtalk/setup-sbt@v2
+        with:
+          version: 1.8.0
       - name: Setup Task
         uses: arduino/setup-task@v1
       - name: Misc. Setup
@@ -122,8 +124,9 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - name: Setup SBT
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - uses: jtalk/setup-sbt@v2
+        with:
+          version: 1.8.0
       - name: Setup Task
         uses: arduino/setup-task@v1
       - uses: actions/setup-python@v2
@@ -187,8 +190,9 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - name: Setup SBT
-        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - uses: jtalk/setup-sbt@v2
+        with:
+          version: 1.8.0
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
