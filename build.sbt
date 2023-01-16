@@ -7,7 +7,7 @@ lazy val CirceGenericExtrasVersion = "0.14.1"
 lazy val ElasticsearchVersion = "8.6.0"
 lazy val Elastic4sVersion = "8.5.2"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.4.1"
+lazy val LuceneVersion = "9.4.2"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 lazy val TestSettings = Seq(
