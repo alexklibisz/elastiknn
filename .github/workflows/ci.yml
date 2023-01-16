@@ -40,8 +40,10 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
-      - uses: olafurpg/setup-scala@v11
-      - uses: arduino/setup-task@v1
+      - name: Setup SBT
+        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - name: Setup Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
@@ -83,7 +85,10 @@ jobs:
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - uses: arduino/setup-task@v1
+      - name: Setup SBT
+        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - name: Setup Task
+        uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Docs
@@ -117,11 +122,14 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
+      - name: Setup SBT
+        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
+      - name: Setup Task
+        uses: arduino/setup-task@v1
       - uses: actions/setup-python@v2
         with:
           python-version: '3.6'
           cache: 'pip'
-      - uses: arduino/setup-task@v1
       - name: Misc. Setup
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
@@ -145,7 +153,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - uses: arduino/setup-task@v1
+      - name: Setup Task
+        uses: arduino/setup-task@v1
       - name: Compile Jekyll Site
         run: |
           sudo chown -R runneradmin:runneradmin docs
@@ -178,14 +187,16 @@ jobs:
           distribution: 'adopt'
           java-version: 17
           cache: 'sbt'
+      - name: Setup SBT
+        run: curl -Ls https://raw.githubusercontent.com/dwijnand/sbt-extras/master/sbt > ~/bin/sbt && chmod 0755 ~/bin/sbt
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7.5'
           cache: 'pip'
-      - uses: arduino/setup-task@v1
-      - name: Misc. Setup
-        run: |
-          python3 -m pip install setuptools
+      - name: Setup Task
+        uses: arduino/setup-task@v1
+      - name: Setup Setuptools
+        run: python3 -m pip install setuptools
       - name: Publish to PyPi
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'
