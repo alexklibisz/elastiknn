@@ -46,10 +46,10 @@ YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/p
 <!-- Links -->
 
 [Link-Github-CI]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI
-[Badge-Github-CI]: https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/CI?style=for-the-badge "Github CI Workflow"
+[Badge-Github-CI]: https://img.shields.io/github/actions/workflow/status/alexklibisz/elastiknn/ci.yml?branch=main&style=for-the-badge "Github CI Workflow"
 
 [Link-Github-Release]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ARelease
-[Badge-Github-Release]: https://img.shields.io/github/workflow/status/alexklibisz/elastiknn/Release?style=for-the-badge "Github Release Workflow"
+[Badge-Github-Release]: https://img.shields.io/github/actions/workflow/status/alexklibisz/elastiknn/release.yml?branch=main&style=for-the-badge "Github Release Workflow"
 
 [Link-Plugin-Release]: https://github.com/alexklibisz/elastiknn/releases/latest
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=flat-square "Plugin Release"
