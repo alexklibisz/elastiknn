@@ -28,6 +28,10 @@ It can take about five minutes the first time you run it.
 Once you see "EXECUTING", you should open another shell and run `curl localhost:9200`.
 You should see the usual Elasticsearch JSON response containing the version, cluster name, etc.
 
+Note that if you're running on MacOS 13.x (Ventura), the operating system's privacy settings might block the app from starting.
+One solution is to go to System Settings > Privacy & Security > Developer Tools, and add and check your terminal (e.g., iTerm) to the list of developer apps.
+If that doesn't work, see this thread for more ideas: https://github.com/elastic/elasticsearch/issues/91159.
+
 ### Project Structure
 
 Elastiknn currently consists of several subprojects managed by Task and Gradle:
