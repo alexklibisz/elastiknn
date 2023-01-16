@@ -24,7 +24,7 @@ jobs:
   
   test-jvm:
     name: "Test JVM Code"
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
