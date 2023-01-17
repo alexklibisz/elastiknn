@@ -1,3 +1,4 @@
+
 ---
 layout: single
 title: Installation
@@ -28,7 +29,6 @@ We maintain a second branch, [elasticsearch-7x](https://github.com/alexklibisz/e
 
 |:--|:--|
 |Plugin Release| [![Plugin Release Status][Badge-Plugin-Release]][Link-Plugin-Release]|
-|Plugin Snapshot| [![Plugin Snapshot Status][Badge-Plugin-Snapshot]][Link-Plugin-Snapshot]|
 
 [Link-Plugin-Release]: https://github.com/alexklibisz/elastiknn/releases/latest
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=for-the-badge "Plugin Release"
