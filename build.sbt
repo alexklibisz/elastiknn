@@ -1,6 +1,6 @@
 import ElasticsearchPluginPlugin.autoImport._
 
-Global / scalaVersion := "2.13.9"
+Global / scalaVersion := "2.13.5"
 
 lazy val CirceVersion = "0.14.1"
 lazy val CirceGenericExtrasVersion = "0.14.1"
