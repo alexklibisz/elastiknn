@@ -28,10 +28,6 @@ It can take about five minutes the first time you run it.
 Once you see "EXECUTING", you should open another shell and run `curl localhost:9200`.
 You should see the usual Elasticsearch JSON response containing the version, cluster name, etc.
 
-Note that if you're running on MacOS 13.x (Ventura), the operating system's privacy settings might block the app from starting.
-One solution is to go to System Settings > Privacy & Security > Developer Tools, and add and check your terminal (e.g., iTerm) to the list of developer apps.
-If that doesn't work, see this thread for more ideas: https://github.com/elastic/elasticsearch/issues/91159.
-
 ### Project Structure
 
 Elastiknn currently consists of several subprojects managed by Task and Gradle:
@@ -103,6 +99,7 @@ See ann-benchmarks/README.md
 
 - To run Elasticsearch on Linux, you need to increase the `vm.max_map_count` setting. [See the Elasticsearch docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html)
 - To run ann-benchmarks on MacOS, you might need to `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`. [See this Stackoverflow answer.](https://stackoverflow.com/a/52230415) 
+- If you're running on MacOS 13.x (Ventura), the operating system's privacy settings might block `task jvmRunLocal` from starting. One solution is to go to System Settings > Privacy & Security > Developer Tools, and add and check your terminal (e.g., iTerm) to the list of developer apps. If that doesn't work, see this thread for more ideas: https://github.com/elastic/elasticsearch/issues/91159.
 
 ## Nearest Neighbors Search
 
@@ -112,3 +109,24 @@ Nearest neighbors search is a large topic. Some good places to start are:
 - Lectures 13-20 of [this lecture series from IIT Kharagpur](https://www.youtube.com/watch?v=06HGoXE6GAs&list=PLbRMhDVUMngekIHyLt8b_3jQR7C0KUCul&index=14)
 - Assignment 1 of Stanford's [CS231n course](https://cs231n.github.io/)
 - This work-in-progress literature review of [nearest neighbor search methods related to Elasticsearch](https://docs.google.com/document/d/14Z7ZKk9dq29bGeDDmBH6Bsy92h7NvlHoiGhbKTB0YJs/edit)
+
+## Maintaining releases for Elasticsearch 7.x
+
+We maintain releases for Elasticsearch 7.x on the elaasticsearch-7x branch.
+
+This branch should be updated anytime one of these happens:
+
+1. A release of Elasticsearch 7.x.
+2. A significant change to the build or testing setup.
+3. A significant bugfix that can be easily backported.
+
+Notably, we won't backport optimizations.
+There is just too much difference between the 8.x and 7.x internals.
+
+Keeping the two branches reasonably in sync is tricky, especially when compatible and non-compatible commits are interspersed.
+One way to do this seems to be:
+
+1. Branch off of elasticsearch-7x.
+2. Merge main into the new branch, resolving any conflicts along the way.
+3. Open a PR to merge the new branch into elasticsearch-7x.
+4. Merge the branch with a merge commit, not a squash.
