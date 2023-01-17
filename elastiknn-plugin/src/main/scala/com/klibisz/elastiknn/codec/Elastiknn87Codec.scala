@@ -1,13 +1,10 @@
 package com.klibisz.elastiknn.codec
 
-import org.apache.lucene.backward_codecs.lucene70.Lucene70DocValuesFormat
-import org.apache.lucene.backward_codecs.lucene87.Lucene87Codec
 import org.apache.lucene.codecs._
+import org.apache.lucene.codecs.lucene70.Lucene70DocValuesFormat
+import org.apache.lucene.codecs.lucene87.Lucene87Codec
 
-/**
-  * No longer used as of Elasticsearch 8. Kept for backwards-compatibility.
-  */
-class Elastiknn87Codec extends Codec("Elastiknn87Codec") {
+class Elastiknn87Codec extends Codec(ElastiknnCodecService.ELASTIKNN_87) {
   private val luceneCodec: Codec = new Lucene87Codec()
   override def docValuesFormat(): DocValuesFormat = new Lucene70DocValuesFormat()
   override def postingsFormat(): PostingsFormat = luceneCodec.postingsFormat()
@@ -19,5 +16,4 @@ class Elastiknn87Codec extends Codec("Elastiknn87Codec") {
   override def liveDocsFormat(): LiveDocsFormat = luceneCodec.liveDocsFormat()
   override def compoundFormat(): CompoundFormat = luceneCodec.compoundFormat()
   override def pointsFormat(): PointsFormat = luceneCodec.pointsFormat()
-  override def knnVectorsFormat(): KnnVectorsFormat = luceneCodec.knnVectorsFormat()
 }

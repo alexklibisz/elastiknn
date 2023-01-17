@@ -1,13 +1,13 @@
 import ElasticsearchPluginPlugin.autoImport._
 
-Global / scalaVersion := "2.13.9"
+Global / scalaVersion := "2.13.5"
 
 lazy val CirceVersion = "0.14.1"
 lazy val CirceGenericExtrasVersion = "0.14.1"
-lazy val ElasticsearchVersion = "8.6.0"
-lazy val Elastic4sVersion = "8.5.2"
+lazy val ElasticsearchVersion = "7.17.8"
+lazy val Elastic4sVersion = "7.17.4"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.4.2"
+lazy val LuceneVersion = "8.11.1"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 lazy val TestSettings = Seq(
@@ -64,7 +64,8 @@ lazy val `elastiknn-lucene` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
+      "org.apache.lucene" % "lucene-analyzers-common" % LuceneVersion % Test,
+      "org.apache.lucene" % "lucene-codecs" % LuceneVersion % Test
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings

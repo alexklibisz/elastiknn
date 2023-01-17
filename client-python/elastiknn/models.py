@@ -43,9 +43,9 @@ class ElastiknnModel(object):
             self._index = f"{ELASTIKNN_NAME}-{int(time())}"
             self._logger.warning(f"index was not given, using {self._index} instead")
 
-        self._eknn.es.indices.delete(index=self._index, ignore_unavailable=True)
-        # body = dict(settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
-        self._eknn.es.indices.create(index=self._index, settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
+        self._eknn.es.indices.delete(self._index, ignore=[400, 404])
+        body = dict(settings=dict(number_of_shards=shards, elastiknn=True, number_of_replicas=0))
+        self._eknn.es.indices.create(self._index, body=json.dumps(body))
         self._eknn.put_mapping(self._index, self._vec_field, mapping, self._stored_id_field)
 
         self._logger.info(f"indexing {len(X)} vectors into index {self._index}")

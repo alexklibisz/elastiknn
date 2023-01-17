@@ -149,6 +149,11 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             @Override
+            public void extractTerms(Set<Term> terms) {
+
+            }
+
+            @Override
             public Explanation explain(LeafReaderContext context, int doc) throws IOException {
                 HitCounter counter = countHits(context.reader());
                 if (counter.get(doc) > 0) {
@@ -198,11 +203,6 @@ public class MatchHashesAndScoreQuery extends Query {
                 return false;
             }
         };
-    }
-
-    @Override
-    public void visit(QueryVisitor visitor) {
-
     }
 
     @Override

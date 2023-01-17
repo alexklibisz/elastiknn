@@ -58,7 +58,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         dd.scoreDocs should have length 1
         dd.scoreDocs.head.score shouldBe 99f
         dd.scoreDocs.head.doc shouldBe 0
-        dd.scoreDocs.head.shardIndex shouldBe -1
+        dd.scoreDocs.head.shardIndex shouldBe 0
     }
   }
 
