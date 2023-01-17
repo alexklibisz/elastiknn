@@ -32,7 +32,7 @@ class ClusterCatSuite extends AsyncFunSuite with Matchers with Elastic4sMatchers
     } yield {
       catNodesRes.shouldBeSuccess
       catNodesRes.result should have length 2
-      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("cdfhilrstw", "mr")
+      catNodesRes.result.map(_.nodeRole).sorted shouldBe List("d", "m")
     }
   }
 
