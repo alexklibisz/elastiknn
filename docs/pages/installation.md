@@ -6,28 +6,41 @@ permalink: /installation/
 classes: wide
 ---
 
-The Elastiknn plugin gets published as a zip file in a Github release. [The lastest release can be found here.](https://github.com/alexklibisz/elastiknn/releases/latest)
+## Overview
 
-To install it, copy the zip file URL and run `elasticsearch-plugin install <THE URL>` on each of your Elasticsearch nodes. 
+To install Elastiknn:
+
+1. Copy the zip file URL from an Elastiknn [Github release](https://github.com/alexklibisz/elastiknn/releases).
+2. Run `elasticsearch-plugin install <zip file URL>` on each Elasticsearch node. 
 
 ## Versions
+
+### Versioning Scheme
+
+Elasticsearch requires a new version of Elastiknn for every version of Elasticsearch.
+Because of this, Elastiknn's versioning scheme includes the Elasticsearch version, followed by an incrementing version denoting changes to Elastiknn.
+For example, Elastiknn versions `8.4.2.0` and `8.4.2.1` were the first and second releases of Elastiknn corresponding to Elasticsearch version 8.4.2.  
+
+Elastiknn's main branch and the documentation site stay up-to-date with the latest Elasticsearch version, currently 8.x.
+We maintain a second branch, [elasticsearch-7x](https://github.com/alexklibisz/elastiknn/tree/elasticsearch-7x), for Elasticsearch 7.x releases.
+
+### Elasticsearch 8.x
 
 |:--|:--|
 |Plugin Release| [![Plugin Release Status][Badge-Plugin-Release]][Link-Plugin-Release]|
 |Plugin Snapshot| [![Plugin Snapshot Status][Badge-Plugin-Snapshot]][Link-Plugin-Snapshot]|
 
 [Link-Plugin-Release]: https://github.com/alexklibisz/elastiknn/releases/latest
-[Link-Plugin-Snapshot]: https://github.com/alexklibisz/elastiknn/releases
-
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=for-the-badge "Plugin Release"
-[Badge-Plugin-Snapshot]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?include_prereleases&style=for-the-badge "Plugin Snapshot"
 
-**A caveat on versioning:** Elasticsearch requires that the plugin's Elasticsearch version matches the version on the node. For now I'm only releasing the plugin for a single Elasticsearch version. I'd like to eventually come back and implement releases for multiple versions.
+### Elasticsearch 7.x
+
+To find the latest 7.x release, please browse the [Github releases](https://github.com/alexklibisz/elastiknn/releases).
 
 ## Example Installation in a Docker Image
 
-Make a Dockerfile like below. The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `A.B.C.x/elastiknn-A.B.C.x`).
-`A.B.C` is the Elasticsearch version. `.x` just refers to an incremental version of Elastiknn on top of `A.B.C`.
+Make a Dockerfile like below. 
+The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `A.B.C.x/elastiknn-A.B.C.x`).
 
 ```docker
 FROM docker.elastic.co/elasticsearch/elasticsearch:7.17.8
