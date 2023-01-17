@@ -24,7 +24,7 @@ class ElastiknnClient(object):
             Defaults to a client pointing at http://localhost:9200.
         """
         if es is None:
-            self.es = Elasticsearch(["http://localhost:9200"], request_timeout=99)
+            self.es = Elasticsearch(["http://localhost:9200"], timeout=99)
         else:
             self.es = es
 
@@ -48,14 +48,16 @@ class ElastiknnClient(object):
         Dict
             Json response as a dict. Successful request returns `{"acknowledged": true}`.
         """
-        properties = {
-            vec_field: mapping.to_dict(),
-            stored_id_field: {
-                "type": "keyword",
-                "store": True
+        body = {
+            "properties": {
+                vec_field: mapping.to_dict(),
+                stored_id_field: {
+                    "type": "keyword",
+                    "store": True
+                }
             }
         }
-        return self.es.indices.put_mapping(properties=properties, index=index)
+        return self.es.indices.put_mapping(body, index=index)
 
     def index(self, index: str, vec_field: str, vecs: Iterable[Vec.Base], stored_id_field: str, ids: Iterable[str], refresh: bool = False) -> Tuple[int, List[Dict]]:
         """Index (i.e. store) the given vectors at the given index and field with the optional ids.
@@ -115,16 +117,14 @@ class ElastiknnClient(object):
         Dict
             Standard Elasticsearch search response parsed as a dict.
         """
-        query = {
-            "elastiknn_nearest_neighbors": query.to_dict()
+        body = {
+            "query": {
+                "elastiknn_nearest_neighbors": query.to_dict()
+            }
         }
         if fetch_source:
-            return self.es.search(index=index, query=query, size=k)
+            return self.es.search(index=index, body=body, size=k)
         else:
-            return self.es.search(index=index, 
-                                  query=query, 
-                                  size=k, 
-                                  _source=fetch_source, 
-                                  docvalue_fields=[stored_id_field],
+            return self.es.search(index=index, body=body, size=k, _source=fetch_source, docvalue_fields=stored_id_field,
                                   stored_fields="_none_",
                                   filter_path=[f'hits.hits.fields.{stored_id_field}', 'hits.hits._score'])

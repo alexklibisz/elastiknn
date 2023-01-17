@@ -12,7 +12,7 @@ class TestClient:
         id_field = "id"
         mapping = Mapping.SparseBool(dims=dim)
 
-        eknn.es.indices.delete(index=index, ignore_unavailable=True)
+        eknn.es.indices.delete(index=index, ignore=[400, 404])
         eknn.es.indices.refresh()
         eknn.es.indices.create(index=index)
         eknn.es.indices.refresh()
