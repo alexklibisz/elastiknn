@@ -10,6 +10,8 @@ toc_icon: cog
 
 ## Python client
 
+[elastiknn-client on pypi](https://pypi.org/project/elastiknn-client/)
+
 The Python client provides a pythonic interface for using Elastiknn.
 This includes a low level HTTP client as well as a higher level "model" that mimics the scikit-learn interface.
 
