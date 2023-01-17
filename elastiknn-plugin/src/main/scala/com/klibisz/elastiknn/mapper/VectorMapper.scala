@@ -3,17 +3,16 @@ package com.klibisz.elastiknn.mapper
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.lucene.HashFieldType
 import com.klibisz.elastiknn.models.Cache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
-import org.apache.lucene.index.{IndexableField, Term}
+import org.apache.lucene.index.{IndexOptions, IndexableField, Term}
 import org.apache.lucene.search.{Query, TermQuery}
 import org.apache.lucene.util.BytesRef
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.mapper.{Mapping => _, _}
 import org.elasticsearch.index.query.SearchExecutionContext
-import org.elasticsearch.search.lookup.Source
-import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
+import org.elasticsearch.search.lookup.SourceLookup
 
 import java.util
 import java.util.Collections
@@ -60,7 +59,7 @@ object VectorMapper {
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
   class FieldType(typeName: String, fieldName: String, val mapping: Mapping)
-      extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
+    extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
     override def typeName(): String = typeName
     override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
     override def termQuery(value: Any, context: SearchExecutionContext): Query = {
@@ -73,7 +72,7 @@ object VectorMapper {
     }
     override def valueFetcher(context: SearchExecutionContext, format: String): ValueFetcher = {
       // TODO: figure out what this is supposed to return. Also see issue #250.
-      (source: Source, doc: Int, ignoredValues: util.List[AnyRef]) => util.List.of()
+      (lookup: SourceLookup, ignoredValues: util.List[AnyRef]) => util.List.of()
     }
   }
 }
@@ -83,7 +82,15 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
 
-  final val luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
+  final def luceneFieldType: LuceneFieldType = {
+    // TODO 7.9.2: is there a way (or a need) to call setSimilarity, setIndexAnalyzer, setSearchAnalyzer?
+    val ft = new LuceneFieldType()
+    ft.setTokenized(false)
+    ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+    ft.setOmitNorms(true)
+    ft.freeze()
+    ft
+  }
 
   class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {
@@ -128,8 +135,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
       }
 
-
-    override def getParameters: Array[FieldMapper.Parameter[_]] = Array.empty
+    override def getParameters: util.List[FieldMapper.Parameter[_]] = util.List.of()
   }
 
 }

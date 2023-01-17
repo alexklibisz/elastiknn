@@ -45,8 +45,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     * @param elastiknn Value for `index.elastiknn` setting, true by default.
     * @return CreateIndexResponse
     */
-  def createIndex(index: String, shards: Int = 1, replicas: Int = 0): F[Response[CreateIndexResponse]] =
-    execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas))
+  def createIndex(index: String, shards: Int = 1, replicas: Int = 0, elastiknn: Boolean = true): F[Response[CreateIndexResponse]] =
+    execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas).indexSetting("elastiknn", elastiknn))
 
   /**
     * Index a batch of vectors as new Elasticsearch docs, one doc per vector.

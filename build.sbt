@@ -64,7 +64,8 @@ lazy val `elastiknn-lucene` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
+      "org.apache.lucene" % "lucene-analyzers-common" % LuceneVersion % Test,
+      "org.apache.lucene" % "lucene-codecs" % LuceneVersion % Test
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings

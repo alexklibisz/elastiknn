@@ -8,11 +8,11 @@ import org.apache.lucene.search.Query
 import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
-import org.elasticsearch.client.internal.Client
+import org.elasticsearch.client.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query._
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, Version}
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException}
 
 import java.util.Objects
 
@@ -122,6 +122,4 @@ final class KnnQueryBuilder(val query: NearestNeighborsQuery) extends AbstractQu
 
     RewriteQueryBuilder(_ => supplier.get())
   }
-
-  override def getMinimalSupportedVersion: Version = Version.V_EMPTY
 }

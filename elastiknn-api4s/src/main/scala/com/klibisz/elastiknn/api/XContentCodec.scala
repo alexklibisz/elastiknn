@@ -59,7 +59,7 @@ object XContentCodec {
     val builder = new XContentBuilder(xcJson, bos)
     builder.map(m)
     builder.close()
-    val parser = xcJson.createParser(XContentParserConfiguration.EMPTY, bos.toByteArray)
+    val parser = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, bos.toByteArray)
     c.decodeUnsafe(parser)
   }
 
@@ -68,7 +68,7 @@ object XContentCodec {
     val builder = new XContentBuilder(xcJson, bos)
     builder.value(l)
     builder.close()
-    val parser = xcJson.createParser(XContentParserConfiguration.EMPTY, bos.toByteArray)
+    val parser = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, bos.toByteArray)
     c.decodeUnsafe(parser)
   }
 
@@ -76,8 +76,8 @@ object XContentCodec {
     decodeUnsafeFromByteArray(str.getBytes)
 
   def decodeUnsafeFromByteArray[T](barr: Array[Byte])(implicit c: Decoder[T]): T = {
-    val parser = xcJson.createParser(XContentParserConfiguration.EMPTY, barr)
-    c.decodeUnsafe(parser)
+    val p = xcJson.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.IGNORE_DEPRECATIONS, barr)
+    c.decodeUnsafe(p)
   }
 
   object Encoder {
