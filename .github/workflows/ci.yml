@@ -4,9 +4,11 @@ on:
   pull_request:
     branches:
       - main
+      - elasticsearch-7x
   push:
     branches:
       - main
+      - elasticsearch-7x
 
 concurrency:
   group: ${{ github.ref }}
