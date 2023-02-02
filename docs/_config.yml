@@ -19,8 +19,3 @@ footer:
 
 plugins:
   - jekyll-feed
-
-analytics:
-  provider: "google"
-  google:
-    tracking_id: "UA-163415632-1"
