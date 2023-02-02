@@ -1,4 +1,4 @@
-elasticsearch==7.17.8
+elasticsearch==7.17.9
 dataclasses-json==0.3.7
 tqdm==4.61.1
 scipy==1.7.0
