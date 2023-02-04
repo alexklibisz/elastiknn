@@ -6,6 +6,8 @@ vars:
     sh: cat version
   PROJECT_ROOT:
     sh: pwd
+  COMMIT:
+    sh: git rev-parse HEAD
   GITHUB_URL: https://github.com/alexklibisz/elastiknn
 
 tasks:
@@ -204,7 +206,7 @@ tasks:
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - gh release create --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
+      - gh release create --generate-notes {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
 
   jvmPublishSnapshot:
     desc: Publish a snapshot of the plugin to Github
@@ -212,7 +214,7 @@ tasks:
       - jvmAssemble
     cmds:
       - gh release delete {{ .VERSION }} --yes || true
-      - gh release create --prerelease --generate-notes {{ .VERSION }} elastiknn-plugin/target/elastiknn-*.zip
+      - gh release create --prerelease --generate-notes {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
 
   installDockerCompose:
     desc: Install docker-compose using pip
