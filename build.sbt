@@ -14,7 +14,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0" % Test
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % Test
 )
 
 lazy val `elastiknn-root` = project
@@ -37,7 +37,7 @@ lazy val `elastiknn-api4s` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
-      "io.circe" %% "circe-parser" % CirceVersion % Test,
+      "io.circe" %% "circe-parser" % CirceVersion % Test
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
