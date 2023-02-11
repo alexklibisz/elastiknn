@@ -37,7 +37,7 @@ lazy val `elastiknn-api4s` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
-      "io.circe" %% "circe-parser" % CirceVersion % Test,
+      "io.circe" %% "circe-parser" % CirceVersion % Test
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
@@ -105,7 +105,7 @@ lazy val `elastiknn-plugin` = project
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",
-      "org.scalanlp" %% "breeze" % "1.3" % Test,
+      "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
