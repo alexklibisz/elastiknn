@@ -2,7 +2,7 @@ name: Scala Steward
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 16 * * 1'
 jobs:
   scala-steward:
     runs-on: ubuntu-22.04
