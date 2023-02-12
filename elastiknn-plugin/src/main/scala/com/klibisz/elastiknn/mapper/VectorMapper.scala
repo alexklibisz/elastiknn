@@ -128,7 +128,6 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
       }
 
-
     override def getParameters: Array[FieldMapper.Parameter[_]] = Array.empty
   }
 
