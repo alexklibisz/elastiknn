@@ -29,7 +29,7 @@ class SparseUnsortedIndicesSuite extends AsyncFunSuite with Matchers with Inspec
   val mappingsAndQueries = Seq(
     Mapping.SparseBool(dims) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.Jaccard, queryVec),
-      NearestNeighborsQuery.Exact("vec", Similarity.Hamming, queryVec),
+      NearestNeighborsQuery.Exact("vec", Similarity.Hamming, queryVec)
     ),
     Mapping.JaccardLsh(dims, 40, 1) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.Jaccard, queryVec),
