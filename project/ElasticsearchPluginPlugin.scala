@@ -13,8 +13,7 @@ import scala.sys.process.Process
   *  https://github.com/elastic/elasticsearch/blob/7ad3cf0d34/build-tools/src/main/java/org/elasticsearch/gradle/plugin/PluginBuildPlugin.java,
   *  build.sbt file in https://github.com/shikhar/eskka
   */
-object
-ElasticsearchPluginPlugin extends AutoPlugin {
+object ElasticsearchPluginPlugin extends AutoPlugin {
 
   override val trigger = noTrigger
 

@@ -21,7 +21,8 @@ final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, fie
           s"Could not advance binary doc values reader from doc ID [$prevDocID] to doc ID [$docID].",
           s"It is possible that the document [$docID] does not have a vector.",
           s"""Consider trying with an `exists` query: "exists": { "field": "${field}" }"""
-        ).mkString(" "))
+        ).mkString(" ")
+      )
     }
   }
 
