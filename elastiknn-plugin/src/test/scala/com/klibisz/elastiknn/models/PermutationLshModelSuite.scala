@@ -22,7 +22,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
 
     val hc0 = Array((0, 3), (2, 2), (4, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
     val hc1 = Array((4, 3), (1, 2), (2, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
-    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
+    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, c)  => new HashAndFreq(writeInt(n), c) }
 
     indexAndSearch() { w =>
       Seq(hc0, hc1).foreach { hd =>

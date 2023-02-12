@@ -12,8 +12,7 @@ import io.circe.parser.parse
 
 import scala.util.Random
 
-class
-XContentCodecSuite extends AnyFreeSpec with Matchers {
+class XContentCodecSuite extends AnyFreeSpec with Matchers {
 
   import XContentCodec._
 
