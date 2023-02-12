@@ -2,8 +2,7 @@ import ElasticsearchPluginPlugin.autoImport._
 
 Global / scalaVersion := "2.13.9"
 
-lazy val CirceVersion = "0.14.1"
-lazy val CirceGenericExtrasVersion = "0.14.3"
+lazy val CirceVersion = "0.14.3"
 lazy val ElasticsearchVersion = "8.6.1"
 lazy val Elastic4sVersion = "8.5.3"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
@@ -107,7 +106,7 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.1",
       "org.scalanlp" %% "breeze" % "1.3" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "io.circe" %% "circe-generic-extras" % CirceGenericExtrasVersion % Test,
+      "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
