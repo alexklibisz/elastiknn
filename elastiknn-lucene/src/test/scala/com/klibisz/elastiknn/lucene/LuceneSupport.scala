@@ -12,8 +12,8 @@ import java.nio.file.Files
 trait LuceneSupport {
 
   def indexAndSearch[I, S](codec: Codec = Codec.getDefault, analyzer: Analyzer = new KeywordAnalyzer())(
-                            index: IndexWriter => I
-                          )(search: (IndexReader, IndexSearcher) => S): (I, S) = {
+      index: IndexWriter => I
+  )(search: (IndexReader, IndexSearcher) => S): (I, S) = {
     val tmpDir = Files.createTempDirectory(null).toFile
     val indexDir = new MMapDirectory(tmpDir.toPath)
     val indexWriterCfg = new IndexWriterConfig(analyzer).setCodec(codec)
@@ -37,4 +37,3 @@ trait LuceneSupport {
   }
 
 }
-
