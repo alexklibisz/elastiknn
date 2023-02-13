@@ -46,8 +46,8 @@ object ElastiknnPlugin {
 
     // Setting: index.elastiknn
     // Previously used to determine whether elastiknn can control the codec used for the index to improve performance.
-    // Now it's a no-op. 
-    // It was deprecated as part of https://github.com/alexklibisz/elastiknn/issues/254 and 
+    // Now it's a no-op.
+    // It was deprecated as part of https://github.com/alexklibisz/elastiknn/issues/254 and
     // https://github.com/alexklibisz/elastiknn/issues/348.
     val elastiknn: Setting[java.lang.Boolean] =
       Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope)

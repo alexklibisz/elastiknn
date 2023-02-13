@@ -12,8 +12,8 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, Functio
 import java.util.Objects
 
 class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
-    implicit codec: StoredVec.Codec[V, S])
-    extends ElastiknnQuery[V] {
+    implicit codec: StoredVec.Codec[V, S]
+) extends ElastiknnQuery[V] {
 
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val subQuery = new FieldExistsQuery(field)
@@ -35,8 +35,10 @@ class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: 
             simFunc(queryVec, storedVec)
           }
           override def explainScore(docId: Int, subQueryScore: Explanation): Explanation =
-            Explanation.`match`(score(docId, subQueryScore.getValue.floatValue()),
-                                s"Elastiknn exact score function. Returns the exact similarity for each doc.")
+            Explanation.`match`(
+              score(docId, subQueryScore.getValue.floatValue()),
+              s"Elastiknn exact score function. Returns the exact similarity for each doc."
+            )
         }
       }
 

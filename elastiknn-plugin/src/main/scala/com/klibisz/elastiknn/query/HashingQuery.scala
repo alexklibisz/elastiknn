@@ -12,12 +12,13 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafSco
 
 import java.util.Objects
 
-class HashingQuery[V <: Vec, S <: StoredVec: Decoder](field: String,
-                                                      queryVec: V,
-                                                      candidates: Int,
-                                                      hashes: Array[HashAndFreq],
-                                                      simFunc: ExactSimilarityFunction[V, S])
-    extends ElastiknnQuery[V] {
+class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
+    field: String,
+    queryVec: V,
+    candidates: Int,
+    hashes: Array[HashAndFreq],
+    simFunc: ExactSimilarityFunction[V, S]
+) extends ElastiknnQuery[V] {
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
@@ -57,9 +58,7 @@ class HashingQuery[V <: Vec, S <: StoredVec: Decoder](field: String,
           else None
         }
         override def score(docId: Int, subQueryScore: Float): Double = {
-          val intersection = postings.count { p =>
-            p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId
-          }
+          val intersection = postings.count { p => p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId }
           simFunc.maxScore * (intersection * 1d / hashes.length)
         }
 
@@ -85,7 +84,8 @@ object HashingQuery {
       field: String,
       fieldType: FieldType,
       vec: V,
-      hashes: Array[HashAndFreq]): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
+      hashes: Array[HashAndFreq]
+  ): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
     val f = new Field(field, h.hash, fieldType)
     (0 until h.freq).map(_ => f)
   }
