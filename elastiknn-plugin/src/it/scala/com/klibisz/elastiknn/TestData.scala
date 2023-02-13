@@ -54,8 +54,8 @@ object TestData extends XContentCodecCirceBridge {
     TestData(corpus, queries)
   }
 
-  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(
-      implicit rng: Random
+  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(implicit
+      rng: Random
   ): TestData = {
     val corpus = Vec.DenseFloat.randoms(dims, numCorpus)
     val queries = Vec.DenseFloat.randoms(dims, numQueries).map { qv =>
@@ -72,8 +72,7 @@ object TestData extends XContentCodecCirceBridge {
   }
 }
 
-/**
-  * Run this to generate test data. Then copy the json.gz files from the root directory to the resources directory.
+/** Run this to generate test data. Then copy the json.gz files from the root directory to the resources directory.
   */
 object Generate {
 

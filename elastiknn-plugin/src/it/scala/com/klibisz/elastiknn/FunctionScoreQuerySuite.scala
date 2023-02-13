@@ -103,10 +103,9 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
         _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
-          val reqs = batch.map {
-            case (id, vec, color) =>
-              val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
-              indexInto(index).id(id).source(docSource)
+          val reqs = batch.map { case (id, vec, color) =>
+            val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
+            indexInto(index).id(id).source(docSource)
           }
           eknn.execute(bulk(reqs))
         }
@@ -211,10 +210,9 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
         _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
-          val reqs = batch.map {
-            case (id, vec, color) =>
-              val docSource = s"""{ "id": "$id", "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
-              indexInto(index).id(id).source(docSource)
+          val reqs = batch.map { case (id, vec, color) =>
+            val docSource = s"""{ "id": "$id", "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
+            indexInto(index).id(id).source(docSource)
           }
           eknn.execute(bulk(reqs))
         }

@@ -49,7 +49,8 @@ class IndexedVectorSuite extends AsyncFreeSpec with Matchers with ElasticAsyncCl
         field4 = s"wrong-${rng.nextInt()}"
         nnq4 = NearestNeighborsQuery.Exact(vecFieldName, Similarity.L2, Vec.Indexed(indexName, id4, field4))
         res4 <- recoverToExceptionIf[Exception](eknn.nearestNeighbors(indexName, nnq4, 10, idFieldName))
-        _ = res4.getMessage shouldBe s"resource_not_found_exception Document with id [$id4] in index [$indexName] exists, but does not have field [$field4]"
+        _ =
+          res4.getMessage shouldBe s"resource_not_found_exception Document with id [$id4] in index [$indexName] exists, but does not have field [$field4]"
       } yield Succeeded
     }
   }
