@@ -57,7 +57,7 @@ tasks:
       - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
       - mkdir -p $RESULTS_DIR
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
-      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - base64 -i $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
       - cat $RESULTS_DIR/results.md
 
   annbRunOfficialFashionMnist:
@@ -73,7 +73,7 @@ tasks:
       - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
       - mkdir -p $RESULTS_DIR
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
-      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - base64 -i $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
       - cat $RESULTS_DIR/results.md
 
   annbTest:
