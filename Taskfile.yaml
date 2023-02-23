@@ -54,10 +54,9 @@ tasks:
       RESULTS_DIR: ../../docs/pages/performance/fashion-mnist
     cmds:
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 1 --force --local
-      - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
       - mkdir -p $RESULTS_DIR
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
-      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - base64 -i $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
       - cat $RESULTS_DIR/results.md
 
   annbRunOfficialFashionMnist:
@@ -70,10 +69,9 @@ tasks:
     cmds:
       - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --runs 3 --count 100 --parallelism 3 --force
-      - sudo chmod -R 777 results/fashion-mnist-784-euclidean/100
       - mkdir -p $RESULTS_DIR
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
-      - base64 $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
+      - base64 -i $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
       - cat $RESULTS_DIR/results.md
 
   annbTest:
@@ -85,12 +83,11 @@ tasks:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
       OBJC_DISABLE_INITIALIZE_FORK_SAFETY: "YES"
     cmds:
-      - sudo rm -rf results/random-xs-20-euclidean
+      - rm -rf results/random-xs-20-euclidean
       - venv/bin/python run.py --algorithm elastiknn-exact --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-exact
       - venv/bin/python run.py --algorithm elastiknn-l2lsh --dataset random-xs-20-euclidean --run-disabled --timeout 30 --local --force --runs 1
       - ls results/random-xs-20-euclidean/10/elastiknn-l2lsh
-      - sudo chmod -R 777 results/random-xs-20-euclidean
       - venv/bin/python plot.py --dataset random-xs-20-euclidean --count 10 --output plot.png
 
   clean:
