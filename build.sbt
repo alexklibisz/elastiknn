@@ -78,7 +78,9 @@ lazy val `elastiknn-models` = project
     javacOptions ++= Seq(
       // Needed for @ForceInline annotation.
       "--add-exports",
-      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED",
+      "--add-modules",
+      "jdk.incubator.vector"
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
@@ -101,6 +103,7 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginDescription := "...",
     elasticsearchPluginVersion := ElastiknnVersion,
     elasticsearchVersion := ElasticsearchVersion,
+
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",

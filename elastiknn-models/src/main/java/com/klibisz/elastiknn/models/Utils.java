@@ -1,11 +1,36 @@
 package com.klibisz.elastiknn.models;
 
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
+
 public class Utils {
 
-    static float dot(float[] v1, float[] v2) {
+    public static float dot(float[] v1, float[] v2) {
+//        float dp = 0f;
+//        for (int i = 0; i < v1.length; i++) dp += v1[i] * v2[i];
+//        return dp;
+        return dotPanama(v1, v2);
+    }
+
+    private static VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
+
+    public static float dotPanama(float[] v1, float[] v2) {
         float dp = 0f;
-        for (int i = 0; i < v1.length; i++) dp += v1[i] * v2[i];
-        return dp;
+        int i = 0;
+        int bound = species.loopBound(v1.length);
+        VectorMask<Float> m;
+        FloatVector l, r;
+        for (; i < bound; i += species.length()) {
+            l = FloatVector.fromArray(species, v1, i);
+            r = FloatVector.fromArray(species, v2, i);
+            dp += l.mul(r).reduceLanes(VectorOperators.ADD);
+        }
+        m = species.indexInRange(i, v1.length);
+        l = FloatVector.fromArray(species, v1, i, m);
+        r = FloatVector.fromArray(species, v2, i, m);
+        return dp + l.mul(r).reduceLanes(VectorOperators.ADD);
     }
 
     /**

@@ -60,10 +60,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
 
     @Override
     public HashAndFreq[] hash(float[] values) {
-        return hash(values, 0);
+        return hashNoProbing(values);
     }
 
     private HashAndFreq[] hashNoProbing(float[] values) {
+        // Can this be panamized?
         HashAndFreq[] hashes = new HashAndFreq[L];
         for (int ixL = 0; ixL < L; ixL++) {
             int[] ints = new int[1 + k];
