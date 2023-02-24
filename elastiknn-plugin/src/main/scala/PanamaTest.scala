@@ -16,8 +16,8 @@ object PanamaTest extends App {
     println(s"${s} ${t1 - t0}")
   }
 
-  val v1 = Vec.DenseFloat.random(3333).values
-  val v2 = Vec.DenseFloat.random(3333).values
+  val v1 = Vec.DenseFloat.random(4096).values
+  val v2 = Vec.DenseFloat.random(4096).values
   val n = 1000000
 
   println(VectorUtils.dotFma(v1, v2))
