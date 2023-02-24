@@ -76,14 +76,13 @@ lazy val `elastiknn-models` = project
     name := "models",
     version := ElastiknnVersion,
     javacOptions ++= Seq(
-      // Needed for @ForceInline annotation.
-      "--add-exports",
-      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED",
       "--add-modules",
-      "jdk.incubator.vector"
+      "jdk.incubator.vector",
+      "--add-exports",
+      "java.base/jdk.internal.vm.vector=ALL-UNNAMED",
+      "--add-exports",
+      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-//    usePipelining := false,
-//    compileOrder := CompileOrder.JavaThenScala,
     scalacOptions ++= ScalacOptions,
     TestSettings
   )
