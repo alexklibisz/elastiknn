@@ -35,8 +35,7 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
     )
 
   override def getEngineFactory(indexSettings: IndexSettings): Optional[EngineFactory] = {
-    if (indexSettings.getValue(ElastiknnPlugin.Settings.elastiknn)) Optional.empty()
-    else Optional.empty()
+    Optional.empty()
   }
 }
 

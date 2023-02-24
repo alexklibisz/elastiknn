@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.models;
 
 import java.util.*;
 
-import static com.klibisz.elastiknn.models.Utils.dot;
+import static com.klibisz.elastiknn.models.VectorUtils.dotProduct;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
@@ -72,7 +72,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
+                ints[ixk + 1] = (int) Math.floor((dotProduct(a, values) + b) / w);
             }
             hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
@@ -91,7 +91,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                float proj = dot(a, values) + b;
+                float proj = dotProduct(a, values) + b;
                 int hash = (int) Math.floor(proj / w);
                 float dneg = proj - hash * w;
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));

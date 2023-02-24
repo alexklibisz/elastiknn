@@ -4,7 +4,7 @@ import jdk.internal.vm.annotation.ForceInline;
 
 import java.util.Arrays;
 
-import static com.klibisz.elastiknn.models.Utils.sortedIntersectionCount;
+import static com.klibisz.elastiknn.models.VectorUtils.sortedIntersectionCount;
 
 public class ExactModel {
 
@@ -44,11 +44,7 @@ public class ExactModel {
         @Override
         @ForceInline
         public double similarity(float[] v1, float[] v2) {
-            double sumSqrDiff = 0.0;
-            for (int i = 0; i < v1.length; i++) {
-                sumSqrDiff += Math.pow(v1[i] - v2[i], 2);
-            }
-            double dist = Math.sqrt(sumSqrDiff);
+            double dist = VectorUtils.euclideanDistance(v1, v2);
             return 1.0 / (1 + dist);
         }
     }
