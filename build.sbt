@@ -82,6 +82,8 @@ lazy val `elastiknn-models` = project
       "--add-modules",
       "jdk.incubator.vector"
     ),
+//    usePipelining := false,
+//    compileOrder := CompileOrder.JavaThenScala,
     scalacOptions ++= ScalacOptions,
     TestSettings
   )
