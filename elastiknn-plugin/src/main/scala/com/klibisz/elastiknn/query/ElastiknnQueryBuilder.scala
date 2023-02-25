@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.ElastiknnException.{ElastiknnIllegalArgumentExcepti
 import com.klibisz.elastiknn.api.NearestNeighborsQuery._
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Similarity, Vec}
 import com.klibisz.elastiknn.mapper.VectorMapper
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction => ESF, ModelCache}
+import com.klibisz.elastiknn.models.{ModelCache, ExactSimilarityFunction => ESF}
 import com.klibisz.elastiknn.vectors.FloatVectorOps
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query.SearchExecutionContext
@@ -14,6 +14,7 @@ import scala.util.{Failure, Success, Try}
 
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {
 
+  private val cosine = new ESF.Cosine(floatVectorOps)
   private val l1 = new ESF.L1(floatVectorOps)
   private val l2 = new ESF.L2(floatVectorOps)
 
@@ -69,7 +70,7 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
           Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
           _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
-        new ExactQuery(f, v, ESF.Cosine)
+        new ExactQuery(f, v, cosine)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard)
@@ -78,13 +79,13 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Hamming)
 
       case (CosineLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.CosineLsh) =>
-        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), ESF.Cosine)
+        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), cosine)
 
       case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values, probes), l2)
 
       case (PermutationLsh(f, Similarity.Cosine, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), ESF.Cosine)
+        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), cosine)
 
       case (PermutationLsh(f, Similarity.L2, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), l2)

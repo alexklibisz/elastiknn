@@ -5,11 +5,12 @@ import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
+import java.util.Arrays;
+
 public final class PanamaFloatVectorOps implements FloatVectorOps {
 
     private final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
 
-    @Override
     public double dotProduct(float[] v1, float[] v2) {
         double dp = 0f;
         int i = 0;
@@ -68,5 +69,33 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
             sumAbsDiff += pv1.sub(pv2).abs().reduceLanes(VectorOperators.ADD);
         }
         return sumAbsDiff;
+    }
+
+    public double cosineSimilarity(float[] v1, float[] v2) {
+        double dotProd = 0.0;
+        double v1SqrSum = 0.0;
+        double v2SqrSum = 0.0;
+        int i = 0;
+        int bound = species.loopBound(v1.length);
+        FloatVector pv1, pv2;
+        for (; i < bound; i += species.length()) {
+            pv1 = FloatVector.fromArray(species, v1, i);
+            pv2 = FloatVector.fromArray(species, v2, i);
+            dotProd += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
+            v1SqrSum += pv1.mul(pv1).reduceLanes(VectorOperators.ADD);
+            v2SqrSum += pv2.mul(pv2).reduceLanes(VectorOperators.ADD);
+        }
+        if (i < v1.length) {
+            VectorMask<Float> m = species.indexInRange(i, v1.length);
+            pv1 = FloatVector.fromArray(species, v1, i, m);
+            pv2 = FloatVector.fromArray(species, v2, i, m);
+            dotProd += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
+            v1SqrSum += pv1.mul(pv1).reduceLanes(VectorOperators.ADD);
+            v2SqrSum += pv2.mul(pv2).reduceLanes(VectorOperators.ADD);
+        }
+        double denom = Math.sqrt(v1SqrSum) * Math.sqrt(v2SqrSum);
+        if (denom > 0) return dotProd / denom;
+        else if (Arrays.equals(v1, v2)) return 1;
+        else return -1;
     }
 }

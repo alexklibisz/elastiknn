@@ -248,9 +248,8 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         // Lsh query vectors should have a higher similarity than vectors returned by FSQ.
         // Note we have to compute the exact similarity, as the FSQ doesn't re-rank by true similarity.
         val corpusById = corpus.map(t => t._1 -> t._2).toMap
-        val exactModel = new ExactModel.L2
-        val lshSims = lshRes.hits.hits.map(h => exactModel.similarity(fvo, corpusById(h.id).values, queryVec.values))
-        val fsqSims = fsqRes.hits.hits.map(h => exactModel.similarity(fvo, corpusById(h.id).values, queryVec.values))
+        val lshSims = lshRes.hits.hits.map(h => ExactModel.l2Similarity(fvo, corpusById(h.id).values, queryVec.values))
+        val fsqSims = fsqRes.hits.hits.map(h => ExactModel.l2Similarity(fvo, corpusById(h.id).values, queryVec.values))
         lshSims.sum shouldBe >(fsqSims.sum)
 
         // FSQ w/ replace and a min_score is the same as standard FSQ.
