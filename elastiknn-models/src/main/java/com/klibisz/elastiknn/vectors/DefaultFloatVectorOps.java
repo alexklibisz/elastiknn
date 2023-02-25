@@ -36,8 +36,8 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
             v2SqrSum += Math.pow(v2[i], 2);
         }
         double denom = Math.sqrt(v1SqrSum) * Math.sqrt(v2SqrSum);
-        if (denom > 0) return 1 + (dotProd / denom);
-        else if (Arrays.equals(v1, v2)) return 2;
-        else return 0;
+        if (denom > 0) return (dotProd / denom);
+        else if (Arrays.equals(v1, v2)) return 1;
+        else return -1;
     }
 }

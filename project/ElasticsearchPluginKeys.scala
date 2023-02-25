@@ -14,10 +14,10 @@ trait ElasticsearchPluginKeys {
     settingKey[String]("The plugin version.")
   lazy val elasticsearchPluginDistributionDirectory =
     settingKey[File]("The directory where the Elasticsearch distribution is downloaded.")
+  lazy val elasticsearchPluginEsJavaOpts =
+    settingKey[Seq[String]]("Java settings passed via ES_JAVA_OPTS environment variable.")
   lazy val elasticsearchPluginRunSettings =
     settingKey[Seq[String]]("Settings used when running an Elasticsearch node via `sbt elasticsearchPluginRun`.")
-  lazy val elasticsearchPluginDebugSettings =
-    settingKey[Seq[String]]("Settings used when running an Elasticsearch node via `sbt elasticsearchPluginDebug`.")
   lazy val elasticsearchVersion = settingKey[String]("The Elasticsearch version for this plugin.")
   // Tasks.
   lazy val elasticsearchPluginBundle =
