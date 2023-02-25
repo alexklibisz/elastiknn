@@ -20,6 +20,7 @@ services:
       - http.cors.enabled=true
       - http.cors.allow-origin='*'
       - xpack.security.enabled=false
+      - elastiknn.jdk-incubator-vector.enabled=true
       - ES_JAVA_OPTS=--add-modules jdk.incubator.vector
     ports:
       - "9200:9200"
@@ -46,6 +47,7 @@ services:
       - discovery.seed_hosts=elasticsearch_master
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
+      - elastiknn.jdk-incubator-vector.enabled=true
       - ES_JAVA_OPTS=--add-modules jdk.incubator.vector
     ports:
       - "8097:8097"

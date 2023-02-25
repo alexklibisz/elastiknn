@@ -14,6 +14,7 @@ services:
       - http.cors.allow-origin='*'
       - xpack.security.enabled=false
       - discovery.type=single-node
+      - elastiknn.jdk-incubator-vector.enabled=true
       - ES_JAVA_OPTS=--add-modules jdk.incubator.vector
     ports:
       - "9200:9200"
