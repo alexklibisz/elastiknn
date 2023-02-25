@@ -16,8 +16,10 @@ import java.util.{Collections, Optional}
 
 class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with MapperPlugin with EnginePlugin {
 
+  import ElastiknnPlugin.Settings
+
   private val floatVectorOps: FloatVectorOps =
-    if (ElastiknnPlugin.jdkIncubatorVectorEnabled.get(settings)) new PanamaFloatVectorOps
+    if (Settings.jdkIncubatorVectorEnabledSetting.get(settings)) new PanamaFloatVectorOps
     else new DefaultFloatVectorOps
   private val modelCache = new ModelCache(floatVectorOps)
   private val elastiknnQueryBuilder: ElastiknnQueryBuilder = new ElastiknnQueryBuilder(floatVectorOps, modelCache)
@@ -42,7 +44,8 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
   }
 
   override def getSettings: util.List[Setting[_]] = util.List.of(
-    ElastiknnPlugin.jdkIncubatorVectorEnabled
+    Settings.elastiknn,
+    Settings.jdkIncubatorVectorEnabledSetting
   )
 
   override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
@@ -60,6 +63,16 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
 }
 
 object ElastiknnPlugin {
-  val jdkIncubatorVectorEnabled: Setting[java.lang.Boolean] =
-    Setting.boolSetting("elastiknn.jdk-incubator-vector.enabled", false, Setting.Property.NodeScope)
+  object Settings {
+
+    // Deprecated setting.
+    // Previously used to determine whether elastiknn can control the codec used for the index to improve performance.
+    // Now it's a no-op. Deprecated as part of https://github.com/alexklibisz/elastiknn/issues/254 and
+    // https://github.com/alexklibisz/elastiknn/issues/348.
+    val elastiknn: Setting[java.lang.Boolean] =
+      Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope, Setting.Property.Deprecated)
+
+    val jdkIncubatorVectorEnabledSetting: Setting[java.lang.Boolean] =
+      Setting.boolSetting("elastiknn.jdk-incubator-vector.enabled", false, Setting.Property.NodeScope)
+  }
 }

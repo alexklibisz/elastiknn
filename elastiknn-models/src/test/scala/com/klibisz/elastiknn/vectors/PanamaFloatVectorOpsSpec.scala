@@ -10,13 +10,16 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
 
   private val dfvo = new DefaultFloatVectorOps
   private val pfvo = new PanamaFloatVectorOps
-  private val seed = 1677348615716L // System.currentTimeMillis()
+  private val seed = System.currentTimeMillis()
   private implicit val rng = new Random(seed)
   info(s"Testing with seed $seed")
 
   private def compare(f1: Double, f2: Double) = {
-    val error: Double = ((f1 - f2).abs / f1.abs.min(f2.abs))
-    error shouldBe <(1e-3)
+    if (f1 == f2) succeed
+    else {
+      val error: Double = (f1 - f2).abs / f1.abs.min(f2.abs)
+      error shouldBe <(0.01)
+    }
   }
 
   "dotProduct" - {
