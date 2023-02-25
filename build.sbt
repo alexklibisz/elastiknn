@@ -26,6 +26,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
+    `elastiknn-models-benchmarks`,
     `elastiknn-plugin`
   )
 
@@ -85,6 +86,14 @@ lazy val `elastiknn-models` = project
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
+  )
+
+lazy val `elastiknn-models-benchmarks` = project
+  .in(file("elastiknn-models-benchmarks"))
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+  .enablePlugins(JmhPlugin)
+  .settings(
+    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
   )
 
 lazy val `elastiknn-plugin` = project
