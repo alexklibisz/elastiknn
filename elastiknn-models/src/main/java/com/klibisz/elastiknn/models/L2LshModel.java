@@ -1,18 +1,20 @@
 package com.klibisz.elastiknn.models;
 
+import com.klibisz.elastiknn.vectors.FloatVectorOps;
+
 import java.util.*;
 
-import static com.klibisz.elastiknn.models.VectorUtils.dotProduct;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
-
     private final int L;
     private final int k;
     private final int w;
     private final int maxProbesPerTable;
     private final float[][] A;
     private final float[] B;
+
+    private final FloatVectorOps floatVectorOps;
 
     /**
      * Locality sensitive hashing with multiprobe hashing for L2 similarity.
@@ -33,10 +35,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
      * @param w width of each hash bucket
      * @param rng random number generator used to instantiate model parameters.
      */
-    public L2LshModel(int dims, int L, int k, int w, Random rng) {
+    public L2LshModel(int dims, int L, int k, int w, Random rng, FloatVectorOps floatVectorOps) {
         this.L = L;
         this.k = k;
         this.w = w;
+        this.floatVectorOps = floatVectorOps;
 
         // 3 possible perturbations (-1, 0, 1) for each of k hashes. Subtract one for the all-zeros case.
         this.maxProbesPerTable = (int) Math.pow(3d, k) - 1;
@@ -72,7 +75,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                ints[ixk + 1] = (int) Math.floor((dotProduct(a, values) + b) / w);
+                ints[ixk + 1] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
             }
             hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
@@ -91,7 +94,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                float proj = dotProduct(a, values) + b;
+                float proj = floatVectorOps.dotProduct(a, values) + b;
                 int hash = (int) Math.floor(proj / w);
                 float dneg = proj - hash * w;
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
@@ -211,5 +214,4 @@ public class L2LshModel implements HashingModel.DenseFloat {
             }
         }
     }
-
 }

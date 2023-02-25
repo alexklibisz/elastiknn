@@ -110,7 +110,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   }
 
   private def elasticsearchPluginRunImpl = Def.taskDyn {
-    elasticsearchPluginRunGeneralImpl("--add-modules jdk.incubator.vector", elasticsearchPluginRunSettings.value)
+    elasticsearchPluginRunGeneralImpl("", elasticsearchPluginRunSettings.value)
   }
 
   private def elasticsearchPluginDebugImpl = Def.taskDyn {

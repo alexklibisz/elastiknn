@@ -5,6 +5,7 @@ import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 import com.klibisz.elastiknn.api.{Similarity, Vec, XContentCodec}
 import io.circe._
 import com.klibisz.elastiknn.models.ExactSimilarityFunction
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 
@@ -57,13 +58,14 @@ object TestData extends XContentCodecCirceBridge {
   def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(
       implicit rng: Random
   ): TestData = {
+    val l2 = new ExactSimilarityFunction.L2(new PanamaFloatVectorOps)
     val corpus = Vec.DenseFloat.randoms(dims, numCorpus)
     val queries = Vec.DenseFloat.randoms(dims, numQueries).map { qv =>
       Query(
         qv,
         Seq(
           Result(Similarity.L1, corpus.map(cv => ExactSimilarityFunction.L1(cv, qv)).sorted.reverse.take(numNeighbors)),
-          Result(Similarity.L2, corpus.map(cv => ExactSimilarityFunction.L2(cv, qv)).sorted.reverse.take(numNeighbors)),
+          Result(Similarity.L2, corpus.map(cv => l2(cv, qv)).sorted.reverse.take(numNeighbors)),
           Result(Similarity.Cosine, corpus.map(cv => ExactSimilarityFunction.Cosine(cv, qv)).sorted.reverse.take(numNeighbors))
         )
       )

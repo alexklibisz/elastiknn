@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.models
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.ExactModel.Cosine
 import com.klibisz.elastiknn.storage.StoredVec
+import com.klibisz.elastiknn.vectors.FloatVectorOps
 
 sealed trait ExactSimilarityFunction[V <: Vec, S <: StoredVec] extends ((V, S) => Double) {
   def maxScore: Float
@@ -24,10 +25,12 @@ object ExactSimilarityFunction {
     override def maxScore: Float = 1f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(v1.values, v2.values)
   }
-  object L2 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
-    private val m = new ExactModel.L2
+  final class L2(floatVectorOps: FloatVectorOps) extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def maxScore: Float = 1f
-    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(v1.values, v2.values)
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
+      val dist = floatVectorOps.euclideanDistance(v1.values, v2.values)
+      1.0 / (1 + dist)
+    }
   }
   object Cosine extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     private val m = new Cosine

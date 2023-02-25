@@ -1,28 +1,18 @@
 package com.klibisz.elastiknn.models;
 
+import com.klibisz.elastiknn.vectors.BooleanVectorOps;
+import com.klibisz.elastiknn.vectors.FloatVectorOps;
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps;
 import jdk.internal.vm.annotation.ForceInline;
 
 import java.util.Arrays;
 
-import static com.klibisz.elastiknn.models.VectorUtils.sortedIntersectionCount;
-
 public class ExactModel {
 
-    @FunctionalInterface
-    public interface DenseFloat {
-        double similarity(float[] v1, float[] v2);
-    }
-
-    @FunctionalInterface
-    public interface SparseBool {
-        double similarity(int[] v1, int[] v2, int totalIndices);
-    }
-
-    public static class Jaccard implements SparseBool {
-        @Override
+    public static class Jaccard {
         @ForceInline
         public double similarity(int[] v1, int[] v2, int totalIndices) {
-            int isec = sortedIntersectionCount(v1, v2);
+            int isec = BooleanVectorOps.sortedIntersectionCount(v1, v2);
             int denom = v1.length + v2.length - isec;
             if (isec == 0 && denom == 0) return 1;
             else if (denom > 0) return isec * 1.0 / denom;
@@ -30,27 +20,24 @@ public class ExactModel {
         }
     }
 
-    public static class Hamming implements SparseBool {
-        @Override
+    public static class Hamming {
         @ForceInline
         public double similarity(int[] v1, int[] v2, int totalIndices) {
-            int eqTrueCount = sortedIntersectionCount(v1, v2);
+            int eqTrueCount = BooleanVectorOps.sortedIntersectionCount(v1, v2);
             int neqTrueCount = Math.max(v1.length - eqTrueCount, 0) + Math.max(v2.length - eqTrueCount, 0);
             return (totalIndices - neqTrueCount) * 1d / totalIndices;
         }
     }
 
-    public static class L2 implements DenseFloat {
-        @Override
+    public static class L2 {
+
         @ForceInline
-        public double similarity(float[] v1, float[] v2) {
-            double dist = VectorUtils.euclideanDistance(v1, v2);
-            return 1.0 / (1 + dist);
+        public double similarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
+            return 1.0 / (1 + floatVectorOps.euclideanDistance(v1, v2));
         }
     }
 
-    public static class L1 implements DenseFloat {
-        @Override
+    public static class L1 {
         @ForceInline
         public double similarity(float[] v1, float[] v2) {
             double sumAbsDiff = 0.0;
@@ -61,8 +48,7 @@ public class ExactModel {
         }
     }
 
-    public static class Cosine implements DenseFloat {
-        @Override
+    public static class Cosine {
         @ForceInline
         public double similarity(float[] v1, float[] v2) {
             double dotProd = 0.0;

@@ -2,6 +2,7 @@ package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.ExactModel
+import com.klibisz.elastiknn.vectors.{FloatVectorOps, PanamaFloatVectorOps}
 import com.sksamuel.elastic4s.ElasticDsl._
 import futil.Futil
 import org.scalatest._
@@ -14,6 +15,7 @@ import scala.util.hashing.MurmurHash3
 class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspectors with ElasticAsyncClient {
 
   private implicit val rng: Random = new Random(0)
+  private val fvo: FloatVectorOps = new PanamaFloatVectorOps
 
   "end-to-end tests with various function_score configurations" - {
     val indexPrefix = "issue-97b"
@@ -247,8 +249,8 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         // Note we have to compute the exact similarity, as the FSQ doesn't re-rank by true similarity.
         val corpusById = corpus.map(t => t._1 -> t._2).toMap
         val exactModel = new ExactModel.L2
-        val lshSims = lshRes.hits.hits.map(h => exactModel.similarity(corpusById(h.id).values, queryVec.values))
-        val fsqSims = fsqRes.hits.hits.map(h => exactModel.similarity(corpusById(h.id).values, queryVec.values))
+        val lshSims = lshRes.hits.hits.map(h => exactModel.similarity(fvo, corpusById(h.id).values, queryVec.values))
+        val fsqSims = fsqRes.hits.hits.map(h => exactModel.similarity(fvo, corpusById(h.id).values, queryVec.values))
         lshSims.sum shouldBe >(fsqSims.sum)
 
         // FSQ w/ replace and a min_score is the same as standard FSQ.
