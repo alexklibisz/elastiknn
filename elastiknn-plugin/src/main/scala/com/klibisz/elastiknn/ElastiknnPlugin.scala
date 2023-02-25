@@ -48,9 +48,9 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
   override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
     Collections.singletonList(
       new ScoreFunctionSpec(
-        KnnScoreFunctionBuilder.NAME,
-        new KnnScoreFunctionBuilder.Reader(elastiknnQueryBuilder),
-        new KnnScoreFunctionBuilder.Parser(elastiknnQueryBuilder)
+        ElasticsearchScoreFunctionBuilder.NAME,
+        new ElasticsearchScoreFunctionBuilder.Reader(elastiknnQueryBuilder),
+        new ElasticsearchScoreFunctionBuilder.Parser(elastiknnQueryBuilder)
       )
     )
 
