@@ -94,9 +94,9 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                float proj = floatVectorOps.dotProduct(a, values) + b;
+                double proj = floatVectorOps.dotProduct(a, values) + b;
                 int hash = (int) Math.floor(proj / w);
-                float dneg = proj - hash * w;
+                double dneg = proj - hash * w;
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
                 sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
                 zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
@@ -105,11 +105,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
             hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
 
-        PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
+        PriorityQueue<PerturbationSet> heap = new PriorityQueue<>(Comparator.comparingDouble(o -> o.absDistsSum));
 
         // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
         for (int ixL = 0; ixL < L; ixL++) {
-            Arrays.sort(sortedPerturbations[ixL], (o1, o2) -> Float.compare(o1.absDistance, o2.absDistance));
+            Arrays.sort(sortedPerturbations[ixL], Comparator.comparingDouble(o -> o.absDistance));
             heap.add(PerturbationSet.single(sortedPerturbations[ixL][0]));
         }
 
@@ -141,29 +141,15 @@ public class L2LshModel implements HashingModel.DenseFloat {
         else return hashWithProbing(values, probesPerTable);
     }
 
-    private static class Perturbation {
-        final int ixL;
-        final int ixk;
-        final int delta;
-        final float projection;
-        final int hash;
-        final float absDistance;
-        private Perturbation(int ixL, int ixk, int delta, float projection, int hash, float absDistance) {
-            this.ixL = ixL;
-            this.ixk = ixk;
-            this.delta = delta;
-            this.projection = projection;
-            this.hash = hash;
-            this.absDistance = absDistance;
-        }
+    private record Perturbation(int ixL, int ixk, int delta, double projection, int hash, double absDistance) {
     }
 
     private static class PerturbationSet {
         final int ixL;
         Map<Integer, Perturbation> members;
         int ixMax;
-        float absDistsSum;
-        private PerturbationSet(int ixL, Map<Integer, Perturbation> members, int ixMax, float absDistsSum) {
+        double absDistsSum;
+        private PerturbationSet(int ixL, Map<Integer, Perturbation> members, int ixMax, double absDistsSum) {
             this.ixL = ixL;
             this.members = members;
             this.ixMax = ixMax;

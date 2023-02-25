@@ -10,8 +10,8 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
     private final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
 
     @Override
-    public float dotProduct(float[] v1, float[] v2) {
-        float dp = 0f;
+    public double dotProduct(float[] v1, float[] v2) {
+        double dp = 0f;
         int i = 0;
         int bound = species.loopBound(v1.length);
         FloatVector pv1, pv2;

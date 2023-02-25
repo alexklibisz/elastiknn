@@ -41,7 +41,7 @@ public class CosineLshModel implements HashingModel.DenseFloat {
         for (int ixL = 0; ixL < L; ixL++) {
             BitBuffer.IntBuffer buf = new BitBuffer.IntBuffer(writeInt(ixL));
             for (int ixk = 0; ixk < k; ixk++) {
-                float dot = vectorOps.dotProduct(planes[ixL * k + ixk], values);
+                double dot = vectorOps.dotProduct(planes[ixL * k + ixk], values);
                 if (dot > 0) buf.putOne();
                 else buf.putZero();
             }
