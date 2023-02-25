@@ -4,6 +4,7 @@ public interface FloatVectorOps {
 
     double dotProduct(final float[] v1, final float[] v2);
 
-    double euclideanDistance(final float[] v1, final float[] v2);
+    double l2Distance(final float[] v1, final float[] v2);
 
+    double l1Distance(float[] v1, float[] v2);
 }

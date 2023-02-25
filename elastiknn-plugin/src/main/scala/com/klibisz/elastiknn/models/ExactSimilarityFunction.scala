@@ -20,15 +20,15 @@ object ExactSimilarityFunction {
     override def maxScore: Float = 1f
     override def apply(v1: Vec.SparseBool, v2: StoredVec.SparseBool): Double = m.similarity(v1.trueIndices, v2.trueIndices, v1.totalIndices)
   }
-  object L1 extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
+  final class L1(floatVectorOps: FloatVectorOps) extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     private val m = new ExactModel.L1
     override def maxScore: Float = 1f
-    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(v1.values, v2.values)
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = m.similarity(floatVectorOps, v1.values, v2.values)
   }
   final class L2(floatVectorOps: FloatVectorOps) extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
     override def maxScore: Float = 1f
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double = {
-      val dist = floatVectorOps.euclideanDistance(v1.values, v2.values)
+      val dist = floatVectorOps.l2Distance(v1.values, v2.values)
       1.0 / (1 + dist)
     }
   }

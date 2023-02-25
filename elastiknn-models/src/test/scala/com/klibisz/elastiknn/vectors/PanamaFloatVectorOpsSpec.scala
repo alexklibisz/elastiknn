@@ -46,8 +46,8 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
         scale = rng.nextInt(100) + 1
         v1 = Vec.DenseFloat.random(length, unit, scale)
         v2 = Vec.DenseFloat.random(length, unit, scale)
-        default = dfvo.euclideanDistance(v1.values, v2.values)
-        panama = pfvo.euclideanDistance(v1.values, v2.values)
+        default = dfvo.l2Distance(v1.values, v2.values)
+        panama = pfvo.l2Distance(v1.values, v2.values)
       } yield compare(default, panama)
     }
   }

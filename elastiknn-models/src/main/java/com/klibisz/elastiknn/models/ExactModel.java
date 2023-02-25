@@ -2,7 +2,6 @@ package com.klibisz.elastiknn.models;
 
 import com.klibisz.elastiknn.vectors.BooleanVectorOps;
 import com.klibisz.elastiknn.vectors.FloatVectorOps;
-import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps;
 import jdk.internal.vm.annotation.ForceInline;
 
 import java.util.Arrays;
@@ -33,18 +32,14 @@ public class ExactModel {
 
         @ForceInline
         public double similarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
-            return 1.0 / (1 + floatVectorOps.euclideanDistance(v1, v2));
+            return 1.0 / (1 + floatVectorOps.l2Distance(v1, v2));
         }
     }
 
     public static class L1 {
         @ForceInline
-        public double similarity(float[] v1, float[] v2) {
-            double sumAbsDiff = 0.0;
-            for (int i = 0; i < v1.length; i++) {
-                sumAbsDiff += Math.abs(v1[i] - v2[i]);
-            }
-            return 1.0 / (1 + sumAbsDiff);
+        public double similarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
+            return 1.0 / (1 + floatVectorOps.l1Distance(v1, v2));
         }
     }
 

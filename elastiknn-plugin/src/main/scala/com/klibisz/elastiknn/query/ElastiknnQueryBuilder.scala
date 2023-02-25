@@ -14,6 +14,7 @@ import scala.util.{Failure, Success, Try}
 
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {
 
+  private val l1 = new ESF.L1(floatVectorOps)
   private val l2 = new ESF.L2(floatVectorOps)
 
   private def incompatible(q: NearestNeighborsQuery, m: Mapping): Exception =
@@ -56,7 +57,7 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
           Exact(f, Similarity.L1, v: Vec.DenseFloat),
           _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
-        new ExactQuery(f, v, ESF.L1)
+        new ExactQuery(f, v, l1)
 
       case (
           Exact(f, Similarity.L2, v: Vec.DenseFloat),
@@ -89,7 +90,7 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), l2)
 
       case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
-        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), ESF.L1)
+        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), l1)
 
       case _ => Failure(incompatible(query, mapping))
     }

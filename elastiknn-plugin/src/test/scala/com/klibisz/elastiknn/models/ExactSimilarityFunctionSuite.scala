@@ -44,30 +44,32 @@ class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers {
 
   describe("L1 Similarity") {
 
+    val l1 = new ExactSimilarityFunction.L1(new PanamaFloatVectorOps)
+
     it("matches reference") {
       for (_ <- 0 until reps) {
         val len = rng.nextInt(4096) + 10
         val v1 = Vec.DenseFloat.random(len)
         val v2 = Vec.DenseFloat.random(len)
-        ExactSimilarityFunction.L1(v1, v2) shouldBe (ExactSimilarityReference.L1(v1, v2) +- tol)
+        l1(v1, v2) shouldBe (ExactSimilarityReference.L1(v1, v2) +- tol)
       }
     }
 
     it("handles identity") {
       val v1 = Vec.DenseFloat.random(199)
-      ExactSimilarityFunction.L1(v1, v1) shouldBe 1d
+      l1(v1, v1) shouldBe 1d
     }
 
     it("handles all zeros") {
       val v1 = Vec.DenseFloat.random(199)
       val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
-      ExactSimilarityFunction.L1(v1, v2) shouldBe >=(0d)
-      ExactSimilarityFunction.L1(v2, v2) shouldBe 1
+      l1(v1, v2) shouldBe >=(0d)
+      l1(v2, v2) shouldBe 1
     }
 
   }
 
-  describe("Angular Similarity") {
+  describe("Cosine Similarity") {
 
     it("matches reference") {
       for (_ <- 0 until reps) {
