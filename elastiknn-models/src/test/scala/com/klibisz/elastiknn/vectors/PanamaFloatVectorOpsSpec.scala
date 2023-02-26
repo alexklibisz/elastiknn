@@ -10,7 +10,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
 
   private val dfvo = new DefaultFloatVectorOps
   private val pfvo = new PanamaFloatVectorOps
-  private val seed = 1677358265378L // System.currentTimeMillis()
+  private val seed = System.currentTimeMillis()
   private implicit val rng = new Random(seed)
   info(s"Testing with seed $seed")
 
@@ -18,7 +18,6 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
     if (f1 == f2) succeed
     else {
       val error: Double = (f1 - f2).abs / f1.abs.min(f2.abs)
-      if (error > 0.01) println((f1, f2, error))
       error shouldBe <(0.01)
     }
   }

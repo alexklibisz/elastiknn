@@ -9,9 +9,9 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
         double v1SqrSum = 0.0;
         double v2SqrSum = 0.0;
         for (int i = 0; i < v1.length; i++) {
-            dotProd = Math.fma(v1[i], v2[i], dotProd);
-            v1SqrSum = Math.fma(v1[i], v1[i], v1SqrSum);
-            v2SqrSum = Math.fma(v2[i], v2[i], v2SqrSum);
+            dotProd += v1[i] * v2[i];
+            v1SqrSum += Math.pow(v1[i], 2);
+            v2SqrSum += Math.pow(v2[i], 2);
         }
         double denom = Math.sqrt(v1SqrSum) * Math.sqrt(v2SqrSum);
         if (denom > 0) return (dotProd / denom);
@@ -29,16 +29,14 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
 
     public double dotProduct(float[] v1, float[] v2) {
         float dp = 0f;
-        for (int i = 0; i < v1.length; i++) dp = Math.fma(v1[i], v2[i], dp);
+        for (int i = 0; i < v1.length; i++) dp += v1[i] * v2[i];
         return dp;
     }
 
     public double l2Distance(float[] v1, float[] v2) {
         double sumSqrDiff = 0.0;
-        float diff;
         for (int i = 0; i < v1.length; i++) {
-            diff = v1[i] - v2[i];
-            sumSqrDiff = Math.fma(diff, diff, sumSqrDiff);
+            sumSqrDiff += Math.pow(v1[i] - v2[i], 2);
         }
         return Math.sqrt(sumSqrDiff);
     }
