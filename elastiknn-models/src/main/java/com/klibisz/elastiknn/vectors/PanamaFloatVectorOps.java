@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.vectors;
 
 import jdk.incubator.vector.FloatVector;
-import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
@@ -9,7 +8,7 @@ import java.util.Arrays;
 
 public final class PanamaFloatVectorOps implements FloatVectorOps {
 
-    private final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
+    final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
 
     public double cosineSimilarity(float[] v1, float[] v2) {
         double dotProd = 0.0;
@@ -82,7 +81,8 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
             sumSqrDiff += pv3.mul(pv3).reduceLanes(VectorOperators.ADD);
         }
         for (; i < v1.length; i++) {
-            sumSqrDiff += Math.pow(v1[i] - v2[i], 2);
+            float diff = v1[i] - v2[i];
+            sumSqrDiff = Math.fma(diff, diff, sumSqrDiff);
         }
         return Math.sqrt(sumSqrDiff);
     }
