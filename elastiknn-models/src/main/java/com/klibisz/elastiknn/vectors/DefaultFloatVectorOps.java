@@ -9,9 +9,9 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
         double v1SqrSum = 0.0;
         double v2SqrSum = 0.0;
         for (int i = 0; i < v1.length; i++) {
-            dotProd += v1[i] * v2[i];
-            v1SqrSum += Math.pow(v1[i], 2);
-            v2SqrSum += Math.pow(v2[i], 2);
+            dotProd = Math.fma(v1[i], v2[i], dotProd);
+            v1SqrSum = Math.fma(v1[i], v1[i], v1SqrSum);
+            v2SqrSum = Math.fma(v2[i], v2[i], v2SqrSum);
         }
         double denom = Math.sqrt(v1SqrSum) * Math.sqrt(v2SqrSum);
         if (denom > 0) return (dotProd / denom);
