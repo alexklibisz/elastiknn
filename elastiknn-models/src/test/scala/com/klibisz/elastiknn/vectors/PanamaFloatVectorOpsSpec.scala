@@ -33,7 +33,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
         v1 = Vec.DenseFloat.random(length, unit, scale)
         v2 = Vec.DenseFloat.random(length, unit, scale)
         default = dfvo.cosineSimilarity(v1.values, v2.values)
-        panama = pfvo.cosineSimilarityTailLoop(v1.values, v2.values)
+        panama = pfvo.cosineSimilarity(v1.values, v2.values)
       } yield compare(default, panama)
     }
   }
@@ -48,7 +48,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
         v1 = Vec.DenseFloat.random(length, unit, scale)
         v2 = Vec.DenseFloat.random(length, unit, scale)
         default = dfvo.dotProduct(v1.values, v2.values)
-        panama = pfvo.dotProductTailLoop(v1.values, v2.values)
+        panama = pfvo.dotProduct(v1.values, v2.values)
       } yield compare(default, panama)
     }
   }
@@ -63,7 +63,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
         v1 = Vec.DenseFloat.random(length, unit, scale)
         v2 = Vec.DenseFloat.random(length, unit, scale)
         default = dfvo.l1Distance(v1.values, v2.values)
-        panama = pfvo.l1DistanceTailLoop(v1.values, v2.values)
+        panama = pfvo.l1Distance(v1.values, v2.values)
       } yield compare(default, panama)
     }
   }
@@ -78,7 +78,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
         v1 = Vec.DenseFloat.random(length, unit, scale)
         v2 = Vec.DenseFloat.random(length, unit, scale)
         default = dfvo.l2Distance(v1.values, v2.values)
-        panama = pfvo.l2DistanceTailLoop(v1.values, v2.values)
+        panama = pfvo.l2Distance(v1.values, v2.values)
       } yield compare(default, panama)
     }
   }

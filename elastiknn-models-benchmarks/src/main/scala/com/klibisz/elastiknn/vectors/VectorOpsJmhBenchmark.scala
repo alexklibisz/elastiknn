@@ -37,24 +37,8 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def cosineSimilarityPanamaTailLoop(state: BenchmarkState): Double =
-    state.panama.cosineSimilarityTailLoop(state.v1, state.v2)
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 6)
-  @Measurement(time = 5, iterations = 6)
   def dotProductPanama(state: BenchmarkState): Unit =
     state.panama.dotProduct(state.v1, state.v2)
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 6)
-  @Measurement(time = 5, iterations = 6)
-  def dotProductPanamaTailLoop(state: BenchmarkState): Unit =
-    state.panama.dotProductTailLoop(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
@@ -77,14 +61,6 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def l1DistancePanamaTailLoop(state: BenchmarkState): Unit =
-    state.panama.l1DistanceTailLoop(state.v1, state.v2)
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 6)
-  @Measurement(time = 5, iterations = 6)
   def l1DistanceDefault(state: BenchmarkState): Double =
     state.default.l1Distance(state.v1, state.v2)
 
@@ -95,14 +71,6 @@ class VectorOpsJmhBenchmark {
   @Measurement(time = 5, iterations = 6)
   def l2DistancePanama(state: BenchmarkState): Unit =
     state.panama.l2Distance(state.v1, state.v2)
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 6)
-  @Measurement(time = 5, iterations = 6)
-  def l2DistancePanamaTailLoop(state: BenchmarkState): Unit =
-    state.panama.l2DistanceTailLoop(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
