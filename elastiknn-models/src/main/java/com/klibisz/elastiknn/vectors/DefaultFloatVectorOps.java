@@ -35,8 +35,10 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
 
     public double l2Distance(float[] v1, float[] v2) {
         double sumSqrDiff = 0.0;
+        float diff;
         for (int i = 0; i < v1.length; i++) {
-            sumSqrDiff += Math.pow(v1[i] - v2[i], 2);
+            diff = v1[i] - v2[i];
+            sumSqrDiff = Math.fma(diff, diff, sumSqrDiff);
         }
         return Math.sqrt(sumSqrDiff);
     }
