@@ -1,18 +1,20 @@
 package com.klibisz.elastiknn.models;
 
+import com.klibisz.elastiknn.vectors.FloatVectorOps;
+
 import java.util.*;
 
-import static com.klibisz.elastiknn.models.Utils.dot;
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
 
 public class L2LshModel implements HashingModel.DenseFloat {
-
     private final int L;
     private final int k;
     private final int w;
     private final int maxProbesPerTable;
     private final float[][] A;
     private final float[] B;
+
+    private final FloatVectorOps floatVectorOps;
 
     /**
      * Locality sensitive hashing with multiprobe hashing for L2 similarity.
@@ -33,10 +35,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
      * @param w width of each hash bucket
      * @param rng random number generator used to instantiate model parameters.
      */
-    public L2LshModel(int dims, int L, int k, int w, Random rng) {
+    public L2LshModel(int dims, int L, int k, int w, Random rng, FloatVectorOps floatVectorOps) {
         this.L = L;
         this.k = k;
         this.w = w;
+        this.floatVectorOps = floatVectorOps;
 
         // 3 possible perturbations (-1, 0, 1) for each of k hashes. Subtract one for the all-zeros case.
         this.maxProbesPerTable = (int) Math.pow(3d, k) - 1;
@@ -60,10 +63,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
 
     @Override
     public HashAndFreq[] hash(float[] values) {
-        return hash(values, 0);
+        return hashNoProbing(values);
     }
 
     private HashAndFreq[] hashNoProbing(float[] values) {
+        // Can this be panamized?
         HashAndFreq[] hashes = new HashAndFreq[L];
         for (int ixL = 0; ixL < L; ixL++) {
             int[] ints = new int[1 + k];
@@ -71,7 +75,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                ints[ixk + 1] = (int) Math.floor((dot(a, values) + b) / w);
+                ints[ixk + 1] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
             }
             hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
@@ -90,9 +94,9 @@ public class L2LshModel implements HashingModel.DenseFloat {
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
-                float proj = dot(a, values) + b;
+                double proj = floatVectorOps.dotProduct(a, values) + b;
                 int hash = (int) Math.floor(proj / w);
-                float dneg = proj - hash * w;
+                double dneg = proj - hash * w;
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
                 sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
                 zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
@@ -101,11 +105,11 @@ public class L2LshModel implements HashingModel.DenseFloat {
             hashes[ixL] = HashAndFreq.once(writeInts(ints));
         }
 
-        PriorityQueue<PerturbationSet> heap = new PriorityQueue<>((o1, o2) -> Float.compare(o1.absDistsSum, o2.absDistsSum));
+        PriorityQueue<PerturbationSet> heap = new PriorityQueue<>(Comparator.comparingDouble(o -> o.absDistsSum));
 
         // Sort the perturbations in ascending order by abs. distance and add the head of each sorted array to the heap.
         for (int ixL = 0; ixL < L; ixL++) {
-            Arrays.sort(sortedPerturbations[ixL], (o1, o2) -> Float.compare(o1.absDistance, o2.absDistance));
+            Arrays.sort(sortedPerturbations[ixL], Comparator.comparingDouble(o -> o.absDistance));
             heap.add(PerturbationSet.single(sortedPerturbations[ixL][0]));
         }
 
@@ -137,29 +141,15 @@ public class L2LshModel implements HashingModel.DenseFloat {
         else return hashWithProbing(values, probesPerTable);
     }
 
-    private static class Perturbation {
-        final int ixL;
-        final int ixk;
-        final int delta;
-        final float projection;
-        final int hash;
-        final float absDistance;
-        private Perturbation(int ixL, int ixk, int delta, float projection, int hash, float absDistance) {
-            this.ixL = ixL;
-            this.ixk = ixk;
-            this.delta = delta;
-            this.projection = projection;
-            this.hash = hash;
-            this.absDistance = absDistance;
-        }
+    private record Perturbation(int ixL, int ixk, int delta, double projection, int hash, double absDistance) {
     }
 
     private static class PerturbationSet {
         final int ixL;
         Map<Integer, Perturbation> members;
         int ixMax;
-        float absDistsSum;
-        private PerturbationSet(int ixL, Map<Integer, Perturbation> members, int ixMax, float absDistsSum) {
+        double absDistsSum;
+        private PerturbationSet(int ixL, Map<Integer, Perturbation> members, int ixMax, double absDistsSum) {
             this.ixL = ixL;
             this.members = members;
             this.ixMax = ixMax;
@@ -210,5 +200,4 @@ public class L2LshModel implements HashingModel.DenseFloat {
             }
         }
     }
-
 }

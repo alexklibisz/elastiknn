@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import com.klibisz.elastiknn.query.HashingQuery
 import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.MatchHashesAndScoreQuery
@@ -49,6 +50,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val corpusVecs = Vec.DenseFloat.randoms(1024, 1000, unit = true)
     val queryVecs = Vec.DenseFloat.randoms(1024, 100, unit = true)
     val lsh = new PermutationLshModel(128, true)
+    val cosine = new ExactSimilarityFunction.Cosine(new PanamaFloatVectorOps)
 
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
@@ -61,7 +63,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       } {
         case (r, s) =>
           queryVecs.map { v =>
-            val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), ExactSimilarityFunction.Cosine)
+            val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), cosine)
             s.search(q.toLuceneQuery(r), 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
           }
       }

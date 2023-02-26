@@ -26,6 +26,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
+    `elastiknn-models-benchmarks`,
     `elastiknn-plugin`
   )
 
@@ -76,12 +77,23 @@ lazy val `elastiknn-models` = project
     name := "models",
     version := ElastiknnVersion,
     javacOptions ++= Seq(
-      // Needed for @ForceInline annotation.
+      "--add-modules",
+      "jdk.incubator.vector",
+      "--add-exports",
+      "java.base/jdk.internal.vm.vector=ALL-UNNAMED",
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
+  )
+
+lazy val `elastiknn-models-benchmarks` = project
+  .in(file("elastiknn-models-benchmarks"))
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+  .enablePlugins(JmhPlugin)
+  .settings(
+    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
   )
 
 lazy val `elastiknn-plugin` = project
@@ -101,6 +113,8 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginDescription := "...",
     elasticsearchPluginVersion := ElastiknnVersion,
     elasticsearchVersion := ElasticsearchVersion,
+    elasticsearchPluginRunSettings += "elastiknn.jdk-incubator-vector.enabled=true",
+    elasticsearchPluginEsJavaOpts += "--add-modules jdk.incubator.vector",
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",

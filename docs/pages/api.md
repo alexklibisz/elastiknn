@@ -8,28 +8,15 @@ toc_label: Contents
 toc_icon: cog
 ---
 
-This document covers the Elastiknn API, including: indexing settings, REST API payloads, all aproximate similarity models, and some nice-to-know implementation details.
+This document covers the Elastiknn API, including: settings, REST API payloads, all approximate similarity models, some common patterns, and some nice-to-know implementation details.
 
-Once you've [installed Elastiknn](/installation/), you can use the REST API just like you would use the [official Elasticsearch REST APIs](https://www.elastic.co/guide/en/elasticsearch/reference/current/rest-apis.html).
+## Elasticsearch Settings
 
-## Index Settings
+Elastiknn offers the following settings:
 
-Bellow are some index settings which affect Elastiknn performance and behavior.
-
-```json
-PUT /my-index
-{
-  "settings": {
-    "index": {
-      "number_of_shards": 1  # 1
-    }
-  }
-}
-```
-
-|#|Description|
-|:--|:--|
-|1|The number of shards in your index. Like all Elasticsearch queries, Elastiknn queries execute in parallel across shards. This means you can generally speed up your queries by adding more shards to the index.|
+| Setting                                  | Scope   | Required | Default | Description                                                                                                                                                                                                                                                                                                                          |
+|:-----------------------------------------|:--------|:---------|:--------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `elastiknn.jdk-incubator-vector.enabled` | Cluster | false    | false   | If true, Elastiknn will use SIMD vector operations from the [jdk.incubator.vector module](https://docs.oracle.com/en/java/javase/19/docs/api/jdk.incubator.vector/module-summary.html). Note that you likely also need to pass `--add-modules=jdk.incubator.vector` to the JVM, e.g., using the `ES_JAVA_OPTS` environment variable. |
 
 ## Vectors
 
@@ -873,10 +860,26 @@ a doc values field and the vector's hash values as a set of Lucene Terms.
 
 ### Parallelism
 
-From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different than any other query. 
+From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different from any other query.
 Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. 
+
 This means the simplest way to increase query parallelism is to add shards to your index. 
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
+
+The number of shards is a static setting provided when creating the index:
+
+```json
+PUT /my-index
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 2
+    }
+  }
+}
+```
+
+See the [create index documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more details.
 
 ---
 
