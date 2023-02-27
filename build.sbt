@@ -26,7 +26,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
-    `elastiknn-models-benchmarks`,
+    `elastiknn-micro-benchmarks`,
     `elastiknn-plugin`
   )
 
@@ -88,12 +88,20 @@ lazy val `elastiknn-models` = project
     TestSettings
   )
 
-lazy val `elastiknn-models-benchmarks` = project
-  .in(file("elastiknn-models-benchmarks"))
+lazy val `elastiknn-micro-benchmarks` = project
+  .in(file("elastiknn-micro-benchmarks"))
   .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
   .enablePlugins(JmhPlugin)
   .settings(
-    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
+    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
+    resolvers += "jitpack" at "https://jitpack.io",
+    libraryDependencies ++= Seq(
+      "org.eclipse.collections" % "eclipse-collections" % "11.1.0",
+      "org.eclipse.collections" % "eclipse-collections-api" % "11.1.0",
+      "com.koloboke" % "koloboke-impl-common-jdk8" % "1.0.0",
+      "org.agrona" % "agrona" % "1.17.1",
+      "com.github.Speiger" % "Primitive-Collections" % "0.8.0"
+    )
   )
 
 lazy val `elastiknn-plugin` = project
