@@ -4,7 +4,8 @@ import breeze.linalg.DenseVector
 import com.klibisz.elastiknn.api.Vec
 import breeze.linalg.functions._
 
-/** Simpler but slower implementations of exact similarities.
+/**
+  * Simpler but slower implementations of exact similarities.
   */
 object ExactSimilarityReference {
 

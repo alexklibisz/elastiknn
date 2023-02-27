@@ -6,7 +6,8 @@ import org.elasticsearch.common.io.stream.StreamOutput
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.query._
 
-/** Use this class to defer an operation until the next rewrite step. For example, if you have a SetOnce supplier,
+/**
+  * Use this class to defer an operation until the next rewrite step. For example, if you have a SetOnce supplier,
   * you shouldn't immediately call .get() on it. Instead, you can pass an anonymous function to this class and it will
   * call the function (which calls .get()) on the next re-write step.
   *

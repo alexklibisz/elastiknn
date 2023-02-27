@@ -15,7 +15,8 @@ import org.elasticsearch.index.query.SearchExecutionContext
 import scala.language.implicitConversions
 import scala.util._
 
-/** Useful way to represent a query. The name is meh.
+/**
+  * Useful way to represent a query. The name is meh.
   */
 trait ElastiknnQuery[V <: Vec] {
   def toLuceneQuery(indexReader: IndexReader): Query
@@ -50,32 +51,32 @@ object ElastiknnQuery {
     (query, mapping) match {
 
       case (
-            Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
+          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Jaccard)
 
       case (
-            Exact(f, Similarity.Hamming, v: Vec.SparseBool),
-            _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+          Exact(f, Similarity.Hamming, v: Vec.SparseBool),
+          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Hamming)
 
       case (
-            Exact(f, Similarity.L1, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          Exact(f, Similarity.L1, v: Vec.DenseFloat),
+          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, ESF.L1)
 
       case (
-            Exact(f, Similarity.L2, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          Exact(f, Similarity.L2, v: Vec.DenseFloat),
+          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, ESF.L2)
 
       case (
-            Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
+          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, ESF.Cosine)
 

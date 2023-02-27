@@ -16,8 +16,8 @@ trait ElasticAsyncClient {
   lazy val httpHost: HttpHost = new HttpHost("localhost", 9200)
 
   protected def deleteIfExists(index: String): Future[Unit] =
-    eknn.execute(deleteIndex(index)).transform { case _ =>
-      Success(())
+    eknn.execute(deleteIndex(index)).transform {
+      case _ => Success(())
     }
 
   protected lazy val eknn: ElastiknnClient[Future] = ElastiknnClient.futureClient(httpHost.getHostName, httpHost.getPort)

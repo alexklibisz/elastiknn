@@ -23,8 +23,8 @@ class BitBufferSuite extends AnyFunSuite with Matchers {
       val bits = (0 until len).map(_ => rng.nextInt(2))
       val prefix = UnsafeSerialization.writeInt(rng.nextInt(Int.MaxValue))
       val expected = bits.zipWithIndex
-        .map { case (b, i) =>
-          b * math.pow(2, i)
+        .map {
+          case (b, i) => b * math.pow(2, i)
         }
         .sum
         .toInt

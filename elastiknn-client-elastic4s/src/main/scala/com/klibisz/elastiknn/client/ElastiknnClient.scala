@@ -16,24 +16,29 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
-  /** Underlying client from the elastic4s library.
+  /**
+    * Underlying client from the elastic4s library.
     */
   val elasticClient: ElasticClient
 
-  /** Abstract method for executing a request.
+  /**
+    * Abstract method for executing a request.
     */
   def execute[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
 
-  /** Execute the given request.
+  /**
+    * Execute the given request.
     */
   final def apply[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]] = execute(request)
 
-  /** See ElastiknnRequests.putMapping().
+  /**
+    * See ElastiknnRequests.putMapping().
     */
   def putMapping(index: String, vecField: String, storedIdField: String, vecMapping: Mapping): F[Response[PutMappingResponse]] =
     execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
 
-  /** Create an index with recommended defaults.
+  /**
+    * Create an index with recommended defaults.
     * @param index The index name.
     * @param shards How many shards, 1 by default.
     * @param replicas How many replicas, 1 by default.
@@ -43,7 +48,8 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
   def createIndex(index: String, shards: Int = 1, replicas: Int = 0): F[Response[CreateIndexResponse]] =
     execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas))
 
-  /** Index a batch of vectors as new Elasticsearch docs, one doc per vector.
+  /**
+    * Index a batch of vectors as new Elasticsearch docs, one doc per vector.
     * Also see ElastiknnRequests.index().
     *
     * @param index Index where vectors are stored.
@@ -54,13 +60,14 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     * @return Response containing BulkResponse containing indexing responses.
     */
   def index(index: String, vecField: String, vecs: Seq[Vec], storedIdField: String, ids: Seq[String]): F[Response[BulkResponse]] = {
-    val reqs = vecs.zip(ids).map { case (vec, id) =>
-      ElastiknnRequests.index(index, vecField, vec, storedIdField, id)
+    val reqs = vecs.zip(ids).map {
+      case (vec, id) => ElastiknnRequests.index(index, vecField, vec, storedIdField, id)
     }
     execute(bulk(reqs))
   }
 
-  /** See ElastiknnRequests.nearestNeighbors().
+  /**
+    * See ElastiknnRequests.nearestNeighbors().
     */
   def nearestNeighbors(index: String, query: NearestNeighborsQuery, k: Int, storedIdField: String): F[Response[SearchResponse]] = {
 
@@ -92,7 +99,8 @@ object ElastiknnClient {
 
   final case class StrictFailureException(message: String, cause: Throwable = None.orNull) extends RuntimeException(message, cause)
 
-  /** Build an [[ElastiknnFutureClient]] from an elasticsearch RestClient.
+  /**
+    * Build an [[ElastiknnFutureClient]] from an elasticsearch RestClient.
     * @param restClient The Elasticsearch RestClient, configured how you like, e.g. connected to multiple nodes.
     * @param strictFailure If true, convert non-200 responses and bulk responses containing any failure to a failed Future.
     * @param ec ExecutionContext where requests are executed and responses processed.
@@ -120,7 +128,8 @@ object ElastiknnClient {
     }
   }
 
-  /** Build an [[ElastiknnFutureClient]] that connects to a single host
+  /**
+    * Build an [[ElastiknnFutureClient]] that connects to a single host
     * @param host Elasticsearch host.
     * @param port Elasticsearch port.
     * @param timeoutMillis Amount of time to wait for a response.
@@ -128,8 +137,8 @@ object ElastiknnClient {
     * @param ec ExecutionContext where requests are executed and responses processed.
     * @return [[ElastiknnFutureClient]]
     */
-  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(implicit
-      ec: ExecutionContext
+  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(
+      implicit ec: ExecutionContext
   ): ElastiknnFutureClient = {
     val rc: RestClient = RestClient
       .builder(new HttpHost(host, port))
