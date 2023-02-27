@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
-          java-version: 17
+          java-version: 19
           cache: 'sbt'
       - uses: arduino/setup-task@v1
         with:
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
-          java-version: 17
+          java-version: 19
           cache: 'sbt'
       - uses: actions/setup-python@v4
         with:
@@ -122,7 +122,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
-          java-version: 17
+          java-version: 19
           cache: 'sbt'
       - uses: arduino/setup-task@v1
         with:
@@ -189,7 +189,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
-          java-version: 17
+          java-version: 19
           cache: 'sbt'
       - uses: actions/setup-python@v4
         with:

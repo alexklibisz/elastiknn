@@ -38,8 +38,8 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       "xpack.security.enabled=false",
       s"cluster.name=${elasticsearchPluginName.value}-sbt-cluster"
     ),
+    elasticsearchPluginEsJavaOpts := Seq.empty,
     elasticsearchPluginRun := elasticsearchPluginRunImpl.value,
-    elasticsearchPluginDebugSettings := elasticsearchPluginRunSettings.value,
     elasticsearchPluginDebug := elasticsearchPluginDebugImpl.value,
     elasticsearchPluginDownloadDistribution := elasticsearchPluginDownloadDistributionImpl.value
   )
@@ -110,13 +110,16 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   }
 
   private def elasticsearchPluginRunImpl = Def.taskDyn {
-    elasticsearchPluginRunGeneralImpl("", elasticsearchPluginRunSettings.value)
+    elasticsearchPluginRunGeneralImpl(
+      elasticsearchPluginEsJavaOpts.value.mkString(" "),
+      elasticsearchPluginRunSettings.value
+    )
   }
 
   private def elasticsearchPluginDebugImpl = Def.taskDyn {
     elasticsearchPluginRunGeneralImpl(
-      "-Xdebug -Xrunjdwp:transport=dt_socket,server=n,suspend=y,address=5005",
-      elasticsearchPluginDebugSettings.value
+      elasticsearchPluginEsJavaOpts.value.mkString(" ") ++ " -Xdebug -Xrunjdwp:transport=dt_socket,server=n,suspend=y,address=5005",
+      elasticsearchPluginRunSettings.value
     )
   }
 

@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationExc
 import com.klibisz.elastiknn._
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.lucene.HashFieldType
-import com.klibisz.elastiknn.models.Cache
+import com.klibisz.elastiknn.models.ModelCache
 import com.klibisz.elastiknn.query.{ExactQuery, HashingQuery}
 import org.apache.lucene.document.{FieldType => LuceneFieldType}
 import org.apache.lucene.index.{IndexableField, Term}
@@ -21,39 +21,46 @@ import scala.util.{Failure, Try}
 
 object VectorMapper {
 
-  val sparseBoolVector: VectorMapper[Vec.SparseBool] =
-    new VectorMapper[Vec.SparseBool] {
-      override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
-      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
-        if (mapping.dims != vec.totalIndices)
-          Failure(ElastiknnException.vectorDimensions(vec.totalIndices, mapping.dims))
-        else {
-          val sorted = vec.sorted() // Sort for faster intersections on the query side.
-          mapping match {
-            case Mapping.SparseBool(_) => Try(ExactQuery.index(field, sorted))
-            case m: Mapping.JaccardLsh =>
-              Try(HashingQuery.index(field, luceneFieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
-            case m: Mapping.HammingLsh =>
-              Try(HashingQuery.index(field, luceneFieldType, sorted, Cache(m).hash(vec.trueIndices, vec.totalIndices)))
-            case _ => Failure(incompatible(mapping, vec))
-          }
+  final class SparseBoolVectorMapper(modelCache: ModelCache) extends VectorMapper[Vec.SparseBool] {
+    override val CONTENT_TYPE: String = SparseBoolVectorMapper.CONTENT_TYPE
+    override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.SparseBool): Try[Seq[IndexableField]] =
+      if (mapping.dims != vec.totalIndices)
+        Failure(ElastiknnException.vectorDimensions(vec.totalIndices, mapping.dims))
+      else {
+        val sorted = vec.sorted() // Sort for faster intersections on the query side.
+        mapping match {
+          case Mapping.SparseBool(_) => Try(ExactQuery.index(field, sorted))
+          case m: Mapping.JaccardLsh =>
+            Try(HashingQuery.index(field, luceneFieldType, sorted, modelCache(m).hash(vec.trueIndices, vec.totalIndices)))
+          case m: Mapping.HammingLsh =>
+            Try(HashingQuery.index(field, luceneFieldType, sorted, modelCache(m).hash(vec.trueIndices, vec.totalIndices)))
+          case _ => Failure(incompatible(mapping, vec))
         }
-    }
-  val denseFloatVector: VectorMapper[Vec.DenseFloat] =
-    new VectorMapper[Vec.DenseFloat] {
-      override val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
-      override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
-        if (mapping.dims != vec.values.length)
-          Failure(ElastiknnException.vectorDimensions(vec.values.length, mapping.dims))
-        else
-          mapping match {
-            case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
-            case m: Mapping.CosineLsh      => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
-            case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, Cache(m).hash(vec.values)))
-            case _                         => Failure(incompatible(mapping, vec))
-          }
-    }
+      }
+  }
+
+  object SparseBoolVectorMapper {
+    val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_sparse_bool_vector"
+  }
+
+  final class DenseFloatVectorMapper(modelCache: ModelCache) extends VectorMapper[Vec.DenseFloat] {
+    override val CONTENT_TYPE: String = DenseFloatVectorMapper.CONTENT_TYPE
+    override def checkAndCreateFields(mapping: Mapping, field: String, vec: Vec.DenseFloat): Try[Seq[IndexableField]] =
+      if (mapping.dims != vec.values.length)
+        Failure(ElastiknnException.vectorDimensions(vec.values.length, mapping.dims))
+      else
+        mapping match {
+          case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
+          case m: Mapping.CosineLsh      => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
+          case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
+          case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
+          case _                         => Failure(incompatible(mapping, vec))
+        }
+  }
+
+  object DenseFloatVectorMapper {
+    val CONTENT_TYPE: String = s"${ELASTIKNN_NAME}_dense_float_vector"
+  }
 
   private def incompatible(m: Mapping, v: Vec): Exception =
     new IllegalArgumentException(s"Mapping [$m] is not compatible with vector [$v]")
@@ -85,7 +92,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
   final val luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
 
-  class TypeParser extends Mapper.TypeParser {
+  object TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {
       val mapping = XContentCodec.decodeUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)
@@ -130,5 +137,4 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
 
     override def getParameters: Array[FieldMapper.Parameter[_]] = Array.empty
   }
-
 }

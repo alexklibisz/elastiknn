@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -16,77 +17,81 @@ class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers {
 
   describe("L2 Similarity") {
 
+    val l2 = new ExactSimilarityFunction.L2(new PanamaFloatVectorOps)
+
     it("matches reference") {
       for (_ <- 0 until reps) {
         val len = rng.nextInt(4096) + 10
         val v1 = Vec.DenseFloat.random(len)
         val v2 = Vec.DenseFloat.random(len)
-        ExactSimilarityFunction.L2(v1, v2) shouldBe (ExactSimilarityReference.L2(v1, v2) +- tol)
+        l2(v1, v2) shouldBe (ExactSimilarityReference.L2(v1, v2) +- tol)
       }
     }
 
     it("handles identity") {
       val v1 = Vec.DenseFloat.random(199)
-      ExactSimilarityFunction.L2(v1, v1) shouldBe 1d
+      l2(v1, v1) shouldBe 1d
     }
 
     it("handles all zeros") {
       val v1 = Vec.DenseFloat.random(199)
       val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
-      ExactSimilarityFunction.L2(v1, v2) shouldBe >=(0d)
-      ExactSimilarityFunction.L2(v2, v2) shouldBe 1
+      l2(v1, v2) shouldBe >=(0d)
+      l2(v2, v2) shouldBe 1
     }
 
   }
 
   describe("L1 Similarity") {
 
+    val l1 = new ExactSimilarityFunction.L1(new PanamaFloatVectorOps)
+
     it("matches reference") {
       for (_ <- 0 until reps) {
         val len = rng.nextInt(4096) + 10
         val v1 = Vec.DenseFloat.random(len)
         val v2 = Vec.DenseFloat.random(len)
-        ExactSimilarityFunction.L1(v1, v2) shouldBe (ExactSimilarityReference.L1(v1, v2) +- tol)
+        l1(v1, v2) shouldBe (ExactSimilarityReference.L1(v1, v2) +- tol)
       }
     }
 
     it("handles identity") {
       val v1 = Vec.DenseFloat.random(199)
-      ExactSimilarityFunction.L1(v1, v1) shouldBe 1d
+      l1(v1, v1) shouldBe 1d
     }
 
     it("handles all zeros") {
       val v1 = Vec.DenseFloat.random(199)
       val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
-      ExactSimilarityFunction.L1(v1, v2) shouldBe >=(0d)
-      ExactSimilarityFunction.L1(v2, v2) shouldBe 1
+      l1(v1, v2) shouldBe >=(0d)
+      l1(v2, v2) shouldBe 1
     }
 
   }
 
-  describe("Angular Similarity") {
+  describe("Cosine Similarity") {
+
+    val cosine = new ExactSimilarityFunction.Cosine(new PanamaFloatVectorOps)
 
     it("matches reference") {
       for (_ <- 0 until reps) {
         val len = rng.nextInt(4096) + 10
         val v1 = Vec.DenseFloat.random(len)
         val v2 = Vec.DenseFloat.random(len)
-        ExactSimilarityFunction.Cosine(v1, v2) shouldBe (ExactSimilarityReference.Cosine(v1, v2) +- tol)
+        cosine(v1, v2) shouldBe (ExactSimilarityReference.Cosine(v1, v2) +- tol)
       }
     }
 
     it("handles identity") {
       val v1 = Vec.DenseFloat.random(199)
-      ExactSimilarityFunction.Cosine(v1, v1) shouldBe (2d +- tol)
+      cosine(v1, v1) shouldBe (2d +- tol)
     }
 
     it("handles all zeros") {
       val v1 = Vec.DenseFloat.random(199)
       val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
-      ExactSimilarityFunction.Cosine(v1, v2) shouldBe >=(0d)
-      ExactSimilarityFunction.Cosine(v2, v2) shouldBe 2d
+      cosine(v2, v2) shouldBe 2d
     }
-
   }
 
   describe("Jaccard Similarity") {

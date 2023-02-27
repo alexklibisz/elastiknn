@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.query
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import org.apache.lucene.codecs.lucene94.Lucene94Codec
 import org.apache.lucene.document.Document
 import org.scalatest.funsuite.AnyFunSuite
@@ -27,8 +28,8 @@ class HashingQueryPerformanceSuite extends AnyFunSuite with Matchers with Lucene
     implicit val rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 10000, unit = true)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 1000, unit = true)
-    val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0))
-    val exactFunc = ExactSimilarityFunction.L2
+    val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0), new PanamaFloatVectorOps)
+    val exactFunc = new ExactSimilarityFunction.L2(new PanamaFloatVectorOps)
     val field = "vec"
     val fieldType = HashFieldType.HASH_FIELD_TYPE
     indexAndSearch(codec = new BenchmarkCodec) { w =>

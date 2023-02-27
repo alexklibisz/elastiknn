@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.query
 
-import com.klibisz.elastiknn.api.{Mapping, Vec}
+import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq}
 import com.klibisz.elastiknn.storage.StoredVec.Decoder
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
@@ -12,13 +12,13 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafSco
 
 import java.util.Objects
 
-class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
+final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
     field: String,
     queryVec: V,
     candidates: Int,
     hashes: Array[HashAndFreq],
     simFunc: ExactSimilarityFunction[V, S]
-) extends ElastiknnQuery[V] {
+) extends ElastiknnQuery {
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
@@ -80,7 +80,7 @@ class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
 
 object HashingQuery {
 
-  def index[M <: Mapping, V <: Vec: StoredVec.Encoder](
+  def index[V <: Vec: StoredVec.Encoder](
       field: String,
       fieldType: FieldType,
       vec: V,
