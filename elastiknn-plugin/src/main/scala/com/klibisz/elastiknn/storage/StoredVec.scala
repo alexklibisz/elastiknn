@@ -6,8 +6,7 @@ import com.klibisz.elastiknn.api.Vec
 
 import scala.language.implicitConversions
 
-/**
-  * Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
+/** Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
   * This is decoupled from the api Vec case classes so we can support various optimizations that might change the
   * interface, e.g. streaming the vectors in a read-once fashion. Currently the fastest storage methods support roughly
   * the same interface.
@@ -52,8 +51,7 @@ object StoredVec {
     }
   }
 
-  /**
-    * Typeclasses for converting api vecs to stored vecs.
+  /** Typeclasses for converting api vecs to stored vecs.
     */
   trait Codec[V <: Vec, S <: StoredVec] {
     def decode(barr: Array[Byte], offset: Int, length: Int): S

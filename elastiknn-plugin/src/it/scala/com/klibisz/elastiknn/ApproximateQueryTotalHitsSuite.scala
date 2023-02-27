@@ -24,9 +24,8 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
     def search(n: Int = 100): Future[Seq[(Int, Long, Vector[String])]] = {
       val queriesWithIndices = corpus.take(n).map(query.withVec).zipWithIndex
       val shuffled = Random.shuffle(queriesWithIndices)
-      val running = shuffled.map {
-        case (q, i) =>
-          eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
+      val running = shuffled.map { case (q, i) =>
+        eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
       }
       Future.sequence(running).map(_.sortBy(_._1))
     }
