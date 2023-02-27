@@ -36,19 +36,19 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
     }
 
     public double dotProduct(float[] v1, float[] v2) {
-        double dp = 0f;
+        double dotProd = 0f;
         int i = 0;
         int bound = species.loopBound(v1.length);
         FloatVector pv1, pv2;
         for (; i < bound; i += species.length()) {
             pv1 = FloatVector.fromArray(species, v1, i);
             pv2 = FloatVector.fromArray(species, v2, i);
-            dp += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
+            dotProd += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
         }
         for (; i < v1.length; i++) {
-            dp = Math.fma(v1[i], v2[i], dp);
+            dotProd = Math.fma(v1[i], v2[i], dotProd);
         }
-        return dp;
+        return dotProd;
     }
 
 

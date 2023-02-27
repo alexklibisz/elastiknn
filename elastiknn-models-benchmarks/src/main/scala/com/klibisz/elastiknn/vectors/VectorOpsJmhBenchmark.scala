@@ -37,16 +37,16 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def dotProductPanama(state: BenchmarkState): Unit =
-    state.panama.dotProduct(state.v1, state.v2)
+  def dotProductDefault(state: BenchmarkState): Double =
+    state.default.dotProduct(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def dotProductDefault(state: BenchmarkState): Double =
-    state.default.cosineSimilarity(state.v1, state.v2)
+  def dotProductPanama(state: BenchmarkState): Unit =
+    state.panama.dotProduct(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
