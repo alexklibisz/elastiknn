@@ -121,7 +121,7 @@ lazy val `elastiknn-plugin` = project
       "org.scalanlp" %% "breeze" % "1.3" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.2.11" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.6" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     scalacOptions ++= ScalacOptions,
