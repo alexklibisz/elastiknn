@@ -1,3 +1,4 @@
 -J-Xmx1024M
 -J-Xms1024M
 -J-XX:+UseG1GC
+-J--add-modules=jdk.incubator.vector

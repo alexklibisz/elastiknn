@@ -8,6 +8,10 @@ This directory contains an integration with [ann-benchmarks](https://github.com/
 - Python3.6 (`python3.6` executable on the path)
 - Docker
 
+## Tips
+
+* To benchmark with multiple shards in the index, increase the `thread_pool.search.queue_size` setting in Dockerfile.elastiknn to at least the number of shards. Otherwise, the Elasticsearch server will return fewer than the desired number of neighbors.
+
 ## Recipes
 
 ### Setup Environment

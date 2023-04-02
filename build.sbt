@@ -3,8 +3,8 @@ import ElasticsearchPluginPlugin.autoImport._
 Global / scalaVersion := "2.13.10"
 
 lazy val CirceVersion = "0.14.3"
-lazy val ElasticsearchVersion = "8.6.1"
-lazy val Elastic4sVersion = "8.5.3"
+lazy val ElasticsearchVersion = "8.6.2"
+lazy val Elastic4sVersion = "8.5.4"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.4.2"
 
@@ -26,6 +26,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
+    `elastiknn-models-benchmarks`,
     `elastiknn-plugin`
   )
 
@@ -76,12 +77,23 @@ lazy val `elastiknn-models` = project
     name := "models",
     version := ElastiknnVersion,
     javacOptions ++= Seq(
-      // Needed for @ForceInline annotation.
+      "--add-modules",
+      "jdk.incubator.vector",
+      "--add-exports",
+      "java.base/jdk.internal.vm.vector=ALL-UNNAMED",
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
     scalacOptions ++= ScalacOptions,
     TestSettings
+  )
+
+lazy val `elastiknn-models-benchmarks` = project
+  .in(file("elastiknn-models-benchmarks"))
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+  .enablePlugins(JmhPlugin)
+  .settings(
+    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
   )
 
 lazy val `elastiknn-plugin` = project
@@ -101,13 +113,15 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginDescription := "...",
     elasticsearchPluginVersion := ElastiknnVersion,
     elasticsearchVersion := ElasticsearchVersion,
+    elasticsearchPluginRunSettings += "elastiknn.jdk-incubator-vector.enabled=true",
+    elasticsearchPluginEsJavaOpts += "--add-modules jdk.incubator.vector",
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "28.2-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",
       "org.scalanlp" %% "breeze" % "1.3" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.2.11" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.6" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     scalacOptions ++= ScalacOptions,
