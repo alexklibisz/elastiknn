@@ -36,8 +36,7 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
     )
   }
 
-  /**
-    * Note that this score function does not re-score the top candidates.
+  /** Note that this score function does not re-score the top candidates.
     * The final score produced is `(max possible score for this similarity * (number of matching hashes / total number of hashes)`.
     * This is necessary because a ScoreFunction can only evaluate one doc at a time and must immediately score it.
     */

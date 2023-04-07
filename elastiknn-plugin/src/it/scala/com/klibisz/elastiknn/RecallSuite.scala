@@ -13,8 +13,7 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash
 
-/**
-  * Tests for recall regressions for all of the mappings and their queries using random vectors.
+/** Tests for recall regressions for all of the mappings and their queries using random vectors.
   * There are some subtleties:
   * - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could
   *   have the same score relative a query vector.
@@ -163,42 +162,42 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
 
   private def index(corpusIndex: String, queriesIndex: String, mapping: Mapping, testData: TestData): Future[Unit] =
     for {
-      corpusExists <- eknn.execute(indexExists(corpusIndex)).map(_.result.exists).recoverWith {
-        case _ => Future.successful(false)
+      corpusExists <- eknn.execute(indexExists(corpusIndex)).map(_.result.exists).recoverWith { case _ =>
+        Future.successful(false)
       }
-      queryExists <- eknn.execute(indexExists(queriesIndex)).map(_.result.exists).recoverWith {
-        case _ => Future.successful(false)
+      queryExists <- eknn.execute(indexExists(queriesIndex)).map(_.result.exists).recoverWith { case _ =>
+        Future.successful(false)
       }
-      _ <- if (corpusExists && queryExists) Future.successful(())
-      else
-        for {
-          _ <- eknn.createIndex(corpusIndex, shards)
-          _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
-          _ <- eknn.createIndex(queriesIndex)
-          _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
-          _ <- Futil.traverseSerial(testData.corpus.zipWithIndex.grouped(100)) { batch =>
-            val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
-            eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
-          }
-          _ <- Futil.traverseSerial(testData.queries.zipWithIndex.grouped(100)) { batch =>
-            val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
-            eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
-          }
-          _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
-          _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
-          // TODO: is the last refresh necessary?
-          _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
-        } yield ()
+      _ <-
+        if (corpusExists && queryExists) Future.successful(())
+        else
+          for {
+            _ <- eknn.createIndex(corpusIndex, shards)
+            _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
+            _ <- eknn.createIndex(queriesIndex)
+            _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
+            _ <- Futil.traverseSerial(testData.corpus.zipWithIndex.grouped(100)) { batch =>
+              val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
+              eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
+            }
+            _ <- Futil.traverseSerial(testData.queries.zipWithIndex.grouped(100)) { batch =>
+              val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
+              eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
+            }
+            _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
+            _ <- eknn.execute(forceMerge(corpusIndex, queriesIndex).maxSegments(segmentsPerShard))
+            // TODO: is the last refresh necessary?
+            _ <- eknn.execute(refreshIndex(corpusIndex, queriesIndex))
+          } yield ()
     } yield ()
 
   private def recall(queries: Vector[Query], resultsIx: Int, responses: Seq[Response[SearchResponse]]): Double = {
     val numMatches = queries
       .zip(responses)
-      .map {
-        case (Query(_, correctResults), response) =>
-          val minCorrectScore = correctResults(resultsIx).values.min
-          val numGreaterEqual = response.result.hits.hits.count(_.score >= minCorrectScore)
-          numGreaterEqual
+      .map { case (Query(_, correctResults), response) =>
+        val minCorrectScore = correctResults(resultsIx).values.min
+        val numGreaterEqual = response.result.hits.hits.count(_.score >= minCorrectScore)
+        numGreaterEqual
       }
       .sum
     numMatches * 1d / queries.map(_.results(resultsIx).values.length).sum
@@ -233,10 +232,9 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
         explicitResponses3 <- Futil.traverseParN(numCores)(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         }
-        indexedResponses <- Futil.traverseParN(numCores)(testData.queries.zipWithIndex) {
-          case (_, i) =>
-            val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
-            eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
+        indexedResponses <- Futil.traverseParN(numCores)(testData.queries.zipWithIndex) { case (_, i) =>
+          val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
+          eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
         }
         _ <- eknn.execute(deleteIndex(corpusIndex))
         _ <- eknn.execute(deleteIndex(queriesIndex))

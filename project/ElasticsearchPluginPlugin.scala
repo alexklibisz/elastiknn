@@ -7,8 +7,7 @@ import java.nio.file.Files
 import java.util.zip.GZIPInputStream
 import scala.sys.process.Process
 
-/**
-  * SBT plugin providing functionality to run and build an Elasticsearch plugin.
+/** SBT plugin providing functionality to run and build an Elasticsearch plugin.
   * Also see:
   *  https://github.com/elastic/elasticsearch/blob/7ad3cf0d34/build-tools/src/main/java/org/elasticsearch/gradle/plugin/PluginBuildPlugin.java,
   *  build.sbt file in https://github.com/shikhar/eskka
@@ -76,10 +75,9 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
         val dependencyMap = moduleGraph.dependencyMap
         val allModules = moduleGraph.nodes.map(n => n.id.organization % n.id.name % n.id.version -> List.empty).toMap
         allModules ++ dependencyMap
-          .map {
-            case (k, vv) =>
-              (k.organization % k.name % k.version) ->
-                vv.toList.map(v => v.id.organization % v.id.name % v.id.version)
+          .map { case (k, vv) =>
+            (k.organization % k.name % k.version) ->
+              vv.toList.map(v => v.id.organization % v.id.name % v.id.version)
           }
       }
       def transitiveDependencyExists(dependencyMap: Map[ModuleID, List[ModuleID]])(from: ModuleID, to: ModuleID): Boolean =

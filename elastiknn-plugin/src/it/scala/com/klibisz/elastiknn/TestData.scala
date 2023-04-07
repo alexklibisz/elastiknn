@@ -55,8 +55,8 @@ object TestData extends XContentCodecCirceBridge {
     TestData(corpus, queries)
   }
 
-  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(
-      implicit rng: Random
+  def genDenseFloat(dims: Int, numCorpus: Int, numQueries: Int, numNeighbors: Int, unit: Boolean = false)(implicit
+      rng: Random
   ): TestData = {
     val l1 = new ExactSimilarityFunction.L1(new PanamaFloatVectorOps)
     val l2 = new ExactSimilarityFunction.L2(new PanamaFloatVectorOps)
@@ -76,8 +76,7 @@ object TestData extends XContentCodecCirceBridge {
   }
 }
 
-/**
-  * Run this to generate test data. Then copy the json.gz files from the root directory to the resources directory.
+/** Run this to generate test data. Then copy the json.gz files from the root directory to the resources directory.
   */
 object Generate {
 

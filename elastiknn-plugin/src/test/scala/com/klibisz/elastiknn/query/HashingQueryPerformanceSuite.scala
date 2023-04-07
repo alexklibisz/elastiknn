@@ -42,15 +42,14 @@ class HashingQueryPerformanceSuite extends AnyFunSuite with Matchers with Lucene
         _ = w.addDocument(d)
       } yield ()
       info(s"Indexed [${corpusVecs.length}] vectors in [${System.currentTimeMillis() - t0}] ms.")
-    } {
-      case (r, s) =>
-        val t0 = System.currentTimeMillis()
-        queryVecs.foreach { vec =>
-          val q = new HashingQuery(field, vec, 100, model.hash(vec.values, 9), exactFunc)
-          val dd = s.search(q.toLuceneQuery(r), 100)
-          dd.scoreDocs should have length 100
-        }
-        info(s"Ran [${queryVecs.length}] searches in [${System.currentTimeMillis() - t0}] ms.")
+    } { case (r, s) =>
+      val t0 = System.currentTimeMillis()
+      queryVecs.foreach { vec =>
+        val q = new HashingQuery(field, vec, 100, model.hash(vec.values, 9), exactFunc)
+        val dd = s.search(q.toLuceneQuery(r), 100)
+        dd.scoreDocs should have length 100
+      }
+      info(s"Ran [${queryVecs.length}] searches in [${System.currentTimeMillis() - t0}] ms.")
     }
   }
 }
