@@ -43,32 +43,32 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
   def build(query: NearestNeighborsQuery, mapping: Mapping): Try[ElastiknnQuery] =
     (query, mapping) match {
       case (
-          Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
-          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+            Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
+            _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Jaccard)
 
       case (
-          Exact(f, Similarity.Hamming, v: Vec.SparseBool),
-          _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
+            Exact(f, Similarity.Hamming, v: Vec.SparseBool),
+            _: Mapping.SparseBool | _: Mapping.JaccardLsh | _: Mapping.HammingLsh
           ) =>
         new ExactQuery(f, v, ESF.Hamming)
 
       case (
-          Exact(f, Similarity.L1, v: Vec.DenseFloat),
-          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            Exact(f, Similarity.L1, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, l1)
 
       case (
-          Exact(f, Similarity.L2, v: Vec.DenseFloat),
-          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            Exact(f, Similarity.L2, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, l2)
 
       case (
-          Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
-          _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, cosine)
 

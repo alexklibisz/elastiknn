@@ -11,8 +11,8 @@ import org.elasticsearch.common.lucene.search.function.{CombineFunction, Functio
 
 import java.util.Objects
 
-final class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(
-    implicit codec: StoredVec.Codec[V, S]
+final class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, simFunc: ExactSimilarityFunction[V, S])(implicit
+    codec: StoredVec.Codec[V, S]
 ) extends ElastiknnQuery {
 
   override def toLuceneQuery(indexReader: IndexReader): Query = {

@@ -40,8 +40,8 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
 
     // Define a mapping with one field for each of the above fields.
     val combinedMapping = {
-      val vecFields = fields.map {
-        case (name, mapping, _, _) => s""" "$name": ${XContentCodec.encodeUnsafeToString(mapping)} """
+      val vecFields = fields.map { case (name, mapping, _, _) =>
+        s""" "$name": ${XContentCodec.encodeUnsafeToString(mapping)} """
       }
       s"""
        |{
@@ -58,8 +58,8 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
 
     // Generate docs and index requests for documents that implement this mapping.
     val indexReqs = (0 until n).map { i =>
-      val vecFields = fields.map {
-        case (name, _, gen, _) => s""""$name":${gen()}"""
+      val vecFields = fields.map { case (name, _, gen, _) =>
+        s""""$name":${gen()}"""
       }
       val id = s"v$i"
       val source = s""" { "id": "$id", ${vecFields.mkString(",")} } """
@@ -76,9 +76,8 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
       _ <- eknn.execute(bulk(indexReqs))
       _ <- eknn.execute(refreshIndex(index))
       counts <- Future.sequence(countExistsReqs.map(eknn.execute(_)))
-      neighbors <- Future.traverse(fields) {
-        case (name, _, _, query) =>
-          eknn.nearestNeighbors(index, query.withVec(Vec.Indexed(index, "v0", name)), 5, "id")
+      neighbors <- Future.traverse(fields) { case (name, _, _, query) =>
+        eknn.nearestNeighbors(index, query.withVec(Vec.Indexed(index, "v0", name)), 5, "id")
       }
     } yield {
       counts.length shouldBe fields.length
