@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -16,7 +17,7 @@ class CosineLshModelSuite extends AnyFunSuite with Matchers {
       k <- 1 to 5
       isUnit <- Seq(true, false)
     } {
-      val mlsh = new CosineLshModel(dims, l, k, new java.util.Random(0))
+      val mlsh = new CosineLshModel(dims, l, k, new java.util.Random(0), new PanamaFloatVectorOps)
       val vec = Vec.DenseFloat.random(dims, unit = isUnit)
       val scaled = (1 to 10).map(m => vec.copy(vec.values.map(_ * m)))
       val hashed = scaled.map(v => mlsh.hash(v.values).toList)
