@@ -4,7 +4,7 @@ Global / scalaVersion := "2.13.10"
 
 lazy val CirceVersion = "0.14.3"
 lazy val ElasticsearchVersion = "8.6.2"
-lazy val Elastic4sVersion = "8.5.4"
+lazy val Elastic4sVersion = "8.6.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.4.2"
 
@@ -118,7 +118,7 @@ lazy val `elastiknn-plugin` = project
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "31.1-jre",
       "com.google.guava" % "failureaccess" % "1.0.1",
-      "org.scalanlp" %% "breeze" % "1.3" % Test,
+      "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.4.6" % Test,
