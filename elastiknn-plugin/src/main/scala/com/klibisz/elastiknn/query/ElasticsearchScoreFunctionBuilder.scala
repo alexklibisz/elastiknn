@@ -1,15 +1,16 @@
 package com.klibisz.elastiknn.query
 
-import java.util.Objects
 import com.klibisz.elastiknn.ELASTIKNN_NAME
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnUnsupportedOperationException
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, Vec}
-import org.elasticsearch.Version
+import org.elasticsearch.TransportVersion
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.common.lucene.search.function.ScoreFunction
-import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.index.query.SearchExecutionContext
 import org.elasticsearch.index.query.functionscore.{ScoreFunctionBuilder, ScoreFunctionParser}
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
+
+import java.util.Objects
 
 final class ElasticsearchScoreFunctionBuilder(
     val query: NearestNeighborsQuery,
@@ -33,7 +34,7 @@ final class ElasticsearchScoreFunctionBuilder(
   override def doToFunction(context: SearchExecutionContext): ScoreFunction =
     elastiknnQueryBuilder.build(query, context).map(_.toScoreFunction(context.getIndexReader)).get
 
-  override def getMinimalSupportedVersion: Version = Version.V_EMPTY
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.ZERO
 }
 
 object ElasticsearchScoreFunctionBuilder {

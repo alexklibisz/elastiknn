@@ -12,7 +12,7 @@ import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.index.query._
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, Version}
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion}
 
 import java.util.Objects
 
@@ -123,5 +123,6 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     RewriteQueryBuilder(_ => supplier.get())
   }
 
-  override def getMinimalSupportedVersion: Version = Version.V_EMPTY
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.ZERO
+
 }

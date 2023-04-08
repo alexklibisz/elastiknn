@@ -1,10 +1,10 @@
 package com.klibisz.elastiknn.query
 
 import org.apache.lucene.search.Query
-import org.elasticsearch.Version
+import org.elasticsearch.TransportVersion
 import org.elasticsearch.common.io.stream.StreamOutput
-import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 import org.elasticsearch.index.query._
+import org.elasticsearch.xcontent.{ToXContent, XContentBuilder}
 
 /** Use this class to defer an operation until the next rewrite step. For example, if you have a SetOnce supplier,
   * you shouldn't immediately call .get() on it. Instead, you can pass an anonymous function to this class and it will
@@ -22,5 +22,5 @@ private[query] case class RewriteQueryBuilder(f: QueryRewriteContext => QueryBui
   def doHashCode(): Int = throw ex
   def getWriteableName: String = throw ex
 
-  def getMinimalSupportedVersion: Version = throw ex
+  def getMinimalSupportedVersion: TransportVersion = throw ex
 }
