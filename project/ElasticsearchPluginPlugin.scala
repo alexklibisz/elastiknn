@@ -25,6 +25,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value
+        exclude("org.elasticsearch", "elasticsearch-preallocate") // https://github.com/elastic/elasticsearch/issues/96360
     ),
     cleanFiles ++= Seq(
       elasticsearchPluginDistributionDirectory.value,
