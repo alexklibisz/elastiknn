@@ -3,10 +3,10 @@ import ElasticsearchPluginPlugin.autoImport._
 Global / scalaVersion := "2.13.10"
 
 lazy val CirceVersion = "0.14.3"
-lazy val ElasticsearchVersion = "8.7.1"
+lazy val ElasticsearchVersion = "8.8.0"
 lazy val Elastic4sVersion = "8.7.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.4.2"
+lazy val LuceneVersion = "9.6.0"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 lazy val TestSettings = Seq(

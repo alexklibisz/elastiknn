@@ -142,7 +142,7 @@ class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatche
         }
       }
       exceptions <- Future.sequence(indexReqs)
-    } yield exceptions.map(_.getMessage shouldBe "mapper_parsing_exception failed to parse").last
+    } yield exceptions.map(_.getMessage should endWith("Expected dimension 100 but got 101")).last
   }
 
   // https://github.com/alexklibisz/elastiknn/issues/177
