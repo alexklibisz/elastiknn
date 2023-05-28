@@ -26,81 +26,86 @@ jobs:
     name: "Test JVM Code"
     runs-on:
       - ubuntu-22.04
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
-          restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}
-          path: |
-            **/target/**/*
+        timeout-minutes: 1
       - uses: actions/setup-java@v3
+        timeout-minutes: 1
         with:
           distribution: 'adopt'
           java-version: 19
           cache: 'sbt'
       - uses: arduino/setup-task@v1
+        timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Increase MMAP Limits
+        timeout-minutes: 1
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Compile
+        timeout-minutes: 5
         run: task jvmCompile
       - name: Assemble
+        timeout-minutes: 1
         run: task jvmAssemble
       - name: Run Unit Tests
-        run: task jvmUnitTestQuick
+        timeout-minutes: 1
+        run: task jvmUnitTest
       - name: Run Cluster
+        timeout-minutes: 5
         run: task dockerRunTestingCluster
       - name: Run Integration Tests
-        run: task jvmIntegrationTestQuick
+        timeout-minutes: 20
+        run: task jvmIntegrationTest
       - name: Cluster Logs
+        timeout-minutes: 1
         if: always()
         run: task dockerLogTestingCluster
       - name: Stop Cluster
+        timeout-minutes: 1
         if: always()
         run: task dockerStopTestingCluster
       
   test-python:
-    name: Test Python Code
+    name: Test Python Client Code
     runs-on:
       - ubuntu-22.04
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
-          restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}
-          path: |
-            **/target/**/*
+        timeout-minutes: 1
       - uses: actions/setup-java@v3
+        timeout-minutes: 1
         with:
           distribution: 'adopt'
           java-version: 19
           cache: 'sbt'
       - uses: actions/setup-python@v4
+        timeout-minutes: 1
         with:
           python-version: '3.7.15'
           cache: 'pip'
       - uses: arduino/setup-task@v1
+        timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Increase MMAP Limits
+        timeout-minutes: 1
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Docs
+        timeout-minutes: 1
         run: task pyDocs
       - name: Run Cluster
+        timeout-minutes: 5
         run: task dockerRunTestingCluster
       - name: Test
+        timeout-minutes: 1
         run: task pyTest
       - name: Cluster Logs
+        timeout-minutes: 1
         if: always()
         run: task dockerLogTestingCluster
       - name: Stop Cluster
+        timeout-minutes: 1
         if: always()
         run: task dockerStopTestingCluster
 
@@ -112,50 +117,56 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
-          restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}
-          path: |
-            **/target/**/*
+        timeout-minutes: 1
       - uses: actions/setup-java@v3
+        timeout-minutes: 1
         with:
           distribution: 'adopt'
           java-version: 19
           cache: 'sbt'
       - uses: arduino/setup-task@v1
+        timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v4
+        timeout-minutes: 1
         with:
           python-version: '3.6'
           cache: 'pip'
       - name: Increase MMAP Limits
+        timeout-minutes: 1
         run: sudo sysctl -w vm.max_map_count=262144
       - name: Initialize Submodule
+        timeout-minutes: 1
         run: task annbCreateSubmodule
       - name: Install Dependencies
+        timeout-minutes: 1
         run: task annbInstallRequirements
       - name: Run Cluster
+        timeout-minutes: 5
         run: task dockerRunTestingCluster
       - name: Test
+        timeout-minutes: 5
         run: task annbTest
       - name: Cluster Logs
+        timeout-minutes: 1
         if: always()
         run: task dockerLogTestingCluster
       - name: Stop Cluster
+        timeout-minutes: 1
         if: always()
         run: task dockerStopTestingCluster
 
-  build-jekyll-site:
+  test-jekyll-site:
     name: Test Jekyll Site
     runs-on:
       - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
+        timeout-minutes: 1
       - uses: arduino/setup-task@v1
+        timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
@@ -169,49 +180,53 @@ jobs:
     name: Publish Snapshots
     runs-on:
       - ubuntu-22.04
-    timeout-minutes: 10
-    needs: [show-github-context, test-jvm, test-python, test-benchmarks]
+    needs:
+      - test-jvm
+      - test-python
+      - test-benchmarks
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
+        timeout-minutes: 1
         with:
           fetch-depth: 0 # Needed for git-based changelog.
-      - uses: actions/cache@v3
-        with:
-          key: ${{ github.workflow }}.${{ github.job }}.r${{ github.run_number }}
-          restore-keys: |
-            ${{ github.workflow }}.${{ github.job }}
-          path: |
-            **/target/**/*
       - name: Setup Release Credentials
+        timeout-minutes: 1
         env:
           PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
         run: ./.github/scripts/setup-env.sh
       - uses: actions/setup-java@v3
+        timeout-minutes: 1
         with:
           distribution: 'adopt'
           java-version: 19
           cache: 'sbt'
       - uses: actions/setup-python@v4
+        timeout-minutes: 1
         with:
           python-version: '3.7.15'
           cache: 'pip'
       - uses: arduino/setup-task@v1
+        timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Setuptools
+        timeout-minutes: 1
         run: python3 -m pip install setuptools
       - name: Publish to PyPi
+        timeout-minutes: 1
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
         if: github.event_name == 'pull_request'
       - name: Publish Plugin from PR
+        timeout-minutes: 5
         if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: task jvmPublishSnapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
-      - name: Publish Plugin from Main
-        if: github.event_name == 'push'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete Snapshot Github Releases
+        if: github.event-name == 'push'
         run: |
           ./.github/scripts/delete-snapshot-releases.sh
+      - name: Publish Plugin from Main
+        if: github.event_name == 'push'
+        run: |
           task jvmPublishSnapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT
