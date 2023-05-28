@@ -17,4 +17,5 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v3
       - run: ./.github/scripts/delete-snapshot-releases.sh
