@@ -14,6 +14,5 @@ do
     echo "Deleting release $tag"
     gh release delete "$tag" --yes
     git push --delete origin "$tag"
-    exit
   done
 done
