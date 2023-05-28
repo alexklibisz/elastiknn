@@ -4,8 +4,6 @@ on:
   pull_request:
     branches:
       - main
-  schedule:
-    - cron: "0 0 * * 1"
 
 concurrency:
   group: ${{ github.ref }}
@@ -211,22 +209,12 @@ jobs:
         timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Setuptools
+      - name: Install Setuptools
         timeout-minutes: 1
         run: python3 -m pip install setuptools
       - name: Publish to PyPi
         timeout-minutes: 1
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}
-        if: github.event_name == 'pull_request'
-      - name: Publish Plugin from PR
+      - name: Publish Plugin to Github
         timeout-minutes: 5
-        if: github.event_name == 'pull_request'
         run: task jvmPublishSnapshot VERSION=$(cat version)-PR${{ github.event.pull_request.number }}-SNAPSHOT
-      - name: Delete Snapshot Github Releases
-        if: github.event-name == 'push'
-        run: |
-          ./.github/scripts/delete-snapshot-releases.sh
-      - name: Publish Plugin from Main
-        if: github.event_name == 'push'
-        run: |
-          task jvmPublishSnapshot VERSION=$(cat version)-MAIN${{ github.run_number }}-SNAPSHOT

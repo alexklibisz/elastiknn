@@ -1,0 +1,20 @@
+name: "Cleanup Snapshots"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  cleanup-snapshots:
+    name: Cleanup Snapshots
+    runs-on:
+      - ubuntu-22.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - run: ./.github/scripts/delete-snapshot-releases.sh
