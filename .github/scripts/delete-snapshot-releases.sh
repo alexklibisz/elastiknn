@@ -1,24 +1,18 @@
 #!/bin/bash
 set -e
 
-# Delete snapshots from closed PRs.
-PRNUMS=$(hub pr list -s closed --format='%I ' --limit=10 --sort=updated)
+limit=100
+closed_prs=$(gh pr list --state closed --json number --jq '.[].number' --limit $limit)
+pr_release_tags=$(gh release list --limit $limit | grep -E "PR[0-9]+-SNAPSHOT" | awk '{print $3}')
 
-for N in $PRNUMS;
+# Loop over the closed PRs and delete any releases that correspond to a closed PR.
+for pr in $closed_prs
 do
-  TAGS=$(hub release | grep "PR$N-" || true)
-  for T in $TAGS;
+  echo "Checking PR $pr"
+  for tag in $(echo "$pr_release_tags" | grep "PR$pr-SNAPSHOT")
   do
-    echo "Deleting $T"
-    gh release delete "$T" --yes
-    git push --delete origin "$T"
+    echo "Deleting release $tag"
+    gh release delete "$tag" --yes
+    git push --delete origin "$tag"
   done
-done
-
-# Delete snapshots from master.
-TAGS=$(hub release | grep "MAIN[0-9]*-SNAPSHOT" || true)
-for T in $TAGS;
-do
-  gh release delete "$T" --yes
-  git push --delete origin "$T"
 done
