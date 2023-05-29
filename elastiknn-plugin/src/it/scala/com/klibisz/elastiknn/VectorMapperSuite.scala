@@ -143,7 +143,7 @@ class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatche
       }
       exceptions <- Future.sequence(indexReqs)
     } yield exceptions.map(_.getMessage should endWith("Expected dimension 100 but got 101")).last
-  }
+  }F
 
   // https://github.com/alexklibisz/elastiknn/issues/177
   "index shorthand dense float vectors" in {
