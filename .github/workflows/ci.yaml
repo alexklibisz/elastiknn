@@ -110,8 +110,7 @@ jobs:
   test-benchmarks:
     name: Test Benchmarks
     runs-on:
-      # Has to remain on ubuntu 20 and python 3.6 until ann-benchmarks is upgraded.
-      - ubuntu-20.04
+      - ubuntu-22.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -129,7 +128,7 @@ jobs:
       - uses: actions/setup-python@v4
         timeout-minutes: 1
         with:
-          python-version: '3.6'
+          python-version: '3.10.8'
           cache: 'pip'
       - name: Increase MMAP Limits
         timeout-minutes: 1

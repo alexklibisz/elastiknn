@@ -29,15 +29,16 @@ tasks:
   annbInstallRequirements:
     desc: Install dependencies
     preconditions:
-      - python3.6 --version
+      - python --version | grep "3.10.8"
     dir: ann-benchmarks/ann-benchmarks
     deps:
       - annbCreateSubmodule
     env:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - python3.6 -m pip install --quiet virtualenv
-      - python3.6 -m virtualenv -p python3.6 venv
+      - python --version
+      - python3 -m pip install --quiet virtualenv
+      - python3 -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
       # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
       - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
