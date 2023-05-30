@@ -40,7 +40,7 @@ tasks:
       - python -m pip install --quiet virtualenv
       - python -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
-      - venv/bin/pip install --quiet -r client-python/requirements.txt
+      - venv/bin/pip install --quiet -r {{ .PROJECT_ROOT }}/client-python/requirements.txt
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
 
   annbRunLocalFashionMnist:
