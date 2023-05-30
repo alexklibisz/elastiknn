@@ -40,8 +40,7 @@ tasks:
       - python -m pip install --quiet virtualenv
       - python -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
-      # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
-      - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
+      - venv/bin/pip install --quiet client-python/requirements.txt
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
 
   annbRunLocalFashionMnist:
