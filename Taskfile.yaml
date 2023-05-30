@@ -37,8 +37,8 @@ tasks:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
       - python --version
-      - python3 -m pip install --quiet virtualenv
-      - python3 -m virtualenv venv
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
       # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
       - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
@@ -117,7 +117,7 @@ tasks:
       - jvmAssemble
     cmds:
       - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
-      - python3 docker/cluster_ready.py
+      - python docker/cluster_ready.py
 
   dockerRunTestingCluster:
     desc: Run a local cluster for testing using docker-compose.
@@ -126,7 +126,7 @@ tasks:
       - jvmAssemble
     cmds:
       - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
-      - python3 docker/cluster_ready.py
+      - python docker/cluster_ready.py
 
   dockerStopBenchmarkingCluster:
     desc: Stop the local benchmarking cluster.
@@ -219,15 +219,17 @@ tasks:
     status:
       - docker-compose --version
     cmds:
-      - python3 -m pip install docker-compose
+      - python -m pip install docker-compose
 
   pyCreateVenv:
     desc: Create python virtual environment
     dir: client-python
+    preconditions:
+      - python --version | grep 3.10.8
     cmds:
-      - python3 --version
-      - python3 -m pip install --quiet virtualenv
-      - python3 -m virtualenv -p python3.7 venv
+      - python --version
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - touch requirements.txt
     generates:
       - venv
