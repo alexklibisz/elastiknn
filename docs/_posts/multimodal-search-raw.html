@@ -8,8 +8,8 @@
 <hr>
 <p><strong>Caveats</strong></p>
 <ol>
-<li>This tutorial assumes you are comfortable with Python, the Elasticsearch JSON API, and nearest neighbor search. To modify and run it on your own, you'll need to <a href="https://elastiknn.com/installation/">install Elastiknn</a>.</li>
-<li>The purpose of this tutorial is not to offer a direct performance comparison. The query times are displayed, but they can vary pretty wildly across runs. The JVM is a tricky beast and any performance comparisons require many more samples. See the <a href="https://elastiknn.com/performance/">Elastiknn performance docs</a> for more details.</li>
+<li>This tutorial assumes you are comfortable with Python, the Elasticsearch JSON API, and nearest neighbor search. To modify and run it on your own, you'll need to <a href="https://alexklibisz.github.io/elastiknn/installation/">install Elastiknn</a>.</li>
+<li>The purpose of this tutorial is not to offer a direct performance comparison. The query times are displayed, but they can vary pretty wildly across runs. The JVM is a tricky beast and any performance comparisons require many more samples. See the <a href="https://alexklibisz.github.io/elastiknn/performance/">Elastiknn performance docs</a> for more details.</li>
 <li>The purpose of this tutorial is also not necessarily to convince you that I've improved the search results by using image vectors. That's a larger problem that would, at the very least, require investigating how the vectors were computed. Rather, the purpose is to show the mechanics and patterns of integrating traditional keyword search with nearest neighbor search on a dataset of non-trivial size.  </li>
 </ol>
 
@@ -1498,7 +1498,7 @@ width=128
 <p>To address this, Elastiknn offers approximate nearest neighbors queries based on the <a href="https://en.wikipedia.org/wiki/Locality-sensitive_hashing">Locality Sensitive Hashing</a> technique.</p>
 <p>We used the angular LSH model (i.e. <code>"model": "lsh", "similarity": "angular"</code>) when defining the mapping (right before indexing the data). Now we can use the same model and similarity to run an approximate nearest neighbors query. This query takes a <code>"candidates"</code> parameter, which is the number of approximate matches that will be re-ranked using the exact similarity score.</p>
 <p>Using the approximate query with 100 candidates yields reasonable results in under 150 ms.</p>
-<p>You can tweak the mapping and query parameters to fine-tune the speed/recall tradeoff. The <a href="https://elastiknn.com/api/">API docs</a> include notes on how the parameters generally affect speed/recall, and the <a href="https://elastiknn.com/performance/">Performance docs</a> include suggested parameter settings for several datasets.</p>
+<p>You can tweak the mapping and query parameters to fine-tune the speed/recall tradeoff. The <a href="https://alexklibisz.github.io/elastiknn/api/">API docs</a> include notes on how the parameters generally affect speed/recall, and the <a href="https://alexklibisz.github.io/elastiknn/performance/">Performance docs</a> include suggested parameter settings for several datasets.</p>
 
 </div>
 </div>
@@ -1940,7 +1940,7 @@ width=128
 <hr>
 <h2 id="Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-exact-query">Combine keyword and nearest neighbors queries using Elastiknn's exact query<a class="anchor-link" href="#Combine-keyword-and-nearest-neighbors-queries-using-Elastiknn's-exact-query">&#182;</a></h2><p>We can do the same thing using a function score query containing an <code>elastiknn_nearest_neighbors</code> function. This function takes the exact same parameters as an <code>elastiknn_nearest_neighbors</code> query.</p>
 <p>Note that the function score query gives you quite a bit more flexibility. Specifically, you can tweak the <code>boost_mode</code> parameter to control how the keyword and nearest neighbor queries are combined and tweak the <code>weight</code> to scale the nearest neighbor query score.</p>
-<p>There are still some caveats, which are covered in the <a href="https://elastiknn.com/api/#using-a-function-score-query">API docs</a>.</p>
+<p>There are still some caveats, which are covered in the <a href="https://alexklibisz.github.io/elastiknn/api/#using-a-function-score-query">API docs</a>.</p>
 
 </div>
 </div>
