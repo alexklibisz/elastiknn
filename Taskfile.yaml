@@ -217,8 +217,6 @@ tasks:
     desc: Install docker compose using pip
     status:
       - docker compose --version
-    cmds:
-      - python3 -m pip install docker compose
 
   pyCreateVenv:
     desc: Create python virtual environment
