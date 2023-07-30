@@ -100,55 +100,55 @@ tasks:
   dockerLogBenchmarkingCluster:
     desc: Print logs from the benchmarking cluster
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml logs
+      - docker compose -f docker/docker-compose.benchmarking.yaml logs
       - docker ps -a
 
   dockerLogTestingCluster:
     desc: Print logs from the testing cluster
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml logs
+      - docker compose -f docker/docker-compose.testing.yaml logs
       - docker ps -a
 
   dockerRunBenchmarkingCluster:
-    desc: Run a local cluster for benchmarking using docker-compose.
+    desc: Run a local cluster for benchmarking using docker compose.
     deps:
       - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
+      - docker compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
       - python3 docker/cluster_ready.py
 
   dockerRunTestingCluster:
-    desc: Run a local cluster for testing using docker-compose.
+    desc: Run a local cluster for testing using docker compose.
     deps:
       - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
+      - docker compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
       - python3 docker/cluster_ready.py
 
   dockerStopBenchmarkingCluster:
     desc: Stop the local benchmarking cluster.
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml down
+      - docker compose -f docker/docker-compose.benchmarking.yaml down
 
   dockerStopTestingCluster:
     desc: Stop the local testing cluster.
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml down
+      - docker compose -f docker/docker-compose.testing.yaml down
 
   docsDev:
     desc: Start local development server.
     dir: docs
     cmds:
-      - docker-compose up dev
+      - docker compose up dev
 
   docsCompile:
     desc: Compile docs into a static site.
     dir: docs
     cmds:
       - rm -rf _site
-      - docker-compose run --rm compile
+      - docker compose run --rm compile
 
   jvmClean:
     desc: Clean all JVM artifacts
@@ -214,11 +214,11 @@ tasks:
       - gh release create --prerelease --generate-notes {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
 
   installDockerCompose:
-    desc: Install docker-compose using pip
+    desc: Install docker compose using pip
     status:
-      - docker-compose --version
+      - docker compose --version
     cmds:
-      - python3 -m pip install docker-compose
+      - python3 -m pip install docker compose
 
   pyCreateVenv:
     desc: Create python virtual environment
