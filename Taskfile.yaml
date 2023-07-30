@@ -29,18 +29,18 @@ tasks:
   annbInstallRequirements:
     desc: Install dependencies
     preconditions:
-      - python3.6 --version
+      - python --version | grep "3.10.8"
     dir: ann-benchmarks/ann-benchmarks
     deps:
       - annbCreateSubmodule
     env:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - python3.6 -m pip install --quiet virtualenv
-      - python3.6 -m virtualenv -p python3.6 venv
+      - python --version
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
-      # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
-      - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
+      - venv/bin/pip install --quiet -r {{ .PROJECT_ROOT }}/client-python/requirements.txt
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
 
   annbRunLocalFashionMnist:
@@ -221,10 +221,12 @@ tasks:
   pyCreateVenv:
     desc: Create python virtual environment
     dir: client-python
+    preconditions:
+      - python --version | grep 3.10.8
     cmds:
-      - python3 --version
-      - python3 -m pip install --quiet virtualenv
-      - python3 -m virtualenv -p python3.7 venv
+      - python --version
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - touch requirements.txt
     generates:
       - venv
