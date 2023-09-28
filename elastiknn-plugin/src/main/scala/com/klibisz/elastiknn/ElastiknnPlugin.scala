@@ -73,6 +73,6 @@ object ElastiknnPlugin {
       Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope, Setting.Property.Deprecated)
 
     val jdkIncubatorVectorEnabledSetting: Setting[java.lang.Boolean] =
-      Setting.boolSetting("elastiknn.jdk-incubator-vector.enabled", false, Setting.Property.NodeScope)
+      Setting.boolSetting("elastiknn.jdk-incubator-vector.enabled", true, Setting.Property.NodeScope)
   }
 }
