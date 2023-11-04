@@ -1,0 +1,3 @@
+[testpypi]
+  username = __token__
+  password = ${TESTPYPI_PASSWORD}
