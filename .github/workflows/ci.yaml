@@ -192,7 +192,8 @@ jobs:
         timeout-minutes: 1
         env:
           TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
-        run: envsubst .github/workflows/pypirc.template > $HOME/.pypirc
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: envsubst < .github/workflows/pypirc.template > $HOME/.pypirc
       - uses: actions/setup-java@v3
         timeout-minutes: 1
         with:
