@@ -177,10 +177,6 @@ jobs:
     name: Publish Snapshots
     runs-on:
       - ubuntu-22.04
-    needs:
-      - test-jvm
-      - test-python
-      - test-benchmarks
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
