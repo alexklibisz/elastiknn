@@ -66,10 +66,11 @@ jobs:
       - uses: arduino/setup-task@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Release Credentials
+      - name: Setup pypirc file
         env:
-          PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-        run: ./.github/scripts/setup-env.sh
+          TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: envsubst < .github/workflows/pypirc.template > $HOME/.pypirc
       - name: Setup Setuptools
         run: python3 -m pip install setuptools
       - name: Publish to PyPi

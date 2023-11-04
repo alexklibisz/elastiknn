@@ -177,10 +177,6 @@ jobs:
     name: Publish Snapshots
     runs-on:
       - ubuntu-22.04
-    needs:
-      - test-jvm
-      - test-python
-      - test-benchmarks
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -188,11 +184,12 @@ jobs:
         timeout-minutes: 1
         with:
           fetch-depth: 0 # Needed for git-based changelog.
-      - name: Setup Release Credentials
+      - name: Setup pypirc file
         timeout-minutes: 1
         env:
-          PYPIRC_B64: ${{ secrets.PYPIRC_B64 }}
-        run: ./.github/scripts/setup-env.sh
+          TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: envsubst < .github/workflows/pypirc.template > $HOME/.pypirc
       - uses: actions/setup-java@v3
         timeout-minutes: 1
         with:
