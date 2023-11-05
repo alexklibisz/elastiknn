@@ -5,7 +5,7 @@ on:
       full-release:
         type: boolean
         description: |
-          Whether to run a full (i.e., non-snapshot) release.
+          Full release, i.e., non-snapshot.
           This is only respected when the workflow runs on the main branch.
 
 permissions:
