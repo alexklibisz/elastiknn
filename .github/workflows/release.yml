@@ -8,7 +8,67 @@ permissions:
   id-token: write
 
 jobs:
+  release-plugin:
+    runs-on:
+      - ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Needed for git-based changelog.
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: 19
+          cache: 'sbt'
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assemble
+        run: task jvmAssemble
+      - name: Publish Release
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: task jvmPublishRelease
+      - name: Publish Snapshot
+        if: ${{ github.ref != 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: task jvmPublishSnapshot VERSION=$(cat version)-SNAPSHOT-${{ github.run_number }}-${{ github.run_attempt }}
+  release-python-client:
+    needs: release-plugin
+    runs-on:
+      - ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Needed for git-based changelog.
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10.8'
+          cache: 'pip'
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup pypirc file
+        env:
+          TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: envsubst < .github/workflows/pypirc.template > $HOME/.pypirc
+      - name: Setup Setuptools
+        run: python3 -m pip install setuptools
+      - name: Publish to pypi.org
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: task pyPublishRelease
+      - name: Publish to test.pypi.org
+        if: ${{ github.ref != 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: task pyPublishSnapshot VERSION=$(cat version)-dev-${{ github.run_number }}-${{ github.run_attempt }}
   release-docs:
+    needs: release-python-client
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on:
       - ubuntu-22.04
@@ -45,37 +105,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
-
-  release:
-    runs-on:
-      - ubuntu-22.04
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Needed for git-based changelog.
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10.8'
-          cache: 'pip'
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'adopt'
-          java-version: 19
-          cache: 'sbt'
-      - uses: arduino/setup-task@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup pypirc file
-        env:
-          TESTPYPI_TOKEN: ${{ secrets.TESTPYPI_TOKEN }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: envsubst < .github/workflows/pypirc.template > $HOME/.pypirc
-      - name: Setup Setuptools
-        run: python3 -m pip install setuptools
-      - name: Publish to PyPi
-        run: task pyPublishRelease
-      - name: Publish to Github
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvmPublishRelease
