@@ -35,7 +35,7 @@ jobs:
         if: ${{ github.ref != 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task jvmPublishSnapshot VERSION=$(cat version)-SNAPSHOT-${{ github.run_number }}-${{ github.run_attempt }}
+        run: task jvmPublishSnapshot VERSION=$(cat version)-SNAPSHOT-${{ github.run_number }}${{ github.run_attempt }}
   release-python-client:
     needs: release-plugin
     runs-on:
@@ -64,7 +64,7 @@ jobs:
         if: ${{ github.ref != 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: task pyPublishSnapshot VERSION=$(cat version)-dev-${{ github.run_number }}-${{ github.run_attempt }}
+        run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}${{ github.run_attempt }}
   release-docs:
     needs: release-python-client
     if: ${{ github.ref == 'refs/heads/main' }}
