@@ -24,8 +24,10 @@ def delete_old_pre_releases(repo_owner, repo_name, github_token):
   now = datetime.now()
   for release in releases:
     published_at = datetime.strptime(release["published_at"], '%Y-%m-%dT%H:%M:%SZ')
-    if release["prerelease"] and (now - published_at).days >= 7:
-      delete_release(repo_owner, repo_name, release["name"], github_token)
+    # TODO increase to 7 days after verifying it works.
+    if release["prerelease"] and (now - published_at).days >= 0:
+      print(f"Deleting {release['name']}")
+      # delete_release(repo_owner, repo_name, release["name"], github_token)
 
 if __name__ == "__main__":
   github_token = os.environ["GITHUB_TOKEN"]
