@@ -55,6 +55,9 @@ object ElasticsearchQueryBuilder {
     def set(qb: ElasticsearchQueryBuilder): Unit = ref.set(qb)
 
     override def doRewrite(c: QueryRewriteContext): QueryBuilder = {
+      // If the reference has not been populated, we just return the current instance.
+      // Eventually the reference has been set, and we return real query builder.
+      // Elasticsearch will retry up to a fixed number of times until it gets the real one.
       val maybe = ref.get()
       if (maybe == null) this else maybe
     }
