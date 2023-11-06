@@ -2,7 +2,7 @@ import ElasticsearchPluginPlugin.autoImport._
 
 Global / scalaVersion := "2.13.10"
 
-lazy val CirceVersion = "0.14.6"
+lazy val CirceVersion = "0.14.3"
 lazy val ElasticsearchVersion = "8.8.0"
 lazy val Elastic4sVersion = "8.7.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
