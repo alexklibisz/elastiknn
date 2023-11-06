@@ -20,4 +20,5 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
-      - run: ./.github/scripts/delete_old_pre_releases.py
+      - run: python3 -m pip install requests
+      - run: python3 .github/scripts/delete_old_pre_releases.py
