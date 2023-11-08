@@ -34,7 +34,7 @@ final class ElasticsearchScoreFunctionBuilder(
   override def doToFunction(context: SearchExecutionContext): ScoreFunction =
     elastiknnQueryBuilder.build(query, context).map(_.toScoreFunction(context.getIndexReader)).get
 
-  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.ZERO
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.current()
 }
 
 object ElasticsearchScoreFunctionBuilder {

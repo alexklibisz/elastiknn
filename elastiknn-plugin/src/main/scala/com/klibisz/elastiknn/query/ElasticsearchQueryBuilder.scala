@@ -161,6 +161,6 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     queryBuilder
   }
 
-  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.ZERO
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.current()
 
 }
