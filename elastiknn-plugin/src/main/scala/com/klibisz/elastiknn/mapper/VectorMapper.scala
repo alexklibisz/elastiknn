@@ -111,7 +111,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
         field,
         new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(name), mapping),
         multiFieldsBuilder.build(this, context),
-        copyTo.build()
+        copyTo
       ) {
         override def parsesArrayValue(): Boolean = true
 
