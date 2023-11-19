@@ -220,7 +220,7 @@ Intuitively, this method hashes a vector $$v$$ as follows:
 
 The process looks like this:
 
-<img src="/assets/images/how-does-elastiknn-work-L2-lsh.jpg" alt="Visualization of L2 LSH hashing"/>
+<img src="/elastiknn/assets/images/how-does-elastiknn-work-L2-lsh.jpg" alt="Visualization of L2 LSH hashing"/>
 
 We can intuit that a vector close to $$v$$ would be likely to hash to the same section of $$A_j$$.
 
