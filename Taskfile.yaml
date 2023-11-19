@@ -158,7 +158,7 @@ tasks:
   jvmCompile:
     desc: Compile Scala and Java code using SBT
     cmds:
-      - sbt -client "compile; Test/compile; IntegrationTest/compile"
+      - sbt -client "compile; Test/compile"
 
   jvmAssemble:
     desc: Build the plugin bundle using SBT
@@ -169,17 +169,22 @@ tasks:
   jvmIntegrationTest:
     desc: Run JVM tests using SBT
     cmds:
-      - sbt -client IntegrationTest/test
+      - sbt -client elastiknn-plugin-integration-tests/test
 
   jvmIntegrationTestQuick:
     desc: Run JVM tests using SBT, but only the ones that were recompiled
     cmds:
-      - sbt -client IntegrationTest/testQuick
+      - sbt -client elastiknn-plugin-integration-tests/testQuick
 
   jvmUnitTest:
     desc: Run JVM tests using SBT
     cmds:
-      - sbt -client test
+      - sbt -client elastiknn-api4s/test
+      - sbt -client elastiknn-client-elastic4s/test
+      - sbt -client elastiknn-lucene/test
+      - sbt -client elastiknn-models/test
+      - sbt -client elastiknn-models-benchmarks/test
+      - sbt -client elastiknn-plugin/test
 
   jvmUnitTestQuick:
     desc: Run JVM tests using SBT, but only the ones that were recompiled
