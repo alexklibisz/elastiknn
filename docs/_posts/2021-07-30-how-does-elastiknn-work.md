@@ -284,7 +284,7 @@ Elasticsearch and Lucene handle everything else: serving requests, indexing docu
 
 Without further ado, behold the boxes and arrows:
 
-<img src="/assets/images/how-does-elastiknn-work-00.jpg" alt="Diagram overview of Elastiknn"/>
+<img src="/elastiknn/assets/images/how-does-elastiknn-work-00.jpg" alt="Diagram overview of Elastiknn"/>
 
 The most important and interesting parts of Elastiknn are the LSH models and the custom `MatchHashesAndScoreQuery`.
 The LSH models are used in the `TypeMapper` and `KnnQueryBuilder` to convert vectors into Lucene fields.
