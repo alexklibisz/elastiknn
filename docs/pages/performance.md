@@ -8,12 +8,8 @@ classes: wide
 
 ## Method
 
-The results on this page are produced by running elastiknn on the ann-benchmarks benchmark on a [2018 Mac Mini](https://support.apple.com/kb/SP782?locale=en_US) (6-Core i7, 64GB RAM variant):
-
-**Caveats**
-
-* This is a single-node benchmark, so latency from communication across cluster nodes is eliminated.
-* The client and server run in the same container, so latency from client/server communication is minimized.
+The results on this page are produced by running elastiknn on the ann-benchmarks benchmark on an AWS EC2 r6i.xlarge instance.
+We use `task dockerStartBenchmarkingCluster` to start a single-node benchmarking cluster `task annbRunLocalFashionMnist` to run the benchmark.
 
 See the ann-benchmarks directory in the Elastiknn repository for more details.
 
