@@ -18,4 +18,4 @@ The demo is available [as a notebook in the Github repo.](https://github.com/ale
 
 Here are the slides:
 
-<iframe width="800" height="420" src="/assets/downloads/elastic-meetup-2020-12-15-slides.pdf" frameborder="0" allowfullscreen></iframe>
+<iframe width="800" height="420" src="/elastiknn/assets/downloads/elastic-meetup-2020-12-15-slides.pdf" frameborder="0" allowfullscreen></iframe>
