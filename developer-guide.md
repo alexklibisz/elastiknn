@@ -8,7 +8,7 @@ If you're reading this, there's a chance you'd like to contribute to Elastiknn. 
 
 ### Prerequisites
 
-You need at least the following software installed: git, Java 17, Python3.7, SBT, docker, docker-compose, and [task](https://taskfile.dev).
+You need at least the following software installed: git, Java 17, Python3.7, SBT, docker, docker compose, and [task](https://taskfile.dev).
 I'm assuming you're running on a Linux or MacOS operating system.
 I have no idea if any of this will work on Windows.
 There might be other software which is missing. 
@@ -87,7 +87,7 @@ IntelliJ should stop execution at your breakpoint.
 
 ### Local Cluster
 
-Use `task dockerRunTestingCluster` to run a local cluster with one master node and one data node (using docker-compose).
+Use `task dockerRunTestingCluster` to run a local cluster with one master node and one data node (using docker compose).
 There are a couple parts of the codebase that deal with serializing queries for use in a distributed environment.
 Running this small local cluster exercises those code paths.
 

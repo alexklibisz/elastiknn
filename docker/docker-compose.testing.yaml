@@ -1,4 +1,4 @@
-# Docker-compose setup for running tests and micro-benchmarks.
+# docker compose setup for running tests and micro-benchmarks.
 # Github's virtual environments have 2 CPUs, 7GB memory, 14GB SSD.
 # Important to run > 1 node because some parts of the plugin
 # deal with communication/serialization between nodes.
@@ -22,8 +22,8 @@ services:
       - xpack.security.enabled=false
     ports:
       - "9200:9200"
-    mem_limit: 700m
-    mem_reservation: 700m
+    mem_limit: 900m
+    mem_reservation: 900m
     cpus: 0.5
     ulimits:
       nofile:
