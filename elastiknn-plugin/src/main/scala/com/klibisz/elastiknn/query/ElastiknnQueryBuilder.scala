@@ -9,7 +9,6 @@ import com.klibisz.elastiknn.vectors.FloatVectorOps
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query.SearchExecutionContext
 
-import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {

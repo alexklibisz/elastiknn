@@ -31,12 +31,13 @@ object XContentCodec {
       encodeElastiknnObject(t, b)
       b.field(Names.TYPE, vectorType)
       b.endObject()
+      ()
     }
   }
 
   private val xcJson = XContentType.JSON.xContent()
 
-  def encodeUnsafe[T](t: T, b: XContentBuilder)(implicit c: Encoder[T]): Unit =
+  private def encodeUnsafe[T](t: T, b: XContentBuilder)(implicit c: Encoder[T]): Unit =
     c.encodeUnsafe(t, b)
 
   def encodeUnsafeToByteArray[T](t: T)(implicit c: Encoder[T]): Array[Byte] = {
@@ -90,6 +91,7 @@ object XContentCodec {
           case Similarity.L2      => b.value(Names.L2)
           case Similarity.Cosine  => b.value(Names.COSINE)
         }
+        ()
       }
     }
 
@@ -98,6 +100,7 @@ object XContentCodec {
         b.startObject()
         b.array(Names.VALUES, t.values)
         b.endObject()
+        ()
       }
     }
 
@@ -107,6 +110,7 @@ object XContentCodec {
         b.field(Names.TOTAL_INDICES, t.totalIndices)
         b.array(Names.TRUE_INDICES, t.trueIndices)
         b.endObject()
+        ()
       }
     }
 
@@ -114,6 +118,7 @@ object XContentCodec {
       override def encodeUnsafe(t: Vec.Empty, b: XContentBuilder): Unit = {
         b.startObject()
         b.endObject()
+        ()
       }
     }
 
@@ -124,6 +129,7 @@ object XContentCodec {
         b.field(Names.ID, t.id)
         b.field(Names.INDEX, t.index)
         b.endObject()
+        ()
       }
     }
 
@@ -144,6 +150,7 @@ object XContentCodec {
         b.field(Names.DIMS, t.dims)
         b.field(Names.MODEL, Names.EXACT)
         b.endObject()
+        ()
       }
     }
 
@@ -157,6 +164,7 @@ object XContentCodec {
         b.field(Names.MODEL, Names.LSH)
         b.field(Names.SIMILARITY, Names.JACCARD)
         b.endObject()
+        ()
       }
     }
 
@@ -170,6 +178,7 @@ object XContentCodec {
         b.field(Names.MODEL, Names.LSH)
         b.field(Names.SIMILARITY, Names.HAMMING)
         b.endObject()
+        ()
       }
     }
 
@@ -180,6 +189,7 @@ object XContentCodec {
         b.field(Names.DIMS, t.dims)
         b.field(Names.MODEL, Names.EXACT)
         b.endObject()
+        ()
       }
     }
 
@@ -193,6 +203,7 @@ object XContentCodec {
         b.field(Names.MODEL, Names.LSH)
         b.field(Names.SIMILARITY, Names.COSINE)
         b.endObject()
+        ()
       }
     }
 
@@ -207,6 +218,7 @@ object XContentCodec {
         b.field(Names.SIMILARITY, Names.L2)
         b.field(Names.LSH_W, t.w)
         b.endObject()
+        ()
       }
     }
 
@@ -219,6 +231,7 @@ object XContentCodec {
         b.field(Names.MODEL, Names.PERMUTATION_LSH)
         b.field(Names.REPEATING, t.repeating)
         b.endObject()
+        ()
       }
     }
 
@@ -255,6 +268,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 
@@ -269,6 +283,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 
@@ -283,6 +298,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 
@@ -297,6 +313,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 
@@ -312,6 +329,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 
@@ -326,6 +344,7 @@ object XContentCodec {
         b.field(Names.VEC)
         vec.encodeUnsafe(t.vec, b)
         b.endObject()
+        ()
       }
     }
 

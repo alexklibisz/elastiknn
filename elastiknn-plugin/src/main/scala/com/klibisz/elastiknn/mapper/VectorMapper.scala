@@ -88,7 +88,7 @@ object VectorMapper {
   }
 }
 
-abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encoder] { self =>
+abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
 
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]

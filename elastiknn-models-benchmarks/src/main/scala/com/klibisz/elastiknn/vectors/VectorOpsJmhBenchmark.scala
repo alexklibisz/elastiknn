@@ -7,7 +7,7 @@ import scala.util.Random
 
 @State(Scope.Benchmark)
 class BenchmarkState {
-  implicit private val rng = new Random(0)
+  implicit private val rng: Random = new Random(0)
   val v1 = Vec.DenseFloat.random(999).values
   val v2 = Vec.DenseFloat.random(999).values
   val panama = new PanamaFloatVectorOps
@@ -21,7 +21,7 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def cosineSimilarityPanama(state: BenchmarkState): Unit =
+  def cosineSimilarityPanama(state: BenchmarkState): Double =
     state.panama.cosineSimilarity(state.v1, state.v2)
 
   @Benchmark
@@ -45,7 +45,7 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def dotProductPanama(state: BenchmarkState): Unit =
+  def dotProductPanama(state: BenchmarkState): Double =
     state.panama.dotProduct(state.v1, state.v2)
 
   @Benchmark
@@ -53,7 +53,7 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def l1DistancePanama(state: BenchmarkState): Unit =
+  def l1DistancePanama(state: BenchmarkState): Double =
     state.panama.l1Distance(state.v1, state.v2)
 
   @Benchmark
@@ -69,7 +69,7 @@ class VectorOpsJmhBenchmark {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 6)
   @Measurement(time = 5, iterations = 6)
-  def l2DistancePanama(state: BenchmarkState): Unit =
+  def l2DistancePanama(state: BenchmarkState): Double =
     state.panama.l2Distance(state.v1, state.v2)
 
   @Benchmark
