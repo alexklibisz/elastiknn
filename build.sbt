@@ -1,4 +1,5 @@
-import ElasticsearchPluginPlugin.autoImport._
+import ElasticsearchPluginPlugin.autoImport.*
+import org.typelevel.scalacoptions.*
 
 Global / scalaVersion := "2.13.12"
 
@@ -8,12 +9,23 @@ lazy val Elastic4sVersion = "8.11.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.8.0"
 
-lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test
+)
+
+lazy val TpolecatSettings = Seq(
+  // Disabling a couple of warnings for test files.
+  // Ideally we would scope this to Test / scalacOptions,
+  // but then compilation fails within IntelliJ.
+  // https://github.com/typelevel/sbt-tpolecat/issues/134
+  scalacOptions ++= Seq(
+    "-Wconf:any:wv",
+    "-Wconf:cat=other-pure-statement:src=test/.*.scala:silent",
+    "-Wconf:cat=w-flag-numeric-widen:src=test/.*.scala:silent"
+  )
 )
 
 lazy val `elastiknn-root` = project
@@ -40,7 +52,7 @@ lazy val `elastiknn-api4s` = project
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
       "io.circe" %% "circe-parser" % CirceVersion % Test
     ),
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )
 
@@ -53,7 +65,7 @@ lazy val `elastiknn-client-elastic4s` = project
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )
 
@@ -67,7 +79,7 @@ lazy val `elastiknn-lucene` = project
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
       "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
     ),
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )
 
@@ -85,7 +97,7 @@ lazy val `elastiknn-models` = project
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )
 
@@ -94,7 +106,8 @@ lazy val `elastiknn-models-benchmarks` = project
   .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
   .enablePlugins(JmhPlugin)
   .settings(
-    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector")
+    Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
+    TpolecatSettings
   )
 
 lazy val `elastiknn-plugin` = project
@@ -124,7 +137,7 @@ lazy val `elastiknn-plugin` = project
       "ch.qos.logback" % "logback-classic" % "1.4.11" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )
 
@@ -132,6 +145,6 @@ lazy val `elastiknn-plugin-integration-tests` = project
   .in(file("elastiknn-plugin-integration-tests"))
   .dependsOn(`elastiknn-plugin` % "test->test")
   .settings(
-    scalacOptions ++= ScalacOptions,
+    TpolecatSettings,
     TestSettings
   )

@@ -3,8 +3,6 @@ package com.klibisz.elastiknn.client
 import com.klibisz.elastiknn.api.{NearestNeighborsQuery, XContentCodec}
 import com.sksamuel.elastic4s.requests.searches.queries.{Query, RawQuery}
 
-import scala.language.implicitConversions
-
 trait Elastic4sCompatibility {
 
   implicit def convertQuery(nnq: NearestNeighborsQuery): Query = nnq.toQuery

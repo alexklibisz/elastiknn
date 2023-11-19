@@ -32,6 +32,7 @@ trait LuceneSupport {
       } finally {
         indexWriter.close()
         tmpDir.delete()
+        ()
       }
     res
   }

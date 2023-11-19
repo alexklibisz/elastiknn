@@ -4,7 +4,6 @@ import java.util
 
 import com.klibisz.elastiknn.api.Vec
 
-import scala.language.implicitConversions
 
 /** Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
   * This is decoupled from the api Vec case classes so we can support various optimizations that might change the
