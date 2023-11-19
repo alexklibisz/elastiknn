@@ -61,8 +61,8 @@ object TestData extends XContentCodecCirceBridge {
     val l1 = new ExactSimilarityFunction.L1(new PanamaFloatVectorOps)
     val l2 = new ExactSimilarityFunction.L2(new PanamaFloatVectorOps)
     val cos = new ExactSimilarityFunction.Cosine(new PanamaFloatVectorOps)
-    val corpus = Vec.DenseFloat.randoms(dims, numCorpus)
-    val queries = Vec.DenseFloat.randoms(dims, numQueries).map { qv =>
+    val corpus = Vec.DenseFloat.randoms(dims, numCorpus, unit)
+    val queries = Vec.DenseFloat.randoms(dims, numQueries, unit).map { qv =>
       Query(
         qv,
         Seq(

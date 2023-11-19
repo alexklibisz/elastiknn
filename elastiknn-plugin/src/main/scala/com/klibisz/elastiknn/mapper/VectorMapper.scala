@@ -88,7 +88,7 @@ object VectorMapper {
   }
 }
 
-abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encoder] { self =>
+abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
 
   def CONTENT_TYPE: String
   def checkAndCreateFields(mapping: Mapping, field: String, vec: V): Try[Seq[IndexableField]]
@@ -111,7 +111,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder: XContentCodec.Encod
         field,
         new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(name), mapping),
         multiFieldsBuilder.build(this, context),
-        copyTo.build()
+        copyTo
       ) {
         override def parsesArrayValue(): Boolean = true
 

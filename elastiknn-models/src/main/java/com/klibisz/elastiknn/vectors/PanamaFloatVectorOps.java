@@ -25,9 +25,9 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
             v2SqrSum += pv2.mul(pv2).reduceLanes(VectorOperators.ADD);
         }
         for (; i < v1.length; i++) {
-            dotProd = Math.fma(v1[i], v2[i], dotProd);
-            v1SqrSum = Math.fma(v1[i], v1[i], v1SqrSum);
-            v2SqrSum = Math.fma(v2[i], v2[i], v2SqrSum);
+            dotProd += v1[i] * v2[i];
+            v1SqrSum += v1[i] * v1[i];
+            v2SqrSum += v2[i] * v2[i];
         }
         double denom = Math.sqrt(v1SqrSum) * Math.sqrt(v2SqrSum);
         if (denom > 0) return dotProd / denom;
@@ -46,7 +46,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
             dotProd += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
         }
         for (; i < v1.length; i++) {
-            dotProd = Math.fma(v1[i], v2[i], dotProd);
+            dotProd += v1[i] * v2[i];
         }
         return dotProd;
     }
@@ -82,7 +82,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         }
         for (; i < v1.length; i++) {
             float diff = v1[i] - v2[i];
-            sumSqrDiff = Math.fma(diff, diff, sumSqrDiff);
+            sumSqrDiff += diff * diff;
         }
         return Math.sqrt(sumSqrDiff);
     }
