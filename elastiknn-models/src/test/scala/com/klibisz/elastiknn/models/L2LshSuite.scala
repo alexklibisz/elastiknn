@@ -10,7 +10,7 @@ import scala.util.Random
 
 class L2LshSuite extends AnyFunSuite with Matchers {
 
-  implicit val rng = new Random(0)
+  implicit val rng: Random = new Random(0)
 
   test("produces exactly L hashes with probes = 0") {
     val vec = Vec.DenseFloat.random(10)

@@ -23,13 +23,6 @@ Are you using Elastiknn? If so, please consider submitting a pull request to lis
 - [rep0st](https://github.com/ReneHollander/rep0st): Uses Elastiknn for reverse image lookups in a set of millions of images
 - [Orlo](https://orlo.tech): Uses Elastiknn for indexing deep text understanding in text to provide interesting insights
 
-## Builds
-
-|Build|Status|
-|:--|:--|
-|Github CI Builds       |[![Github CI Status][Badge-Github-CI]][Link-Github-CI]               |
-|Github Release Build   |[![Github Release Status][Badge-Github-Release]][Link-Github-Release]|
-
 ## Releases
 
 |Artifact|Release|Snapshot|Downloads|
@@ -44,12 +37,6 @@ YourKit supports open source projects with innovative and intelligent tools for 
 YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/profiler/), [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/), and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/).
 
 <!-- Links -->
-
-[Link-Github-CI]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ACI
-[Badge-Github-CI]: https://img.shields.io/github/actions/workflow/status/alexklibisz/elastiknn/ci.yml?branch=main&style=for-the-badge "Github CI Workflow"
-
-[Link-Github-Release]: https://github.com/alexklibisz/elastiknn/actions?query=workflow%3ARelease
-[Badge-Github-Release]: https://img.shields.io/github/actions/workflow/status/alexklibisz/elastiknn/release.yml?branch=main&style=for-the-badge "Github Release Workflow"
 
 [Link-Plugin-Release]: https://github.com/alexklibisz/elastiknn/releases/latest
 [Badge-Plugin-Release]: https://img.shields.io/github/v/release/alexklibisz/elastiknn?style=flat-square "Plugin Release"

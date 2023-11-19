@@ -5,16 +5,16 @@ import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import org.apache.lucene.search.Query
-import org.apache.lucene.util.SetOnce
 import org.elasticsearch.action.ActionListener
 import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
 import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.index.query._
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion}
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion, TransportVersions}
 
 import java.util.Objects
+import java.util.concurrent.atomic.AtomicReference
 
 object ElasticsearchQueryBuilder {
 
@@ -43,6 +43,43 @@ object ElasticsearchQueryBuilder {
       }
       new ElasticsearchQueryBuilder(query.withVec(sortedVec), elastiknnQueryBuilder)
     }
+  }
+
+  // Used by rewriteGetVector to asynchronously provide an ElasticsearchQueryBuilder for an indexed vector.
+  // The doRewrite method will delay indefinitely until until the query builder is provided.
+  private final class IndexedVectorQueryBuilder(indexedVec: Vec.Indexed)
+    extends AbstractQueryBuilder[IndexedVectorQueryBuilder] {
+
+    private val ref = new AtomicReference[ElasticsearchQueryBuilder](null)
+
+    def set(qb: ElasticsearchQueryBuilder): Unit = ref.set(qb)
+
+    override def doRewrite(c: QueryRewriteContext): QueryBuilder = {
+      // If the reference has not been populated, we just return the current instance.
+      // Eventually the reference has been set, and we return real query builder.
+      // Elasticsearch will retry up to a fixed number of times until it gets the real one.
+      val maybe = ref.get()
+      if (maybe == null) this else maybe
+    }
+
+    def doWriteTo(out: StreamOutput): Unit =
+      throw new UnsupportedOperationException("Only supports doRewrite")
+
+    def doXContent(b: XContentBuilder, p: ToXContent.Params): Unit = ()
+
+    def doToQuery(context: SearchExecutionContext): Query =
+      throw new UnsupportedOperationException("Only supports doRewrite")
+
+    def doEquals(other: IndexedVectorQueryBuilder): Boolean =
+      throw new UnsupportedOperationException("Only supports doRewrite")
+
+    def doHashCode(): Int =
+      throw new UnsupportedOperationException("Only supports doRewrite")
+
+    def getWriteableName: String = s"IndexedVectorQueryBuilder(${indexedVec})"
+
+    def getMinimalSupportedVersion: TransportVersion =
+      throw new UnsupportedOperationException("Only supports doRewrite")
   }
 }
 
@@ -82,10 +119,11 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     def unexpected(e: Exception): ElastiknnRuntimeException =
       new ElastiknnRuntimeException(s"Failed to retrieve vector at index [${ixv.index}] id [${ixv.id}] field [${ixv.field}]", e)
 
-    // This is basically an semaphore containing the constructed query.
-    val supplier = new SetOnce[ElasticsearchQueryBuilder]()
+    // Instantiate a placeholder query builder which will be provided with the real query builder after
+    // the indexed vector has been asynchronously fetched.
+    val queryBuilder = new ElasticsearchQueryBuilder.IndexedVectorQueryBuilder(ixv)
 
-    // Request the actual document in order to construct the query.
+    // Request the actual document in order to construct the query
     c.registerAsyncAction((client: Client, listener: ActionListener[_]) => {
       client.execute(
         GetAction.INSTANCE,
@@ -102,11 +140,11 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
               field match {
                 case map: java.util.Map[String @unchecked, Object @unchecked] if map.isInstanceOf[java.util.Map[String, Object]] =>
                   val vec = XContentCodec.decodeUnsafeFromMap[Vec](map)
-                  supplier.set(new ElasticsearchQueryBuilder(query.withVec(vec), elastiknnQueryBuilder))
+                  queryBuilder.set(new ElasticsearchQueryBuilder(query.withVec(vec), elastiknnQueryBuilder))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
                 case lst: java.util.List[Object @unchecked] if lst.isInstanceOf[java.util.List[Object]] =>
                   val vec = XContentCodec.decodeUnsafeFromList[Vec](lst)
-                  supplier.set(new ElasticsearchQueryBuilder(query.withVec(vec), elastiknnQueryBuilder))
+                  queryBuilder.set(new ElasticsearchQueryBuilder(query.withVec(vec), elastiknnQueryBuilder))
                   listener.asInstanceOf[ActionListener[Any]].onResponse(null)
                 case _ => listener.onFailure(unexpectedFieldType)
               }
@@ -120,9 +158,9 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
       )
     })
 
-    RewriteQueryBuilder(_ => supplier.get())
+    queryBuilder
   }
 
-  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.ZERO
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersions.MINIMUM_COMPATIBLE
 
 }
