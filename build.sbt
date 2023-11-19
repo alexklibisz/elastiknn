@@ -27,7 +27,8 @@ lazy val `elastiknn-root` = project
     `elastiknn-lucene`,
     `elastiknn-models`,
     `elastiknn-models-benchmarks`,
-    `elastiknn-plugin`
+    `elastiknn-plugin`,
+    `elastiknn-plugin-integration-tests`
   )
 
 lazy val `elastiknn-api4s` = project
@@ -104,7 +105,6 @@ lazy val `elastiknn-plugin` = project
     `elastiknn-lucene` % "compile->compile;test->test",
     `elastiknn-client-elastic4s` % "test->compile"
   )
-  .configs(IntegrationTest.extend(Test))
   .settings(
     name := "elastiknn",
     version := ElastiknnVersion,
@@ -125,6 +125,13 @@ lazy val `elastiknn-plugin` = project
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     scalacOptions ++= ScalacOptions,
-    Defaults.itSettings,
+    TestSettings
+  )
+
+lazy val `elastiknn-plugin-integration-tests` = project
+  .in(file("elastiknn-plugin-integration-tests"))
+  .dependsOn(`elastiknn-plugin` % "test->test")
+  .settings(
+    scalacOptions ++= ScalacOptions,
     TestSettings
   )
