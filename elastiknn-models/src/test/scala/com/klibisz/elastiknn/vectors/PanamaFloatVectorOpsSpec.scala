@@ -11,7 +11,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
   private val dfvo = new DefaultFloatVectorOps
   private val pfvo = new PanamaFloatVectorOps
   private val seed = System.currentTimeMillis()
-  private implicit val rng = new Random(seed)
+  private implicit val rng: Random = new Random(seed)
   info(s"Testing with seed $seed")
 
   private def compare(f1: Double, f2: Double) = {

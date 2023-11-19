@@ -12,7 +12,7 @@ class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers {
   private val reps = 1000
   private val tol = 1e-7
   private val seed = System.currentTimeMillis()
-  private implicit val rng = new Random(seed)
+  private implicit val rng: Random = new Random(seed)
   info(s"Testing with seed $seed")
 
   describe("L2 Similarity") {

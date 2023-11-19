@@ -1,19 +1,19 @@
 import ElasticsearchPluginPlugin.autoImport._
 
-Global / scalaVersion := "2.13.10"
+Global / scalaVersion := "2.13.12"
 
 lazy val CirceVersion = "0.14.3"
-lazy val ElasticsearchVersion = "8.8.0"
-lazy val Elastic4sVersion = "8.7.0"
+lazy val ElasticsearchVersion = "8.11.1"
+lazy val Elastic4sVersion = "8.11.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.6.0"
+lazy val LuceneVersion = "9.8.0"
 
 lazy val ScalacOptions = List("-Xfatal-warnings", "-Ywarn-unused:imports")
 lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.16" % Test
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test
 )
 
 lazy val `elastiknn-root` = project
@@ -27,7 +27,8 @@ lazy val `elastiknn-root` = project
     `elastiknn-lucene`,
     `elastiknn-models`,
     `elastiknn-models-benchmarks`,
-    `elastiknn-plugin`
+    `elastiknn-plugin`,
+    `elastiknn-plugin-integration-tests`
   )
 
 lazy val `elastiknn-api4s` = project
@@ -104,7 +105,6 @@ lazy val `elastiknn-plugin` = project
     `elastiknn-lucene` % "compile->compile;test->test",
     `elastiknn-client-elastic4s` % "test->compile"
   )
-  .configs(IntegrationTest.extend(Test))
   .settings(
     name := "elastiknn",
     version := ElastiknnVersion,
@@ -121,10 +121,17 @@ lazy val `elastiknn-plugin` = project
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.4.7" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.11" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     scalacOptions ++= ScalacOptions,
-    Defaults.itSettings,
+    TestSettings
+  )
+
+lazy val `elastiknn-plugin-integration-tests` = project
+  .in(file("elastiknn-plugin-integration-tests"))
+  .dependsOn(`elastiknn-plugin` % "test->test")
+  .settings(
+    scalacOptions ++= ScalacOptions,
     TestSettings
   )

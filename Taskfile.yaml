@@ -29,18 +29,18 @@ tasks:
   annbInstallRequirements:
     desc: Install dependencies
     preconditions:
-      - python3.6 --version
+      - python --version | grep "3.10.8"
     dir: ann-benchmarks/ann-benchmarks
     deps:
       - annbCreateSubmodule
     env:
       PYTHONPATH: "{{ .PROJECT_ROOT }}/client-python"
     cmds:
-      - python3.6 -m pip install --quiet virtualenv
-      - python3.6 -m virtualenv -p python3.6 venv
+      - python --version
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - venv/bin/pip install --quiet -r requirements.txt
-      # We need client-python/requirements.txt, but the version of scipy requires Python >= 3.7.
-      - venv/bin/pip install --quiet $(grep -v scipy {{ .PROJECT_ROOT }}/client-python/requirements.txt | xargs)
+      - venv/bin/pip install --quiet -r {{ .PROJECT_ROOT }}/client-python/requirements.txt
       - venv/bin/python -c "import importlib; importlib.import_module('ann_benchmarks.algorithms.elastiknn'); print('ok')"
 
   annbRunLocalFashionMnist:
@@ -100,55 +100,55 @@ tasks:
   dockerLogBenchmarkingCluster:
     desc: Print logs from the benchmarking cluster
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml logs
+      - docker compose -f docker/docker-compose.benchmarking.yaml logs
       - docker ps -a
 
   dockerLogTestingCluster:
     desc: Print logs from the testing cluster
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml logs
+      - docker compose -f docker/docker-compose.testing.yaml logs
       - docker ps -a
 
   dockerRunBenchmarkingCluster:
-    desc: Run a local cluster for benchmarking using docker-compose.
+    desc: Run a local cluster for benchmarking using docker compose.
     deps:
       - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
+      - docker compose -f docker/docker-compose.benchmarking.yaml up --detach --build --force-recreate
       - python3 docker/cluster_ready.py
 
   dockerRunTestingCluster:
-    desc: Run a local cluster for testing using docker-compose.
+    desc: Run a local cluster for testing using docker compose.
     deps:
       - installDockerCompose
       - jvmAssemble
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
+      - docker compose -f docker/docker-compose.testing.yaml up --detach --build --force-recreate
       - python3 docker/cluster_ready.py
 
   dockerStopBenchmarkingCluster:
     desc: Stop the local benchmarking cluster.
     cmds:
-      - docker-compose -f docker/docker-compose.benchmarking.yaml down
+      - docker compose -f docker/docker-compose.benchmarking.yaml down
 
   dockerStopTestingCluster:
     desc: Stop the local testing cluster.
     cmds:
-      - docker-compose -f docker/docker-compose.testing.yaml down
+      - docker compose -f docker/docker-compose.testing.yaml down
 
   docsDev:
     desc: Start local development server.
     dir: docs
     cmds:
-      - docker-compose up dev
+      - docker compose up dev
 
   docsCompile:
     desc: Compile docs into a static site.
     dir: docs
     cmds:
       - rm -rf _site
-      - docker-compose run --rm compile
+      - docker compose run --rm compile
 
   jvmClean:
     desc: Clean all JVM artifacts
@@ -158,7 +158,7 @@ tasks:
   jvmCompile:
     desc: Compile Scala and Java code using SBT
     cmds:
-      - sbt -client "compile; Test/compile; IntegrationTest/compile"
+      - sbt -client "compile; Test/compile"
 
   jvmAssemble:
     desc: Build the plugin bundle using SBT
@@ -169,17 +169,22 @@ tasks:
   jvmIntegrationTest:
     desc: Run JVM tests using SBT
     cmds:
-      - sbt -client IntegrationTest/test
+      - sbt -client elastiknn-plugin-integration-tests/test
 
   jvmIntegrationTestQuick:
     desc: Run JVM tests using SBT, but only the ones that were recompiled
     cmds:
-      - sbt -client IntegrationTest/testQuick
+      - sbt -client elastiknn-plugin-integration-tests/testQuick
 
   jvmUnitTest:
     desc: Run JVM tests using SBT
     cmds:
-      - sbt -client test
+      - sbt -client elastiknn-api4s/test
+      - sbt -client elastiknn-client-elastic4s/test
+      - sbt -client elastiknn-lucene/test
+      - sbt -client elastiknn-models/test
+      - sbt -client elastiknn-models-benchmarks/test
+      - sbt -client elastiknn-plugin/test
 
   jvmUnitTestQuick:
     desc: Run JVM tests using SBT, but only the ones that were recompiled
@@ -214,19 +219,19 @@ tasks:
       - gh release create --prerelease --generate-notes {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
 
   installDockerCompose:
-    desc: Install docker-compose using pip
+    desc: Install docker compose using pip
     status:
-      - docker-compose --version
-    cmds:
-      - python3 -m pip install docker-compose
+      - docker compose --version
 
   pyCreateVenv:
     desc: Create python virtual environment
     dir: client-python
+    preconditions:
+      - python --version | grep 3.10.8
     cmds:
-      - python3 --version
-      - python3 -m pip install --quiet virtualenv
-      - python3 -m virtualenv -p python3.7 venv
+      - python --version
+      - python -m pip install --quiet virtualenv
+      - python -m virtualenv venv
       - touch requirements.txt
     generates:
       - venv
