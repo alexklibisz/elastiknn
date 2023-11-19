@@ -17,9 +17,14 @@ lazy val TestSettings = Seq(
 )
 
 lazy val TpolecatSettings = Seq(
-  Test / tpolecatExcludeOptions ++= Set(
-    ScalacOptions.warnNonUnitStatement,
-    ScalacOptions.warnNumericWiden
+  // Disabling a couple of warnings for test files.
+  // Ideally we would scope this to Test / scalacOptions,
+  // but then compilation fails within IntelliJ.
+  // https://github.com/typelevel/sbt-tpolecat/issues/134
+  scalacOptions ++= Seq(
+    "-Wconf:any:wv",
+    "-Wconf:cat=other-pure-statement:src=test/.*.scala:silent",
+    "-Wconf:cat=w-flag-numeric-widen:src=test/.*.scala:silent"
   )
 )
 
