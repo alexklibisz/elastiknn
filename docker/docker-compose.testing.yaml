@@ -22,8 +22,8 @@ services:
       - xpack.security.enabled=false
     ports:
       - "9200:9200"
-    mem_limit: 700m
-    mem_reservation: 700m
+    mem_limit: 900m
+    mem_reservation: 900m
     cpus: 0.5
     ulimits:
       nofile:
