@@ -91,6 +91,26 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
 
 
     public int[][] l2LshHash(int L, int k, int w, float[][] A, float[] B, float[] vec) {
-        return defaultFloatVectorOps.l2LshHash(L, k, w, A, B, vec);
+        FloatVector pv1, pv2;
+        int bound = species.loopBound(vec.length);
+        int[][] hashes = new int[L][k];
+        for (int ixL = 0; ixL < L; ixL++) {
+            for (int ixk = 0; ixk < k; ixk++) {
+                float[] a = A[ixL * k + ixk];
+                float b = B[ixL * k + ixk];
+                double dotProd = 0f;
+                int i = 0;
+                for (; i < bound; i += species.length()) {
+                    pv1 = FloatVector.fromArray(species, a, i);
+                    pv2 = FloatVector.fromArray(species, vec, i);
+                    dotProd += pv1.mul(pv2).reduceLanes(VectorOperators.ADD);
+                }
+                for (; i < vec.length; i++) {
+                    dotProd += a[i] * vec[i];
+                }
+                hashes[ixL][ixk] = (int) Math.floor((dotProd + b) / w);
+            }
+        }
+        return hashes;
     }
 }
