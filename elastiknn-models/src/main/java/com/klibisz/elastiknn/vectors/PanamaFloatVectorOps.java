@@ -10,6 +10,8 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
 
     final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
 
+    private final FloatVectorOps defaultFloatVectorOps = new DefaultFloatVectorOps();
+
     public double cosineSimilarity(float[] v1, float[] v2) {
         double dotProd = 0.0;
         double v1SqrSum = 0.0;
@@ -85,5 +87,10 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
             sumSqrDiff += diff * diff;
         }
         return Math.sqrt(sumSqrDiff);
+    }
+
+
+    public int[][] l2LshHash(int L, int k, int w, float[][] A, float[] B, float[] vec) {
+        return defaultFloatVectorOps.l2LshHash(L, k, w, A, B, vec);
     }
 }

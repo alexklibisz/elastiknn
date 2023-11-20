@@ -5,6 +5,7 @@ import com.klibisz.elastiknn.vectors.FloatVectorOps;
 import java.util.*;
 
 import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
+import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeIntsWithPrefix;
 
 public class L2LshModel implements HashingModel.DenseFloat {
     private final int L;
@@ -67,19 +68,12 @@ public class L2LshModel implements HashingModel.DenseFloat {
     }
 
     private HashAndFreq[] hashNoProbing(float[] values) {
-        // Can this be panamized?
-        HashAndFreq[] hashes = new HashAndFreq[L];
+        int[][] hashes = floatVectorOps.l2LshHash(L, k, w, A, B, values);
+        HashAndFreq[] hafs = new HashAndFreq[L];
         for (int ixL = 0; ixL < L; ixL++) {
-            int[] ints = new int[1 + k];
-            ints[0] = ixL;
-            for (int ixk = 0; ixk < k; ixk++) {
-                float[] a = A[ixL * k + ixk];
-                float b = B[ixL * k + ixk];
-                ints[ixk + 1] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
-            }
-            hashes[ixL] = HashAndFreq.once(writeInts(ints));
+            hafs[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, hashes[ixL]));
         }
-        return hashes;
+        return hafs;
     }
 
     private HashAndFreq[] hashWithProbing(float[] values, int probesPerTable) {

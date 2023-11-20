@@ -57,6 +57,23 @@ public class UnsafeSerialization {
     }
 
     /**
+     * Writes ints to a byte array with an integer prefix.
+     * This is equivalent to prepending the prefix to the integer array and calling writeInts
+     * on the resulting array.
+     *
+     * @param prefix integer prefix
+     * @param iarr integer array
+     * @return Array of bytes with length (4 + 4 * iarr.length)
+     */
+    public static byte[] writeIntsWithPrefix(int prefix, final int[] iarr) {
+        final int bytesLen = (iarr.length + 1) * numBytesInInt;
+        byte[] buf = new byte[bytesLen];
+        u.unsafe.putInt(buf, u.byteArrayOffset, prefix);
+        u.unsafe.copyMemory(iarr, u.intArrayOffset, buf, numBytesInInt + u.byteArrayOffset, bytesLen);
+        return buf;
+    }
+
+    /**
      * Reads ints from a byte array.
      */
     public static int[] readInts(final byte[] barr, final int offset, final int length) {

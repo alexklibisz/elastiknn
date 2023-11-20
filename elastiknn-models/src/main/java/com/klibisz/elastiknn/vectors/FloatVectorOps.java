@@ -9,4 +9,6 @@ public interface FloatVectorOps {
     double l1Distance(float[] v1, float[] v2);
 
     double cosineSimilarity(float[] v1, float[] v2);
+
+    int[][] l2LshHash(int L, int k, int w, float[][] A, float[] B, float[] vec);
 }

@@ -36,4 +36,17 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
         for (int i = 0; i < v1.length; i++) sumSqrDiff += Math.pow(v1[i] - v2[i], 2);
         return Math.sqrt(sumSqrDiff);
     }
+
+    @Override
+    public int[][] l2LshHash(int L, int k, int w, float[][] A, float[] B, float[] vec) {
+        int[][] hashes = new int[L][k];
+        for (int ixL = 0; ixL < L; ixL++) {
+            for (int ixk = 0; ixk < k; ixk++) {
+                float[] a = A[ixL * k + ixk];
+                float b = B[ixL * k + ixk];
+                hashes[ixL][ixk] = (int) Math.floor((dotProduct(a, vec) + b) / w);
+            }
+        }
+        return hashes;
+    }
 }
