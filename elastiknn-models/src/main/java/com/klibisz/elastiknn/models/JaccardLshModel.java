@@ -3,8 +3,7 @@ package com.klibisz.elastiknn.models;
 import java.util.Arrays;
 import java.util.Random;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
+import static com.klibisz.elastiknn.storage.UnsafeSerialization.*;
 
 public class JaccardLshModel implements HashingModel.SparseBool {
 
@@ -46,8 +45,7 @@ public class JaccardLshModel implements HashingModel.SparseBool {
         } else {
             HashAndFreq[] hashes = new HashAndFreq[L];
             for (int ixL = 0; ixL < L; ixL++) {
-                int[] ints = new int[k + 1];
-                ints[0] = ixL;
+                int[] ints = new int[k];
                 for (int ixk = 0; ixk < k; ixk++) {
                     int a = A[ixL * k + ixk];
                     int b = B[ixL * k + ixk];
@@ -56,9 +54,9 @@ public class JaccardLshModel implements HashingModel.SparseBool {
                         int hash = ((1 + ti) * a + b) % HashingModel.HASH_PRIME;
                         if (hash < minHash) minHash = hash;
                     }
-                    ints[ixk + 1] = minHash;
+                    ints[ixk] = minHash;
                 }
-                hashes[ixL] = HashAndFreq.once(writeInts(ints));
+                hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
             }
             return hashes;
         }

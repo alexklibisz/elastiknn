@@ -68,12 +68,17 @@ public class L2LshModel implements HashingModel.DenseFloat {
     }
 
     private HashAndFreq[] hashNoProbing(float[] values) {
-        int[][] hashes = floatVectorOps.l2LshHash(L, k, w, A, B, values);
-        HashAndFreq[] hafs = new HashAndFreq[L];
+        HashAndFreq[] hashes = new HashAndFreq[L];
         for (int ixL = 0; ixL < L; ixL++) {
-            hafs[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, hashes[ixL]));
+            int[] ints = new int[k];
+            for (int ixk = 0; ixk < k; ixk++) {
+                float[] a = A[ixL * k + ixk];
+                float b = B[ixL * k + ixk];
+                ints[ixk] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
+            }
+            hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
         }
-        return hafs;
+        return hashes;
     }
 
     private HashAndFreq[] hashWithProbing(float[] values, int probesPerTable) {
