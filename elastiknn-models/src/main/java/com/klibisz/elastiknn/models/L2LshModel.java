@@ -83,8 +83,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
         Perturbation[] zeroPerturbations = new Perturbation[L * k];
         Perturbation[][] sortedPerturbations = new Perturbation[L][k * 2];
         for (int ixL = 0; ixL < L; ixL++) {
-            int[] ints = new int[k + 1];
-            ints[0] = ixL;
+            int[] ints = new int[k];
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
                 float b = B[ixL * k + ixk];
@@ -94,9 +93,9 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
                 sortedPerturbations[ixL][ixk * 2 + 1] = new Perturbation(ixL, ixk, 1, proj, hash, Math.abs(w - dneg));
                 zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
-                ints[ixk + 1] = hash;
+                ints[ixk] = hash;
             }
-            hashes[ixL] = HashAndFreq.once(writeInts(ints));
+            hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
         }
 
         PriorityQueue<PerturbationSet> heap = new PriorityQueue<>(Comparator.comparingDouble(o -> o.absDistsSum));
