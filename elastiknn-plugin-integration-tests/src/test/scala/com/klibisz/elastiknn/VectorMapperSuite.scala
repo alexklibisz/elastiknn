@@ -58,7 +58,7 @@ class VectorMapperSuite extends AsyncFreeSpec with Matchers with Elastic4sMatche
         //      }
         //    }
         //  }
-        //}
+        // }
 
         res.body shouldBe defined
         val json = parse(res.body.get)

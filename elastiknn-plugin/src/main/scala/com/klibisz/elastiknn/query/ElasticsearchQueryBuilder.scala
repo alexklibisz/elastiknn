@@ -47,8 +47,7 @@ object ElasticsearchQueryBuilder {
 
   // Used by rewriteGetVector to asynchronously provide an ElasticsearchQueryBuilder for an indexed vector.
   // The doRewrite method will delay indefinitely until until the query builder is provided.
-  private final class IndexedVectorQueryBuilder(indexedVec: Vec.Indexed)
-    extends AbstractQueryBuilder[IndexedVectorQueryBuilder] {
+  private final class IndexedVectorQueryBuilder(indexedVec: Vec.Indexed) extends AbstractQueryBuilder[IndexedVectorQueryBuilder] {
 
     private val ref = new AtomicReference[ElasticsearchQueryBuilder](null)
 

@@ -4,25 +4,22 @@ import java.util
 
 import com.klibisz.elastiknn.api.Vec
 
-
-/** Abstraction for different vector storage layouts and typeclasses for encoding/decoding them.
-  * This is decoupled from the api Vec case classes so we can support various optimizations that might change the
-  * interface, e.g. streaming the vectors in a read-once fashion. Currently the fastest storage methods support roughly
-  * the same interface.
+/** Abstraction for different vector storage layouts and typeclasses for encoding/decoding them. This is decoupled from the api Vec case
+  * classes so we can support various optimizations that might change the interface, e.g. streaming the vectors in a read-once fashion.
+  * Currently the fastest storage methods support roughly the same interface.
   *
-  * The current default serialization method is using sun.misc.Unsafe to eek out the best possible performance.
-  * The implementation is based mostly on the Kryo library's use of sun.misc.Unsafe.
-  * Many other options were considered:
-  *  - fast-serialization library with unsafe configuration - roughly same as using Unsafe.
-  *  - kryo library with unsafe input/output - a bit slower than fast-serialization and bare Unsafe.
-  *  - java.io.ObjectOutput/InputStreams - 30-40% slower than Unsafe, but by far the best vanilla JVM solution.
-  *  - protocol buffers - roughly same as ObjectOutput/InputStreams, but with smaller byte array sizes; the size
-  *    doesn't seem to matter as it's compressed by ES anyway.
-  *  - java.io.DataOutput/InputStreams - far slower.
-  *  - scodec - far slower.
+  * The current default serialization method is using sun.misc.Unsafe to eek out the best possible performance. The implementation is based
+  * mostly on the Kryo library's use of sun.misc.Unsafe. Many other options were considered:
+  *   - fast-serialization library with unsafe configuration - roughly same as using Unsafe.
+  *   - kryo library with unsafe input/output - a bit slower than fast-serialization and bare Unsafe.
+  *   - java.io.ObjectOutput/InputStreams - 30-40% slower than Unsafe, but by far the best vanilla JVM solution.
+  *   - protocol buffers - roughly same as ObjectOutput/InputStreams, but with smaller byte array sizes; the size doesn't seem to matter as
+  *     it's compressed by ES anyway.
+  *   - java.io.DataOutput/InputStreams - far slower.
+  *   - scodec - far slower.
   *
-  *  Anything using Unsafe comes with the tradeoff that it requires extra JVM security permissions.
-  *  If this becomes a problem we should likely switch to ObjectOutput/InputStreams.
+  * Anything using Unsafe comes with the tradeoff that it requires extra JVM security permissions. If this becomes a problem we should
+  * likely switch to ObjectOutput/InputStreams.
   */
 sealed trait StoredVec
 

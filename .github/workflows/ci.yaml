@@ -40,6 +40,9 @@ jobs:
       - name: Increase MMAP Limits
         timeout-minutes: 1
         run: sudo sysctl -w vm.max_map_count=262144
+      - name: Lint
+        timeout-minutes: 5
+        run: task jvmLint
       - name: Compile
         timeout-minutes: 5
         run: task jvmCompile
