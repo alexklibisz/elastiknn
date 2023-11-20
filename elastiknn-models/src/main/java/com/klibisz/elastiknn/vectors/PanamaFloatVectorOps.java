@@ -10,8 +10,6 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
 
     final VectorSpecies<Float> species = FloatVector.SPECIES_PREFERRED;
 
-    private final FloatVectorOps defaultFloatVectorOps = new DefaultFloatVectorOps();
-
     public double cosineSimilarity(float[] v1, float[] v2) {
         double dotProd = 0.0;
         double v1SqrSum = 0.0;
