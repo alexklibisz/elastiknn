@@ -100,6 +100,7 @@ See ann-benchmarks/README.md
 - To run Elasticsearch on Linux, you need to increase the `vm.max_map_count` setting. [See the Elasticsearch docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/vm-max-map-count.html)
 - To run ann-benchmarks on MacOS, you might need to `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`. [See this Stackoverflow answer.](https://stackoverflow.com/a/52230415) 
 - If you're running on MacOS 13.x (Ventura), the operating system's privacy settings might block `task jvmRunLocal` from starting. One solution is to go to System Settings > Privacy & Security > Developer Tools, and add and check your terminal (e.g., iTerm) to the list of developer apps. If that doesn't work, see this thread for more ideas: https://github.com/elastic/elasticsearch/issues/91159.
+- When running tests from Intellij, you might need to add `--add-modules jdk.incubator.vector` to the VM options.
 
 ## Nearest Neighbors Search
 
