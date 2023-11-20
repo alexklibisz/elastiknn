@@ -160,6 +160,11 @@ tasks:
     cmds:
       - sbt -client "compile; Test/compile"
 
+  jvmLint:
+    desc: Lint the JVM code
+    cmds:
+      - sbt -client scalafmtCheckAll
+
   jvmAssemble:
     desc: Build the plugin bundle using SBT
     cmds:

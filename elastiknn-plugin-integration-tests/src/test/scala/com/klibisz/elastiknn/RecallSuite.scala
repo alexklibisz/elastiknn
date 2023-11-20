@@ -13,15 +13,14 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.util.hashing.MurmurHash3.orderedHash
 
-/** Tests for recall regressions for all of the mappings and their queries using random vectors.
-  * There are some subtleties:
-  * - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could
-  *   have the same score relative a query vector.
-  * - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_.
-  *   Each shard can have a non-specific number of segments but we merge each shard to a specific number.
-  * - Repeated query results against the same index should be deterministic. However if you re-index the data and run
-  *   the same query, I have seen different results at times. This seems to be an effect at the Elasticsearch level.
-  *   I've tested at the Lucene (sans ES) level and that seems to be reliably deterministic.
+/** Tests for recall regressions for all of the mappings and their queries using random vectors. There are some subtleties:
+  *   - Recall is evaluated based on the scores returned, not the ids, to account for cases where multiple vectors could have the same score
+  *     relative a query vector.
+  *   - Using more shards will generally increase recall for LSH queries because candidates are evaluated per _segment_. Each shard can have
+  *     a non-specific number of segments but we merge each shard to a specific number.
+  *   - Repeated query results against the same index should be deterministic. However if you re-index the data and run the same query, I
+  *     have seen different results at times. This seems to be an effect at the Elasticsearch level. I've tested at the Lucene (sans ES)
+  *     level and that seems to be reliably deterministic.
   */
 class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with AsyncCancelAfterFailure {
 
@@ -139,7 +138,7 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
         NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.31,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.3
       ),
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2

@@ -34,24 +34,34 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     execute(ElastiknnRequests.putMapping(index, vecField, storedIdField, vecMapping))
 
   /** Create an index with recommended defaults.
-    * @param index The index name.
-    * @param shards How many shards, 1 by default.
-    * @param replicas How many replicas, 1 by default.
-    * @param elastiknn Value for `index.elastiknn` setting, true by default.
-    * @return CreateIndexResponse
+    * @param index
+    *   The index name.
+    * @param shards
+    *   How many shards, 1 by default.
+    * @param replicas
+    *   How many replicas, 1 by default.
+    * @param elastiknn
+    *   Value for `index.elastiknn` setting, true by default.
+    * @return
+    *   CreateIndexResponse
     */
   def createIndex(index: String, shards: Int = 1, replicas: Int = 0): F[Response[CreateIndexResponse]] =
     execute(ElasticDsl.createIndex(index).shards(shards).replicas(replicas))
 
-  /** Index a batch of vectors as new Elasticsearch docs, one doc per vector.
-    * Also see ElastiknnRequests.index().
+  /** Index a batch of vectors as new Elasticsearch docs, one doc per vector. Also see ElastiknnRequests.index().
     *
-    * @param index Index where vectors are stored.
-    * @param vecField Field in each doc where vector is stored.
-    * @param vecs Sequence of vectors to store.
-    * @param storedIdField Field in each doc where ID is stored as a doc value.
-    * @param ids Sequence of ids. Assumed one-to-one correspondence to given vectors.
-    * @return Response containing BulkResponse containing indexing responses.
+    * @param index
+    *   Index where vectors are stored.
+    * @param vecField
+    *   Field in each doc where vector is stored.
+    * @param vecs
+    *   Sequence of vectors to store.
+    * @param storedIdField
+    *   Field in each doc where ID is stored as a doc value.
+    * @param ids
+    *   Sequence of ids. Assumed one-to-one correspondence to given vectors.
+    * @return
+    *   Response containing BulkResponse containing indexing responses.
     */
   def index(index: String, vecField: String, vecs: Seq[Vec], storedIdField: String, ids: Seq[String]): F[Response[BulkResponse]] = {
     val reqs = vecs.zip(ids).map { case (vec, id) =>
@@ -93,10 +103,14 @@ object ElastiknnClient {
   final case class StrictFailureException(message: String, cause: Throwable = None.orNull) extends RuntimeException(message, cause)
 
   /** Build an [[ElastiknnFutureClient]] from an elasticsearch RestClient.
-    * @param restClient The Elasticsearch RestClient, configured how you like, e.g. connected to multiple nodes.
-    * @param strictFailure If true, convert non-200 responses and bulk responses containing any failure to a failed Future.
-    * @param ec ExecutionContext where requests are executed and responses processed.
-    * @return [[ElastiknnFutureClient]]
+    * @param restClient
+    *   The Elasticsearch RestClient, configured how you like, e.g. connected to multiple nodes.
+    * @param strictFailure
+    *   If true, convert non-200 responses and bulk responses containing any failure to a failed Future.
+    * @param ec
+    *   ExecutionContext where requests are executed and responses processed.
+    * @return
+    *   [[ElastiknnFutureClient]]
     */
   def futureClient(restClient: RestClient, strictFailure: Boolean)(implicit ec: ExecutionContext): ElastiknnFutureClient = {
     val jc: JavaClient = new JavaClient(restClient)
@@ -121,12 +135,18 @@ object ElastiknnClient {
   }
 
   /** Build an [[ElastiknnFutureClient]] that connects to a single host
-    * @param host Elasticsearch host.
-    * @param port Elasticsearch port.
-    * @param timeoutMillis Amount of time to wait for a response.
-    * @param strictFailure If true, convert non-2xx responses and bulk responses containing any failure to a failed Future.
-    * @param ec ExecutionContext where requests are executed and responses processed.
-    * @return [[ElastiknnFutureClient]]
+    * @param host
+    *   Elasticsearch host.
+    * @param port
+    *   Elasticsearch port.
+    * @param timeoutMillis
+    *   Amount of time to wait for a response.
+    * @param strictFailure
+    *   If true, convert non-2xx responses and bulk responses containing any failure to a failed Future.
+    * @param ec
+    *   ExecutionContext where requests are executed and responses processed.
+    * @return
+    *   [[ElastiknnFutureClient]]
     */
   def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(implicit
       ec: ExecutionContext

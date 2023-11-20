@@ -27,7 +27,7 @@ object Vec {
 
     override def equals(other: Any): Boolean = other match {
       case other: SparseBool => (trueIndices sameElements other.trueIndices) && totalIndices == other.totalIndices
-      case _ => false
+      case _                 => false
     }
 
     override def toString: String = s"SparseBool(${trueIndices.take(3).mkString(",")},...,${trueIndices.length}/$totalIndices)"
@@ -50,7 +50,7 @@ object Vec {
   final case class DenseFloat(values: Array[Float]) extends Vec with KnownDims {
     override def equals(other: Any): Boolean = other match {
       case other: DenseFloat => other.values sameElements values
-      case _ => false
+      case _                 => false
     }
 
     override def toString: String = s"DenseFloat(${values.take(3).map(n => f"$n%.2f").mkString(",")},...,${values.length})"
