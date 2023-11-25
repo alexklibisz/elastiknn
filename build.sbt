@@ -77,7 +77,8 @@ lazy val `elastiknn-lucene` = project
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
-      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
+      "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test,
+      "org.eclipse.collections" % "eclipse-collections" % "11.1.0"
     ),
     TpolecatSettings,
     TestSettings
@@ -103,7 +104,7 @@ lazy val `elastiknn-models` = project
 
 lazy val `elastiknn-models-benchmarks` = project
   .in(file("elastiknn-models-benchmarks"))
-  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`, `elastiknn-lucene`)
   .enablePlugins(JmhPlugin)
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),

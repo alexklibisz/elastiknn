@@ -79,12 +79,6 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                // TODO: Add back this logging once log4j mess has settled.
-//                if (counter.numHits() < candidates) {
-//                logger.warn(String.format(
-//                        "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
-//                        counter.numHits(), candidates));
-//                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
