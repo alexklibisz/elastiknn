@@ -1,7 +1,8 @@
 package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
-import com.klibisz.elastiknn.search.ArrayHitCounter;
+import com.klibisz.elastiknn.search.EmptyHitCounter;
+import com.klibisz.elastiknn.search.HashMapHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -9,7 +10,6 @@ import org.apache.lucene.util.BytesRef;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 
 import static java.lang.Math.min;
@@ -58,11 +58,11 @@ public class MatchHashesAndScoreQuery extends Query {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) {
-                    return new ArrayHitCounter(0);
+                    return new EmptyHitCounter();
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    HitCounter counter = new HashMapHitCounter(reader.maxDoc(), candidates * 10, 0.9f);
                     double counterLimit = counter.capacity() + 1;
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
@@ -79,12 +79,6 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                // TODO: Add back this logging once log4j mess has settled.
-//                if (counter.numHits() < candidates) {
-//                logger.warn(String.format(
-//                        "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
-//                        counter.numHits(), candidates));
-//                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 

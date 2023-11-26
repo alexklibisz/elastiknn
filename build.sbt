@@ -103,11 +103,15 @@ lazy val `elastiknn-models` = project
 
 lazy val `elastiknn-models-benchmarks` = project
   .in(file("elastiknn-models-benchmarks"))
-  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`, `elastiknn-lucene`)
   .enablePlugins(JmhPlugin)
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
-    TpolecatSettings
+    TpolecatSettings,
+    libraryDependencies ++= Seq(
+      "org.eclipse.collections" % "eclipse-collections" % "11.1.0",
+      "org.eclipse.collections" % "eclipse-collections-api" % "11.1.0"
+    )
   )
 
 lazy val `elastiknn-plugin` = project

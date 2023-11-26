@@ -1,6 +1,7 @@
-package com.klibisz.elastiknn.vectors
+package com.klibisz.elastiknn.microbenchmarks
 
 import com.klibisz.elastiknn.api.Vec
+import com.klibisz.elastiknn.vectors._
 import org.openjdk.jmh.annotations._
 
 import scala.util.Random
