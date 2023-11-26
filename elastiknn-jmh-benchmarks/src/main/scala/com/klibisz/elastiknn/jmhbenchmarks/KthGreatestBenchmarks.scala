@@ -13,6 +13,7 @@ class KthGreatestBenchmarkFixtures {
   val numDocs = 60000
   val shortCounts: Array[Short] = (0 until numDocs).map(_ => rng.nextInt(Short.MaxValue).toShort).toArray
   val copy = new Array[Short](shortCounts.length)
+  val expected = shortCounts.sorted.reverse.apply(k)
 }
 
 class KthGreatestBenchmarks {
@@ -24,8 +25,8 @@ class KthGreatestBenchmarks {
   @Measurement(time = 5, iterations = 5)
   def sortBaseline(f: KthGreatestBenchmarkFixtures): Unit = {
     val sorted = f.shortCounts.sorted
-    val _ = sorted.apply(f.shortCounts.length - f.k)
-    ()
+    val actual = sorted.apply(f.shortCounts.length - f.k)
+    require(actual == f.expected, (actual, f.expected))
   }
 
   @Benchmark
@@ -34,8 +35,8 @@ class KthGreatestBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def kthGreatest(f: KthGreatestBenchmarkFixtures): Unit = {
-    KthGreatest.kthGreatest(f.shortCounts, f.k)
-    ()
+    val actual = KthGreatest.kthGreatest(f.shortCounts, f.k)
+    require(actual.kthGreatest == f.expected, (actual.kthGreatest, f.expected))
   }
 
   @Benchmark
@@ -45,7 +46,7 @@ class KthGreatestBenchmarks {
   @Measurement(time = 5, iterations = 5)
   def unnikedRecursive(f: KthGreatestBenchmarkFixtures): Unit = {
     System.arraycopy(f.shortCounts, 0, f.copy, 0, f.copy.length)
-    QuickSelect.selectRecursive(f.copy, f.k)
-    ()
+    val actual = QuickSelect.selectRecursive(f.copy, f.k)
+    require(actual == f.expected, (actual, f.expected))
   }
 }

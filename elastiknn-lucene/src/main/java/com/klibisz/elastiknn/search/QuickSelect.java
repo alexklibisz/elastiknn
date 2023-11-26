@@ -1,6 +1,10 @@
 package com.klibisz.elastiknn.search;
 
+import java.util.Random;
+
 public class QuickSelect {
+
+    private static final Random rng = new Random(0);
 
     public static short selectRecursive(short[] array, int n) {
         return recursive(array, 0, array.length - 1, n);
@@ -12,7 +16,7 @@ public class QuickSelect {
         }
 
         // select a pivotIndex between left and right
-        int pivotIndex = left + (right - left) / 2;
+        int pivotIndex = left + rng.nextInt(right - left);
         pivotIndex = partition(array, left, right, pivotIndex);
         // The pivot is in its final sorted position
         if (k == pivotIndex) {
