@@ -68,9 +68,7 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public KthGreatest.Result kthGreatest(int k) {
-        int[] ints = new int[counts.length];
-        for (int i = 0; i < counts.length; i++) ints[i] = counts[i];
-        return KthGreatest.kthGreatest(ints, Math.min(k, counts.length - 1));
+        return KthGreatest.kthGreatest(counts, Math.min(k, counts.length - 1));
     }
 
 }

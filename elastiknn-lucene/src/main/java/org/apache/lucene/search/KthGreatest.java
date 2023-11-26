@@ -3,10 +3,10 @@ package org.apache.lucene.search;
 public class KthGreatest {
 
     public static class Result {
-        public final int kthGreatest;
+        public final short kthGreatest;
         public final int numGreaterThan;
         public final int numNonZero;
-        public Result(int kthGreatest, int numGreaterThan, int numNonZero) {
+        public Result(short kthGreatest, int numGreaterThan, int numNonZero) {
             this.kthGreatest = kthGreatest;
             this.numGreaterThan = numGreaterThan;
             this.numNonZero = numNonZero;
@@ -23,7 +23,7 @@ public class KthGreatest {
      * @param k the desired largest value.
      * @return the kth largest value.
      */
-    public static Result kthGreatest(int[] arr, int k) {
+    public static Result kthGreatest(short[] arr, int k) {
         if (arr.length == 0) {
             throw new IllegalArgumentException("Array must be non-empty");
         } else if (k < 0 || k >= arr.length) {
@@ -33,9 +33,9 @@ public class KthGreatest {
             ));
         } else {
             // Find the min and max values.
-            int max = arr[0];
-            int min = arr[0];
-            for (int a: arr) {
+            short max = arr[0];
+            short min = arr[0];
+            for (short a: arr) {
                 if (a > max) max = a;
                 else if (a < min) min = a;
             }
@@ -43,14 +43,14 @@ public class KthGreatest {
             // Build and populate a histogram for non-zero values.
             int[] hist = new int[max - min + 1];
             int numNonZero = 0;
-            for (int a: arr) {
+            for (short a: arr) {
                 hist[a - min] += 1;
                 if (a > 0) numNonZero++;
             }
 
             // Find the kth largest value by iterating from the end of the histogram.
             int numGreaterEqual = 0;
-            int kthGreatest = max;
+            short kthGreatest = max;
             while (kthGreatest >= min) {
                 numGreaterEqual += hist[kthGreatest - min];;
                 if (numGreaterEqual > k) break;
