@@ -198,11 +198,15 @@ tasks:
 
   jvmRunLocal:
     desc: Run a local Elasticsearch cluster with the plugin using SBT
+    env:
+      ES_JAVA_OPTS: "-Xms4g -Xmx4g"
     cmds:
       - sbt -client elastiknn-plugin/elasticsearchPluginRun
 
   jvmRunLocalDebug:
     desc: Run a local Elasticsearch cluster in debug mode with the plugin using SBT
+    env:
+      ES_JAVA_OPTS: "-Xms4g -Xmx4g"
     cmds:
       - sbt -client elastiknn-plugin/elasticsearchPluginDebug
 
