@@ -2,17 +2,17 @@ package com.klibisz.elastiknn.search;
 
 public class QuickSelect {
 
-    public static int selectRecursive(int[] array, int n) {
+    public static short selectRecursive(short[] array, int n) {
         return recursive(array, 0, array.length - 1, n);
     }
 
-    private static int recursive(int[] array, int left, int right, int k) {
+    private static short recursive(short[] array, int left, int right, int k) {
         if (left == right) { // If the list contains only one element,
             return array[left]; // return that element
         }
 
         // select a pivotIndex between left and right
-        int pivotIndex = middlePivot(left, right);
+        int pivotIndex = left + (right - left) / 2;
         pivotIndex = partition(array, left, right, pivotIndex);
         // The pivot is in its final sorted position
         if (k == pivotIndex) {
@@ -24,7 +24,7 @@ public class QuickSelect {
         }
     }
 
-    private static int partition(int[] array, int left, int right, int pivotIndex) {
+    private static int partition(short[] array, int left, int right, int pivotIndex) {
         int pivotValue = array[pivotIndex];
         swap(array, pivotIndex, right); // move pivot to end
         int storeIndex = left;
@@ -38,13 +38,9 @@ public class QuickSelect {
         return storeIndex;
     }
 
-    private static void swap(int[] array, int a, int b) {
-        int tmp = array[a];
+    private static void swap(short[] array, int a, int b) {
+        short tmp = array[a];
         array[a] = array[b];
         array[b] = tmp;
-    }
-
-    private static int middlePivot(int left, int right) {
-        return left + (right - left) / 2;
     }
 }

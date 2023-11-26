@@ -11,9 +11,8 @@ class KthGreatestBenchmarkFixtures {
   val rng = new Random(0)
   val k = 1000
   val numDocs = 60000
-  val intCounts: Array[Int] = (0 until numDocs).map(_ => rng.nextInt(Short.MaxValue)).toArray
-  val shortCounts: Array[Short] = intCounts.map(_.toShort)
-  val copy = new Array[Int](intCounts.length)
+  val shortCounts: Array[Short] = (0 until numDocs).map(_ => rng.nextInt(Short.MaxValue).toShort).toArray
+  val copy = new Array[Short](shortCounts.length)
 }
 
 class KthGreatestBenchmarks {
@@ -24,8 +23,8 @@ class KthGreatestBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def sortBaseline(f: KthGreatestBenchmarkFixtures): Unit = {
-    val sorted = f.intCounts.sorted
-    val _ = sorted.apply(f.intCounts.length - f.k)
+    val sorted = f.shortCounts.sorted
+    val _ = sorted.apply(f.shortCounts.length - f.k)
     ()
   }
 
@@ -45,7 +44,7 @@ class KthGreatestBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def unnikedRecursive(f: KthGreatestBenchmarkFixtures): Unit = {
-    System.arraycopy(f.intCounts, 0, f.copy, 0, f.copy.length)
+    System.arraycopy(f.shortCounts, 0, f.copy, 0, f.copy.length)
     QuickSelect.selectRecursive(f.copy, f.k)
     ()
   }
