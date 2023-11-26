@@ -2,6 +2,7 @@ package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
+import com.klibisz.elastiknn.search.ArrayHitCounterPool;
 import com.klibisz.elastiknn.search.HitCounter;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -9,7 +10,6 @@ import org.apache.lucene.util.BytesRef;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 
 import static java.lang.Math.min;
@@ -62,7 +62,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    HitCounter counter = ArrayHitCounterPool.getThreadLocal(reader.maxDoc());
                     double counterLimit = counter.capacity() + 1;
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
