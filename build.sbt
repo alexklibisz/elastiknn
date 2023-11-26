@@ -38,7 +38,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
-    `elastiknn-models-benchmarks`,
+    `elastiknn-jmh-benchmarks`,
     `elastiknn-plugin`,
     `elastiknn-plugin-integration-tests`
   )
@@ -101,13 +101,17 @@ lazy val `elastiknn-models` = project
     TestSettings
   )
 
-lazy val `elastiknn-models-benchmarks` = project
-  .in(file("elastiknn-models-benchmarks"))
-  .dependsOn(`elastiknn-models`, `elastiknn-api4s`)
+lazy val `elastiknn-jmh-benchmarks` = project
+  .in(file("elastiknn-jmh-benchmarks"))
+  .dependsOn(`elastiknn-models`, `elastiknn-api4s`, `elastiknn-lucene`)
   .enablePlugins(JmhPlugin)
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
-    TpolecatSettings
+    TpolecatSettings,
+    libraryDependencies ++= Seq(
+      "org.eclipse.collections" % "eclipse-collections" % "11.1.0",
+      "org.eclipse.collections" % "eclipse-collections-api" % "11.1.0"
+    )
   )
 
 lazy val `elastiknn-plugin` = project
