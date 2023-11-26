@@ -2,6 +2,7 @@ package org.apache.lucene.search;
 
 import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
+import com.klibisz.elastiknn.search.EmptyHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
@@ -58,7 +59,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 Terms terms = reader.terms(field);
                 // terms seem to be null after deleting docs. https://github.com/alexklibisz/elastiknn/issues/158
                 if (terms == null) {
-                    return new ArrayHitCounter(0);
+                    return new EmptyHitCounter();
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
