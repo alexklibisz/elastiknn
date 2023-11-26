@@ -5,8 +5,8 @@ import org.apache.lucene.util.hppc.IntIntHashMap;
 
 public final class HashMapHitCounter implements HitCounter {
 
-    private IntIntHashMap hashMap;
-    private int capacity;
+    private final IntIntHashMap hashMap;
+    private final int capacity;
     private int minKey;
     private int maxKey;
 
