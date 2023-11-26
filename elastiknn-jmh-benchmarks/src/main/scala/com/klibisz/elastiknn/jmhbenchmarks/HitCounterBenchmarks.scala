@@ -39,7 +39,6 @@ class HitCounterBenchmarks {
     ()
   }
 
-
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
   @Fork(value = 1)
