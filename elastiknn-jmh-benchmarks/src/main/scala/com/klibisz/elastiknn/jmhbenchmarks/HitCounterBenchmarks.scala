@@ -13,7 +13,6 @@ class HitCounterBenchmarksFixtures {
   val numHits = 2000
   val initialMapSize = 1000
   val docs = (1 to numHits).map(_ => rng.nextInt(numDocs)).toArray
-  val arr = new Array[Int](numDocs)
 }
 
 class HitCounterBenchmarks {
