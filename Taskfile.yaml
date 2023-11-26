@@ -186,9 +186,9 @@ tasks:
     cmds:
       - sbt -client elastiknn-api4s/test
       - sbt -client elastiknn-client-elastic4s/test
+      - sbt -client elastiknn-jmh-benchmarks/test
       - sbt -client elastiknn-lucene/test
       - sbt -client elastiknn-models/test
-      - sbt -client elastiknn-models-benchmarks/test
       - sbt -client elastiknn-plugin/test
 
   jvmUnitTestQuick:

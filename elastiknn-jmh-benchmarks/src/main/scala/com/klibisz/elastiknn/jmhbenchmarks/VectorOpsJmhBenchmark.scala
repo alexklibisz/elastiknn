@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.microbenchmarks
+package com.klibisz.elastiknn.jmhbenchmarks
 
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.vectors._

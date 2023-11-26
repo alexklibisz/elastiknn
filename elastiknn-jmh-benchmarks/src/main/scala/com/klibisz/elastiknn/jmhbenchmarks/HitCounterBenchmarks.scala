@@ -1,4 +1,4 @@
-package com.klibisz.elastiknn.microbenchmarks
+package com.klibisz.elastiknn.jmhbenchmarks
 
 import org.openjdk.jmh.annotations._
 import org.apache.lucene.util.hppc.IntIntHashMap
@@ -9,10 +9,11 @@ import scala.util.Random
 @State(Scope.Benchmark)
 class HitCounterBenchmarksFixtures {
   val rng = new Random(0)
-  val numDocs = 600000
-  val numHits = 6000
-  val candidates = 500
+  val numDocs = 60000
+  val numHits = 2000
+  val initialMapSize = 1000
   val docs = (1 to numHits).map(_ => rng.nextInt(numDocs)).toArray
+  val arr = new Array[Int](numDocs)
 }
 
 class HitCounterBenchmarks {
@@ -34,7 +35,7 @@ class HitCounterBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def hashMapGetOrDefault(f: HitCounterBenchmarksFixtures): Unit = {
-    val h = new java.util.HashMap[Int, Int](f.candidates * 10, 0.99f)
+    val h = new java.util.HashMap[Int, Int](f.initialMapSize, 0.99f)
     for (d <- f.docs) h.put(d, h.getOrDefault(d, 0) + 1)
     ()
   }
@@ -46,7 +47,7 @@ class HitCounterBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def luceneIntIntHashMap(f: HitCounterBenchmarksFixtures): Unit = {
-    val m = new IntIntHashMap(f.candidates * 10, 0.99d)
+    val m = new IntIntHashMap(f.initialMapSize, 0.99d)
     for (d <- f.docs) m.putOrAdd(d, 1, 1)
     ()
   }
@@ -57,7 +58,7 @@ class HitCounterBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def eclipseIntShortHashMapAddToValue(f: HitCounterBenchmarksFixtures): Unit = {
-    val m = new IntShortHashMap(f.candidates * 10)
+    val m = new IntShortHashMap(f.initialMapSize)
     for (d <- f.docs) m.addToValue(d, 1)
     ()
   }

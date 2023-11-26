@@ -38,7 +38,7 @@ lazy val `elastiknn-root` = project
     `elastiknn-client-elastic4s`,
     `elastiknn-lucene`,
     `elastiknn-models`,
-    `elastiknn-models-benchmarks`,
+    `elastiknn-jmh-benchmarks`,
     `elastiknn-plugin`,
     `elastiknn-plugin-integration-tests`
   )
@@ -101,8 +101,8 @@ lazy val `elastiknn-models` = project
     TestSettings
   )
 
-lazy val `elastiknn-models-benchmarks` = project
-  .in(file("elastiknn-models-benchmarks"))
+lazy val `elastiknn-jmh-benchmarks` = project
+  .in(file("elastiknn-jmh-benchmarks"))
   .dependsOn(`elastiknn-models`, `elastiknn-api4s`, `elastiknn-lucene`)
   .enablePlugins(JmhPlugin)
   .settings(
