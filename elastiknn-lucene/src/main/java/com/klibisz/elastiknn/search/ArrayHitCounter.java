@@ -12,12 +12,15 @@ import java.util.Arrays;
 public class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;
+
+    private final short[] zeros;
     private int numHits;
     private int minKey;
     private int maxKey;
 
     public ArrayHitCounter(int capacity) {
         counts = new short[capacity];
+        zeros = new short[capacity];
         numHits = 0;
         minKey = capacity;
         maxKey = 0;
@@ -74,7 +77,7 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     public void reset() {
-        Arrays.fill(counts, (short) 0);
+        System.arraycopy(zeros, 0, counts, 0, counts.length);
         numHits = 0;
         minKey = counts.length;
         maxKey = 0;

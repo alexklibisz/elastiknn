@@ -1,10 +1,10 @@
 |Model|Parameters|Recall|Queries per Second|
 |---|---|---|---|
-|eknn-l2lsh|L=100 k=4 w=1024 candidates=500 probes=0|0.378|363.121|
-|eknn-l2lsh|L=100 k=4 w=1024 candidates=1000 probes=0|0.446|299.144|
-|eknn-l2lsh|L=100 k=4 w=1024 candidates=500 probes=3|0.634|270.522|
-|eknn-l2lsh|L=100 k=4 w=1024 candidates=1000 probes=3|0.716|240.419|
-|eknn-l2lsh|L=100 k=4 w=2048 candidates=500 probes=0|0.768|280.053|
-|eknn-l2lsh|L=100 k=4 w=2048 candidates=1000 probes=0|0.847|240.014|
-|eknn-l2lsh|L=100 k=4 w=2048 candidates=500 probes=3|0.922|186.668|
-|eknn-l2lsh|L=100 k=4 w=2048 candidates=1000 probes=3|0.960|166.241|
+|eknn-l2lsh|L=100 k=4 w=1024 candidates=500 probes=0|0.378|342.852|
+|eknn-l2lsh|L=100 k=4 w=1024 candidates=1000 probes=0|0.447|288.409|
+|eknn-l2lsh|L=100 k=4 w=1024 candidates=500 probes=3|0.635|267.989|
+|eknn-l2lsh|L=100 k=4 w=1024 candidates=1000 probes=3|0.716|231.240|
+|eknn-l2lsh|L=100 k=4 w=2048 candidates=500 probes=0|0.767|263.649|
+|eknn-l2lsh|L=100 k=4 w=2048 candidates=1000 probes=0|0.846|228.110|
+|eknn-l2lsh|L=100 k=4 w=2048 candidates=500 probes=3|0.922|174.557|
+|eknn-l2lsh|L=100 k=4 w=2048 candidates=1000 probes=3|0.960|157.370|
