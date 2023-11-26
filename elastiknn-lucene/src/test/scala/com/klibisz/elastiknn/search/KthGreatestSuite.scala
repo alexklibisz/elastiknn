@@ -21,7 +21,7 @@ class KthGreatestSuite extends AnyFunSuite with Matchers {
   }
 
   test("example") {
-    val counts: Array[Int] = Array(2, 2, 8, 7, 4, 4)
+    val counts: Array[Short] = Array(2, 2, 8, 7, 4, 4)
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 4
     res.numGreaterThan shouldBe 2
@@ -33,7 +33,7 @@ class KthGreatestSuite extends AnyFunSuite with Matchers {
     val rng = new Random(seed)
     info(s"Using seed $seed")
     for (_ <- 0 until 999) {
-      val counts = (0 until (rng.nextInt(10000) + 1)).map(_ => rng.nextInt(Short.MaxValue)).toArray
+      val counts = (0 until (rng.nextInt(10000) + 1)).map(_ => rng.nextInt(Short.MaxValue).toShort).toArray
       val k = rng.nextInt(counts.length)
       val res = KthGreatest.kthGreatest(counts, k)
       res.kthGreatest shouldBe counts.sorted.reverse(k)
@@ -43,7 +43,7 @@ class KthGreatestSuite extends AnyFunSuite with Matchers {
   }
 
   test("all zero except one") {
-    val counts = Array[Int](50, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    val counts = Array[Short](50, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 0
     res.numGreaterThan shouldBe 1
@@ -51,7 +51,7 @@ class KthGreatestSuite extends AnyFunSuite with Matchers {
   }
 
   test("all zero") {
-    val counts = Array[Int](0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    val counts = Array[Short](0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     val res = KthGreatest.kthGreatest(counts, 3)
     res.kthGreatest shouldBe 0
     res.numGreaterThan shouldBe 0

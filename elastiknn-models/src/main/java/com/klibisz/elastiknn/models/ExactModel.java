@@ -4,6 +4,8 @@ import com.klibisz.elastiknn.vectors.BooleanVectorOps;
 import com.klibisz.elastiknn.vectors.FloatVectorOps;
 import jdk.internal.vm.annotation.ForceInline;
 
+import java.util.Arrays;
+
 public class ExactModel {
 
     @ForceInline
