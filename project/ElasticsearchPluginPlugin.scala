@@ -38,7 +38,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       "xpack.security.enabled=false",
       s"cluster.name=${elasticsearchPluginName.value}-sbt-cluster"
     ),
-    elasticsearchPluginEsJavaOpts := Seq.empty,
+    elasticsearchPluginEsJavaOpts := Seq("-Xmx4g", "-Xms4g"),
     elasticsearchPluginRun := elasticsearchPluginRunImpl.value,
     elasticsearchPluginDebug := elasticsearchPluginDebugImpl.value,
     elasticsearchPluginDownloadDistribution := elasticsearchPluginDownloadDistributionImpl.value

@@ -82,5 +82,4 @@ public class ArrayHitCounter implements HitCounter {
         minKey = counts.length;
         maxKey = 0;
     }
-
 }

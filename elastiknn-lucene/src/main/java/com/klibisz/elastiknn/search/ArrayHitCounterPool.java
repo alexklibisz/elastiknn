@@ -12,10 +12,8 @@ public class ArrayHitCounterPool {
         private ArrayHitCounter ahc;
 
         public ArrayHitCounter getArrayHitCounter(int capacity) {
-            // First call will build a new ArrayHitCounter.
-            if (ahc == null) ahc = new ArrayHitCounter(capacity);
-            // If the desired capacity exceeds the existing counter, we build a new one.
-            else if (capacity > ahc.capacity()) ahc = new ArrayHitCounter(capacity);
+            // If it's the first call or the desired capacity exceeds the existing counter, we build a new one.
+            if (ahc == null || capacity > ahc.capacity()) ahc = new ArrayHitCounter(capacity);
             // If the desired capacity is less or equal to existing, we reuse.
             else ahc.reset();
             return ahc;
