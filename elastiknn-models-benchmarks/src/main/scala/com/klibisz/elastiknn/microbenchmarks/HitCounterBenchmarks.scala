@@ -9,9 +9,9 @@ import scala.util.Random
 @State(Scope.Benchmark)
 class HitCounterBenchmarksFixtures {
   val rng = new Random(0)
-  val numDocs = 1000000
-  val numHits = 10000
-  val candidates = 1000
+  val numDocs = 600000
+  val numHits = 6000
+  val candidates = 500
   val docs = (1 to numHits).map(_ => rng.nextInt(numDocs)).toArray
 }
 
