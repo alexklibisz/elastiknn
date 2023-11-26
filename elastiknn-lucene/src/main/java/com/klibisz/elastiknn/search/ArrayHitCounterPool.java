@@ -1,21 +1,30 @@
 package com.klibisz.elastiknn.search;
 
+/**
+ * A pool of ArrayHitCounters which can be checked out
+ * and reused as ThreadLocal variables.
+ */
 public class ArrayHitCounterPool {
 
-    private static class Container {
+    // A private intermediate class that gets stored within the ThreadLocal
+    // and allows us to reuse or rebuild a new ArrayHitCounter.
+    private static class Builder {
         private ArrayHitCounter ahc;
 
-        public ArrayHitCounter get(int capacity) {
+        public ArrayHitCounter getArrayHitCounter(int capacity) {
+            // First call will build a new ArrayHitCounter.
             if (ahc == null) ahc = new ArrayHitCounter(capacity);
-            else if (capacity < ahc.capacity()) ahc.reset();
-            else ahc = new ArrayHitCounter(capacity);
+            // If the desired capacity exceeds the existing counter, we build a new one.
+            else if (capacity > ahc.capacity()) ahc = new ArrayHitCounter(capacity);
+            // If the desired capacity is less or equal to existing, we reuse.
+            else ahc.reset();
             return ahc;
         }
     }
 
-    private static ThreadLocal<Container> containers = ThreadLocal.withInitial(() -> new Container());
+    private static ThreadLocal<Builder> builders = ThreadLocal.withInitial(() -> new Builder());
 
     public static ArrayHitCounter getThreadLocal(int capacity) {
-        return containers.get().get(capacity);
+        return builders.get().getArrayHitCounter(capacity);
     }
 }
