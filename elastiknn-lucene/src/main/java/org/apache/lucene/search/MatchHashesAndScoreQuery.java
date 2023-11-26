@@ -79,12 +79,6 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-                // TODO: Add back this logging once log4j mess has settled.
-//                if (counter.numHits() < candidates) {
-//                logger.warn(String.format(
-//                        "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
-//                        counter.numHits(), candidates));
-//                }
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
@@ -114,18 +108,22 @@ public class MatchHashesAndScoreQuery extends Query {
                                 docID = counter.minKey() - 1;
                             }
 
-                            // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
-                            // than `candidates` docs with count > kgr.kthGreatest.
                             while (true) {
+                                // We've emitted `candidates` docs or the next doc would exceed the max key,
+                                // so we stop emitting.
                                 if (numEmitted == candidates || docID + 1 > counter.maxKey()) {
                                     docID = DocIdSetIterator.NO_MORE_DOCS;
                                     return docID();
                                 } else {
+                                    // Increment and check the next doc.
                                     docID++;
                                     if (counter.get(docID) > kgr.kthGreatest) {
                                         numEmitted++;
                                         return docID();
-                                    } else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                    }
+                                    // Ensure that docs with count = kgr.kthGreatest are only emitted when there are
+                                    // fewer than `candidates` docs with count > kgr.kthGreatest.
+                                    else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                         numEq++;
                                         numEmitted++;
                                         return docID();

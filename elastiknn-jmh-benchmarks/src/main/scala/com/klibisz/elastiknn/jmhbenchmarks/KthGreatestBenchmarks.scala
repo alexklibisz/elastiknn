@@ -13,6 +13,7 @@ class KthGreatestBenchmarkFixtures {
   val numDocs = 60000
   val intCounts: Array[Int] = (0 until numDocs).map(_ => rng.nextInt(Short.MaxValue)).toArray
   val shortCounts: Array[Short] = intCounts.map(_.toShort)
+  val copy = new Array[Int](intCounts.length)
 }
 
 class KthGreatestBenchmarks {
@@ -44,7 +45,8 @@ class KthGreatestBenchmarks {
   @Warmup(time = 5, iterations = 5)
   @Measurement(time = 5, iterations = 5)
   def unnikedRecursive(f: KthGreatestBenchmarkFixtures): Unit = {
-    QuickSelect.selectRecursive(f.intCounts, f.k)
+    System.arraycopy(f.intCounts, 0, f.copy, 0, f.copy.length)
+    QuickSelect.selectRecursive(f.copy, f.k)
     ()
   }
 }
