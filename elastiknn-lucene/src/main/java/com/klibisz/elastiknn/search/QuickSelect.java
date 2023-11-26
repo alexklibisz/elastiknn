@@ -2,6 +2,9 @@ package com.klibisz.elastiknn.search;
 
 import java.util.Random;
 
+/**
+ * Based on https://gist.github.com/unnikked/14c19ba13f6a4bfd00a3
+ */
 public class QuickSelect {
 
     private static final Random rng = new Random(0);
