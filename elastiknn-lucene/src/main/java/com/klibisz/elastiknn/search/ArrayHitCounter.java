@@ -22,18 +22,14 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     @Override
-    public void increment(int key, short count) {
-        if (counts[key] == 0) {
+    public void increment(int key) {
+        // Increment counts[key] and check if the original value was zero.
+        // If it was, we have a new hit and we need to do some bookkeeping.
+        if (counts[key]++ == 0) {
             numHits++;
             minKey = Math.min(key, minKey);
             maxKey = Math.max(key, maxKey);
         }
-        counts[key] += count;  // Important to be after the above.
-    }
-
-    @Override
-    public void increment(int key, int count) {
-        increment(key, (short) count);
     }
 
     @Override

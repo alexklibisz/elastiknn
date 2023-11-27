@@ -7,9 +7,7 @@ import org.apache.lucene.search.KthGreatest;
  */
 public interface HitCounter {
 
-    void increment(int key, short count);
-
-    void increment(int key, int count);
+    void increment(int key);
 
     boolean isEmpty();
 
