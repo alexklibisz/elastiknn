@@ -92,7 +92,7 @@ public class HammingLshModel implements HashingModel.SparseBool{
     }
 
     @Override
-    public HashAndFreq[] hash(int[] trueIndices, int totalIndices) {
+    public byte[][] hash(int[] trueIndices, int totalIndices) {
         // Create a bit buffer for each hash, prefixed by the hash index.
         BitBuffer.IntBuffer[] hashBuffers = new BitBuffer.IntBuffer[L];
         for (int ixL = 0; ixL < L; ixL++) {
@@ -121,8 +121,8 @@ public class HammingLshModel implements HashingModel.SparseBool{
             for (int hi: sampledPositions[ixsp].hashIndexes) hashBuffers[hi].putZero();
             ixsp += 1;
         }
-        HashAndFreq[] hashes = new HashAndFreq[L];
-        for (int ixL = 0; ixL < hashBuffers.length; ixL++) hashes[ixL] = HashAndFreq.once(hashBuffers[ixL].toByteArray());
+        byte[][] hashes = new byte[L][];
+        for (int ixL = 0; ixL < hashBuffers.length; ixL++) hashes[ixL] = hashBuffers[ixL].toByteArray();
         return hashes;
     }
 }

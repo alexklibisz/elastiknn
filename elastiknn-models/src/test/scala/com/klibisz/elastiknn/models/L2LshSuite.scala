@@ -38,10 +38,10 @@ class L2LshSuite extends AnyFunSuite with Matchers {
   test("first L hashes are the same with and without probing") {
     val vec = Vec.DenseFloat.random(100)
     val model = new L2LshModel(vec.dims, 10, 3, 1, new java.util.Random(0), new PanamaFloatVectorOps)
-    val hashesNoProbes = model.hash(vec.values)
-    val hashesWithProbes = model.hash(vec.values, 3)
+    val hashesNoProbes = model.hash(vec.values).map(_.toList)
+    val hashesWithProbes = model.hash(vec.values, 3).map(_.toList)
     hashesNoProbes should have length 10
-    hashesWithProbes.toVector.take(10) shouldBe hashesNoProbes.toVector
+    hashesWithProbes.toVector.take(10) shouldEqual hashesNoProbes.toVector
   }
 
   test("example for debugging") {

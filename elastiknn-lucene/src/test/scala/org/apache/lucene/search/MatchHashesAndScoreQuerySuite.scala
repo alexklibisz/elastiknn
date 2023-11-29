@@ -1,7 +1,6 @@
 package org.apache.lucene.search
 
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
-import com.klibisz.elastiknn.models.HashAndFreq
 import com.klibisz.elastiknn.storage.UnsafeSerialization._
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
@@ -39,7 +38,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
       d.add(new Field("vec", writeInt(99), HashFieldType.HASH_FIELD_TYPE))
       w.addDocument(d)
     } { case (r, s) =>
-      val hashes = Array(HashAndFreq.once(writeInt(42)), HashAndFreq.once(writeInt(99)), HashAndFreq.once(writeInt(22)))
+      val hashes = Array(writeInt(42), writeInt(99), writeInt(22))
       val q = new MatchHashesAndScoreQuery(
         "vec",
         hashes,
@@ -68,7 +67,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
       w.addDocument(d1)
       w.addDocument(d2)
     } { case (r, s) =>
-      val hashes = Array(3, 3, 3, 0, 0, 6).map(i => HashAndFreq.once(writeInt(i)))
+      val hashes = Array(3, 3, 3, 0, 0, 6).map(i => writeInt(i))
       val q = new MatchHashesAndScoreQuery(
         "vec",
         hashes,
@@ -98,7 +97,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         w.addDocument(d)
       }
     } { case (r, s) =>
-      val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
+      val hashes = Array(6, 7, 8, 9, 10).map(writeInt)
       val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
       val dd = s.search(q, 10)
       dd.scoreDocs shouldBe empty
@@ -109,7 +108,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
   }
 
   test("returns no more than `candidates` doc IDs") {
-    val query = Array(6, 7).map(i => HashAndFreq.once(writeInt(i)))
+    val query = Array(6, 7).map(writeInt)
     val candidates = 5
 
     // Three docs with count > 1, three with count = 1, one with count = 0.

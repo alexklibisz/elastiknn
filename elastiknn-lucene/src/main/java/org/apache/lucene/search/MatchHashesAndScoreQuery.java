@@ -1,6 +1,6 @@
 package org.apache.lucene.search;
 
-import com.klibisz.elastiknn.models.HashAndFreq;
+import com.klibisz.elastiknn.models.HashingModel;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
 import org.apache.lucene.index.*;
@@ -9,10 +9,7 @@ import org.apache.lucene.util.BytesRef;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
-
-import static java.lang.Math.min;
 
 /**
  * Query that finds docs containing the given hashes (Lucene terms), and then applies a scoring function to the
@@ -25,22 +22,23 @@ public class MatchHashesAndScoreQuery extends Query {
     }
 
     private final String field;
-    private final HashAndFreq[] hashAndFrequencies;
+    private final byte[][] hashes;
     private final int candidates;
     private final IndexReader indexReader;
     private final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder;
 
+
     public MatchHashesAndScoreQuery(final String field,
-                                    final HashAndFreq[] hashAndFrequencies,
+                                    final byte[][] hashes,
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
         // `countMatches` expects hashes to be in sorted order.
         // java's sort seems to be faster than lucene's ArrayUtil.
-        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
+        java.util.Arrays.sort(hashes, HashingModel::compareHashes);
 
         this.field = field;
-        this.hashAndFrequencies = hashAndFrequencies;
+        this.hashes = hashes;
         this.candidates = candidates;
         this.indexReader = indexReader;
         this.scoreFunctionBuilder = scoreFunctionBuilder;
@@ -65,8 +63,8 @@ public class MatchHashesAndScoreQuery extends Query {
                     HitCounter counter = new ArrayHitCounter(reader.maxDoc());
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
-                    for (HashAndFreq hf : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hf.hash))) {
+                    for (byte[] hash : hashes) {
+                        if (termsEnum.seekExact(new BytesRef(hash))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                                 counter.increment(docs.docID());
@@ -153,7 +151,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (counter.get(doc) > 0) {
                     ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
                     double score = scoreFunction.score(doc, counter.get(doc));
-                    return Explanation.match(score, String.format("Document [%d] and the query vector share [%d] of [%d] hashes. Their exact similarity score is [%f].", doc, counter.get(doc), hashAndFrequencies.length, score));
+                    return Explanation.match(score, String.format("Document [%d] and the query vector share [%d] of [%d] hashes. Their exact similarity score is [%f].", doc, counter.get(doc), hashes.length, score));
                 } else {
                     return Explanation.noMatch(String.format("Document [%d] and the query vector share no common hashes.", doc));
                 }
@@ -210,7 +208,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 "%s for field [%s] with [%d] hashes and [%d] candidates",
                 this.getClass().getSimpleName(),
                 this.field,
-                this.hashAndFrequencies.length,
+                this.hashes.length,
                 this.candidates);
     }
 
@@ -226,6 +224,6 @@ public class MatchHashesAndScoreQuery extends Query {
 
     @Override
     public int hashCode() {
-        return Objects.hash(field, Arrays.hashCode(hashAndFrequencies), candidates, indexReader, scoreFunctionBuilder);
+        return Objects.hash(field, Arrays.hashCode(hashes), candidates, indexReader, scoreFunctionBuilder);
     }
 }

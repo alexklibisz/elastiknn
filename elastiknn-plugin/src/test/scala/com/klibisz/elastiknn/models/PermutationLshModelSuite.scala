@@ -21,14 +21,14 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     // zero, so it should only contribute 1 to the score for corpus vector 0. Similarly, 4 appears twice in the query
     // vector and three times in corpus vector 1, so it should only contribute 2 to the socre for corpus vector 1.
 
-    val hc0 = Array((0, 3), (2, 2), (4, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
-    val hc1 = Array((4, 3), (1, 2), (2, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
-    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, c) => new HashAndFreq(writeInt(n), c) }
+    val hc0 = Array((0, 3), (2, 2), (4, 1)).map { case (n, _) => writeInt(n) }
+    val hc1 = Array((4, 3), (1, 2), (2, 1)).map { case (n, _) => writeInt(n) }
+    val hq = Array((2, 3), (4, 2), (0, 1)).map { case (n, _) => writeInt(n) }
 
     indexAndSearch() { w =>
       Seq(hc0, hc1).foreach { hd =>
         val d = new Document()
-        hd.foreach(h => d.add(new Field("vec", h.hash, HashFieldType.HASH_FIELD_TYPE)))
+        hd.foreach(h => d.add(new Field("vec", h, HashFieldType.HASH_FIELD_TYPE)))
         w.addDocument(d)
       }
     } { case (reader, searcher) =>

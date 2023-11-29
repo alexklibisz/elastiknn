@@ -11,7 +11,7 @@ public class JaccardLshModel implements HashingModel.SparseBool {
     private final int k;
     private final int[] A;
     private final int[] B;
-    private final HashAndFreq[] empty;
+    private final byte[][] empty;
 
     /**
      * Locality sensitive hashing model for Jaccard similarity.
@@ -34,16 +34,16 @@ public class JaccardLshModel implements HashingModel.SparseBool {
         this.B = new int[L * k];
         for (int i = 0; i < L * k; i++) this.B[i] = rng.nextInt(HashingModel.HASH_PRIME - 1);
 
-        this.empty = new HashAndFreq[L];
-        Arrays.fill(this.empty, HashAndFreq.once(writeInt(HashingModel.HASH_PRIME)));
+        this.empty = new byte[L][];
+        Arrays.fill(this.empty, writeInt(HashingModel.HASH_PRIME));
     }
 
     @Override
-    public HashAndFreq[] hash(int[] trueIndices, int totalIndices) {
+    public byte[][] hash(int[] trueIndices, int totalIndices) {
         if (trueIndices.length == 0) {
             return this.empty;
         } else {
-            HashAndFreq[] hashes = new HashAndFreq[L];
+            byte[][] hashes = new byte[L][];
             for (int ixL = 0; ixL < L; ixL++) {
                 int[] ints = new int[k];
                 for (int ixk = 0; ixk < k; ixk++) {
@@ -56,7 +56,7 @@ public class JaccardLshModel implements HashingModel.SparseBool {
                     }
                     ints[ixk] = minHash;
                 }
-                hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
+                hashes[ixL] = writeIntsWithPrefix(ixL, ints);
             }
             return hashes;
         }

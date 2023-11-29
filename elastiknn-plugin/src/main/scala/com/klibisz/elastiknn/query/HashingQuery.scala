@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.query
 
 import com.klibisz.elastiknn.api.Vec
-import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashAndFreq}
+import com.klibisz.elastiknn.models.{ExactSimilarityFunction, HashingModel}
 import com.klibisz.elastiknn.storage.StoredVec.Decoder
 import com.klibisz.elastiknn.storage.{StoredVec, StoredVecReader}
 import org.apache.lucene.document.{Field, FieldType}
@@ -16,9 +16,10 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
     field: String,
     queryVec: V,
     candidates: Int,
-    hashes: Array[HashAndFreq],
+    hashes: Array[Array[Byte]],
     simFunc: ExactSimilarityFunction[V, S]
 ) extends ElastiknnQuery {
+
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
       (lrc: LeafReaderContext) => {
@@ -52,8 +53,8 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
         private val reader = ctx.reader()
         private val terms = reader.terms(field)
         private val termsEnum = terms.iterator()
-        private val postings = hashes.sorted.flatMap { h =>
-          if (termsEnum.seekExact(new BytesRef(h.hash))) Some(termsEnum.postings(null, PostingsEnum.NONE))
+        private val postings = hashes.sorted(HashingQuery.orderHashes).flatMap { h =>
+          if (termsEnum.seekExact(new BytesRef(h))) Some(termsEnum.postings(null, PostingsEnum.NONE))
           else None
         }
         override def score(docId: Int, subQueryScore: Float): Double = {
@@ -79,13 +80,13 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
 
 object HashingQuery {
 
+  private val orderHashes: Ordering[Array[Byte]] =
+    (h1: Array[Byte], h2: Array[Byte]) => HashingModel.compareHashes(h1, h2)
+
   def index[V <: Vec: StoredVec.Encoder](
       field: String,
       fieldType: FieldType,
       vec: V,
-      hashes: Array[HashAndFreq]
-  ): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
-    val f = new Field(field, h.hash, fieldType)
-    (0 until h.freq).map(_ => f)
-  }
+      hashes: Array[Array[Byte]]
+  ): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.map(new Field(field, _, fieldType))
 }

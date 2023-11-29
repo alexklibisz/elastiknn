@@ -1,15 +1,20 @@
 package com.klibisz.elastiknn.models;
 
+import java.util.Arrays;
+
 public class HashingModel {
 
     public static int HASH_PRIME = 2038074743;
 
     public interface SparseBool {
-        HashAndFreq[] hash(int[] trueIndices, int totalIndices);
+        byte[][] hash(int[] trueIndices, int totalIndices);
     }
 
     public interface DenseFloat {
-        HashAndFreq[] hash(float[] values);
+        byte[][] hash(float[] values);
     }
 
+    public static int compareHashes(byte[] h1, byte[] h2) {
+        return Arrays.compareUnsigned(h1, 0, h1.length, h2, 0, h2.length);
+    }
 }

@@ -63,12 +63,12 @@ public class L2LshModel implements HashingModel.DenseFloat {
     }
 
     @Override
-    public HashAndFreq[] hash(float[] values) {
+    public byte[][] hash(float[] values) {
         return hashNoProbing(values);
     }
 
-    private HashAndFreq[] hashNoProbing(float[] values) {
-        HashAndFreq[] hashes = new HashAndFreq[L];
+    private byte[][] hashNoProbing(float[] values) {
+        byte[][] hashes = new byte[L][];
         for (int ixL = 0; ixL < L; ixL++) {
             int[] ints = new int[k];
             for (int ixk = 0; ixk < k; ixk++) {
@@ -76,14 +76,14 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 float b = B[ixL * k + ixk];
                 ints[ixk] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
             }
-            hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
+            hashes[ixL] = writeIntsWithPrefix(ixL, ints);
         }
         return hashes;
     }
 
-    private HashAndFreq[] hashWithProbing(float[] values, int probesPerTable) {
+    private byte[][] hashWithProbing(float[] values, int probesPerTable) {
         int numHashes = L * (1 + Math.max(0, Math.min(probesPerTable, maxProbesPerTable)));
-        HashAndFreq[] hashes = new HashAndFreq[numHashes];
+        byte[][] hashes = new byte[numHashes][];
         // Populate the non-perturbed hashes, generate all non-perturbations, and generate all +1/-1 perturbations.
         Perturbation[] zeroPerturbations = new Perturbation[L * k];
         Perturbation[][] sortedPerturbations = new Perturbation[L][k * 2];
@@ -100,7 +100,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 zeroPerturbations[ixL * k + ixk] = new Perturbation(ixL, ixk, 0, proj, hash, 0);
                 ints[ixk] = hash;
             }
-            hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
+            hashes[ixL] = writeIntsWithPrefix(ixL, ints);
         }
 
         PriorityQueue<PerturbationSet> heap = new PriorityQueue<>(Comparator.comparingDouble(o -> o.absDistsSum));
@@ -128,13 +128,13 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 Perturbation pert = Ai.members.getOrDefault(ixk, zeroPerturbations[Ai.ixL * k + ixk]);
                 ints[ixk + 1] = pert.hash + pert.delta;
             }
-            hashes[ixhashes] = HashAndFreq.once(writeInts(ints));
+            hashes[ixhashes] = writeInts(ints);
         }
         return hashes;
     }
 
 
-    public HashAndFreq[] hash(float[] values, int probesPerTable) {
+    public byte[][] hash(float[] values, int probesPerTable) {
         if (probesPerTable == 0) return hashNoProbing(values);
         else return hashWithProbing(values, probesPerTable);
     }

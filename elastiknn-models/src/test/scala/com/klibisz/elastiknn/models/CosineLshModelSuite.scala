@@ -20,10 +20,9 @@ class CosineLshModelSuite extends AnyFunSuite with Matchers {
       val mlsh = new CosineLshModel(dims, l, k, new java.util.Random(0), new PanamaFloatVectorOps)
       val vec = Vec.DenseFloat.random(dims, unit = isUnit)
       val scaled = (1 to 10).map(m => vec.copy(vec.values.map(_ * m)))
-      val hashed = scaled.map(v => mlsh.hash(v.values).toList)
+      val hashed: Seq[List[List[Byte]]] = scaled.map(v => mlsh.hash(v.values).toList.map(_.toList))
       scaled.distinct.length shouldBe 10
       hashed.distinct.length shouldBe 1
     }
   }
-
 }

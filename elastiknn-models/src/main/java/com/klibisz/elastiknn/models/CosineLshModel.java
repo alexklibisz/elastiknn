@@ -36,8 +36,8 @@ public class CosineLshModel implements HashingModel.DenseFloat {
     }
 
     @Override
-    public HashAndFreq[] hash(float[] values) {
-        HashAndFreq[] hashes = new HashAndFreq[L];
+    public byte[][] hash(float[] values) {
+        byte[][] hashes = new byte[L][];
         for (int ixL = 0; ixL < L; ixL++) {
             BitBuffer.IntBuffer buf = new BitBuffer.IntBuffer(writeInt(ixL));
             for (int ixk = 0; ixk < k; ixk++) {
@@ -45,7 +45,7 @@ public class CosineLshModel implements HashingModel.DenseFloat {
                 if (dot > 0) buf.putOne();
                 else buf.putZero();
             }
-            hashes[ixL] = HashAndFreq.once(buf.toByteArray());
+            hashes[ixL] = buf.toByteArray();
         }
         return hashes;
     }

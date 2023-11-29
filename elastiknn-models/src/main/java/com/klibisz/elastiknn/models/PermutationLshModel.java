@@ -22,7 +22,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
     }
 
     @Override
-    public HashAndFreq[] hash(float[] values) {
+    public byte[][] hash(float[] values) {
 
         PriorityQueue<Integer> indexHeap = new PriorityQueue<>((i1, i2) -> Float.compare(Math.abs(values[i2]), Math.abs(values[i1])));
 
@@ -32,7 +32,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
         // Indexes of negative values are negated. Positive indexes are incremented by 1 and negative decremented by 1
         // to avoid ambiguity at zero. Ties are handled by repeating the tied indexes the same number of times, and
         // reducing subsequent repetition for each tie. Meaning if there's a two-way tie for 2nd place, there's no 3rd.
-        HashAndFreq[] hashes = new HashAndFreq[k];
+        byte[][] hashes = new byte[k][];
         int rankComplement = -1;
         int currTies = 0;
         float prevAbs = Float.POSITIVE_INFINITY;
@@ -45,8 +45,7 @@ public class PermutationLshModel implements HashingModel.DenseFloat {
                 currTies = 0;
             } else currTies += 1;
             byte[] hash = values[ix] >= 0 ? writeInt(ix + 1) : writeInt(-1 - ix);
-            int freq = repeating ? k - rankComplement : 1;
-            hashes[ixHashes] = new HashAndFreq(hash, freq);
+            hashes[ixHashes] = hash;
         }
         return hashes;
     }
