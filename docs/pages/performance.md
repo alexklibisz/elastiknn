@@ -17,6 +17,7 @@ See the ann-benchmarks directory in the Elastiknn repository for more details.
 
 ### Fashion MNIST
 
+<!-- Using base64 here to avoid messing with image URLs -->
 <img src="data:image/png;base64, {% include_relative performance/fashion-mnist/plot.b64 %}" width="600px" height="auto"/> 
 
 {% include_relative performance/fashion-mnist/results.md %}
