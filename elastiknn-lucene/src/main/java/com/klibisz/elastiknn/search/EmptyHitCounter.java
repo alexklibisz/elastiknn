@@ -3,6 +3,10 @@ package com.klibisz.elastiknn.search;
 import org.apache.lucene.search.KthGreatest;
 
 public final class EmptyHitCounter implements HitCounter {
+
+    @Override
+    public void increment(int key) {}
+
     @Override
     public void increment(int key, short count) {}
 

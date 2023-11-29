@@ -67,10 +67,19 @@ public class MatchHashesAndScoreQuery extends Query {
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hf : hashAndFrequencies) {
-                        if (termsEnum.seekExact(new BytesRef(hf.hash))) {
-                            docs = termsEnum.postings(docs, PostingsEnum.NONE);
-                            while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), (short) min(hf.freq, docs.freq()));
+                        if (hf.freq == 1) {
+                            if (termsEnum.seekExact(new BytesRef(hf.hash))) {
+                                docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                                while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                    counter.increment(docs.docID());
+                                }
+                            }
+                        } else {
+                            if (termsEnum.seekExact(new BytesRef(hf.hash))) {
+                                docs = termsEnum.postings(docs, PostingsEnum.NONE);
+                                while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                    counter.increment(docs.docID(), (short) min(hf.freq, docs.freq()));
+                                }
                             }
                         }
                     }
