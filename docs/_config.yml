@@ -3,7 +3,7 @@ name: Elastiknn
 description: >- # this means to ignore newlines until "baseurl:"
   An Elasticsearch Plugin for Exact and Approximate Nearest Neighbors Search in High Dimensional Vector Spaces
 url: "https://alexklibisz.github.io"
-baseurl: "elastiknn" 
+baseurl: "/elastiknn"
 
 theme: minimal-mistakes-jekyll
 minimal_mistakes_skin: dark
