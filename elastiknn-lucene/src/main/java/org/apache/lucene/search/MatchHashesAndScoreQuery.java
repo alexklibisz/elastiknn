@@ -70,7 +70,7 @@ public class MatchHashesAndScoreQuery extends Query {
                         if (termsEnum.seekExact(new BytesRef(hf.hash))) {
                             docs = termsEnum.postings(docs, PostingsEnum.NONE);
                             while (docs.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                counter.increment(docs.docID(), min(hf.freq, docs.freq()));
+                                counter.increment(docs.docID(), (short) min(hf.freq, docs.freq()));
                             }
                         }
                     }

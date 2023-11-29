@@ -7,9 +7,6 @@ public final class EmptyHitCounter implements HitCounter {
     public void increment(int key, short count) {}
 
     @Override
-    public void increment(int key, int count) {}
-
-    @Override
     public boolean isEmpty() {
         return true;
     }
