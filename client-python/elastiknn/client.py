@@ -2,6 +2,7 @@
 
 from typing import Iterable, Tuple, Dict, Optional
 
+import numpy as np
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
@@ -28,7 +29,38 @@ class ElastiknnClient(object):
         else:
             self.es = es
 
-    def put_mapping(self, index: str, vec_field: str, mapping: Mapping.Base, stored_id_field: str):
+    def create_index(self,
+                     index: str,
+                     vec_field: str,
+                     mapping: Mapping.Base,
+                     stored_id_field: str,
+                     sort_by_distance_field: str = None):
+        properties = {
+            vec_field: mapping.to_dict(),
+            stored_id_field: {
+                "type": "keyword",
+                "store": True
+            }
+        }
+        if sort_by_distance_field is not None:
+            properties[sort_by_distance_field] = {"type": "double"}
+        mapping = {"properties": properties}
+
+        settings = {}
+        if sort_by_distance_field is not None:
+            properties[sort_by_distance_field] = {"type": "double"}
+            settings["index"] = {
+                "sort.field": [sort_by_distance_field],
+                "sort.order": ["asc"]
+            }
+
+        self.es.indices.create(index=index, mappings=mapping, settings=settings)
+
+    def put_mapping(self,
+                    index: str,
+                    vec_field: str,
+                    mapping: Mapping.Base,
+                    stored_id_field: str):
         """
         Update the mapping at the given index and field to store an Elastiknn vector.
 
@@ -57,7 +89,15 @@ class ElastiknnClient(object):
         }
         return self.es.indices.put_mapping(properties=properties, index=index)
 
-    def index(self, index: str, vec_field: str, vecs: Iterable[Vec.Base], stored_id_field: str, ids: Iterable[str], refresh: bool = False) -> Tuple[int, List[Dict]]:
+    def index(self,
+              index: str,
+              vec_field: str,
+              vecs: Iterable[Vec.Base],
+              stored_id_field: str,
+              ids: Iterable[str],
+              refresh: bool = False,
+              sort_by_distance_field: str = None
+              ) -> Tuple[int, List[Dict]]:
         """Index (i.e. store) the given vectors at the given index and field with the optional ids.
 
         Parameters
@@ -74,7 +114,10 @@ class ElastiknnClient(object):
             Field containing the document ID. Uses `store: true` setting as an optimization for faster id-only queries.
         refresh : bool
             Whether to refresh before returning. Set to true if you want to immediately run queries after indexing.
-
+        sort_by_distance_field:
+            Field containing the vector's distance from the origin vector (all zeros).
+            Used as an optimization to co-locate vectors that are close together.
+            If None, we don't store this value.
         Returns
         -------
         Int
@@ -85,7 +128,19 @@ class ElastiknnClient(object):
 
         def gen():
             for vec, _id in zip(vecs, ids):
-                yield { "_op_type": "index", "_index": index, vec_field: vec.to_dict(), stored_id_field: str(_id), "_id": str(_id) }
+                doc = {
+                    "_op_type": "index",
+                    "_index": index,
+                    vec_field: vec.to_dict(),
+                    stored_id_field: str(_id),
+                    "_id": str(_id)
+                }
+                if sort_by_distance_field is not None and isinstance(vec, Vec.DenseFloat):
+                    zeros = np.zeros(len(vec.values))
+                    npvec = np.array(vec.values)
+                    l2dst = np.sqrt(np.sum((zeros - npvec) ** 2))
+                    doc[sort_by_distance_field] = l2dst
+                yield doc
 
         res = bulk(self.es, gen(), chunk_size=200, max_retries=9)
         if refresh:

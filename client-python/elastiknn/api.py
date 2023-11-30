@@ -51,6 +51,11 @@ class Vec:
         def __len__(self):
             return len(self.values)
 
+        @staticmethod
+        def random(length: int, rng: Random = Random(time())):
+            values = [rng.random() for _ in range(length)]
+            return Vec.DenseFloat(values)
+
     @dataclass(frozen=True)
     class Indexed(Base):
         index: str
