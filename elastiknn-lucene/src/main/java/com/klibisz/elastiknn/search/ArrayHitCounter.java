@@ -22,6 +22,15 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     @Override
+    public void increment(int key) {
+        if (counts[key]++ == 0) {
+            numHits++;
+            minKey = Math.min(key, minKey);
+            maxKey = Math.max(key, maxKey);
+        }
+    }
+
+    @Override
     public void increment(int key, short count) {
         if ((counts[key] += count) == count) {
             numHits++;
