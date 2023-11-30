@@ -67,6 +67,10 @@ public class MatchHashesAndScoreQuery extends Query {
                     // TODO: Is this the right place to use the live docs bitset to check for deleted docs?
                     // Bits liveDocs = reader.getLiveDocs();
                     for (HashAndFreq hf : hashAndFrequencies) {
+                        // We take two different paths here, depending on the frequency of the current hash.
+                        // If the frequency is one, we avoid checking the frequency of matching docs when
+                        // incrementing the counter. This yields a ~5% to ~10% speedup.
+                        // See https://github.com/alexklibisz/elastiknn/pull/612 for details.
                         if (hf.freq == 1) {
                             if (termsEnum.seekExact(new BytesRef(hf.hash))) {
                                 docs = termsEnum.postings(docs, PostingsEnum.NONE);
