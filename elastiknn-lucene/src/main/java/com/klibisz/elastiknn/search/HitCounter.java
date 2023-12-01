@@ -23,6 +23,6 @@ public interface HitCounter {
 
     int maxKey();
 
-    KthGreatest.Result kthGreatest(int k);
+    KthGreatestResult kthGreatest(int k);
 
 }

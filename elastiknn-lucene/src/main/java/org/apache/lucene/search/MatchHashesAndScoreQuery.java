@@ -4,6 +4,7 @@ import com.klibisz.elastiknn.models.HashAndFreq;
 import com.klibisz.elastiknn.search.ArrayHitCounter;
 import com.klibisz.elastiknn.search.EmptyHitCounter;
 import com.klibisz.elastiknn.search.HitCounter;
+import com.klibisz.elastiknn.search.KthGreatestResult;
 import org.apache.lucene.index.*;
 import org.apache.lucene.util.BytesRef;
 
@@ -101,7 +102,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 if (counter.isEmpty()) return DocIdSetIterator.empty();
                 else {
 
-                    KthGreatest.Result kgr = counter.kthGreatest(candidates);
+                    KthGreatestResult kgr = counter.kthGreatest(candidates);
 
                     // Return an iterator over the doc ids >= the min candidate count.
                     return new DocIdSetIterator() {

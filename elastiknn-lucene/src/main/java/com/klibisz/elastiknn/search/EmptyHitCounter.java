@@ -41,7 +41,7 @@ public final class EmptyHitCounter implements HitCounter {
     }
 
     @Override
-    public KthGreatest.Result kthGreatest(int k) {
-        return new KthGreatest.Result((short) 0, 0, 0);
+    public KthGreatestResult kthGreatest(int k) {
+        return new KthGreatestResult((short) 0, 0, 0);
     }
 }
