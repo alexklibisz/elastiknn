@@ -1,7 +1,5 @@
 package com.klibisz.elastiknn.search;
 
-import org.apache.lucene.search.KthGreatest;
-
 public final class EmptyHitCounter implements HitCounter {
 
     @Override
