@@ -76,11 +76,21 @@ public class ArrayHitCounter implements HitCounter {
 
     @Override
     public KthGreatestResult kthGreatest(int k) {
-        // Build and populate a histogram of all counts.
+        // Find the kth greatest document hit count in O(n) time and O(n) space.
+        // Though the space is typically negligibly small in practice.
+        // This implementation exploits the fact that we're specifically counting document hit counts.
+        // Counts are integers, and they're likely to be pretty small, since we're unlikely to match
+        // the same document many times.
+
+        // Start by building a histogram of all counts.
+        // e.g., if the counts are [0, 4, 1, 1, 2],
+        // then the histogram is [1, 2, 1, 0, 1],
+        // because 0 occurs once, 1 occurs twice, 2 occurs once, 3 occurs zero times, and 4 occurs once.
         short[] hist = new short[maxValue + 1];
         for (short c: counts) hist[c]++;
 
-        // Find the kth largest value by iterating from the end of the histogram.
+        // Now we start at the max value and iterate backwards through the histogram,
+        // accumulating counts of counts until we've exceeded k.
         int numGreaterEqual = 0;
         short kthGreatest = maxValue;
         while (kthGreatest > 0) {
@@ -89,9 +99,10 @@ public class ArrayHitCounter implements HitCounter {
             else kthGreatest--;
         }
 
-        // Find the number that were greater than the kth greatest count.
-        int numGreater = numHits;
-        if (kthGreatest > 0) numGreater = numGreaterEqual - hist[kthGreatest];
+        // Finally we find the number that were greater than the kth greatest count.
+        // There's a special case if kthGreatest is zero, then the number that were greater is the number of hits.
+        int numGreater = numGreaterEqual - hist[kthGreatest];
+        if (kthGreatest == 0) numGreater = numHits;
         return new KthGreatestResult(kthGreatest, numGreater, numHits);
     }
 }
