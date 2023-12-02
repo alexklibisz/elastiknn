@@ -73,20 +73,92 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
     }
   }
 
-  "writeFloats and readFloats" - {
-    "without offset and length" in {
-      val original = (-10 until 10).map(_.toFloat).toArray
-      val serialized = ByteBufferSerialization.writeFloats(original)
-      val deserialized = ByteBufferSerialization.readFloats(serialized, 0, serialized.length)
-      deserialized.toList shouldBe original.toList
+  "writeInts and readInts" - {
+    "round trip" - {
+      "without offset and length" in {
+        val original = (-10 until 10).toArray
+        val serialized = ByteBufferSerialization.writeInts(original)
+        val deserialized = ByteBufferSerialization.readInts(serialized, 0, serialized.length)
+        deserialized.toList shouldBe original.toList
+      }
+      "with offset and length" in {
+        val (dropLeftFloats, dropRightFloats) = (2, 5)
+        val (dropLeftBytes, dropRightBytes) = (dropLeftFloats * 4, dropRightFloats * 4)
+        val original = (-10 until 10).toArray
+        val serialized = ByteBufferSerialization.writeInts(original)
+        val deserialized = ByteBufferSerialization.readInts(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
+        deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+      }
     }
-    "with offset and length" in {
-      val (dropLeftFloats, dropRightFloats) = (2, 5)
-      val (dropLeftBytes, dropRightBytes) = (dropLeftFloats * 4, dropRightFloats * 4)
-      val original = (-10 until 10).map(_.toFloat).toArray
-      val serialized = ByteBufferSerialization.writeFloats(original)
-      val deserialized = ByteBufferSerialization.readFloats(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
-      deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+    "compatibility with UnsafeSerialization" in {
+      val seed = System.currentTimeMillis()
+      info(s"Using seed $seed")
+      val rng = new Random(seed)
+      (0 to compatibilityCheckIterations).foreach { _ =>
+        val len = rng.nextInt(1000)
+        val original = (0 until len).map(_ => rng.nextInt()).toArray
+        val unsafeSerialized = UnsafeSerialization.writeInts(original)
+        val byteBufferSerialized = ByteBufferSerialization.writeInts(original)
+        val unsafeDeserializedFromByteBuffer = ByteBufferSerialization.readInts(byteBufferSerialized, 0, byteBufferSerialized.length)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readInts(unsafeSerialized, 0, unsafeSerialized.length)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer.toList shouldBe original.toList
+        byteBufferDeserializedFromUnsafe.toList shouldBe original.toList
+      }
+    }
+  }
+
+  "writeIntsWithPrefix and readInts" - {
+    "round trip" - {
+      "without offset and length" in {
+        val original = (-10 until 10).toArray
+        val serialized = ByteBufferSerialization.writeIntsWithPrefix(original.head, original.tail)
+        val deserialized = ByteBufferSerialization.readInts(serialized, 0, serialized.length)
+        deserialized.toList shouldBe original.toList
+      }
+      "with offset and length" in {
+        val (dropLeftFloats, dropRightFloats) = (2, 5)
+        val (dropLeftBytes, dropRightBytes) = (dropLeftFloats * 4, dropRightFloats * 4)
+        val original = (-10 until 10).toArray
+        val serialized = ByteBufferSerialization.writeIntsWithPrefix(original.head, original.tail)
+        val deserialized = ByteBufferSerialization.readInts(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
+        deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+      }
+    }
+    "compatibility with UnsafeSerialization" in {
+      val seed = System.currentTimeMillis()
+      info(s"Using seed $seed")
+      val rng = new Random(seed)
+      (0 to compatibilityCheckIterations).foreach { _ =>
+        val len = rng.nextInt(1000)
+        val original = (0 until len).map(_ => rng.nextInt()).toArray
+        val unsafeSerialized = UnsafeSerialization.writeInts(original)
+        val byteBufferSerialized = ByteBufferSerialization.writeInts(original)
+        val unsafeDeserializedFromByteBuffer = ByteBufferSerialization.readInts(byteBufferSerialized, 0, byteBufferSerialized.length)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readInts(unsafeSerialized, 0, unsafeSerialized.length)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer.toList shouldBe original.toList
+        byteBufferDeserializedFromUnsafe.toList shouldBe original.toList
+      }
+    }
+  }
+
+  "writeFloats and readFloats" - {
+    "round trip" - {
+      "without offset and length" in {
+        val original = (-10 until 10).map(_.toFloat).toArray
+        val serialized = ByteBufferSerialization.writeFloats(original)
+        val deserialized = ByteBufferSerialization.readFloats(serialized, 0, serialized.length)
+        deserialized.toList shouldBe original.toList
+      }
+      "with offset and length" in {
+        val (dropLeftFloats, dropRightFloats) = (2, 5)
+        val (dropLeftBytes, dropRightBytes) = (dropLeftFloats * 4, dropRightFloats * 4)
+        val original = (-10 until 10).map(_.toFloat).toArray
+        val serialized = ByteBufferSerialization.writeFloats(original)
+        val deserialized = ByteBufferSerialization.readFloats(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
+        deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+      }
     }
     "compatibility with UnsafeSerialization" in {
       val seed = System.currentTimeMillis()

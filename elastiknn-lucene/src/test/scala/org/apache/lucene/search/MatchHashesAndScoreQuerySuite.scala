@@ -2,7 +2,7 @@ package org.apache.lucene.search
 
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import com.klibisz.elastiknn.models.HashAndFreq
-import com.klibisz.elastiknn.storage.UnsafeSerialization._
+import com.klibisz.elastiknn.storage.ByteBufferSerialization._
 import org.apache.lucene.document.{Document, Field, FieldType}
 import org.apache.lucene.index._
 import org.scalatest._

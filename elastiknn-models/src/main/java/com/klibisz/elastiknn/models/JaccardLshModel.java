@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.models;
 import java.util.Arrays;
 import java.util.Random;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.*;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.*;
 
 public class JaccardLshModel implements HashingModel.SparseBool {
 

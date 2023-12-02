@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.models
 import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import com.klibisz.elastiknn.query.HashingQuery
-import com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt
+import com.klibisz.elastiknn.storage.ByteBufferSerialization.writeInt
 import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index.LeafReaderContext

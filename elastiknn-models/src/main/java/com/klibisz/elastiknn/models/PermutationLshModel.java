@@ -2,7 +2,7 @@ package com.klibisz.elastiknn.models;
 
 import java.util.PriorityQueue;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.writeInt;
 
 public class PermutationLshModel implements HashingModel.DenseFloat {
 
