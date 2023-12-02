@@ -15,17 +15,29 @@ public class ByteBufferSerialization {
         ByteBuffer bb;
         final int a = Math.abs(i);
         if (a <= Byte.MAX_VALUE) {
-            bb = ByteBuffer.allocate(1).order(byteOrder);
-            bb.asIntBuffer().put(i);
-            return bb.array();
+            byte[] barr = new byte[1];
+            barr[0] += i;
+            return barr;
         } else if (a <= Short.MAX_VALUE) {
             bb = ByteBuffer.allocate(2).order(byteOrder);
-            bb.asIntBuffer().put(i);
+            bb.asShortBuffer().put((short) i);
             return bb.array();
         } else {
             bb = ByteBuffer.allocate(4).order(byteOrder);
             bb.asIntBuffer().put(i);
             return bb.array();
+        }
+    }
+
+    public static int readInt(final byte[] barr) {
+        if (barr.length == 1) {
+            return barr[0];
+        } else if (barr.length == 2) {
+            ByteBuffer bb = ByteBuffer.wrap(barr).order(byteOrder);
+            return bb.getShort();
+        } else {
+            ByteBuffer bb = ByteBuffer.wrap(barr).order(byteOrder);
+            return bb.getInt();
         }
     }
 

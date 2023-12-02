@@ -41,7 +41,13 @@ public class UnsafeSerialization {
     }
 
     public static int readInt(final byte[] barr) {
-        return u.unsafe.getInt(barr, u.byteArrayOffset);
+        if (barr.length == 1) {
+            return u.unsafe.getByte(barr, u.byteArrayOffset);
+        } else if (barr.length == 2) {
+            return u.unsafe.getShort(barr, u.byteArrayOffset);
+        } else {
+            return u.unsafe.getInt(barr, u.byteArrayOffset);
+        }
     }
 
     /**
