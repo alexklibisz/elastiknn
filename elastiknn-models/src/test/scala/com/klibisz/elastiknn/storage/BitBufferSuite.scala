@@ -33,5 +33,4 @@ class BitBufferSuite extends AnyFunSuite with Matchers {
       bitBuf.toByteArray shouldBe prefix ++ ByteBufferSerialization.writeInt(expected)
     }
   }
-
 }

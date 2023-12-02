@@ -12,20 +12,21 @@ public class ByteBufferSerialization {
     public static final ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
 
     public static byte[] writeInt(final int i) {
-        ByteBuffer bb;
         final int a = Math.abs(i);
         if (a <= Byte.MAX_VALUE) {
-            byte[] barr = new byte[1];
-            barr[0] += i;
-            return barr;
+            return new byte[]{(byte) i};
         } else if (a <= Short.MAX_VALUE) {
-            bb = ByteBuffer.allocate(2).order(byteOrder);
-            bb.asShortBuffer().put((short) i);
-            return bb.array();
+            byte[] bytes = new byte[2];
+            bytes[0] = (byte) (i & 0xFF);
+            bytes[1] = (byte) ((i >> 8) & 0xFF);
+            return bytes;
         } else {
-            bb = ByteBuffer.allocate(4).order(byteOrder);
-            bb.asIntBuffer().put(i);
-            return bb.array();
+            byte[] bytes = new byte[4];
+            bytes[0] = (byte) (i & 0xFF);
+            bytes[1] = (byte) ((i >> 8) & 0xFF);
+            bytes[2] = (byte) ((i >> 16) & 0xFF);
+            bytes[3] = (byte) ((i >> 24) & 0xFF);
+            return bytes;
         }
     }
 
