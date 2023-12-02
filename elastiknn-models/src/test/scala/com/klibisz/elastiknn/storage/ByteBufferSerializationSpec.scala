@@ -24,7 +24,7 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
       }
       "absolute value < Short.MaxValue" in {
         check(Short.MinValue + 1, Some(2))
-        check(Short.MaxValue -1, Some(2))
+        check(Short.MaxValue - 1, Some(2))
       }
       "absolute value < Int.MaxValue" in {
         check(Int.MinValue + 1, Some(4))
