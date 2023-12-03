@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
-          java-version: 19
+          java-version: 21
           cache: 'sbt'
       - uses: arduino/setup-task@v1
         with:

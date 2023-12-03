@@ -100,4 +100,8 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       ahcKgr shouldBe refKgr
     }
   }
+
+  "test" in {
+    println(org.apache.lucene.util.VectorUtil.dotProduct(Array(1f), Array(1f)))
+  }
 }
