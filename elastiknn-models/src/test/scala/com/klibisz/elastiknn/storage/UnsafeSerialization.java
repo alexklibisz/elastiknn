@@ -7,6 +7,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 /**
+ * Original serialization methods, prior to https://github.com/alexklibisz/elastiknn/pull/608.
+ * Kept around for backwards-compatibility testing.
  * Uses the sun.misc.Unsafe classes to serialize int and float arrays for optimal performance based on benchmarking.
  * This is largely a simplification of the UnsafeInput and UnsafeOutput classes from the Kryo library.
  */
@@ -41,7 +43,13 @@ public class UnsafeSerialization {
     }
 
     public static int readInt(final byte[] barr) {
-        return u.unsafe.getInt(barr, u.byteArrayOffset);
+        if (barr.length == 1) {
+            return u.unsafe.getByte(barr, u.byteArrayOffset);
+        } else if (barr.length == 2) {
+            return u.unsafe.getShort(barr, u.byteArrayOffset);
+        } else {
+            return u.unsafe.getInt(barr, u.byteArrayOffset);
+        }
     }
 
     /**

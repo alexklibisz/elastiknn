@@ -103,7 +103,7 @@ lazy val `elastiknn-models` = project
 
 lazy val `elastiknn-jmh-benchmarks` = project
   .in(file("elastiknn-jmh-benchmarks"))
-  .dependsOn(`elastiknn-models`, `elastiknn-api4s`, `elastiknn-lucene`)
+  .dependsOn(`elastiknn-models` % "compile->compile;compile->test", `elastiknn-api4s`, `elastiknn-lucene`)
   .enablePlugins(JmhPlugin)
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),

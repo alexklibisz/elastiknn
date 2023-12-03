@@ -32,7 +32,7 @@ public interface BitBuffer {
 
         @Override
         public byte[] toByteArray() {
-            byte[] barr = UnsafeSerialization.writeInt(b);
+            byte[] barr = ByteBufferSerialization.writeInt(b);
             byte[] res = new byte[prefix.length + barr.length];
             System.arraycopy(prefix, 0, res, 0, prefix.length);
             System.arraycopy(barr, 0, res, prefix.length, barr.length);

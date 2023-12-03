@@ -4,8 +4,8 @@ import com.klibisz.elastiknn.vectors.FloatVectorOps;
 
 import java.util.*;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInts;
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeIntsWithPrefix;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.writeInts;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.writeIntsWithPrefix;
 
 public class L2LshModel implements HashingModel.DenseFloat {
     private final int L;

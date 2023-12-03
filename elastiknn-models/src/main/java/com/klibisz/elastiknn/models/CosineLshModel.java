@@ -3,7 +3,7 @@ package com.klibisz.elastiknn.models;
 import com.klibisz.elastiknn.storage.BitBuffer;
 import com.klibisz.elastiknn.vectors.FloatVectorOps;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.writeInt;
 
 import java.util.Random;
 

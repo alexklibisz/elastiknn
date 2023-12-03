@@ -5,7 +5,7 @@ import com.klibisz.elastiknn.storage.BitBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.klibisz.elastiknn.storage.UnsafeSerialization.writeInt;
+import static com.klibisz.elastiknn.storage.ByteBufferSerialization.writeInt;
 
 public class HammingLshModel implements HashingModel.SparseBool{
 
