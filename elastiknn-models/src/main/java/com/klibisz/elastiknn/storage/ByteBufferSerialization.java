@@ -16,17 +16,17 @@ public class ByteBufferSerialization {
         if (a <= Byte.MAX_VALUE) {
             return new byte[]{(byte) i};
         } else if (a <= Short.MAX_VALUE) {
-            byte[] bytes = new byte[2];
-            bytes[0] = (byte) (i & 0xFF);
-            bytes[1] = (byte) ((i >> 8) & 0xFF);
-            return bytes;
+            return new byte[]{
+                (byte) (i & 0xFF),
+                (byte) ((i >> 8) & 0xFF)
+            };
         } else {
-            byte[] bytes = new byte[4];
-            bytes[0] = (byte) (i & 0xFF);
-            bytes[1] = (byte) ((i >> 8) & 0xFF);
-            bytes[2] = (byte) ((i >> 16) & 0xFF);
-            bytes[3] = (byte) ((i >> 24) & 0xFF);
-            return bytes;
+            return new byte[]{
+                (byte) (i & 0xFF),
+                (byte) ((i >> 8) & 0xFF),
+                (byte) ((i >> 16) & 0xFF),
+                (byte) ((i >> 24) & 0xFF),
+            };
         }
     }
 
