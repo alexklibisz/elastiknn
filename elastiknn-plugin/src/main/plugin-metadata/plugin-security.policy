@@ -1,1 +1,3 @@
-grant {};
+grant {
+    permission java.lang.RuntimePermission "getClassLoader";
+};
