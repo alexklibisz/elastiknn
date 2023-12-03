@@ -15,9 +15,10 @@ services:
       - xpack.security.enabled=false
       - discovery.type=single-node
       - elastiknn.jdk-incubator-vector.enabled=true
-      - ES_JAVA_OPTS=--add-modules jdk.incubator.vector
+      - ES_JAVA_OPTS=--add-modules jdk.incubator.vector -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=6000 -Dcom.sun.management.jmxremote.rmi.port=6000 -Djava.rmi.server.hostname=localhost
     ports:
       - "9200:9200"
+      - "6000:6000"
     mem_limit: 12000m
     mem_reservation: 12000m
     cpus: 2
