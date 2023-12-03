@@ -95,6 +95,14 @@ class FloatVectorOpsBenchmark {
   @Fork(value = 1)
   @Warmup(time = 1, iterations = 5)
   @Measurement(time = 1, iterations = 5)
+  def l2DistancePanamaOriginal(state: FloatVectorOpsBenchmarkState): Double =
+    state.panama.l2DistanceOriginal(state.v1, state.v2)
+
+  @Benchmark
+  @BenchmarkMode(Array(Mode.Throughput))
+  @Fork(value = 1)
+  @Warmup(time = 1, iterations = 5)
+  @Measurement(time = 1, iterations = 5)
   def l2DistanceDefault(state: FloatVectorOpsBenchmarkState): Double =
     state.default.l2Distance(state.v1, state.v2)
 
@@ -103,6 +111,6 @@ class FloatVectorOpsBenchmark {
   @Fork(value = 1)
   @Warmup(time = 1, iterations = 5)
   @Measurement(time = 1, iterations = 5)
-  def l2DistanceLucene(state: FloatVectorOpsBenchmarkState): Float =
-    VectorUtil.squareDistance(state.v1, state.v2)
+  def l2DistanceLucene(state: FloatVectorOpsBenchmarkState): Double =
+    Math.sqrt(VectorUtil.squareDistance(state.v1, state.v2) * 1d)
 }

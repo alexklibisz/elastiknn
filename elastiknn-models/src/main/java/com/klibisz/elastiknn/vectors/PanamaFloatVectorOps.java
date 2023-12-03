@@ -9,17 +9,20 @@ import java.util.Arrays;
 public final class PanamaFloatVectorOps implements FloatVectorOps {
 
     private static final VectorSpecies<Float> species;
-    private static final VectorSpecies<Float> PREF_FLOAT_SPECIES;
+    private static final int speciesLength;
+    private static final int speciesLengthTimes2;
+    private static final int speciesLengthTimes3;
+    private static final int speciesLengthTimes4;
 
     static {
+        // Setting it in this static block seems to make a big
+        // improvement in performance.
         species = FloatVector.SPECIES_PREFERRED;
-        PREF_FLOAT_SPECIES = FloatVector.SPECIES_PREFERRED;
+        speciesLength = species.length();
+        speciesLengthTimes2 = speciesLength * 2;
+        speciesLengthTimes3 = speciesLength * 3;
+        speciesLengthTimes4 = speciesLength * 4;
     }
-
-    final int speciesLength = species.length();
-    final int speciesLengthTimes2 = speciesLength * 2;
-    final int speciesLengthTimes3 = speciesLength * 3;
-    final int speciesLengthTimes4 = speciesLength * 4;
 
     public double cosineSimilarity(float[] v1, float[] v2) {
         double dotProd = 0.0;
@@ -102,52 +105,6 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         return dotProd;
     }
 
-//    public float dotProductLucene(float[] a, float[] b) {
-//        int i = 0;
-//        float res = 0.0F;
-//        if (a.length > 2 * PREF_FLOAT_SPECIES.length()) {
-//            FloatVector acc1 = FloatVector.zero(PREF_FLOAT_SPECIES);
-//            FloatVector acc2 = FloatVector.zero(PREF_FLOAT_SPECIES);
-//            FloatVector acc3 = FloatVector.zero(PREF_FLOAT_SPECIES);
-//            FloatVector acc4 = FloatVector.zero(PREF_FLOAT_SPECIES);
-//
-//            int upperBound;
-//            FloatVector res1;
-//            FloatVector res2;
-//            for(upperBound = PREF_FLOAT_SPECIES.loopBound(a.length - 3 * PREF_FLOAT_SPECIES.length()); i < upperBound; i += 4 * PREF_FLOAT_SPECIES.length()) {
-//                res1 = FloatVector.fromArray(PREF_FLOAT_SPECIES, a, i);
-//                res2 = FloatVector.fromArray(PREF_FLOAT_SPECIES, b, i);
-//                acc1 = acc1.add(res1.mul(res2));
-//                FloatVector vc = FloatVector.fromArray(PREF_FLOAT_SPECIES, a, i + PREF_FLOAT_SPECIES.length());
-//                FloatVector vd = FloatVector.fromArray(PREF_FLOAT_SPECIES, b, i + PREF_FLOAT_SPECIES.length());
-//                acc2 = acc2.add(vc.mul(vd));
-//                FloatVector ve = FloatVector.fromArray(PREF_FLOAT_SPECIES, a, i + 2 * PREF_FLOAT_SPECIES.length());
-//                FloatVector vf = FloatVector.fromArray(PREF_FLOAT_SPECIES, b, i + 2 * PREF_FLOAT_SPECIES.length());
-//                acc3 = acc3.add(ve.mul(vf));
-//                FloatVector vg = FloatVector.fromArray(PREF_FLOAT_SPECIES, a, i + 3 * PREF_FLOAT_SPECIES.length());
-//                FloatVector vh = FloatVector.fromArray(PREF_FLOAT_SPECIES, b, i + 3 * PREF_FLOAT_SPECIES.length());
-//                acc4 = acc4.add(vg.mul(vh));
-//            }
-//
-//            for(upperBound = PREF_FLOAT_SPECIES.loopBound(a.length); i < upperBound; i += PREF_FLOAT_SPECIES.length()) {
-//                res1 = FloatVector.fromArray(PREF_FLOAT_SPECIES, a, i);
-//                res2 = FloatVector.fromArray(PREF_FLOAT_SPECIES, b, i);
-//                acc1 = acc1.add(res1.mul(res2));
-//            }
-//
-//            res1 = acc1.add(acc2);
-//            res2 = acc3.add(acc4);
-//            res += res1.add(res2).reduceLanes(VectorOperators.ADD);
-//        }
-//
-//        while(i < a.length) {
-//            res += b[i] * a[i];
-//            ++i;
-//        }
-//
-//        return res;
-//    }
-
     public double l1Distance(float[] v1, float[] v2) {
         double sumAbsDiff = 0.0;
         int i = 0;
@@ -165,6 +122,52 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
     }
 
     public double l2Distance(float[] v1, float[] v2) {
+        int i = 0;
+        float sumSqrDiff = 0.0F;
+        if (v1.length > 2 * speciesLength) {
+            int bound;
+            FloatVector acc1 = FloatVector.zero(species);
+            FloatVector acc2 = FloatVector.zero(species);
+            FloatVector acc3 = FloatVector.zero(species);
+            FloatVector acc4 = FloatVector.zero(species);
+            FloatVector fv1, fv2, diff;
+            for(bound = species.loopBound(v1.length - 3 * species.length()); i < bound; i += speciesLengthTimes4) {
+                fv1 = FloatVector.fromArray(species, v1, i);
+                fv2 = FloatVector.fromArray(species, v2, i);
+                diff = fv1.sub(fv2);
+                acc1 = acc1.add(diff.mul(diff));
+                FloatVector fv3 = FloatVector.fromArray(species, v1, i + speciesLength);
+                FloatVector fv4 = FloatVector.fromArray(species, v2, i + speciesLength);
+                FloatVector diff2 = fv3.sub(fv4);
+                acc2 = acc2.add(diff2.mul(diff2));
+                FloatVector fv5 = FloatVector.fromArray(species, v1, i + speciesLengthTimes2);
+                FloatVector fv6 = FloatVector.fromArray(species, v2, i + speciesLengthTimes2);
+                FloatVector diff3 = fv5.sub(fv6);
+                acc3 = acc3.add(diff3.mul(diff3));
+                FloatVector fv7 = FloatVector.fromArray(species, v1, i + speciesLengthTimes3);
+                FloatVector fv8 = FloatVector.fromArray(species, v2, i + speciesLengthTimes3);
+                FloatVector diff4 = fv7.sub(fv8);
+                acc4 = acc4.add(diff4.mul(diff4));
+            }
+            for(bound = species.loopBound(v1.length); i < bound; i += species.length()) {
+                fv1 = FloatVector.fromArray(species, v1, i);
+                fv2 = FloatVector.fromArray(species, v2, i);
+                diff = fv1.sub(fv2);
+                acc1 = acc1.add(diff.mul(diff));
+            }
+            fv1 = acc1.add(acc2);
+            fv2 = acc3.add(acc4);
+            sumSqrDiff += fv1.add(fv2).reduceLanes(VectorOperators.ADD);
+        }
+        while(i < v1.length) {
+            float diff = v1[i] - v2[i];
+            sumSqrDiff += diff * diff;
+            ++i;
+        }
+        return Math.sqrt(sumSqrDiff);
+    }
+
+    public double l2DistanceOriginal(float[] v1, float[] v2) {
         double sumSqrDiff = 0f;
         int i = 0;
         int bound = species.loopBound(v1.length);
