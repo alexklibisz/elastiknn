@@ -55,8 +55,8 @@ class FloatVectorOpsBenchmark {
   @Fork(value = 1)
   @Warmup(time = 1, iterations = 5)
   @Measurement(time = 1, iterations = 5)
-  def dotProductPanamaOriginal(state: FloatVectorOpsBenchmarkState): Double =
-    state.panama.dotProductOriginal(state.v1, state.v2)
+  def dotProductPanamaSimple(state: FloatVectorOpsBenchmarkState): Double =
+    state.panama.dotProductSimple(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))
@@ -95,8 +95,8 @@ class FloatVectorOpsBenchmark {
   @Fork(value = 1)
   @Warmup(time = 1, iterations = 5)
   @Measurement(time = 1, iterations = 5)
-  def l2DistancePanamaOriginal(state: FloatVectorOpsBenchmarkState): Double =
-    state.panama.l2DistanceOriginal(state.v1, state.v2)
+  def l2DistancePanamaSimple(state: FloatVectorOpsBenchmarkState): Double =
+    state.panama.l2DistanceSimple(state.v1, state.v2)
 
   @Benchmark
   @BenchmarkMode(Array(Mode.Throughput))

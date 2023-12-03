@@ -54,6 +54,10 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         double dotProd = 0d;
         if (v1.length > speciesLengthTimes2) {
             int bound;
+            // Maintain four accumulators to maximize parallelism.
+            // This unrolling trick makes a significant difference on benchmarks.
+            // Inspired by Lucene's PanamaVectorUtilSupport implementation.
+            // See https://github.com/alexklibisz/elastiknn/pull/620 for details.
             FloatVector acc1 = FloatVector.zero(species);
             FloatVector acc2 = FloatVector.zero(species);
             FloatVector acc3 = FloatVector.zero(species);
@@ -89,7 +93,8 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         return dotProd;
     }
 
-    public double dotProductOriginal(float[] v1, float[] v2) {
+    // A simpler dot product implementation, kept around for benchmarking purposes.
+    public double dotProductSimple(float[] v1, float[] v2) {
         double dotProd = 0f;
         int i = 0;
         int bound = species.loopBound(v1.length);
@@ -126,6 +131,10 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         float sumSqrDiff = 0.0F;
         if (v1.length > 2 * speciesLength) {
             int bound;
+            // Maintain four accumulators to maximize parallelism.
+            // This unrolling trick makes a significant difference on benchmarks.
+            // Inspired by Lucene's PanamaVectorUtilSupport implementation.
+            // See https://github.com/alexklibisz/elastiknn/pull/620 for details.
             FloatVector acc1 = FloatVector.zero(species);
             FloatVector acc2 = FloatVector.zero(species);
             FloatVector acc3 = FloatVector.zero(species);
@@ -167,7 +176,8 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         return Math.sqrt(sumSqrDiff);
     }
 
-    public double l2DistanceOriginal(float[] v1, float[] v2) {
+    // A simpler dot product implementation, kept around for benchmarking purposes.
+    public double l2DistanceSimple(float[] v1, float[] v2) {
         double sumSqrDiff = 0f;
         int i = 0;
         int bound = species.loopBound(v1.length);
