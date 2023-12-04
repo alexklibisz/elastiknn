@@ -8,7 +8,7 @@ classes: wide
 
 ## Method
 
-The results on this page are produced by running elastiknn on the ann-benchmarks benchmark on an AWS EC2 r6i.8xlarge instance.
+The results on this page are produced by running elastiknn on the ann-benchmarks benchmark on an AWS EC2 r6i.4xlarge instance.
 We use `task dockerStartBenchmarkingCluster` to start a single-node benchmarking cluster `task annbRunLocalFashionMnist` to run the benchmark.
 
 See the ann-benchmarks directory in the Elastiknn repository for more details.
