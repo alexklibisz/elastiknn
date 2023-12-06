@@ -7,10 +7,9 @@ import java.nio.file.Files
 import java.util.zip.GZIPInputStream
 import scala.sys.process.Process
 
-/** SBT plugin providing functionality to run and build an Elasticsearch plugin.
-  * Also see:
-  *  https://github.com/elastic/elasticsearch/blob/7ad3cf0d34/build-tools/src/main/java/org/elasticsearch/gradle/plugin/PluginBuildPlugin.java,
-  *  build.sbt file in https://github.com/shikhar/eskka
+/** SBT plugin providing functionality to run and build an Elasticsearch plugin. Also see:
+  * https://github.com/elastic/elasticsearch/blob/7ad3cf0d34/build-tools/src/main/java/org/elasticsearch/gradle/plugin/PluginBuildPlugin.java,
+  * build.sbt file in https://github.com/shikhar/eskka
   */
 object ElasticsearchPluginPlugin extends AutoPlugin {
 
@@ -25,7 +24,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies ++= Seq(
       "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value
-        exclude("org.elasticsearch", "elasticsearch-preallocate") // https://github.com/elastic/elasticsearch/issues/96360
+        exclude ("org.elasticsearch", "elasticsearch-preallocate") // https://github.com/elastic/elasticsearch/issues/96360
     ),
     cleanFiles ++= Seq(
       elasticsearchPluginDistributionDirectory.value,
