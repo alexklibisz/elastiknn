@@ -138,7 +138,7 @@ lazy val `elastiknn-plugin` = project
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.4.11" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.4.14" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     TpolecatSettings,
