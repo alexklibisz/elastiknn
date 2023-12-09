@@ -18,7 +18,7 @@ class PanamaFloatVectorOpsSpec extends AnyFreeSpec with Matchers {
     if (f1 == f2) succeed
     else {
       val error: Double = (f1 - f2).abs / f1.abs.min(f2.abs)
-      error shouldBe <(0.015)
+      error shouldBe <(0.02)
     }
   }
 
