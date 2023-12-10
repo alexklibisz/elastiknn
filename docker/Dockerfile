@@ -1,3 +1,3 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.11.2
 COPY elastiknn-plugin/target/elastiknn*.zip .
 RUN elasticsearch-plugin install -b file:$(ls elastiknn*zip | sort | tail -n1)
