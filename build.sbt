@@ -4,7 +4,7 @@ import org.typelevel.scalacoptions.*
 Global / scalaVersion := "2.13.12"
 
 lazy val CirceVersion = "0.14.3"
-lazy val ElasticsearchVersion = "8.11.2"
+lazy val ElasticsearchVersion = "8.11.3"
 lazy val Elastic4sVersion = "8.11.3"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.8.0"
