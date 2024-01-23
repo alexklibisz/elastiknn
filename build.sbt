@@ -4,10 +4,10 @@ import org.typelevel.scalacoptions.*
 Global / scalaVersion := "2.13.12"
 
 lazy val CirceVersion = "0.14.3"
-lazy val ElasticsearchVersion = "8.11.4"
+lazy val ElasticsearchVersion = "8.12.0"
 lazy val Elastic4sVersion = "8.11.5"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.8.0"
+lazy val LuceneVersion = "9.9.1"
 
 lazy val TestSettings = Seq(
   Test / parallelExecution := false,
