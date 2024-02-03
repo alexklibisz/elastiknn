@@ -19,7 +19,7 @@ variable "server_location" {
 
 variable "server_type" {
   type = string
-  default = "ccx23"
+  default = "ccx43"
 }
 
 terraform {

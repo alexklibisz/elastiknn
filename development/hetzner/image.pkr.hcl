@@ -10,7 +10,7 @@ packer {
 source "hcloud" "base-amd64" {
   image         = "ubuntu-22.04"
   location      = "fsn1"
-  server_type   = "ccx23"
+  server_type   = "cx41"
   ssh_keys      = []
   user_data     = ""
   ssh_username  = "root"
