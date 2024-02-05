@@ -14,7 +14,7 @@ jobs:
     name: "Show Github Context"
     timeout-minutes: 1
     runs-on:
-      - elastiknn-ccx23
+      - elastiknn-cx41
     env:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
@@ -23,7 +23,7 @@ jobs:
   test-jvm:
     name: "Test JVM Code"
     runs-on:
-      - elastiknn-ccx23
+      - elastiknn-cx41
     steps:
       - uses: actions/checkout@v3
         timeout-minutes: 1
@@ -70,7 +70,7 @@ jobs:
   test-python:
     name: Test Python Client Code
     runs-on:
-      - elastiknn-ccx23
+      - elastiknn-cx41
     steps:
       - uses: actions/checkout@v3
         timeout-minutes: 1
@@ -113,7 +113,7 @@ jobs:
   test-benchmarks:
     name: Test Benchmarks
     runs-on:
-      - elastiknn-ccx23
+      - elastiknn-cx41
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -160,7 +160,7 @@ jobs:
   test-jekyll-site:
     name: Test Jekyll Site
     runs-on:
-      - elastiknn-ccx23
+      - elastiknn-cx41
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
