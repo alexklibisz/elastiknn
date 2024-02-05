@@ -5,7 +5,7 @@ on:
     - cron: '0 0 6 * *'
 jobs:
   scala-steward:
-    runs-on: ubuntu-22.04
+    runs-on: elastiknn-ccx23
     name: Launch Scala Steward
     steps:
       - name: Scala Steward

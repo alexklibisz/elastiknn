@@ -16,7 +16,7 @@ permissions:
 jobs:
   release-plugin:
     runs-on:
-      - ubuntu-22.04
+      - elastiknn-ccx23
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,7 +43,7 @@ jobs:
   release-python-client:
     needs: release-plugin
     runs-on:
-      - ubuntu-22.04
+      - elastiknn-ccx23
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -71,7 +71,7 @@ jobs:
     needs: release-python-client
     if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.full-release == 'true' }}
     runs-on:
-      - ubuntu-22.04
+      - elastiknn-ccx23
     timeout-minutes: 10
     environment:
       name: github-pages
