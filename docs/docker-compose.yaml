@@ -29,9 +29,9 @@ services:
       - "/bin/bash"
       - "-ec"
       - |
-        sudo chown -R root:root docs
+        chown -R root:root docs
         bundle install
-        sudo chown -R runner:docker docs
+        chown -R runner:docker docs
         bundle exec jekyll build
     environment:
       - JEKYLL_ENV=production
