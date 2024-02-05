@@ -171,7 +171,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
         run: |
-          sudo chown -R root:root docs
+          sleep 99999
+          sudo chown -R runner:docker docs
           task docsCompile
           sudo chown -R runner:docker docs
           ls -la docs/*
