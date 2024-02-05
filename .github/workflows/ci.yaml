@@ -19,11 +19,11 @@ jobs:
       GITHUB_CONTEXT: ${{ toJson(github) }}
     steps:
       - run: echo $GITHUB_CONTEXT
-  
+
   test-jvm:
     name: "Test JVM Code"
     runs-on:
-      - ubuntu-22.04
+      - elastiknn-ccx23
     steps:
       - uses: actions/checkout@v3
         timeout-minutes: 1
