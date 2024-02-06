@@ -170,10 +170,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
-        # Have to change ownership here because the jekyll container runs as the root user.
-        # Without this change, we get errors when writing the site files to the mounted directory.
         run: |
-          sudo chown -R root:root docs
+          tail -f /dev/null
           task docsCompile
-          sudo chown -R runner:docker docs
           ls -la docs/*
