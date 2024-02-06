@@ -5,10 +5,11 @@ services:
   # Local development server with automatic recompilation.
   dev:
     container_name: elastiknn-docs-dev
-    image: jekyll/jekyll:4.0
+    image: ruby:3.1.1
     volumes:
-      - ".:/srv/jekyll"
-      - "./.gemcache:/usr/gem/cache"
+      - ".:/mnt/docs"
+      - "./.gemcache:/usr/local/bundle/cache"
+    working_dir: '/mnt/docs'
     command:
       - "/bin/bash"
       - "-ec"
@@ -21,15 +22,16 @@ services:
   # Build site for publication. Output is in site/_site.
   compile:
     container_name: elastiknn-docs-build
-    image: jekyll/jekyll:4.0
+    image: ruby:3.1.1
     volumes:
-      - ".:/srv/jekyll:z"
-      - "./.gemcache:/usr/gem/cache"
+      - ".:/mnt/docs"
+      - "./.gemcache:/usr/local/bundle/cache"
+    working_dir: '/mnt/docs'
+    environment:
+      - JEKYLL_ENV=production
     command:
       - "/bin/bash"
       - "-ec"
       - |
         bundle install
         bundle exec jekyll build
-    environment:
-      - JEKYLL_ENV=production

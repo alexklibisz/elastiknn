@@ -161,7 +161,7 @@ jobs:
     name: Test Jekyll Site
     runs-on:
       - elastiknn-cx41
-#    timeout-minutes: 10
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
         timeout-minutes: 1
@@ -171,6 +171,5 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
         run: |
-          tail -f /dev/null
           task docsCompile
-          ls -la docs/*
+          du -hs docs/_site
