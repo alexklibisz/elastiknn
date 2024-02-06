@@ -86,10 +86,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Jekyll Site
-        run: |
-          sudo chown -R runneradmin:runneradmin docs
-          task docsCompile
-          sudo chown -R runner:docker docs
+        run: task docsCompile
       - name: Generate Python Docs
         run: |
           task pyDocs
