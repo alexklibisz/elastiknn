@@ -102,7 +102,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
     val files = List(pluginDescriptorFile, pluginJar) ++ pluginMetadataFiles ++ dependencyJars
     val zipFile = elasticsearchPluginBundleFile.value
-    IO.zip(files.map(f => (f -> f.getName)), zipFile, None)
+    IO.zip(files.map(f => f -> f.getName), zipFile, None)
     log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files.")
     zipFile
   }
@@ -131,7 +131,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       else throw new RuntimeException(s"Unsupported operating system $osName, $arch")
     }
     val distributionFilename = s"elasticsearch-${elasticsearchVersion.value}-$elasticsearchVersionSuffix.tar.gz"
-    val distributionUrl = new URL(s"https://artifacts.elastic.co/downloads/elasticsearch/$distributionFilename")
+    val distributionUrl = new URI(s"https://artifacts.elastic.co/downloads/elasticsearch/$distributionFilename").toURL
     val distributionDirectory = elasticsearchPluginDistributionDirectory.value
     val distributionParentDirectory = elasticsearchPluginDistributionDirectory.value.getParentFile
     if (!distributionDirectory.exists()) {
@@ -139,7 +139,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
       val urlInputStream = distributionUrl.openStream()
       val gzipInputStream = new GZIPInputStream(urlInputStream)
       val tarInputStream = new TarArchiveInputStream(gzipInputStream)
-      while (tarInputStream.getNextTarEntry != null) {
+      while (tarInputStream.getNextEntry != null) {
         val entry = tarInputStream.getCurrentEntry
         log.debug(s"Processing distribution entry ${entry.getName}")
         val entryFile = distributionParentDirectory / entry.getName
