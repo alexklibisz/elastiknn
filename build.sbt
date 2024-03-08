@@ -13,7 +13,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test
 )
 
 lazy val TpolecatSettings = Seq(
