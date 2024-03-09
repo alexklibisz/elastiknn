@@ -13,7 +13,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test
 )
 
 lazy val TpolecatSettings = Seq(
@@ -138,7 +138,7 @@ lazy val `elastiknn-plugin` = project
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.4.14" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.5.3" % Test,
       "com.klibisz.futil" %% "futil" % "0.1.2" % Test
     ),
     TpolecatSettings,
