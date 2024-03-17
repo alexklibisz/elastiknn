@@ -68,6 +68,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       queryResults
     }
     val distinct = repeatedResults.distinct
+    distinct.foreach(println)
     distinct.length shouldBe 1
   }
 }
