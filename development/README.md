@@ -11,7 +11,7 @@ If so, please submit an issue or PR.
 
 ## AWS Development Setup
 
-The [aws](./aws) directory contains [Packer](https://www.packer.io/) and [Terraform](https://www.terraform.io/) files for creating a development instance in AWS.   
+The [aws](./aws) directory contains a Terraform file and instructions for creating a development instance in AWS.   
 
 ## Development
 
