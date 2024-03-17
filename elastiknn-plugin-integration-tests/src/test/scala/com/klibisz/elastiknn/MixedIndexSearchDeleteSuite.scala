@@ -1,9 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn._
 import com.sksamuel.elastic4s.ElasticDsl._
-import futil.Futil
 import org.scalatest._
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -37,7 +35,7 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
 
         // Delete the top five vectors.
         deletedIdxs = s1.result.hits.hits.take(5).map(_.id.drop(1).toInt).toSeq
-        _ <- Futil.traverseParN(8)(deletedIdxs.map(ids.apply).map(deleteById(index, _)))(eknn.execute(_))
+        _ <- FutureUtils.traverseSerially(deletedIdxs.map(ids.apply).map(deleteById(index, _)))(eknn.execute(_))
         _ <- eknn.execute(refreshIndex(index))
         c2 <- eknn.execute(count(index))
         _ = c2.result.count shouldBe (corpus.length - deletedIdxs.length)

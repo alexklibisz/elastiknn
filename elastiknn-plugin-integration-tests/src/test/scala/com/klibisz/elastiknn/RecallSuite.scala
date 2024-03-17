@@ -7,6 +7,7 @@ import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import org.scalatest.concurrent.AsyncCancelAfterFailure
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
+import FutureUtils._
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -22,14 +23,6 @@ import scala.util.hashing.MurmurHash3.orderedHash
   *     level and that seems to be reliably deterministic.
   */
 class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with AsyncCancelAfterFailure {
-
-  private def traverseSerially[A, B](in: IterableOnce[A])(f: A => Future[B]): Future[Seq[B]] =
-    in.iterator.foldLeft(Future.successful(Vector.empty[B])) { case (accFuture, next) =>
-      for {
-        acc <- accFuture
-        result <- f(next)
-      } yield acc :+ result
-    }
 
   // Each test case consists of setting up one Mapping and then running several queries against that mapping.
   // Each query has an expected recall that will be checked.
