@@ -149,9 +149,8 @@ lazy val `elastiknn-plugin-integration-tests` = project
   .settings(
     libraryDependencies ++= Seq(
       // These have to be repeated for compatibility, even though we use the test->test modifier.
-      "io.circe" %% "circe-generic" % CirceVersion % Test,
-      ("com.klibisz.futil" %% "futil" % "0.1.2" % Test).cross(CrossVersion.for3Use2_13)
+      "io.circe" %% "circe-generic" % CirceVersion % Test
     ),
     TpolecatSettings,
-    TestSettings,
+    TestSettings
   )
