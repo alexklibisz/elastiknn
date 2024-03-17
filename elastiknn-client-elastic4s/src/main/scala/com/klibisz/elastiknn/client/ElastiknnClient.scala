@@ -83,7 +83,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
       override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
       override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
         val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
-        handled.map { sr: SearchResponse =>
+        handled.map { (sr: SearchResponse) =>
           val hitsWithIds = sr.hits.hits.map(h =>
             h.copy(id = h.fields.get(storedIdField) match {
               case Some(List(id: String)) => id

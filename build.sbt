@@ -24,7 +24,8 @@ lazy val TpolecatSettings = Seq(
   scalacOptions ++= Seq(
     "-Wconf:any:wv",
     "-Wconf:cat=other-pure-statement:src=test/.*.scala:silent",
-    "-Wconf:cat=w-flag-numeric-widen:src=test/.*.scala:silent"
+    "-Wconf:cat=w-flag-numeric-widen:src=test/.*.scala:silent",
+    "-explain"
   )
 )
 
