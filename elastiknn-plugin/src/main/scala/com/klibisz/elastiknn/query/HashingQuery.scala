@@ -21,7 +21,7 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
 ) extends ElastiknnQuery {
   override def toLuceneQuery(indexReader: IndexReader): Query = {
     val scoreFunction: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
-      ((lrc: LeafReaderContext)) => {
+      (lrc: LeafReaderContext) => {
         val reader = new StoredVecReader[S](lrc, field)
         (docId: Int, _: Int) =>
           val storedVec = reader(docId)

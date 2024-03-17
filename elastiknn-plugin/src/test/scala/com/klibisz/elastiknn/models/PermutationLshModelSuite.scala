@@ -33,7 +33,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       }
     } { case (reader, searcher) =>
       val f: java.util.function.Function[LeafReaderContext, MatchHashesAndScoreQuery.ScoreFunction] =
-        ((_: LeafReaderContext)) => (_: Int, matches: Int) => matches * 1f
+        (_: LeafReaderContext) => (_: Int, matches: Int) => matches * 1f
 
       val q = new MatchHashesAndScoreQuery("vec", hq, 2, reader, f)
       val res = searcher.search(q, 2)
