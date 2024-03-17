@@ -425,7 +425,7 @@ object XContentCodec {
       b.toArray
     }
 
-    implicit val similarity: Decoder[Similarity] = ((p: XContentParser)) => {
+    implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
       if (p.currentToken() != VALUE_STRING) assertToken(p.nextToken(), VALUE_STRING)
       val s1 = p.text()
       val s2 = s1.toLowerCase
@@ -440,103 +440,102 @@ object XContentCodec {
       }
     }
 
-    implicit val vec: Decoder[Vec] = new Decoder[Vec] {
-
-      override def decodeUnsafe(p: XContentParser): Vec = {
-        var field: Option[String] = None
-        var id: Option[String] = None
-        var index: Option[String] = None
-        var isEmpty: Boolean = true
-        var trueIndices: Option[Array[Int]] = None
-        var totalIndices: Option[Int] = None
-        var values: Option[Array[Float]] = None
-        if (p.currentToken() != START_OBJECT && p.currentToken() != START_ARRAY) {
-          assertToken(p.nextToken(), SortedSet(START_ARRAY, START_OBJECT))
-        }
-        p.currentToken() match {
-          case START_OBJECT =>
-            while (p.nextToken() == FIELD_NAME) {
-              isEmpty = false
-              p.currentName() match {
-                case n @ Names.FIELD =>
-                  assertToken(n, p.nextToken(), VALUE_STRING)
-                  field = Some(p.text())
-                case n @ Names.ID =>
-                  assertToken(n, p.nextToken(), VALUE_STRING)
-                  id = Some(p.text())
-                case n @ Names.INDEX =>
-                  assertToken(n, p.nextToken(), VALUE_STRING)
-                  index = Some(p.text())
-                case n @ Names.TRUE_INDICES =>
-                  assertToken(n, p.nextToken(), START_ARRAY)
-                  trueIndices = Some(parseSparseBoolArray(p, 42))
-                case n @ Names.TOTAL_INDICES =>
-                  assertToken(n, p.nextToken(), VALUE_NUMBER)
-                  totalIndices = Some(p.intValue())
-                case n @ Names.VALUES =>
-                  assertToken(n, p.nextToken(), START_ARRAY)
-                  values = Some(parseFloatArray(p, 42))
-                case _ => p.nextToken()
-              }
-            }
-          case START_ARRAY =>
-            isEmpty = false
-            p.nextToken() match {
-              case END_ARRAY =>
-                values = Some(Array.empty)
-              case VALUE_NUMBER =>
-                values = Some(parseFloatArray(p, 42))
-              case START_ARRAY =>
-                trueIndices = Some(parseSparseBoolArray(p, 42))
-                assertToken(p.nextToken(), VALUE_NUMBER)
-                totalIndices = Some(p.intValue())
-              case t =>
-                throw new XContentParseException(unexpectedToken(t, SortedSet(END_ARRAY, START_ARRAY, VALUE_NUMBER)))
-            }
-          case _ =>
-            throw new XContentParseException(unexpectedToken(p.currentToken(), SortedSet(START_ARRAY, START_OBJECT)))
-        }
-        if (isEmpty) Vec.Empty()
-        else
-          (field, id, index, trueIndices, totalIndices, values) match {
-            case (Some(field), Some(id), Some(index), _, _, _) =>
-              Vec.Indexed(index = index, id = id, field = field)
-            case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
-              Vec.SparseBool(trueIndices, totalIndices)
-            case (_, _, _, _, _, Some(values)) =>
-              Vec.DenseFloat(values)
-            case _ =>
-              throw new XContentParseException(unableToConstruct("vector"))
-          }
+    implicit val vec: Decoder[Vec] = (p: XContentParser) => {
+      var field: Option[String] = None
+      var id: Option[String] = None
+      var index: Option[String] = None
+      var isEmpty: Boolean = true
+      var trueIndices: Option[Array[Int]] = None
+      var totalIndices: Option[Int] = None
+      var values: Option[Array[Float]] = None
+      if (p.currentToken() != START_OBJECT && p.currentToken() != START_ARRAY) {
+        assertToken(p.nextToken(), SortedSet(START_ARRAY, START_OBJECT))
       }
+      p.currentToken() match {
+        case START_OBJECT =>
+          while (p.nextToken() == FIELD_NAME) {
+            isEmpty = false
+            p.currentName() match {
+              case n@Names.FIELD =>
+                assertToken(n, p.nextToken(), VALUE_STRING)
+                field = Some(p.text())
+              case n@Names.ID =>
+                assertToken(n, p.nextToken(), VALUE_STRING)
+                id = Some(p.text())
+              case n@Names.INDEX =>
+                assertToken(n, p.nextToken(), VALUE_STRING)
+                index = Some(p.text())
+              case n@Names.TRUE_INDICES =>
+                assertToken(n, p.nextToken(), START_ARRAY)
+                trueIndices = Some(parseSparseBoolArray(p, 42))
+              case n@Names.TOTAL_INDICES =>
+                assertToken(n, p.nextToken(), VALUE_NUMBER)
+                totalIndices = Some(p.intValue())
+              case n@Names.VALUES =>
+                assertToken(n, p.nextToken(), START_ARRAY)
+                values = Some(parseFloatArray(p, 42))
+              case _ =>
+                p.nextToken()
+                ()
+            }
+          }
+        case START_ARRAY =>
+          isEmpty = false
+          p.nextToken() match {
+            case END_ARRAY =>
+              values = Some(Array.empty)
+            case VALUE_NUMBER =>
+              values = Some(parseFloatArray(p, 42))
+            case START_ARRAY =>
+              trueIndices = Some(parseSparseBoolArray(p, 42))
+              assertToken(p.nextToken(), VALUE_NUMBER)
+              totalIndices = Some(p.intValue())
+            case t =>
+              throw new XContentParseException(unexpectedToken(t, SortedSet(END_ARRAY, START_ARRAY, VALUE_NUMBER)))
+          }
+        case _ =>
+          throw new XContentParseException(unexpectedToken(p.currentToken(), SortedSet(START_ARRAY, START_OBJECT)))
+      }
+      if (isEmpty) Vec.Empty()
+      else
+        (field, id, index, trueIndices, totalIndices, values) match {
+          case (Some(field), Some(id), Some(index), _, _, _) =>
+            Vec.Indexed(index = index, id = id, field = field)
+          case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
+            Vec.SparseBool(trueIndices, totalIndices)
+          case (_, _, _, _, _, Some(values)) =>
+            Vec.DenseFloat(values)
+          case _ =>
+            throw new XContentParseException(unableToConstruct("vector"))
+        }
     }
 
-    implicit val denseFloatVec: Decoder[Vec.DenseFloat] = ((p: XContentParser)) =>
+    implicit val denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.DenseFloat => v
         case _                 => throw new XContentParseException(unableToConstruct("dense float vector"))
       }
 
     implicit val sparseBoolVec: Decoder[Vec.SparseBool] =
-      ((p: XContentParser)) =>
+      (p: XContentParser) =>
         vec.decodeUnsafe(p) match {
           case v: Vec.SparseBool => v
           case _                 => throw new XContentParseException(unableToConstruct("sparse bool vector"))
         }
 
-    implicit val emptyVec: Decoder[Vec.Empty] = ((p: XContentParser)) =>
+    implicit val emptyVec: Decoder[Vec.Empty] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Empty => v
         case _            => throw new XContentParseException(unableToConstruct("empty vector"))
       }
 
-    implicit val indexedVec: Decoder[Vec.Indexed] = ((p: XContentParser)) =>
+    implicit val indexedVec: Decoder[Vec.Indexed] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Indexed => v
         case _              => throw new XContentParseException(unableToConstruct("indexed vector"))
       }
 
-    implicit val mapping: Decoder[Mapping] = ((p: XContentParser)) => {
+    implicit val mapping: Decoder[Mapping] = (p: XContentParser) => {
       var typ: Option[String] = None
       var dims: Option[Int] = None
       var model: Option[String] = None
@@ -578,10 +577,14 @@ object XContentCodec {
                   assertToken(n, p.nextToken(), VALUE_BOOLEAN)
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case _                => p.nextToken()
+                case _                =>
+                  p.nextToken()
+                  ()
               }
             }
-          case _ => p.nextToken()
+          case _ =>
+            p.nextToken()
+            ()
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -604,7 +607,7 @@ object XContentCodec {
     }
 
     implicit val nearestNeighborsQuery: Decoder[NearestNeighborsQuery] =
-      ((p: XContentParser)) => {
+      (p: XContentParser) => {
         var candidates: Option[Int] = None
         var field: Option[String] = None
         var model: Option[String] = None
@@ -631,7 +634,9 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case _                => p.nextToken()
+            case _                =>
+              p.nextToken()
+              ()
           }
         }
         (candidates, field, model, probes, similarity, vec) match {

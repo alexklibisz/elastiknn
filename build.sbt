@@ -137,8 +137,7 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.2",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.3" % Test,
-//      ("com.klibisz.futil" %% "futil" % "0.1.2" % Test).cross(CrossVersion.for3Use2_13)
+      "ch.qos.logback" % "logback-classic" % "1.5.3" % Test
     ),
     TpolecatSettings,
     TestSettings
