@@ -24,17 +24,21 @@ resource "aws_security_group" "elastiknn" {
   }
 }
 
-data "aws_ami" "elastiknn" {
+data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["self"]
+  owners      = ["099720109477"]
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
   filter {
     name   = "name"
-    values = ["elastiknn"]
+    values = ["ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"]
   }
 }
 
 resource "aws_instance" "elastiknn" {
-  ami           = data.aws_ami.elastiknn.image_id
+  ami           = data.aws_ami.ubuntu.image_id
   instance_type = "r6i.4xlarge"
   key_name      = aws_key_pair.elastiknn.key_name
   tags = {
@@ -44,7 +48,12 @@ resource "aws_instance" "elastiknn" {
   root_block_device {
     volume_size = 42
   }
-  user_data = file("provision-ubuntu-22.04.sh")
+  user_data = <<-EOF
+    #!/bin/bash
+    echo "${filebase64("setup.sh")}" | base64 --decode > /home/ubuntu/setup.sh
+    chmod +x /home/ubuntu/setup.sh
+    chown ubuntu /home/ubuntu/setup.sh
+  EOF
 }
 
 output "ssh_command" {
