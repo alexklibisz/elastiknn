@@ -1,6 +1,6 @@
 package com.klibisz.elastiknn.jmhbenchmarks
 
-import com.klibisz.elastiknn.storage.{ByteBufferSerialization, UnsafeSerialization}
+import com.klibisz.elastiknn.storage.ByteBufferSerialization
 import org.openjdk.jmh.annotations._
 
 import scala.util.Random
@@ -23,26 +23,8 @@ class VectorSerializationBenchmarks {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 1)
   @Measurement(time = 5, iterations = 1)
-  def writeFloats_Unsafe(state: VectorSerializationBenchmarksState): Array[Byte] = {
-    UnsafeSerialization.writeFloats(state.floatArray)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
   def writeFloats_ByteBuffer(state: VectorSerializationBenchmarksState): Array[Byte] = {
     ByteBufferSerialization.writeFloats(state.floatArray)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
-  def readFloats_Unsafe(state: VectorSerializationBenchmarksState): Array[Float] = {
-    UnsafeSerialization.readFloats(state.floatArraySerialized, 0, state.floatArraySerialized.length)
   }
 
   @Benchmark
@@ -59,26 +41,8 @@ class VectorSerializationBenchmarks {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 1)
   @Measurement(time = 5, iterations = 1)
-  def writeInts_Unsafe(state: VectorSerializationBenchmarksState): Array[Byte] = {
-    UnsafeSerialization.writeInts(state.intArray)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
   def writeInts_ByteBuffer(state: VectorSerializationBenchmarksState): Array[Byte] = {
     ByteBufferSerialization.writeInts(state.intArray)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
-  def readInts_Unsafe(state: VectorSerializationBenchmarksState): Array[Int] = {
-    UnsafeSerialization.readInts(state.intArraySerialized, 0, state.intArraySerialized.length)
   }
 
   @Benchmark
@@ -95,15 +59,6 @@ class VectorSerializationBenchmarks {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 1)
   @Measurement(time = 5, iterations = 1)
-  def writeIntsWithPrefix_Unsafe(state: VectorSerializationBenchmarksState): Array[Byte] = {
-    UnsafeSerialization.writeIntsWithPrefix(state.intArray.length, state.intArray)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
   def writeIntsWithPrefix_ByteBuffer(state: VectorSerializationBenchmarksState): Array[Byte] = {
     ByteBufferSerialization.writeIntsWithPrefix(state.intArray.length, state.intArray)
   }
@@ -113,26 +68,8 @@ class VectorSerializationBenchmarks {
   @Fork(value = 1)
   @Warmup(time = 5, iterations = 1)
   @Measurement(time = 5, iterations = 1)
-  def writeInt_Unsafe(state: VectorSerializationBenchmarksState): Unit = {
-    state.ints.foreach(UnsafeSerialization.writeInt)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
   def writeInt_ByteBuffer(state: VectorSerializationBenchmarksState): Unit = {
     state.ints.foreach(ByteBufferSerialization.writeInt)
-  }
-
-  @Benchmark
-  @BenchmarkMode(Array(Mode.Throughput))
-  @Fork(value = 1)
-  @Warmup(time = 5, iterations = 1)
-  @Measurement(time = 5, iterations = 1)
-  def readInt_Unsafe(state: VectorSerializationBenchmarksState): Unit = {
-    state.intsSerialized.foreach(UnsafeSerialization.readInt)
   }
 
   @Benchmark

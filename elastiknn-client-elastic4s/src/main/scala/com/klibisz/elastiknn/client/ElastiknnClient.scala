@@ -22,11 +22,11 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   /** Abstract method for executing a request.
     */
-  def execute[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]]
+  def execute[T, U](request: T)(implicit handler: Handler[T, U]): F[Response[U]]
 
   /** Execute the given request.
     */
-  final def apply[T, U](request: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): F[Response[U]] = execute(request)
+  final def apply[T, U](request: T)(implicit handler: Handler[T, U]): F[Response[U]] = execute(request)
 
   /** See ElastiknnRequests.putMapping().
     */
@@ -80,7 +80,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
     implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
       override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
-      override def responseHandler: ResponseHandler[SearchResponse] = ((response: HttpResponse)) => {
+      override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
         val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
         handled.map { (sr: SearchResponse) =>
           val hitsWithIds = sr.hits.hits.map(h =>
