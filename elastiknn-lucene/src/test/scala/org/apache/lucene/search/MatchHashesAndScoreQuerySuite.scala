@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   test("empty harness") {
-    indexAndSearch() { ((_: IndexWriter)) => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
+    indexAndSearch() { _ => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
   }
 
   test("minimal id example") {
@@ -45,7 +45,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         hashes,
         10,
         r,
-        ((_: LeafReaderContext)) =>
+        (_: LeafReaderContext) =>
           (docId: Int, numMatchingHashes: Int) => {
             docId shouldBe 0
             numMatchingHashes shouldBe 2
@@ -74,7 +74,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         hashes,
         10,
         r,
-        ((_: LeafReaderContext)) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
+        (_: LeafReaderContext) => (_: Int, numMatchingHashes: Int) => numMatchingHashes * 1f
       )
       val dd = s.search(q, 10)
       dd.scoreDocs should have length 2
@@ -99,7 +99,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
       }
     } { case (r, s) =>
       val hashes = Array(6, 7, 8, 9, 10).map(i => HashAndFreq.once(writeInt(i)))
-      val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, ((_: LeafReaderContext)) => (_: Int, m: Int) => m * 1f)
+      val q = new MatchHashesAndScoreQuery("vec", hashes, 5, r, (_: LeafReaderContext) => (_: Int, m: Int) => m * 1f)
       val dd = s.search(q, 10)
       dd.scoreDocs shouldBe empty
       val ex = s.explain(q, 0)
@@ -137,7 +137,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
         query,
         candidates,
         r,
-        ((_: LeafReaderContext)) =>
+        (_: LeafReaderContext) =>
           (_: Int, c: Int) => {
             counts.append(c)
             c.toFloat
