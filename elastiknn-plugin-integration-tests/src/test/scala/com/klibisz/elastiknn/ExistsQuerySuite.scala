@@ -11,9 +11,9 @@ class ExistsQuerySuite extends AsyncFunSuite with Matchers with ElasticAsyncClie
 
   implicit val rng: Random = new Random(0)
   val (index, field, id) = ("issue-174", "vec", "id")
-  val corpus = Vec.DenseFloat.randoms(128, 99)
-  val ids = corpus.indices.map(i => s"v$i")
-  val mappings = Seq(
+  val corpus: Vector[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, 99)
+  val ids: IndexedSeq[String] = corpus.indices.map(i => s"v$i")
+  val mappings: Seq[Mapping] = Seq(
     Mapping.DenseFloat(corpus.head.dims),
     Mapping.L2Lsh(corpus.head.dims, 50, 1, 2)
   )

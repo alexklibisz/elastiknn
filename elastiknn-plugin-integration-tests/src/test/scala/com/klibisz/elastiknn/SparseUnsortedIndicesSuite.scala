@@ -17,16 +17,16 @@ class SparseUnsortedIndicesSuite extends AsyncFunSuite with Matchers with Inspec
   val indexPrefix = "test-sbv-unsorted"
 
   val dims = 20000
-  val corpus = Vec.SparseBool.randoms(dims, 100)
+  val corpus: Vector[Vec.SparseBool] = Vec.SparseBool.randoms(dims, 100)
 
-  val queryVec = {
+  val queryVec: Vec.SparseBool = {
     val sorted = corpus.head
     val shuffled = rng.shuffle(sorted.trueIndices.toVector).toArray
     sorted.copy(shuffled)
   }
 
   // Test with multiple mappings/queries.
-  val mappingsAndQueries = Seq(
+  val mappingsAndQueries: Seq[(Mapping, Seq[NearestNeighborsQuery])] = Seq(
     Mapping.SparseBool(dims) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.Jaccard, queryVec),
       NearestNeighborsQuery.Exact("vec", Similarity.Hamming, queryVec)

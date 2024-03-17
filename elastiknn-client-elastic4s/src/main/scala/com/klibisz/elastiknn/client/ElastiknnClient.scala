@@ -80,9 +80,9 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
     implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
       override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
-      override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
+      override def responseHandler: ResponseHandler[SearchResponse] = ((response: HttpResponse)) => {
         val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
-        handled.map { sr: SearchResponse =>
+        handled.map { (sr: SearchResponse) =>
           val hitsWithIds = sr.hits.hits.map(h =>
             h.copy(id = h.fields.get(storedIdField) match {
               case Some(List(id: String)) => id

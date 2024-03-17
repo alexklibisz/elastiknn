@@ -14,11 +14,11 @@ final class ModelCache(floatVectorOps: FloatVectorOps) {
         override def load(key: K): V = f(key)
       })
 
-  private val cosine = cache((m: Mapping.CosineLsh) => new CosineLshModel(m.dims, m.L, m.k, new Random(0), floatVectorOps))
-  private val jaccard = cache((m: Mapping.JaccardLsh) => new JaccardLshModel(m.L, m.k, new Random(0)))
-  private val hamming = cache((m: Mapping.HammingLsh) => new HammingLshModel(m.dims, m.L, m.k, new Random(0)))
-  private val l2 = cache((m: Mapping.L2Lsh) => new L2LshModel(m.dims, m.L, m.k, m.w, new Random(0), floatVectorOps))
-  private val permutation = cache((m: Mapping.PermutationLsh) => new PermutationLshModel(m.k, m.repeating))
+  private val cosine = cache(((m: Mapping.CosineLsh)) => new CosineLshModel(m.dims, m.L, m.k, new Random(0), floatVectorOps))
+  private val jaccard = cache(((m: Mapping.JaccardLsh)) => new JaccardLshModel(m.L, m.k, new Random(0)))
+  private val hamming = cache(((m: Mapping.HammingLsh)) => new HammingLshModel(m.dims, m.L, m.k, new Random(0)))
+  private val l2 = cache(((m: Mapping.L2Lsh)) => new L2LshModel(m.dims, m.L, m.k, m.w, new Random(0), floatVectorOps))
+  private val permutation = cache(((m: Mapping.PermutationLsh)) => new PermutationLshModel(m.k, m.repeating))
 
   def apply(m: Mapping.CosineLsh): CosineLshModel = cosine.get(m)
   def apply(m: Mapping.JaccardLsh): JaccardLshModel = jaccard.get(m)

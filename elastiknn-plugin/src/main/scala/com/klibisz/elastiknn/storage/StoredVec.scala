@@ -84,8 +84,8 @@ object StoredVec {
   }
 
   object Encoder {
-    implicit val sparseBool: Encoder[Vec.SparseBool] = (vec: Vec.SparseBool) => ByteBufferSerialization.writeInts(vec.trueIndices)
-    implicit val denseFloat: Encoder[Vec.DenseFloat] = (vec: Vec.DenseFloat) => ByteBufferSerialization.writeFloats(vec.values)
+    implicit val sparseBool: Encoder[Vec.SparseBool] = ((vec: Vec.SparseBool)) => ByteBufferSerialization.writeInts(vec.trueIndices)
+    implicit val denseFloat: Encoder[Vec.DenseFloat] = ((vec: Vec.DenseFloat)) => ByteBufferSerialization.writeFloats(vec.values)
   }
 
 }

@@ -425,7 +425,7 @@ object XContentCodec {
       b.toArray
     }
 
-    implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
+    implicit val similarity: Decoder[Similarity] = ((p: XContentParser)) => {
       if (p.currentToken() != VALUE_STRING) assertToken(p.nextToken(), VALUE_STRING)
       val s1 = p.text()
       val s2 = s1.toLowerCase
@@ -511,32 +511,32 @@ object XContentCodec {
       }
     }
 
-    implicit val denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
+    implicit val denseFloatVec: Decoder[Vec.DenseFloat] = ((p: XContentParser)) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.DenseFloat => v
         case _                 => throw new XContentParseException(unableToConstruct("dense float vector"))
       }
 
     implicit val sparseBoolVec: Decoder[Vec.SparseBool] =
-      (p: XContentParser) =>
+      ((p: XContentParser)) =>
         vec.decodeUnsafe(p) match {
           case v: Vec.SparseBool => v
           case _                 => throw new XContentParseException(unableToConstruct("sparse bool vector"))
         }
 
-    implicit val emptyVec: Decoder[Vec.Empty] = (p: XContentParser) =>
+    implicit val emptyVec: Decoder[Vec.Empty] = ((p: XContentParser)) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Empty => v
         case _            => throw new XContentParseException(unableToConstruct("empty vector"))
       }
 
-    implicit val indexedVec: Decoder[Vec.Indexed] = (p: XContentParser) =>
+    implicit val indexedVec: Decoder[Vec.Indexed] = ((p: XContentParser)) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Indexed => v
         case _              => throw new XContentParseException(unableToConstruct("indexed vector"))
       }
 
-    implicit val mapping: Decoder[Mapping] = (p: XContentParser) => {
+    implicit val mapping: Decoder[Mapping] = ((p: XContentParser)) => {
       var typ: Option[String] = None
       var dims: Option[Int] = None
       var model: Option[String] = None
@@ -604,7 +604,7 @@ object XContentCodec {
     }
 
     implicit val nearestNeighborsQuery: Decoder[NearestNeighborsQuery] =
-      (p: XContentParser) => {
+      ((p: XContentParser)) => {
         var candidates: Option[Int] = None
         var field: Option[String] = None
         var model: Option[String] = None

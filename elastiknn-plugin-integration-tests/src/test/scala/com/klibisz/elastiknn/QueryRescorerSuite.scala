@@ -27,7 +27,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
   val candidates = numBlue
 
   // Test with multiple mappings/queries.
-  val queryVec = Vec.DenseFloat.random(dims)
+  val queryVec: Vec.DenseFloat = Vec.DenseFloat.random(dims)
   val mappingsAndQueries: Seq[(Mapping, Seq[NearestNeighborsQuery])] = Seq(
     Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),

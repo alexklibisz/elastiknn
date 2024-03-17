@@ -1,7 +1,7 @@
 import ElasticsearchPluginPlugin.autoImport.*
 import org.typelevel.scalacoptions.*
 
-Global / scalaVersion := "2.13.13"
+Global / scalaVersion := "3.3.1"
 
 lazy val CirceVersion = "0.14.3"
 lazy val ElasticsearchVersion = "8.12.2"
@@ -137,9 +137,8 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.2",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.5.3" % Test,
-      "com.klibisz.futil" %% "futil" % "0.1.2" % Test
+//      ("com.klibisz.futil" %% "futil" % "0.1.2" % Test).cross(CrossVersion.for3Use2_13)
     ),
     TpolecatSettings,
     TestSettings
@@ -149,6 +148,11 @@ lazy val `elastiknn-plugin-integration-tests` = project
   .in(file("elastiknn-plugin-integration-tests"))
   .dependsOn(`elastiknn-plugin` % "test->test")
   .settings(
+    libraryDependencies ++= Seq(
+      // These have to be repeated for compatibility, even though we use the test->test modifier.
+      "io.circe" %% "circe-generic" % CirceVersion % Test,
+      ("com.klibisz.futil" %% "futil" % "0.1.2" % Test).cross(CrossVersion.for3Use2_13)
+    ),
     TpolecatSettings,
-    TestSettings
+    TestSettings,
   )
