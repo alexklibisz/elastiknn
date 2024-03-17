@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.client
 
+import com.fasterxml.jackson.module.scala.JavaTypeable
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
@@ -22,11 +23,11 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   /** Abstract method for executing a request.
     */
-  def execute[T, U](request: T)(implicit handler: Handler[T, U]): F[Response[U]]
+  def execute[T, U](request: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]]
 
   /** Execute the given request.
     */
-  final def apply[T, U](request: T)(implicit handler: Handler[T, U]): F[Response[U]] = execute(request)
+  final def apply[T, U](request: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]] = execute(request)
 
   /** See ElastiknnRequests.putMapping().
     */
@@ -82,7 +83,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
       override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
       override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
         val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
-        handled.map { (sr: SearchResponse) =>
+        handled.map { sr: SearchResponse =>
           val hitsWithIds = sr.hits.hits.map(h =>
             h.copy(id = h.fields.get(storedIdField) match {
               case Some(List(id: String)) => id
@@ -93,7 +94,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
         }
       }
     }
-    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))(handler, implicitly[Manifest[SearchResponse]])
+    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))(handler, implicitly[JavaTypeable[SearchResponse]])
   }
 
 }
@@ -118,7 +119,7 @@ object ElastiknnClient {
       implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
       implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
       val elasticClient: ElasticClient = ElasticClient(jc)
-      override def execute[T, U](req: T)(implicit handler: Handler[T, U], manifest: Manifest[U]): Future[Response[U]] = {
+      override def execute[T, U](req: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): Future[Response[U]] = {
         val future: Future[Response[U]] = elasticClient.execute(req)
         if (strictFailure) future.flatMap { res =>
           checkResponse(req, res) match {
