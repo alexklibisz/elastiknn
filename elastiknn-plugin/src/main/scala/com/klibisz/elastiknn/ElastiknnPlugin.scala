@@ -28,6 +28,8 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
   private val modelCache = new ModelCache(floatVectorOps)
   private val elastiknnQueryBuilder: ElastiknnQueryBuilder = new ElastiknnQueryBuilder(floatVectorOps, modelCache)
 
+  // The doPrivileged is needed because scala.runtime.LazyVals uses sun.misc.unsafe, and somehow LazyVals is
+  // invoked while instantiating a class that extends an abstract class. See plugin-security.policy for details.
   private val denseFloatVectorMapper = AccessController.doPrivileged(new PrivilegedAction[DenseFloatVectorMapper] {
     override def run(): DenseFloatVectorMapper =
       new DenseFloatVectorMapper(modelCache)
