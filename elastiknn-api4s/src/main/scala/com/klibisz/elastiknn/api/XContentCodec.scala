@@ -475,7 +475,9 @@ object XContentCodec {
                 assertToken(n, p.nextToken(), START_ARRAY)
                 values = Some(parseFloatArray(p, 42))
               case _ =>
-                p.nextToken()()
+                p.nextToken()
+                // Comment to prevent scalafmt from collapsing the two lines.
+                ()
             }
           }
         case START_ARRAY =>
@@ -577,11 +579,15 @@ object XContentCodec {
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
                 case _ =>
-                  p.nextToken()()
+                  p.nextToken()
+                  // Comment to prevent scalafmt from collapsing the two lines.
+                  ()
               }
             }
           case _ =>
-            p.nextToken()()
+            p.nextToken()
+            // Comment to prevent scalafmt from collapsing the two lines.
+            ()
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -632,7 +638,9 @@ object XContentCodec {
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
             case _ =>
-              p.nextToken()()
+              p.nextToken()
+              // Comment to prevent scalafmt from collapsing the two lines.
+              ()
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
