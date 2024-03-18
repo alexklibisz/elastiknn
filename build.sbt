@@ -148,10 +148,7 @@ lazy val `elastiknn-plugin-integration-tests` = project
   .in(file("elastiknn-plugin-integration-tests"))
   .dependsOn(`elastiknn-plugin` % "test->test")
   .settings(
-    libraryDependencies ++= Seq(
-      // These have to be repeated for compatibility, even though we use the test->test modifier.
-      "io.circe" %% "circe-generic" % CirceVersion % Test
-    ),
+    libraryDependencies += "io.circe" %% "circe-generic" % CirceVersion % Test,
     TpolecatSettings,
     TestSettings
   )

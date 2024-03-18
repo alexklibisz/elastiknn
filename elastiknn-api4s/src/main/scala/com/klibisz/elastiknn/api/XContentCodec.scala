@@ -440,75 +440,78 @@ object XContentCodec {
       }
     }
 
-    implicit val vec: Decoder[Vec] = (p: XContentParser) => {
-      var field: Option[String] = None
-      var id: Option[String] = None
-      var index: Option[String] = None
-      var isEmpty: Boolean = true
-      var trueIndices: Option[Array[Int]] = None
-      var totalIndices: Option[Int] = None
-      var values: Option[Array[Float]] = None
-      if (p.currentToken() != START_OBJECT && p.currentToken() != START_ARRAY) {
-        assertToken(p.nextToken(), SortedSet(START_ARRAY, START_OBJECT))
-      }
-      p.currentToken() match {
-        case START_OBJECT =>
-          while (p.nextToken() == FIELD_NAME) {
-            isEmpty = false
-            p.currentName() match {
-              case n @ Names.FIELD =>
-                assertToken(n, p.nextToken(), VALUE_STRING)
-                field = Some(p.text())
-              case n @ Names.ID =>
-                assertToken(n, p.nextToken(), VALUE_STRING)
-                id = Some(p.text())
-              case n @ Names.INDEX =>
-                assertToken(n, p.nextToken(), VALUE_STRING)
-                index = Some(p.text())
-              case n @ Names.TRUE_INDICES =>
-                assertToken(n, p.nextToken(), START_ARRAY)
-                trueIndices = Some(parseSparseBoolArray(p, 42))
-              case n @ Names.TOTAL_INDICES =>
-                assertToken(n, p.nextToken(), VALUE_NUMBER)
-                totalIndices = Some(p.intValue())
-              case n @ Names.VALUES =>
-                assertToken(n, p.nextToken(), START_ARRAY)
-                values = Some(parseFloatArray(p, 42))
-              case _ =>
-                p.nextToken()
-                // Comment to prevent scalafmt from collapsing the two lines.
-                ()
-            }
-          }
-        case START_ARRAY =>
-          isEmpty = false
-          p.nextToken() match {
-            case END_ARRAY =>
-              values = Some(Array.empty)
-            case VALUE_NUMBER =>
-              values = Some(parseFloatArray(p, 42))
-            case START_ARRAY =>
-              trueIndices = Some(parseSparseBoolArray(p, 42))
-              assertToken(p.nextToken(), VALUE_NUMBER)
-              totalIndices = Some(p.intValue())
-            case t =>
-              throw new XContentParseException(unexpectedToken(t, SortedSet(END_ARRAY, START_ARRAY, VALUE_NUMBER)))
-          }
-        case _ =>
-          throw new XContentParseException(unexpectedToken(p.currentToken(), SortedSet(START_ARRAY, START_OBJECT)))
-      }
-      if (isEmpty) Vec.Empty()
-      else
-        (field, id, index, trueIndices, totalIndices, values) match {
-          case (Some(field), Some(id), Some(index), _, _, _) =>
-            Vec.Indexed(index = index, id = id, field = field)
-          case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
-            Vec.SparseBool(trueIndices, totalIndices)
-          case (_, _, _, _, _, Some(values)) =>
-            Vec.DenseFloat(values)
-          case _ =>
-            throw new XContentParseException(unableToConstruct("vector"))
+    implicit val vec: Decoder[Vec] = new Decoder[Vec] {
+
+      override def decodeUnsafe(p: XContentParser): Vec = {
+        var field: Option[String] = None
+        var id: Option[String] = None
+        var index: Option[String] = None
+        var isEmpty: Boolean = true
+        var trueIndices: Option[Array[Int]] = None
+        var totalIndices: Option[Int] = None
+        var values: Option[Array[Float]] = None
+        if (p.currentToken() != START_OBJECT && p.currentToken() != START_ARRAY) {
+          assertToken(p.nextToken(), SortedSet(START_ARRAY, START_OBJECT))
         }
+        p.currentToken() match {
+          case START_OBJECT =>
+            while (p.nextToken() == FIELD_NAME) {
+              isEmpty = false
+              p.currentName() match {
+                case n @ Names.FIELD =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  field = Some(p.text())
+                case n @ Names.ID =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  id = Some(p.text())
+                case n @ Names.INDEX =>
+                  assertToken(n, p.nextToken(), VALUE_STRING)
+                  index = Some(p.text())
+                case n @ Names.TRUE_INDICES =>
+                  assertToken(n, p.nextToken(), START_ARRAY)
+                  trueIndices = Some(parseSparseBoolArray(p, 42))
+                case n @ Names.TOTAL_INDICES =>
+                  assertToken(n, p.nextToken(), VALUE_NUMBER)
+                  totalIndices = Some(p.intValue())
+                case n @ Names.VALUES =>
+                  assertToken(n, p.nextToken(), START_ARRAY)
+                  values = Some(parseFloatArray(p, 42))
+                case _ =>
+                  p.nextToken()
+                  // Comment to prevent scalafmt from collapsing the two lines.
+                  ()
+              }
+            }
+          case START_ARRAY =>
+            isEmpty = false
+            p.nextToken() match {
+              case END_ARRAY =>
+                values = Some(Array.empty)
+              case VALUE_NUMBER =>
+                values = Some(parseFloatArray(p, 42))
+              case START_ARRAY =>
+                trueIndices = Some(parseSparseBoolArray(p, 42))
+                assertToken(p.nextToken(), VALUE_NUMBER)
+                totalIndices = Some(p.intValue())
+              case t =>
+                throw new XContentParseException(unexpectedToken(t, SortedSet(END_ARRAY, START_ARRAY, VALUE_NUMBER)))
+            }
+          case _ =>
+            throw new XContentParseException(unexpectedToken(p.currentToken(), SortedSet(START_ARRAY, START_OBJECT)))
+        }
+        if (isEmpty) Vec.Empty()
+        else
+          (field, id, index, trueIndices, totalIndices, values) match {
+            case (Some(field), Some(id), Some(index), _, _, _) =>
+              Vec.Indexed(index = index, id = id, field = field)
+            case (_, _, _, Some(trueIndices), Some(totalIndices), _) =>
+              Vec.SparseBool(trueIndices, totalIndices)
+            case (_, _, _, _, _, Some(values)) =>
+              Vec.DenseFloat(values)
+            case _ =>
+              throw new XContentParseException(unableToConstruct("vector"))
+          }
+      }
     }
 
     implicit val denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
