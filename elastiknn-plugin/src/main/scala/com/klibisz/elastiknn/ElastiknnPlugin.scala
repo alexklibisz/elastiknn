@@ -2,15 +2,16 @@ package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.mapper.VectorMapper.{DenseFloatVectorMapper, SparseBoolVectorMapper}
 import com.klibisz.elastiknn.models.ModelCache
-import com.klibisz.elastiknn.query._
+import com.klibisz.elastiknn.query.*
 import com.klibisz.elastiknn.vectors.{DefaultFloatVectorOps, FloatVectorOps, PanamaFloatVectorOps}
 import org.elasticsearch.common.settings.{Setting, Settings}
 import org.elasticsearch.index.IndexSettings
 import org.elasticsearch.index.engine.EngineFactory
 import org.elasticsearch.index.mapper.Mapper
 import org.elasticsearch.plugins.SearchPlugin.{QuerySpec, ScoreFunctionSpec}
-import org.elasticsearch.plugins._
+import org.elasticsearch.plugins.*
 
+import java.security.{AccessController, PrivilegedAction}
 import java.util
 import java.util.{Collections, Optional}
 
@@ -18,13 +19,23 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
 
   import ElastiknnPlugin.Settings
 
+  import scala.runtime.LazyVals.Evaluating
+  println(Evaluating)
+
   private val floatVectorOps: FloatVectorOps =
     if (Settings.jdkIncubatorVectorEnabledSetting.get(settings)) new PanamaFloatVectorOps
     else new DefaultFloatVectorOps
   private val modelCache = new ModelCache(floatVectorOps)
   private val elastiknnQueryBuilder: ElastiknnQueryBuilder = new ElastiknnQueryBuilder(floatVectorOps, modelCache)
-  private val sparseBoolVectorMapper = new SparseBoolVectorMapper(modelCache)
-  private val denseFloatVectorMapper = new DenseFloatVectorMapper(modelCache)
+
+  private val denseFloatVectorMapper = AccessController.doPrivileged(new PrivilegedAction[DenseFloatVectorMapper] {
+    override def run(): DenseFloatVectorMapper =
+      new DenseFloatVectorMapper(modelCache)
+  })
+  private val sparseBoolVectorMapper = AccessController.doPrivileged(new PrivilegedAction[SparseBoolVectorMapper] {
+    override def run(): SparseBoolVectorMapper =
+      new SparseBoolVectorMapper(modelCache)
+  })
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = {
     Collections.singletonList(
