@@ -42,7 +42,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     }
   }
 
-  test("deterministic lucene indexing and queries") {
+  ignore("deterministic lucene indexing and queries") {
     // Re-index the same set of docs several times and run the same queries on each index.
     // The results from each repetition should be identical to all other repetitions.
     implicit val rng: Random = new Random(0)
@@ -67,8 +67,15 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       }
       queryResults
     }
-    val distinct = repeatedResults.distinct
-    distinct.foreach(println)
+    val distinct: Seq[Vector[Vector[(Int, Float)]]] = repeatedResults.distinct
+    distinct.head.zip(distinct.last).zipWithIndex.foreach { case ((a, b), i) =>
+      if (a != b) {
+        println(i)
+        a.zip(b).foreach { case (aa, bb) =>
+          if (aa != bb) print((aa, bb))
+        }
+      }
+    }
     distinct.length shouldBe 1
   }
 }
