@@ -8,6 +8,8 @@ import scala.util.Random
 
 class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
 
+  private val compatibilityCheckIterations = 1000
+
   "writeInt and readInt" - {
     "round trip" - {
       def check(i: Int, expectedLengthOpt: Option[Int]): Assertion = {
@@ -38,6 +40,37 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
         }
       }
     }
+    "compatibility with UnsafeSerialization" - {
+      def check(i: Int): Assertion = {
+        val unsafeSerialized = UnsafeSerialization.writeInt(i)
+        val byteBufferSerialized = ByteBufferSerialization.writeInt(i)
+        val unsafeDeserializedFromByteBuffer = UnsafeSerialization.readInt(byteBufferSerialized)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readInt(unsafeSerialized)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer shouldBe i
+        byteBufferDeserializedFromUnsafe shouldBe i
+      }
+      "absolute value < Byte.MinValue" in {
+        check(Byte.MinValue + 1)
+        check(Byte.MaxValue - 1)
+      }
+      "absolute value < Short.MaxValue" in {
+        check(Short.MinValue + 1)
+        check(Short.MaxValue - 1)
+      }
+      "absolute value < Int.MaxValue" in {
+        check(Int.MinValue + 1)
+        check(Int.MaxValue - 1)
+      }
+      "randomized" in {
+        val seed = System.currentTimeMillis()
+        info(s"Using seed $seed")
+        val rng = new Random(seed)
+        (0 until 1000).foreach { _ =>
+          check(rng.nextInt())
+        }
+      }
+    }
   }
 
   "writeInts and readInts" - {
@@ -55,6 +88,22 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
         val serialized = ByteBufferSerialization.writeInts(original)
         val deserialized = ByteBufferSerialization.readInts(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
         deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+      }
+    }
+    "compatibility with UnsafeSerialization" in {
+      val seed = System.currentTimeMillis()
+      info(s"Using seed $seed")
+      val rng = new Random(seed)
+      (0 to compatibilityCheckIterations).foreach { _ =>
+        val len = rng.nextInt(1000)
+        val original = (0 until len).map(_ => rng.nextInt()).toArray
+        val unsafeSerialized = UnsafeSerialization.writeInts(original)
+        val byteBufferSerialized = ByteBufferSerialization.writeInts(original)
+        val unsafeDeserializedFromByteBuffer = ByteBufferSerialization.readInts(byteBufferSerialized, 0, byteBufferSerialized.length)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readInts(unsafeSerialized, 0, unsafeSerialized.length)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer.toList shouldBe original.toList
+        byteBufferDeserializedFromUnsafe.toList shouldBe original.toList
       }
     }
   }
@@ -76,6 +125,22 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
         deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
       }
     }
+    "compatibility with UnsafeSerialization" in {
+      val seed = System.currentTimeMillis()
+      info(s"Using seed $seed")
+      val rng = new Random(seed)
+      (0 to compatibilityCheckIterations).foreach { _ =>
+        val len = rng.nextInt(1000)
+        val original = (0 until len).map(_ => rng.nextInt()).toArray
+        val unsafeSerialized = UnsafeSerialization.writeInts(original)
+        val byteBufferSerialized = ByteBufferSerialization.writeInts(original)
+        val unsafeDeserializedFromByteBuffer = ByteBufferSerialization.readInts(byteBufferSerialized, 0, byteBufferSerialized.length)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readInts(unsafeSerialized, 0, unsafeSerialized.length)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer.toList shouldBe original.toList
+        byteBufferDeserializedFromUnsafe.toList shouldBe original.toList
+      }
+    }
   }
 
   "writeFloats and readFloats" - {
@@ -93,6 +158,22 @@ class ByteBufferSerializationSpec extends AnyFreeSpec with Matchers {
         val serialized = ByteBufferSerialization.writeFloats(original)
         val deserialized = ByteBufferSerialization.readFloats(serialized, dropLeftBytes, serialized.length - dropLeftBytes - dropRightBytes)
         deserialized.toList shouldBe original.drop(dropLeftFloats).dropRight(dropRightFloats).toList
+      }
+    }
+    "compatibility with UnsafeSerialization" in {
+      val seed = System.currentTimeMillis()
+      info(s"Using seed $seed")
+      val rng = new Random(seed)
+      (0 to compatibilityCheckIterations).foreach { _ =>
+        val len = rng.nextInt(1000)
+        val original = (0 until len).map(_ => rng.nextFloat()).toArray
+        val unsafeSerialized = UnsafeSerialization.writeFloats(original)
+        val byteBufferSerialized = ByteBufferSerialization.writeFloats(original)
+        val unsafeDeserializedFromByteBuffer = ByteBufferSerialization.readFloats(byteBufferSerialized, 0, byteBufferSerialized.length)
+        val byteBufferDeserializedFromUnsafe = ByteBufferSerialization.readFloats(unsafeSerialized, 0, unsafeSerialized.length)
+        byteBufferSerialized.toList shouldBe unsafeSerialized.toList
+        unsafeDeserializedFromByteBuffer.toList shouldBe original.toList
+        byteBufferDeserializedFromUnsafe.toList shouldBe original.toList
       }
     }
   }
