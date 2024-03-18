@@ -12,7 +12,8 @@ class VectorSerializationBenchmarksState {
   val floatArraySerialized: Array[Byte] = ByteBufferSerialization.writeFloats(floatArray)
   val intArray: Array[Int] = (0 until 1000).map(_ => rng.nextInt()).toArray
   val intArraySerialized: Array[Byte] = ByteBufferSerialization.writeInts(intArray)
-  val ints: Array[Int] = Array(Int.MinValue + 1, Short.MinValue + 1, Byte.MinValue + 1, 0, Byte.MaxValue - 1, Short.MaxValue - 1, Int.MaxValue - 1)
+  val ints: Array[Int] =
+    Array(Int.MinValue + 1, Short.MinValue + 1, Byte.MinValue + 1, 0, Byte.MaxValue - 1, Short.MaxValue - 1, Int.MaxValue - 1)
   val intsSerialized: Array[Array[Byte]] = ints.map(ByteBufferSerialization.writeInt)
 }
 

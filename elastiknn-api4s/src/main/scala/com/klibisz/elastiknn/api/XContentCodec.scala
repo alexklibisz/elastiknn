@@ -456,27 +456,26 @@ object XContentCodec {
           while (p.nextToken() == FIELD_NAME) {
             isEmpty = false
             p.currentName() match {
-              case n@Names.FIELD =>
+              case n @ Names.FIELD =>
                 assertToken(n, p.nextToken(), VALUE_STRING)
                 field = Some(p.text())
-              case n@Names.ID =>
+              case n @ Names.ID =>
                 assertToken(n, p.nextToken(), VALUE_STRING)
                 id = Some(p.text())
-              case n@Names.INDEX =>
+              case n @ Names.INDEX =>
                 assertToken(n, p.nextToken(), VALUE_STRING)
                 index = Some(p.text())
-              case n@Names.TRUE_INDICES =>
+              case n @ Names.TRUE_INDICES =>
                 assertToken(n, p.nextToken(), START_ARRAY)
                 trueIndices = Some(parseSparseBoolArray(p, 42))
-              case n@Names.TOTAL_INDICES =>
+              case n @ Names.TOTAL_INDICES =>
                 assertToken(n, p.nextToken(), VALUE_NUMBER)
                 totalIndices = Some(p.intValue())
-              case n@Names.VALUES =>
+              case n @ Names.VALUES =>
                 assertToken(n, p.nextToken(), START_ARRAY)
                 values = Some(parseFloatArray(p, 42))
               case _ =>
-                p.nextToken()
-                ()
+                p.nextToken()()
             }
           }
         case START_ARRAY =>
@@ -577,14 +576,12 @@ object XContentCodec {
                   assertToken(n, p.nextToken(), VALUE_BOOLEAN)
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case _                =>
-                  p.nextToken()
-                  ()
+                case _ =>
+                  p.nextToken()()
               }
             }
           case _ =>
-            p.nextToken()
-            ()
+            p.nextToken()()
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -634,9 +631,8 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case _                =>
-              p.nextToken()
-              ()
+            case _ =>
+              p.nextToken()()
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
