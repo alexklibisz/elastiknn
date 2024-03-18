@@ -95,7 +95,11 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
 
   final val luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
 
-  object TypeParser extends Mapper.TypeParser {
+  // Semantically, this class could be an object. But using an object inside a class invokes parts of the Scala
+  // runtime which depend on sun.misc.Unsafe, and Elasticsearch requires that a plugin declare additional security
+  // permissions in plugin-security.policy in order to invoke sun.misc.Unsafe. I don't want to do that, so we make
+  // this a class. See https://github.com/scala/scala3/issues/9013 for details on LazyVals and sun.misc.unsafe.
+  final class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {
       val mapping = XContentCodec.decodeUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)

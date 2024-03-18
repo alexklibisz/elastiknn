@@ -11,35 +11,20 @@ import org.elasticsearch.index.mapper.Mapper
 import org.elasticsearch.plugins.SearchPlugin.{QuerySpec, ScoreFunctionSpec}
 import org.elasticsearch.plugins.*
 
-import java.security.{AccessController, PrivilegedAction}
 import java.util
 import java.util.{Collections, Optional}
 
-class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with MapperPlugin with EnginePlugin {
+final class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with MapperPlugin with EnginePlugin {
 
   import ElastiknnPlugin.Settings
-
-  import scala.runtime.LazyVals.Evaluating
-  println(Evaluating)
 
   private val floatVectorOps: FloatVectorOps =
     if (Settings.jdkIncubatorVectorEnabledSetting.get(settings)) new PanamaFloatVectorOps
     else new DefaultFloatVectorOps
   private val modelCache = new ModelCache(floatVectorOps)
   private val elastiknnQueryBuilder: ElastiknnQueryBuilder = new ElastiknnQueryBuilder(floatVectorOps, modelCache)
-
-  // The doPrivileged is needed because scala.runtime.LazyVals uses sun.misc.unsafe, and somehow LazyVals is
-  // invoked while instantiating a class that extends an abstract class.
-  // See plugin-security.policy for the extra permissions needed to invoke this code.
-  // See https://github.com/scala/scala3/issues/9013 for details on LazyVals and sun.misc.unsafe.
-  private val denseFloatVectorMapper = AccessController.doPrivileged(new PrivilegedAction[DenseFloatVectorMapper] {
-    override def run(): DenseFloatVectorMapper =
-      new DenseFloatVectorMapper(modelCache)
-  })
-  private val sparseBoolVectorMapper = AccessController.doPrivileged(new PrivilegedAction[SparseBoolVectorMapper] {
-    override def run(): SparseBoolVectorMapper =
-      new SparseBoolVectorMapper(modelCache)
-  })
+  private val denseFloatVectorMapper = new DenseFloatVectorMapper(modelCache)
+  private val sparseBoolVectorMapper = new SparseBoolVectorMapper(modelCache)
 
   override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = {
     Collections.singletonList(
@@ -53,8 +38,8 @@ class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin with 
 
   override def getMappers: util.Map[String, Mapper.TypeParser] = {
     new util.HashMap[String, Mapper.TypeParser] {
-      put(sparseBoolVectorMapper.CONTENT_TYPE, sparseBoolVectorMapper.TypeParser)
-      put(denseFloatVectorMapper.CONTENT_TYPE, denseFloatVectorMapper.TypeParser)
+      put(sparseBoolVectorMapper.CONTENT_TYPE, new sparseBoolVectorMapper.TypeParser)
+      put(denseFloatVectorMapper.CONTENT_TYPE, new denseFloatVectorMapper.TypeParser)
     }
   }
 
