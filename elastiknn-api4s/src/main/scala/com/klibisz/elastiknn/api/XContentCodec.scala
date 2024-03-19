@@ -1,13 +1,13 @@
 package com.klibisz.elastiknn.api
 
 import com.klibisz.elastiknn.ELASTIKNN_NAME
+import org.elasticsearch.xcontent.*
 import org.elasticsearch.xcontent.XContentParser.Token
-import org.elasticsearch.xcontent.XContentParser.Token._
-import org.elasticsearch.xcontent._
+import org.elasticsearch.xcontent.XContentParser.Token.*
 
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.immutable.SortedSet
-import scala.collection.mutable.ArrayBuffer
 
 /** JSON codec for Elastiknn API types, implemented using the Elasticsearch XContentBuilder and XContentParser.
   */
@@ -397,8 +397,8 @@ object XContentCodec {
     private def assertValue(name: String, text: String, expected: SortedSet[String]): Unit =
       if (expected.contains(text)) () else throw new XContentParseException(unexpectedValue(name, text, expected))
 
-    private def parseFloatArray(p: XContentParser, expectedLength: Int): Array[Float] = {
-      val b = new ArrayBuffer[Float](expectedLength)
+    private def parseFloatArray(p: XContentParser, length: AtomicInteger, minLength: Int): Array[Float] = {
+      val b = new FloatArrayBuffer(length.get())
       p.currentToken() match {
         case START_ARRAY  => ()
         case VALUE_NUMBER => b.append(p.floatValue())
@@ -408,11 +408,13 @@ object XContentCodec {
         assertToken(p.currentToken(), VALUE_NUMBER)
         b.append(p.floatValue())
       }
-      b.toArray
+      val arr = b.toArray
+      length.lazySet(Math.max(minLength, arr.length))
+      arr
     }
 
-    private def parseSparseBoolArray(p: XContentParser, expectedLength: Int): Array[Int] = {
-      val b = new ArrayBuffer[Int](expectedLength)
+    private def parseSparseBoolArray(p: XContentParser, length: AtomicInteger, minLength: Int): Array[Int] = {
+      val b = new IntArrayBuffer(length.get())
       p.currentToken() match {
         case START_ARRAY  => ()
         case VALUE_NUMBER => b.append(p.intValue())
@@ -422,7 +424,9 @@ object XContentCodec {
         assertToken(p.currentToken(), VALUE_NUMBER)
         b.append(p.intValue())
       }
-      b.toArray
+      val arr = b.toArray
+      length.lazySet(Math.max(minLength, arr.length))
+      arr
     }
 
     implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
@@ -441,6 +445,13 @@ object XContentCodec {
     }
 
     implicit val vec: Decoder[Vec] = new Decoder[Vec] {
+
+      // This is a hacky trick to "learn" the lengths of the vectors we're dealing with.
+      // It makes the assumption that typically adjacent query vectors will have the same length.
+      // So each time we parse a vector, we remember and re-use the same length for the next one.
+      val minLength = 16
+      val floatArrayLength = new AtomicInteger(minLength)
+      val sparseBoolArrayLength = new AtomicInteger(minLength)
 
       override def decodeUnsafe(p: XContentParser): Vec = {
         var field: Option[String] = None
@@ -469,13 +480,13 @@ object XContentCodec {
                   index = Some(p.text())
                 case n @ Names.TRUE_INDICES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
-                  trueIndices = Some(parseSparseBoolArray(p, 42))
+                  trueIndices = Some(parseSparseBoolArray(p, sparseBoolArrayLength, minLength))
                 case n @ Names.TOTAL_INDICES =>
                   assertToken(n, p.nextToken(), VALUE_NUMBER)
                   totalIndices = Some(p.intValue())
                 case n @ Names.VALUES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
-                  values = Some(parseFloatArray(p, 42))
+                  values = Some(parseFloatArray(p, floatArrayLength, minLength))
                 case _ =>
                   p.nextToken()
                   // Comment to prevent scalafmt from collapsing the two lines.
@@ -488,9 +499,9 @@ object XContentCodec {
               case END_ARRAY =>
                 values = Some(Array.empty)
               case VALUE_NUMBER =>
-                values = Some(parseFloatArray(p, 42))
+                values = Some(parseFloatArray(p, floatArrayLength, minLength))
               case START_ARRAY =>
-                trueIndices = Some(parseSparseBoolArray(p, 42))
+                trueIndices = Some(parseSparseBoolArray(p, sparseBoolArrayLength, minLength))
                 assertToken(p.nextToken(), VALUE_NUMBER)
                 totalIndices = Some(p.intValue())
               case t =>
