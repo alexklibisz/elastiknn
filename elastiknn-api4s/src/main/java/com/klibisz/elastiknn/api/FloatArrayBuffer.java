@@ -21,18 +21,19 @@ public class FloatArrayBuffer {
     }
 
     public void append(float f) {
-        // TODO: Test whether try/catch is faster than if.
-//        try {
-//          this.array[index++] = f;
-//        } catch (IndexOutOfBoundsException ex) {
-//          this.array = Arrays.copyOf(this.array, this.array.length * 2);
-//          this.array[index - 1] = f;
+        // if statement gets about 557013.799 ops/s on r6i.4xlarge.
+//        if (index == this.array.length) {
+////            System.out.printf("Growing from %d to %d\n", this.array.length, this.array.length * 2);
+//            this.array = Arrays.copyOf(this.array, this.array.length * 2);
 //        }
-        if (index == this.array.length) {
-//            System.out.printf("Growing from %d to %d\n", this.array.length, this.array.length * 2);
-            this.array = Arrays.copyOf(this.array, this.array.length * 2);
+//        this.array[index++] = f;
+        // try/catch gets ...
+        try {
+          this.array[index++] = f;
+        } catch (IndexOutOfBoundsException ex) {
+          this.array = Arrays.copyOf(this.array, this.array.length * 2);
+          this.array[index - 1] = f;
         }
-        this.array[index++] = f;
     }
 
     public float[] toArray() {
