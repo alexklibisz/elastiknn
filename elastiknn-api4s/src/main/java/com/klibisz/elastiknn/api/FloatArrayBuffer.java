@@ -16,6 +16,7 @@ public class FloatArrayBuffer {
     private int index = 0;
 
     public FloatArrayBuffer() {
+//        System.out.printf("Starting at %d\n", nextInitialCapacity);
         this.array = new float[nextInitialCapacity];
     }
 
@@ -28,6 +29,7 @@ public class FloatArrayBuffer {
 //          this.array[index - 1] = f;
 //        }
         if (index == this.array.length) {
+//            System.out.printf("Growing from %d to %d\n", this.array.length, this.array.length * 2);
             this.array = Arrays.copyOf(this.array, this.array.length * 2);
         }
         this.array[index++] = f;
