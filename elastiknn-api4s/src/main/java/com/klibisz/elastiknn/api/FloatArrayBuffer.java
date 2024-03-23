@@ -16,7 +16,6 @@ public class FloatArrayBuffer {
     private int index = 0;
 
     public FloatArrayBuffer() {
-//        System.out.printf("Starting at %d\n", nextInitialCapacity);
         this.array = new float[nextInitialCapacity];
     }
 
