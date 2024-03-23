@@ -53,8 +53,8 @@ final class ExactQuery[V <: Vec, S <: StoredVec](field: String, queryVec: V, sim
 }
 
 object ExactQuery {
-  def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): Seq[IndexableField] = {
+  def index[V <: Vec: StoredVec.Encoder](field: String, vec: V): IndexableField = {
     val storedVec = implicitly[StoredVec.Encoder[V]].apply(vec)
-    Seq(new BinaryDocValuesField(field, new BytesRef(storedVec)))
+    new BinaryDocValuesField(field, new BytesRef(storedVec))
   }
 }

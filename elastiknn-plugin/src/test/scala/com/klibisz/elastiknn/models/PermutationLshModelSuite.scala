@@ -15,6 +15,10 @@ import scala.util.Random
 
 class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
+  // For some unknown reason the exact score values started to slightly differ around March 2024.
+  def round(f: Float): Float =
+    BigDecimal(f).setScale(6, BigDecimal.RoundingMode.HALF_UP).floatValue
+
   test("lucene example where counting matters") {
 
     // This example demonstrates a tricky condition: 0 appears once in the query vector and three times in corpus vector

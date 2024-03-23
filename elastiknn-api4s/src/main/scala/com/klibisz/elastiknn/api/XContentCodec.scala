@@ -7,7 +7,6 @@ import org.elasticsearch.xcontent._
 
 import java.io.ByteArrayOutputStream
 import scala.collection.immutable.SortedSet
-import scala.collection.mutable.ArrayBuffer
 
 /** JSON codec for Elastiknn API types, implemented using the Elasticsearch XContentBuilder and XContentParser.
   */
@@ -367,6 +366,13 @@ object XContentCodec {
       override def compare(x: Token, y: Token): Int = x.name().compareTo(y.name())
     }
 
+    @inline
+    private def nextToken(p: XContentParser): Unit = {
+      p.nextToken()
+      // Need to return unit.
+      ()
+    }
+
     private def unexpectedValue(text: String, expected: SortedSet[String]): String =
       s"Expected token to be one of [${expected.mkString(",")}] but found [$text]"
 
@@ -397,8 +403,8 @@ object XContentCodec {
     private def assertValue(name: String, text: String, expected: SortedSet[String]): Unit =
       if (expected.contains(text)) () else throw new XContentParseException(unexpectedValue(name, text, expected))
 
-    private def parseFloatArray(p: XContentParser, expectedLength: Int): Array[Float] = {
-      val b = new ArrayBuffer[Float](expectedLength)
+    private def parseFloatArray(p: XContentParser): Array[Float] = {
+      val b = new FloatArrayBuffer()
       p.currentToken() match {
         case START_ARRAY  => ()
         case VALUE_NUMBER => b.append(p.floatValue())
@@ -411,8 +417,8 @@ object XContentCodec {
       b.toArray
     }
 
-    private def parseSparseBoolArray(p: XContentParser, expectedLength: Int): Array[Int] = {
-      val b = new ArrayBuffer[Int](expectedLength)
+    private def parseSparseBoolArray(p: XContentParser): Array[Int] = {
+      val b = new IntArrayBuffer()
       p.currentToken() match {
         case START_ARRAY  => ()
         case VALUE_NUMBER => b.append(p.intValue())
@@ -469,17 +475,14 @@ object XContentCodec {
                   index = Some(p.text())
                 case n @ Names.TRUE_INDICES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
-                  trueIndices = Some(parseSparseBoolArray(p, 42))
+                  trueIndices = Some(parseSparseBoolArray(p))
                 case n @ Names.TOTAL_INDICES =>
                   assertToken(n, p.nextToken(), VALUE_NUMBER)
                   totalIndices = Some(p.intValue())
                 case n @ Names.VALUES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
-                  values = Some(parseFloatArray(p, 42))
-                case _ =>
-                  p.nextToken()
-                  // Comment to prevent scalafmt from collapsing the two lines.
-                  ()
+                  values = Some(parseFloatArray(p))
+                case _ => nextToken(p)
               }
             }
           case START_ARRAY =>
@@ -488,9 +491,9 @@ object XContentCodec {
               case END_ARRAY =>
                 values = Some(Array.empty)
               case VALUE_NUMBER =>
-                values = Some(parseFloatArray(p, 42))
+                values = Some(parseFloatArray(p))
               case START_ARRAY =>
-                trueIndices = Some(parseSparseBoolArray(p, 42))
+                trueIndices = Some(parseSparseBoolArray(p))
                 assertToken(p.nextToken(), VALUE_NUMBER)
                 totalIndices = Some(p.intValue())
               case t =>
@@ -581,16 +584,10 @@ object XContentCodec {
                   assertToken(n, p.nextToken(), VALUE_BOOLEAN)
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case _ =>
-                  p.nextToken()
-                  // Comment to prevent scalafmt from collapsing the two lines.
-                  ()
+                case _                => nextToken(p)
               }
             }
-          case _ =>
-            p.nextToken()
-            // Comment to prevent scalafmt from collapsing the two lines.
-            ()
+          case _ => nextToken(p)
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -640,10 +637,7 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case _ =>
-              p.nextToken()
-              // Comment to prevent scalafmt from collapsing the two lines.
-              ()
+            case _                => nextToken(p)
           }
         }
         (candidates, field, model, probes, similarity, vec) match {
