@@ -16,9 +16,9 @@ class DocsWithNestedVectorsSuite extends AsyncFunSuite with Matchers with Inspec
   // https://github.com/alexklibisz/elastiknn/issues/60
   implicit val rng: Random = new Random(0)
   val index = "issue-60"
-  val vec = Vec.DenseFloat.random(10)
-  val mapping = Mapping.DenseFloat(vec.values.length)
-  val nestedFields = Seq(
+  val vec: Vec.DenseFloat = Vec.DenseFloat.random(10)
+  val mapping: Mapping.DenseFloat = Mapping.DenseFloat(vec.values.length)
+  val nestedFields: Seq[String] = Seq(
     "vec",
     "foo.vec",
     "foo.bar.vec",

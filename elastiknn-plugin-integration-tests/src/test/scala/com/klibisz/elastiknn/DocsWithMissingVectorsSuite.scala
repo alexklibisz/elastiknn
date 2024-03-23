@@ -3,7 +3,6 @@ package com.klibisz.elastiknn
 import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.client.ElastiknnRequests
 import com.sksamuel.elastic4s.ElasticDsl._
-import futil.Futil
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Inspectors, _}
@@ -38,7 +37,7 @@ class DocsWithMissingVectorsSuite extends AsyncFunSuite with Matchers with Inspe
       _ <- deleteIfExists(index)
       _ <- eknn.createIndex(index)
       _ <- eknn.execute(putMapping(index).rawSource(mappingJsonString))
-      _ <- Futil.traverseSerial((0 until numDocs).grouped(500)) { ids =>
+      _ <- FutureUtils.traverseSerially((0 until numDocs).grouped(500)) { ids =>
         val reqs = ids.map { i =>
           if (i % 2 == 0) ElastiknnRequests.index(index, vecField, if (i == 0) v0 else Vec.DenseFloat.random(dims), idField, s"v$i")
           else indexInto(index).id(s"v$i").fields(Map(idField -> s"v$i"))

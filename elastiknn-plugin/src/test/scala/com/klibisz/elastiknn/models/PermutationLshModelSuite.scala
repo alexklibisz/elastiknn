@@ -15,10 +15,6 @@ import scala.util.Random
 
 class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupport {
 
-  // For some unknown reason the exact score values started to slightly differ around March 2024.
-  def round(f: Float): Float =
-    BigDecimal(f).setScale(6, BigDecimal.RoundingMode.HALF_UP).floatValue
-
   test("lucene example where counting matters") {
 
     // This example demonstrates a tricky condition: 0 appears once in the query vector and three times in corpus vector
@@ -55,6 +51,10 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val lsh = new PermutationLshModel(128, true)
     val cosine = new ExactSimilarityFunction.Cosine(new PanamaFloatVectorOps)
 
+    // For some unknown reason the exact score values started to slightly differ around March 2024.
+    def round(f: Float): Float =
+      BigDecimal(f).setScale(6, BigDecimal.RoundingMode.HALF_UP).floatValue
+
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
       val (_, queryResults) = indexAndSearch() { w =>
@@ -71,7 +71,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       }
       queryResults
     }
-    val distinct = repeatedResults.distinct
+    val distinct: Seq[Vector[Vector[(Int, Float)]]] = repeatedResults.distinct
     distinct.length shouldBe 1
   }
 }

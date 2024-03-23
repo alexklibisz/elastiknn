@@ -366,6 +366,13 @@ object XContentCodec {
       override def compare(x: Token, y: Token): Int = x.name().compareTo(y.name())
     }
 
+    @inline
+    private def nextToken(p: XContentParser): Unit = {
+      p.nextToken()
+      // Need to return unit.
+      ()
+    }
+
     private def unexpectedValue(text: String, expected: SortedSet[String]): String =
       s"Expected token to be one of [${expected.mkString(",")}] but found [$text]"
 
@@ -475,7 +482,7 @@ object XContentCodec {
                 case n @ Names.VALUES =>
                   assertToken(n, p.nextToken(), START_ARRAY)
                   values = Some(parseFloatArray(p))
-                case _ => p.nextToken()
+                case _ => nextToken(p)
               }
             }
           case START_ARRAY =>
@@ -577,10 +584,10 @@ object XContentCodec {
                   assertToken(n, p.nextToken(), VALUE_BOOLEAN)
                   repeating = Some(p.booleanValue())
                 case Names.SIMILARITY => similarity = Some(Decoder.similarity.decodeUnsafe(p))
-                case _                => p.nextToken()
+                case _                => nextToken(p)
               }
             }
-          case _ => p.nextToken()
+          case _ => nextToken(p)
         }
       }
       (typ, model, dims, similarity, l, k, w, repeating) match {
@@ -630,7 +637,7 @@ object XContentCodec {
               probes = Some(p.intValue())
             case Names.SIMILARITY => similarity = Some(decodeUnsafe[Similarity](p))
             case Names.VEC        => vec = Some(decodeUnsafe[Vec](p))
-            case _                => p.nextToken()
+            case _                => nextToken(p)
           }
         }
         (candidates, field, model, probes, similarity, vec) match {

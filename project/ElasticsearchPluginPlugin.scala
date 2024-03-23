@@ -102,7 +102,14 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
     val files = List(pluginDescriptorFile, pluginJar) ++ pluginMetadataFiles ++ dependencyJars
     val zipFile = elasticsearchPluginBundleFile.value
-    IO.zip(files.map(f => f -> f.getName), zipFile, None)
+    IO.zip(
+      files.map(f => {
+        log.info(s"Adding [${f.getName}] to plugin file.")
+        f -> f.getName
+      }),
+      zipFile,
+      None
+    )
     log.info(s"Generated plugin file ${zipFile.getPath} containing ${files.length + 1} files.")
     zipFile
   }

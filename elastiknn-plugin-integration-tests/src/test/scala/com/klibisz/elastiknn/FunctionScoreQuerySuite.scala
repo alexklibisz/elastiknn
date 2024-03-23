@@ -4,7 +4,6 @@ import com.klibisz.elastiknn.api._
 import com.klibisz.elastiknn.models.ExactModel
 import com.klibisz.elastiknn.vectors.{FloatVectorOps, PanamaFloatVectorOps}
 import com.sksamuel.elastic4s.ElasticDsl._
-import futil.Futil
 import org.scalatest._
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
@@ -104,7 +103,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- deleteIfExists(index)
         _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-        _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
+        _ <- FutureUtils.traverseSerially(corpus.grouped(100)) { batch =>
           val reqs = batch.map { case (id, vec, color) =>
             val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
             indexInto(index).id(id).source(docSource)
@@ -211,7 +210,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         _ <- deleteIfExists(index)
         _ <- eknn.createIndex(index)
         _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-        _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
+        _ <- FutureUtils.traverseSerially(corpus.grouped(100)) { batch =>
           val reqs = batch.map { case (id, vec, color) =>
             val docSource = s"""{ "id": "$id", "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
             indexInto(index).id(id).source(docSource)

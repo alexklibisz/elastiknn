@@ -2,10 +2,10 @@ package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
-import futil.Futil
 import org.scalatest._
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
+import FutureUtils._
 
 import scala.util.Random
 import scala.util.hashing.MurmurHash3
@@ -27,7 +27,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
   val candidates = numBlue
 
   // Test with multiple mappings/queries.
-  val queryVec = Vec.DenseFloat.random(dims)
+  val queryVec: Vec.DenseFloat = Vec.DenseFloat.random(dims)
   val mappingsAndQueries: Seq[(Mapping, Seq[NearestNeighborsQuery])] = Seq(
     Mapping.L2Lsh(dims, 40, 1, 2) -> Seq(
       NearestNeighborsQuery.Exact("vec", Similarity.L2, queryVec),
@@ -80,7 +80,7 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
       _ <- deleteIfExists(index)
       _ <- eknn.createIndex(index)
       _ <- eknn.execute(putMapping(index).rawSource(rawMapping))
-      _ <- Futil.traverseSerial(corpus.grouped(100)) { batch =>
+      _ <- traverseSerially(corpus.grouped(100)) { batch =>
         val reqs = batch.map { case (id, vec, color) =>
           val docSource = s"""{ "vec": ${XContentCodec.encodeUnsafeToString(vec)}, "color": "$color" }"""
           indexInto(index).id(id).source(docSource)

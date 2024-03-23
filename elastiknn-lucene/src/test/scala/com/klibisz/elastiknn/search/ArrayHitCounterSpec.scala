@@ -7,9 +7,9 @@ import scala.util.Random
 
 final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
-  final class Reference(capacity: Int) extends HitCounter {
+  final class Reference(referenceCapacity: Int) extends HitCounter {
     private val counts = scala.collection.mutable.Map[Int, Short](
-      (0 until capacity).map(_ -> 0.toShort): _*
+      (0 until referenceCapacity).map(_ -> 0.toShort): _*
     )
 
     override def increment(key: Int): Unit = counts.update(key, (counts(key) + 1).toShort)
@@ -22,7 +22,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
     override def numHits(): Int = counts.values.count(_ > 0)
 
-    override def capacity(): Int = capacity
+    override def capacity(): Int = this.referenceCapacity
 
     override def minKey(): Int = counts.filter(_._2 > 0).keys.min
 
