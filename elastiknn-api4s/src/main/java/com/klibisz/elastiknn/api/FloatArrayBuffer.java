@@ -36,7 +36,9 @@ public class FloatArrayBuffer {
     }
 
     public float[] toArray() {
-        nextInitialCapacity = Math.min(maxInitialCapacity, Math.max(minInitialCapacity, index));
+        if (nextInitialCapacity != index) {
+            nextInitialCapacity = Math.min(maxInitialCapacity, Math.max(minInitialCapacity, index));
+        }
         if (this.array.length == index) {
             return this.array;
         } else {
