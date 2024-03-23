@@ -20,13 +20,6 @@ public class IntArrayBuffer {
     }
 
     public void append(int i) {
-        // TODO: Test whether try/catch is faster than if.
-//        try {
-//            this.array[index++] = i;
-//        } catch (IndexOutOfBoundsException ex) {
-//            this.array = Arrays.copyOf(this.array, this.array.length * 2);
-//            this.array[index - 1] = i;
-//        }
         if (index == this.array.length) {
             this.array = Arrays.copyOf(this.array, this.array.length * 2);
         }
@@ -34,7 +27,9 @@ public class IntArrayBuffer {
     }
 
     public int[] toArray() {
-        nextInitialCapacity = Math.min(maxInitialCapacity, Math.max(minInitialCapacity, index));
+        if (nextInitialCapacity != index) {
+            nextInitialCapacity = Math.min(maxInitialCapacity, Math.max(minInitialCapacity, index));
+        }
         if (this.array.length == index) {
             return this.array;
         } else {
