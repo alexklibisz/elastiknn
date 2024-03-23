@@ -11,6 +11,7 @@ import org.apache.lucene.util.BytesRef
 import org.elasticsearch.common.lucene.search.function.{CombineFunction, LeafScoreFunction, ScoreFunction}
 
 import java.util.Objects
+import scala.collection.mutable.ListBuffer
 
 final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
     field: String,
@@ -52,10 +53,15 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
         private val reader = ctx.reader()
         private val terms = reader.terms(field)
         private val termsEnum = terms.iterator()
-        private val postings = hashes.sorted.flatMap { h =>
-          if (termsEnum.seekExact(new BytesRef(h.hash))) Some(termsEnum.postings(null, PostingsEnum.NONE))
-          else None
+        private val postings: Seq[PostingsEnum] = {
+          val buf = new ListBuffer[PostingsEnum]()
+          hashes.sorted.foreach { h =>
+            if (termsEnum.seekExact(new BytesRef(h.hash))) buf.prepend(termsEnum.postings(null, PostingsEnum.NONE))
+            else None
+          }
+          buf.toList.reverse
         }
+
         override def score(docId: Int, subQueryScore: Float): Double = {
           val intersection = postings.count { p => p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId }
           simFunc.maxScore * (intersection * 1d / hashes.length)
@@ -84,8 +90,11 @@ object HashingQuery {
       fieldType: FieldType,
       vec: V,
       hashes: Array[HashAndFreq]
-  ): Seq[IndexableField] = ExactQuery.index(field, vec) ++ hashes.flatMap { h =>
-    val f = new Field(field, h.hash, fieldType)
-    (0 until h.freq).map(_ => f)
+  ): Seq[IndexableField] = {
+    val buffer = ListBuffer.empty[IndexableField]
+    hashes.foreach { h =>
+      (0 until h.freq).foreach(_ => buffer.prepend(new Field(field, h.hash, fieldType)))
+    }
+    buffer.prepend(ExactQuery.index(field, vec)).toList
   }
 }
