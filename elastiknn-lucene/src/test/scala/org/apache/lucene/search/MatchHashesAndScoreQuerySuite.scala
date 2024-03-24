@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with LuceneSupport {
 
   test("empty harness") {
-    indexAndSearch() { (_: IndexWriter) => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
+    indexAndSearch() { _ => Assertions.succeed } { (_: IndexReader, _: IndexSearcher) => Assertions.succeed }
   }
 
   test("minimal id example") {

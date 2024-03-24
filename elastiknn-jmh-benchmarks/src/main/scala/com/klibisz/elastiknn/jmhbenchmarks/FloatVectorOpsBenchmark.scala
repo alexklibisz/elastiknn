@@ -10,8 +10,8 @@ import scala.util.Random
 @State(Scope.Benchmark)
 class FloatVectorOpsBenchmarkState {
   implicit private val rng: Random = new Random(0)
-  val v1 = Vec.DenseFloat.random(999).values
-  val v2 = Vec.DenseFloat.random(999).values
+  val v1: Array[Float] = Vec.DenseFloat.random(999).values
+  val v2: Array[Float] = Vec.DenseFloat.random(999).values
   val panama = new PanamaFloatVectorOps
   val default = new DefaultFloatVectorOps
 }

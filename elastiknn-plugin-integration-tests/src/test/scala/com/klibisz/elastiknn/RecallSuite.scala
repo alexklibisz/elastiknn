@@ -4,10 +4,10 @@ import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.requests.searches.SearchResponse
-import futil.Futil
 import org.scalatest.concurrent.AsyncCancelAfterFailure
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
+import FutureUtils._
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -28,7 +28,6 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
   // Each query has an expected recall that will be checked.
   private case class Test(mapping: Mapping, queriesAndExpectedRecall: Seq[(NearestNeighborsQuery, Double)], recallTolerance: Double = 1e-2)
 
-  private val numCores = Runtime.getRuntime.availableProcessors()
   private val vecField: String = "vec"
   private val storedIdField: String = "id"
   private val dims: Int = 1024
@@ -161,11 +160,11 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
             _ <- eknn.putMapping(corpusIndex, vecField, storedIdField, mapping)
             _ <- eknn.createIndex(queriesIndex)
             _ <- eknn.putMapping(queriesIndex, vecField, storedIdField, mapping)
-            _ <- Futil.traverseSerial(testData.corpus.zipWithIndex.grouped(100)) { batch =>
+            _ <- traverseSerially(testData.corpus.zipWithIndex.grouped(100)) { batch =>
               val (vecs, ids) = (batch.map(_._1), batch.map(x => s"v${x._2}"))
               eknn.index(corpusIndex, vecField, vecs, storedIdField, ids)
             }
-            _ <- Futil.traverseSerial(testData.queries.zipWithIndex.grouped(100)) { batch =>
+            _ <- traverseSerially(testData.queries.zipWithIndex.grouped(100)) { batch =>
               val (vecs, ids) = (batch.map(_._1.vector), batch.map(x => s"v${x._2}"))
               eknn.index(queriesIndex, vecField, vecs, storedIdField, ids)
             }
@@ -208,16 +207,16 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
     test(testName) {
       for {
         _ <- index(corpusIndex, queriesIndex, mapping, testData)
-        explicitResponses1 <- Futil.traverseParN(numCores)(testData.queries) { q =>
+        explicitResponses1 <- traverseSerially(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         }
-        explicitResponses2 <- Futil.traverseParN(numCores)(testData.queries) { q =>
+        explicitResponses2 <- traverseSerially(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         }
-        explicitResponses3 <- Futil.traverseParN(numCores)(testData.queries) { q =>
+        explicitResponses3 <- traverseSerially(testData.queries) { q =>
           eknn.nearestNeighbors(corpusIndex, query.withVec(q.vector), k, storedIdField)
         }
-        indexedResponses <- Futil.traverseParN(numCores)(testData.queries.zipWithIndex) { case (_, i) =>
+        indexedResponses <- traverseSerially(testData.queries.zipWithIndex) { case (_, i) =>
           val vec = Vec.Indexed(queriesIndex, s"v$i", vecField)
           eknn.nearestNeighbors(corpusIndex, query.withVec(vec), k, storedIdField)
         }

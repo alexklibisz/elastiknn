@@ -1,7 +1,9 @@
 import ElasticsearchPluginPlugin.autoImport.*
 import org.typelevel.scalacoptions.*
 
-Global / scalaVersion := "2.13.13"
+Global / scalaVersion := "3.3.3"
+
+Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.3"
 lazy val ElasticsearchVersion = "8.12.2"
@@ -14,18 +16,6 @@ lazy val TestSettings = Seq(
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test
-)
-
-lazy val TpolecatSettings = Seq(
-  // Disabling a couple of warnings for test files.
-  // Ideally we would scope this to Test / scalacOptions,
-  // but then compilation fails within IntelliJ.
-  // https://github.com/typelevel/sbt-tpolecat/issues/134
-  scalacOptions ++= Seq(
-    "-Wconf:any:wv",
-    "-Wconf:cat=other-pure-statement:src=test/.*.scala:silent",
-    "-Wconf:cat=w-flag-numeric-widen:src=test/.*.scala:silent"
-  )
 )
 
 lazy val `elastiknn-root` = project
@@ -52,7 +42,6 @@ lazy val `elastiknn-api4s` = project
       "org.elasticsearch" % "elasticsearch-x-content" % ElasticsearchVersion,
       "io.circe" %% "circe-parser" % CirceVersion % Test
     ),
-    TpolecatSettings,
     TestSettings
   )
 
@@ -65,7 +54,6 @@ lazy val `elastiknn-client-elastic4s` = project
     libraryDependencies ++= Seq(
       "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
-    TpolecatSettings,
     TestSettings
   )
 
@@ -79,7 +67,6 @@ lazy val `elastiknn-lucene` = project
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
       "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
     ),
-    TpolecatSettings,
     TestSettings
   )
 
@@ -97,7 +84,6 @@ lazy val `elastiknn-models` = project
       "--add-exports",
       "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
     ),
-    TpolecatSettings,
     TestSettings
   )
 
@@ -107,7 +93,6 @@ lazy val `elastiknn-jmh-benchmarks` = project
   .enablePlugins(JmhPlugin)
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
-    TpolecatSettings,
     libraryDependencies ++= Seq(
       "org.eclipse.collections" % "eclipse-collections" % "11.1.0",
       "org.eclipse.collections" % "eclipse-collections-api" % "11.1.0"
@@ -137,11 +122,8 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.2",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "io.circe" %% "circe-generic-extras" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.3" % Test,
-      "com.klibisz.futil" %% "futil" % "0.1.2" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.3" % Test
     ),
-    TpolecatSettings,
     TestSettings
   )
 
@@ -149,6 +131,6 @@ lazy val `elastiknn-plugin-integration-tests` = project
   .in(file("elastiknn-plugin-integration-tests"))
   .dependsOn(`elastiknn-plugin` % "test->test")
   .settings(
-    TpolecatSettings,
+    libraryDependencies += "io.circe" %% "circe-generic" % CirceVersion % Test,
     TestSettings
   )

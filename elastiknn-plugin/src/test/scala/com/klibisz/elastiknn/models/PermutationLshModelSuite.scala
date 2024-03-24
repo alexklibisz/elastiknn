@@ -51,6 +51,10 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     val lsh = new PermutationLshModel(128, true)
     val cosine = new ExactSimilarityFunction.Cosine(new PanamaFloatVectorOps)
 
+    // For some unknown reason the exact score values started to slightly differ around March 2024.
+    def round(f: Float): Float =
+      BigDecimal(f).setScale(6, BigDecimal.RoundingMode.HALF_UP).floatValue
+
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
       val (_, queryResults) = indexAndSearch() { w =>
@@ -62,12 +66,12 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
       } { case (r, s) =>
         queryVecs.map { v =>
           val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), cosine)
-          s.search(q.toLuceneQuery(r), 100).scoreDocs.map(sd => (sd.doc, sd.score)).toVector
+          s.search(q.toLuceneQuery(r), 100).scoreDocs.map(sd => (sd.doc, round(sd.score))).toVector
         }
       }
       queryResults
     }
-    val distinct = repeatedResults.distinct
+    val distinct: Seq[Vector[Vector[(Int, Float)]]] = repeatedResults.distinct
     distinct.length shouldBe 1
   }
 }

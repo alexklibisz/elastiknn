@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.models
 
 import com.klibisz.elastiknn.api.{Mapping, Vec}
-import com.klibisz.elastiknn.storage.UnsafeSerialization._
+import com.klibisz.elastiknn.storage.ByteBufferSerialization._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.funsuite.AnyFunSuite
 

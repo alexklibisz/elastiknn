@@ -30,7 +30,7 @@ object VectorMapper {
       else {
         val sorted = vec.sorted() // Sort for faster intersections on the query side.
         mapping match {
-          case Mapping.SparseBool(_) => Try(ExactQuery.index(field, sorted))
+          case Mapping.SparseBool(_) => Try(Seq(ExactQuery.index(field, sorted)))
           case m: Mapping.JaccardLsh =>
             Try(HashingQuery.index(field, luceneFieldType, sorted, modelCache(m).hash(vec.trueIndices, vec.totalIndices)))
           case m: Mapping.HammingLsh =>
@@ -51,7 +51,7 @@ object VectorMapper {
         Failure(ElastiknnException.vectorDimensions(vec.values.length, mapping.dims))
       else
         mapping match {
-          case Mapping.DenseFloat(_)     => Try(ExactQuery.index(field, vec))
+          case Mapping.DenseFloat(_)     => Try(Seq(ExactQuery.index(field, vec)))
           case m: Mapping.CosineLsh      => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
           case m: Mapping.L2Lsh          => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
           case m: Mapping.PermutationLsh => Try(HashingQuery.index(field, luceneFieldType, vec, modelCache(m).hash(vec.values)))
@@ -67,10 +67,10 @@ object VectorMapper {
     new IllegalArgumentException(s"Mapping [$m] is not compatible with vector [$v]")
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
-  class FieldType(typeName: String, fieldName: String, val mapping: Mapping)
+  class FieldType(contentTypeName: String, fieldName: String, val mapping: Mapping)
       extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
-    override def typeName(): String = typeName
-    override def clone(): FieldType = new FieldType(typeName, fieldName, mapping)
+    override def typeName(): String = contentTypeName
+    override def clone(): FieldType = new FieldType(contentTypeName, fieldName, mapping)
     override def termQuery(value: Any, context: SearchExecutionContext): Query = {
       value match {
         case b: BytesRef => new TermQuery(new Term(name(), b))
@@ -95,7 +95,11 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
 
   final val luceneFieldType: LuceneFieldType = HashFieldType.HASH_FIELD_TYPE
 
-  object TypeParser extends Mapper.TypeParser {
+  // Semantically, this class could be an object. But using an object inside a class invokes parts of the Scala
+  // runtime which depend on sun.misc.Unsafe, and Elasticsearch requires that a plugin declare additional security
+  // permissions in plugin-security.policy in order to invoke sun.misc.Unsafe. I don't want to do that, so we make
+  // this a class. See https://github.com/scala/scala3/issues/9013 for details on LazyVals and sun.misc.unsafe.
+  final class TypeParser extends Mapper.TypeParser {
     override def parse(name: String, node: java.util.Map[String, Object], parserContext: MappingParserContext): Mapper.Builder = {
       val mapping = XContentCodec.decodeUnsafeFromMap[Mapping](node)
       val builder: Builder = new Builder(name, mapping)
@@ -138,6 +142,9 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
         override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
       }
 
-    override def getParameters: Array[FieldMapper.Parameter[_]] = Array.empty
+    override def getParameters: Array[FieldMapper.Parameter[_]] =
+      // This has to be defined in Java because scala's Array wrapper uses ClassTag,
+      // which requires the extra permission: java.lang.RuntimePermission "getClassLoader".
+      VectorMapperUtil.EMPTY_ARRAY_FIELD_MAPPER_PARAMETER
   }
 }
