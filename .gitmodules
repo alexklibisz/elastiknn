@@ -1,4 +1,4 @@
 [submodule "ann-benchmarks/ann-benchmarks"]
 	path = ann-benchmarks/ann-benchmarks
-	url = https://github.com/alexklibisz/ann-benchmarks.git
-	branch = fix-get-algorithm-definitions
+	url = https://github.com/erikbern/ann-benchmarks.git
+	branch = main
