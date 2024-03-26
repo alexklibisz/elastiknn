@@ -70,6 +70,7 @@ tasks:
       - venv/bin/python install.py --algorithm elastiknn
       - venv/bin/python run.py --dataset fashion-mnist-784-euclidean --algorithm elastiknn-l2lsh --run-disabled --runs 3 --count 100 --parallelism 3 --force
       - mkdir -p $RESULTS_DIR
+      - sudo chmod -R 777 results/
       - venv/bin/python plot.py --dataset fashion-mnist-784-euclidean --count 100 --output $RESULTS_DIR/plot.png | venv/bin/python ../parse_results.py > $RESULTS_DIR/results.md
       - base64 -i $RESULTS_DIR/plot.png > $RESULTS_DIR/plot.b64
       - cat $RESULTS_DIR/results.md
