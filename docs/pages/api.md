@@ -714,8 +714,6 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, C: Cosine,[^no
 |L2 LSH                          |✔ (C, L1, L2) |x           |✔      |x              |
 |Permutation LSH                 |✔ (C, L1, L2) |x           |x      |✔              |
 
-## Common Patterns
-
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
 It's common to filter for a subset of documents based on some property and _then_ run the `elastiknn_nearest_neighbors` query on that subset.
@@ -730,7 +728,6 @@ The function score query is usually simpler, but both are covered below.
 GET /my-index/_search
 
 {
-  "size": 10,
   "query": {
     "function_score": {
       "query": {
@@ -749,7 +746,8 @@ GET /my-index/_search
         }
       ]
     }
-  }
+  },
+  "size": 10                                         # 4
 }
 ```
 
@@ -758,15 +756,21 @@ GET /my-index/_search
 |1|Term query will limit the functions to only run on documents matching `"color": "blue"`.|
 |2|List of functions which are applied to the matching documents.|
 |3|`elastiknn_nearest_neighbors` query that is evaluated on matching documents. The query produces the similarity score, which, by default, is multiplied by the term query score. If you'd like to change this behavior, see the `score_mode`, `boost_mode`, and `weight` parameters in the Elasticsearch [function score docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html).|
+|4|Max number of documents to match with the provided query. The function is only applied to the first `size` documents. Any remaining documents will be skipped in a non-deterministic fashion. See [Issue 298](https://github.com/alexklibisz/elastiknn/issues/298) for details.|
 
 **Caveats**
 
-This does not yet support passing indexed vectors.
+This does not support passing indexed vectors.
 
 When using `"model": "lsh"`, the `"candidates"` parameter is ignored and vectors are not re-scored with the exact 
 similarity like they are with a `elastiknn_nearest_neighbors` query.
 Instead, the score is: `max similarity score * proportion of matching hashes`.
 This is a necessary consequence of the fact that score functions take a doc ID and must immediately return a score.
+
+The function is only applied to `size` documents.
+This means it can completely omit some documents that matched the query.
+For example, if `size = 100`, and the query matches 101 documents, then one document will be omitted in a non-deterministic fashion.
+See [Issue 298](https://github.com/alexklibisz/elastiknn/issues/298) for details.
 
 #### Using a Query Rescorer 
 
@@ -806,7 +810,7 @@ GET /my-index/_search
 
 **Caveats**
 
-This does not yet support passing indexed vectors.
+This does not support passing indexed vectors.
 
 Elasticsearch has a configurable limit for the number of docs that are matched and passed to the `rescore` query.
 The default is 10,000. 
@@ -823,7 +827,9 @@ This can happen because the nearest neighbors query is only given access to the 
 If you run into this, you should probably adjust your approximate model parameters for higher recall.
 There are notes on each model about how the parameters affect recall and precision.
 
-### Using Stored Fields for Faster Queries
+### Query Optimizations
+
+#### Using Stored Fields for Faster Queries
 
 This is a fairly well-known Elasticsearch optimization that applies nicely to some elastiknn use cases.
 If you only need to retrieve a small subset of the document source (e.g. only the ID), you can store the relavant fields as `stored` fields to get a meaningful speedup.
@@ -831,39 +837,12 @@ The Elastiknn scala client uses this optimization to store and retrieve document
 The setting [is documented here](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html)
 and discussed in detail [in this Github issue.](https://github.com/elastic/elasticsearch/issues/17159)
 
-## Nice to Know
-
-Here are some other things worth knowing. 
-Perhaps there will be a more cohesive way to present these in the future.
-
-### Storing Model Parameters
-
-The LSH models all use randomized parameters to hash vectors. 
-The simplest example is the bit-sampling model for Hamming similarity, parameterized by a list of randomly sampled indices. 
-A more complicated example is the stable distributions model for L2 similarity, parameterized by a set of random unit vectors 
-and a set of random bias scalars.
-These parameters aren't actually stored anywhere in Elasticsearch. 
-Rather, they are lazily re-computed from a fixed random seed (0) each time they are needed. 
-The advantage of this is that it avoids storing and synchronizing potentially large parameter blobs in the cluster. 
-The disadvantage is that it's expensive to re-compute the randomized parameters. 
-So instead we keep a cache of models in each Elasticsearch node, keyed on the model hyperparameters (e.g. `L`, `k`, etc.). 
-The hyperparameters are stored inside the mappings where they are originally defined.
-
-### Transforming and Indexing Vectors
-
-Each vector is transformed (e.g. hashed) based on its mapping when the user makes an indexing request. 
-All vectors store a binary [doc values field](https://www.elastic.co/guide/en/elasticsearch/reference/current/doc-values.html) 
-containing a serialized version of the vector for exact queries, and vectors indexed using an LSH model index the hashes
-using a Lucene Term field. 
-For example, for a sparse bool vector with a Jaccard LSH mapping, Elastiknn indexes the exact vector as a byte array in 
-a doc values field and the vector's hash values as a set of Lucene Terms.
-
-### Parallelism
+#### Query Parallelism
 
 From Elasticsearch's perspective, the `elastiknn_nearest_neighbors` query is no different from any other query.
-Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index. 
+Elasticsearch receives a JSON query containing an `elastiknn_nearest_neighbors` key, passes the JSON to a parser implemented by Elastiknn, the parser produces a Lucene query, and Elasticsearch executes that query on each shard in the index.
 
-This means the simplest way to increase query parallelism is to add shards to your index. 
+This means the simplest way to increase query parallelism is to add shards to your index.
 Obviously this has an upper limit, but the general performance implications of sharding are beyond the scope of this document.
 
 The number of shards is a static setting provided when creating the index:
@@ -880,7 +859,5 @@ PUT /my-index
 ```
 
 See the [create index documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more details.
-
----
 
 [^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.2. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
