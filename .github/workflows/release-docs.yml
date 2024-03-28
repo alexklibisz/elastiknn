@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   release-docs:
-    needs: release-python-client
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on:
       - ubuntu-22.04
