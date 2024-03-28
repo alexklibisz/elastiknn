@@ -13,7 +13,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
     private final int w;
     private final int maxProbesPerTable;
     private final float[][] A;
-    private final float[] B;
 
     private final FloatVectorOps floatVectorOps;
 
@@ -54,12 +53,6 @@ public class L2LshModel implements HashingModel.DenseFloat {
                 }
             }
         }
-        this.B = new float[L * k];
-        for (int ixL = 0; ixL < L; ixL++) {
-            for (int ixk = 0; ixk < k; ixk++) {
-                this.B[ixL * k + ixk] = (float) rng.nextFloat() * w;
-            }
-        }
     }
 
     @Override
@@ -73,8 +66,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             int[] ints = new int[k];
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
-                float b = B[ixL * k + ixk];
-                ints[ixk] = (int) Math.floor((floatVectorOps.dotProduct(a, values) + b) / w);
+                ints[ixk] = (int) Math.floor((floatVectorOps.dotProduct(a, values)) / w);
             }
             hashes[ixL] = HashAndFreq.once(writeIntsWithPrefix(ixL, ints));
         }
@@ -91,8 +83,7 @@ public class L2LshModel implements HashingModel.DenseFloat {
             int[] ints = new int[k];
             for (int ixk = 0; ixk < k; ixk++) {
                 float[] a = A[ixL * k + ixk];
-                float b = B[ixL * k + ixk];
-                double proj = floatVectorOps.dotProduct(a, values) + b;
+                double proj = floatVectorOps.dotProduct(a, values);
                 int hash = (int) Math.floor(proj / w);
                 double dneg = proj - hash * w;
                 sortedPerturbations[ixL][ixk * 2 + 0] = new Perturbation(ixL, ixk, -1, proj, hash, Math.abs(dneg));
