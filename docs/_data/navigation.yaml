@@ -5,6 +5,8 @@ main:
     url: /api
   - title: "Libraries"
     url: /libraries
+  - title: "Internals"
+    url: /internals
   - title: "Performance"
     url: /performance
   - title: "Posts"
