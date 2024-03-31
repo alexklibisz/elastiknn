@@ -2,14 +2,14 @@ package com.klibisz.elastiknn.query
 
 import com.google.common.io.BaseEncoding
 import com.klibisz.elastiknn.ElastiknnException.ElastiknnRuntimeException
-import com.klibisz.elastiknn.api._
+import com.klibisz.elastiknn.api.*
 import com.klibisz.elastiknn.{ELASTIKNN_NAME, api}
 import org.apache.lucene.search.Query
 import org.elasticsearch.action.ActionListener
-import org.elasticsearch.action.get.{GetAction, GetRequest, GetResponse}
+import org.elasticsearch.action.get.{GetRequest, GetResponse}
 import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
-import org.elasticsearch.index.query._
+import org.elasticsearch.index.query.*
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion, TransportVersions}
 
@@ -124,8 +124,7 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
 
     // Request the actual document in order to construct the query
     c.registerAsyncAction((client: Client, listener: ActionListener[_]) => {
-      client.execute(
-        GetAction.INSTANCE,
+      client.get(
         new GetRequest(ixv.index, ixv.id),
         new ActionListener[GetResponse] {
           override def onResponse(response: GetResponse): Unit = {

@@ -57,14 +57,18 @@ This makes it relatively easy to run tests, generate docs, publish artifacts, et
 
 ### IDE
 
-I recommend using IntelliJ Idea to work on the Gradle projects and Pycharm to work on the client-python project.
+I recommend using IntelliJ Idea to work on the SBT projects and Pycharm to work on the client-python project.
 
-Install the IntelliJ Scala plugin, and then IntelliJ will recognize the SBT project when you open the `elastiknn` directory.
+For IntelliJ, install the IntelliJ Scala plugin and open the `elastiknn` directory in IntelliJ.
+IntelliJ should recognize the SBT project.
+You might have to specify the JDK and Scala SDK; as of April 2024, we're using JDK 21 and Scala 3.3.3.
+Since early 2023, we're also using some experimental JDK features which also require some additional settings.
+Go to Settings > Build, Execution, Deployment > Java Compiler, and add `--add-modules jdk.incubator.vector --add-exports java.base/jdk.internal.vm.vector=ALL-UNNAMED --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED` to the "Additional command line parameters".
+Then go to Settings > Build, Execution, Deployment > Scala Compiler, and add the same parameters in the "Additional compiler options".
 
-PyCharm can be a bit of a different story. 
-You should first create a virtual environment in `client-python/venv`.
-You can do this by running `task pyVenv`. Even if the tests fail, it will still create the virtual environment.
-Then you should setup PyCharm to use the interpreter in `client-python/venv`. 
+For Python and Pycharm, you should first create a virtual environment in `client-python/venv`.
+You can do this by running `task pyCreateVenv`.
+Then you should configure PyCharm to use the interpreter in `client-python/venv`.
 
 ### Testing
 
