@@ -88,7 +88,7 @@ So Java is used for all the CPU-bound LSH models and Lucene abstractions, and Sc
 
 Elasticsearch requires non-negative scores, with higher scores indicating higher relevance.
 
-Elastiknn supports five vector similarity functions (L1, L2, Cosine,Dot, Jaccard, and Hamming).
+Elastiknn supports six vector similarity functions (L1, L2, Cosine,Dot, Jaccard, and Hamming).
 Three of these are problematic with respect to this scoring requirement.
 
 Specifically, L1 and L2 are generally defined as _distance_ functions, rather than similarity functions,
