@@ -919,4 +919,4 @@ PUT /my-index
 See the [create index documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more details.
 
 [^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.2. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
-[^note-dot-product]: Dot product is thought to be used with normalized vectors V, meaning that ||v||==1. 
+[^note-dot-product]: Dot product is intended to be used with normalized vectors V, meaning that ||v||==1. 
