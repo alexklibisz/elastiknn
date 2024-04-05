@@ -22,7 +22,8 @@ public class DotLshModel implements HashingModel.DenseFloat {
      * @param L number of hash tables
      * @param k number of hash functions concatenated to form a hash for each table
      * @param rng random number generator used to instantiate model parameters
-     */
+    * @param vectorOps instance of FloatVectorOps used to execute vector operations.
+    */
     public DotLshModel(int dims, int L, int k, Random rng, FloatVectorOps vectorOps) {
         this.L = L;
         this.k = k;
