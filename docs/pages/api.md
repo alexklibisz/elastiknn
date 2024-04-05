@@ -292,6 +292,30 @@ PUT /my-index/_mapping
     }
 }
 ```
+### Dot LSH Mapping
+
+Uses the [Random Projection algorithm](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Random_projection)
+to hash and store dense float vectors such that they support approximate Dot similarity queries. Equivalent to Cosine similarity if the vectors are normalized
+
+The implementation is influenced by Chapter 3 of [Mining Massive Datasets.](http://www.mmds.org/)
+
+```json
+PUT /my-index/_mapping
+{
+    "properties": {
+        "my_vec": {
+            "type": "elastiknn_dense_float_vector", # 1
+            "elastiknn": {
+                "dims": 100,                        # 2
+                "model": "lsh",                     # 3
+                "similarity": "dot",                # 4
+                "L": 99,                            # 5
+                "k": 1                              # 6
+            }
+        }
+    }
+}
+```
 
 |#|Description|
 |:--|:--|
@@ -425,7 +449,7 @@ GET /my-index/_search
 ### Compatibility of Vector Types and Similarities
 
 Jaccard and Hamming similarity only work with sparse bool vectors. 
-Cosine,[^note-angular-cosine] L1, and L2 similarity only work with dense float vectors. 
+Cosine,[^note-angular-cosine],Dot[^note-dot-product], L1, and L2 similarity only work with dense float vectors. 
 The following documentation assume this restriction is known.
 
 These restrictions aren't inherent to the types and algorithms, i.e., you could in theory run cosine similarity on sparse vectors.
@@ -446,8 +470,11 @@ The exact transformations are described below.
 |Jaccard|N/A|0|1.0|
 |Hamming|N/A|0|1.0|
 |Cosine[^note-angular-cosine]|`cosine similarity + 1`|0|2|
+|Dot[^note-dot-product]|`Dot similarity + 1`|0|2| 
 |L1|`1 / (1 + l1 distance)`|0|1|
 |L2|`1 / (1 + l2 distance)`|0|1|
+
+Dot similirarity will produce negative scores if the vectors are not normalized
 
 If you're using the `elastiknn_nearest_neighbors` query with other queries, and the score values are inconvenient (e.g. huge values like 1e6), consider wrapping the query in a [Script Score Query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html), where you can access and transform the `_score` value.
 
@@ -621,6 +648,36 @@ GET /my-index/_search
 |5|Number of candidates per segment. See the section on LSH Search Strategy.|
 |6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
 
+### Dot LSH Query
+
+Retrieve dense float vectors based on approximate Cosine similarity.[^note-angular-cosine]
+
+```json
+GET /my-index/_search
+{
+    "query": {
+        "elastiknn_nearest_neighbors": {
+            "field": "my_vec",                     # 1
+            "vec": {                               # 2
+                "values": [0.1, 0.2, 0.3, ...]
+            },
+            "model": "lsh",                        # 3
+            "similarity": "dot",                # 4
+            "candidates": 50                       # 5
+        }
+    }
+}
+```
+
+|#|Description|
+|:--|:--|
+|1|Indexed field. Must use `lsh` mapping model with `dot`[^note-dot-product] similarity.|
+|2|Query vector. Must be literal dense float or a pointer to an indexed dense float vector.|
+|3|Model name.|
+|4|Similarity function.|
+|5|Number of candidates per segment. See the section on LSH Search Strategy.|
+|6|Set to true to use the more-like-this heuristic to pick a subset of hashes. Generally faster but still experimental.|
+
 ### L1 LSH Query
 
 Not yet implemented.
@@ -707,12 +764,13 @@ The similarity functions are abbreviated (J: Jaccard, H: Hamming, C: Cosine,[^no
 
 #### elastiknn_dense_float_vector
 
-|Model / Query                   |Exact         |Cosine LSH |L2 LSH |Permutation LSH|
-|:--                             |:--           |:--         |:--    |:--            |
-|Exact (i.e. no model specified) |✔ (C, L1, L2) |x           |x      |x              | 
-|Cosine LSH                      |✔ (C, L1, L2) |✔           |x      |x              |
-|L2 LSH                          |✔ (C, L1, L2) |x           |✔      |x              |
-|Permutation LSH                 |✔ (C, L1, L2) |x           |x      |✔              |
+|Model / Query                   |Exact            |Cosine LSH  |Dot LSH|L2 LSH |Permutation LSH|
+|:--                             |:--              |:--         |:--    |:--    |:--            |
+|Exact (i.e. no model specified) |✔ (C, D, L1, L2) |x           |x      |x      |x              | 
+|Cosine LSH                      |✔ (C, D, L1, L2) |✔           |✔      |x      |x              |
+|Dot LSH                         |✔ (C, D, L1, L2) |✔           |✔      |x      |x              |
+|L2 LSH                          |✔ (C, D, L1, L2) |x           |x      |✔      |x              |
+|Permutation LSH                 |✔ (C, D, L1, L2) |x           |x      |x      |✔              |
 
 ### Running Nearest Neighbors Query on a Filtered Subset of Documents
 
@@ -861,3 +919,4 @@ PUT /my-index
 See the [create index documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html) for more details.
 
 [^note-angular-cosine]: Cosine similarity used to be (incorrectly) called "angular" similarity. All references to "angular" were renamed to "Cosine" in 7.13.3.2. You can still use "angular" in the JSON/HTTP API; it will convert to "cosine" internally. 
+[^note-dot-product]: Dot product is thought to be used with normalized vectors V, meaning that ||v||==1. 
