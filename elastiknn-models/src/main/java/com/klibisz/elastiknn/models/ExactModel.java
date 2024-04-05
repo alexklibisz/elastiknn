@@ -41,6 +41,6 @@ public class ExactModel {
 
     @ForceInline
     public static double dotSimilarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
-        return 1 + floatVectorOps.dotSimilarity(v1, v2);
+        return Math.max(-1.0,1 + floatVectorOps.dotSimilarity(v1, v2));
     }
 }
