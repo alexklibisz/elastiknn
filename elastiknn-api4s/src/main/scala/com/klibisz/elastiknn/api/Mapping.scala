@@ -15,6 +15,8 @@ object Mapping {
 
   final case class CosineLsh(dims: Int, L: Int, k: Int) extends Mapping
 
+  final case class DotLsh(dims: Int, L: Int, k: Int) extends Mapping
+
   final case class L2Lsh(dims: Int, L: Int, k: Int, w: Int) extends Mapping
 
   final case class PermutationLsh(dims: Int, k: Int, repeating: Boolean) extends Mapping

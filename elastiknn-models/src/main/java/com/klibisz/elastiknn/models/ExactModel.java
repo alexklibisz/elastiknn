@@ -38,4 +38,9 @@ public class ExactModel {
     public static double cosineSimilarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
         return 1 + floatVectorOps.cosineSimilarity(v1, v2);
     }
+
+    @ForceInline
+    public static double dotSimilarity(FloatVectorOps floatVectorOps, float[] v1, float[] v2) {
+        return 1 + floatVectorOps.dotSimilarity(v1, v2);
+    }
 }

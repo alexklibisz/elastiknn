@@ -5,6 +5,8 @@ sealed trait Similarity
 object Similarity {
   case object Cosine extends Similarity
 
+  case object Dot extends Similarity
+
   case object Hamming extends Similarity
 
   case object Jaccard extends Similarity
@@ -13,5 +15,5 @@ object Similarity {
 
   case object L2 extends Similarity
 
-  val values: Seq[Similarity] = Vector(Cosine, Jaccard, Hamming, L1, L2)
+  val values: Seq[Similarity] = Vector(Cosine, Dot, Jaccard, Hamming, L1, L2)
 }

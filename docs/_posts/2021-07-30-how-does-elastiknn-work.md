@@ -43,8 +43,8 @@ The name is a combination of _Elastic_ and _KNN_ (K-Nearest Neighbors).
 The full list of features (copied from the home page) is as follows:
 
 - Datatypes to efficiently store dense and sparse numerical vectors in Elasticsearch documents, including multiple vectors per document.
-- Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
-- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) for L2, Cosine, Jaccard, and Hamming similarity.
+- Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Dot](https://en.wikipedia.org/wiki/Dot_product), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
+- Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) for L2, Cosine, Dot, Jaccard, and Hamming similarity.
 - Integration of nearest neighbor queries with standard Elasticsearch queries.
 - Incremental index updates: start with any number of vectors and incrementally create/update/delete more without ever re-building the entire index.
 - Implementation based on standard Elasticsearch and Lucene primitives, entirely in the JVM. Indexing and querying scale horizontally with Elasticsearch.
@@ -88,13 +88,13 @@ So Java is used for all the CPU-bound LSH models and Lucene abstractions, and Sc
 
 Elasticsearch requires non-negative scores, with higher scores indicating higher relevance.
 
-Elastiknn supports five vector similarity functions (L1, L2, Cosine, Jaccard, and Hamming).
+Elastiknn supports five vector similarity functions (L1, L2, Cosine,Dot, Jaccard, and Hamming).
 Three of these are problematic with respect to this scoring requirement.
 
 Specifically, L1 and L2 are generally defined as _distance_ functions, rather than similarity functions,
 which means that higher relevance (i.e., lower distance) yields _lower_ scores.
 Cosine similarity is defined over $$[-1, 1]$$, and we can't have negative scores.
-
+Dot similarity is defined over $$[-1, 1]$$, and we can't have negative scores, if vectors have a magnitude of 1, then it's equivalent to cosine similarity.
 To work around this, Elastiknn applies simple transformations to produce L1, L2, and Cosine _similarity_ in accordance with the Elasticsearch requirements.
 The exact transformations are documented [on the API page](/api/#similarity-scoring).
 
