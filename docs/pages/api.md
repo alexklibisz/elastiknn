@@ -650,7 +650,7 @@ GET /my-index/_search
 
 ### Dot LSH Query
 
-Retrieve dense float vectors based on approximate Cosine similarity.[^note-angular-cosine]
+Retrieve dense float vectors based on approximate Dot similarity.[^note-dot-cosine]
 
 ```json
 GET /my-index/_search
