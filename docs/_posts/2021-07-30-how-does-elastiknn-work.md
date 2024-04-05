@@ -43,7 +43,7 @@ The name is a combination of _Elastic_ and _KNN_ (K-Nearest Neighbors).
 The full list of features (copied from the home page) is as follows:
 
 - Datatypes to efficiently store dense and sparse numerical vectors in Elasticsearch documents, including multiple vectors per document.
-- Exact nearest neighbor queries for five similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Dot](https://en.wikipedia.org/wiki/Dot_product), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
+- Exact nearest neighbor queries for six similarity functions: [L1](https://en.wikipedia.org/wiki/Taxicab_geometry), [L2](https://en.wikipedia.org/wiki/Euclidean_distance), [Cosine](https://en.wikipedia.org/wiki/Cosine_similarity), [Dot](https://en.wikipedia.org/wiki/Dot_product), [Jaccard](https://en.wikipedia.org/wiki/Jaccard_index), and [Hamming](https://en.wikipedia.org/wiki/Hamming_distance).
 - Approximate queries using [Locality Sensitive Hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) for L2, Cosine, Dot, Jaccard, and Hamming similarity.
 - Integration of nearest neighbor queries with standard Elasticsearch queries.
 - Incremental index updates: start with any number of vectors and incrementally create/update/delete more without ever re-building the entire index.
