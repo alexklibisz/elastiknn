@@ -94,7 +94,8 @@ Three of these are problematic with respect to this scoring requirement.
 Specifically, L1 and L2 are generally defined as _distance_ functions, rather than similarity functions,
 which means that higher relevance (i.e., lower distance) yields _lower_ scores.
 Cosine similarity is defined over $$[-1, 1]$$, and we can't have negative scores.
-Dot similarity is defined over $$[-1, 1]$$, and we can't have negative scores, if vectors have a magnitude of 1, then it's equivalent to cosine similarity.
+Dot similarity is defined over $$[-1, 1]$$, If vectors have a magnitude of 1, then it's equivalent to cosine similarity.
+Elasticsearch does not allow negative scores.
 To work around this, Elastiknn applies simple transformations to produce L1, L2, and Cosine _similarity_ in accordance with the Elasticsearch requirements.
 The exact transformations are documented [on the API page](/api/#similarity-scoring).
 
