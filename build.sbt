@@ -15,7 +15,8 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test,
+  Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )
 
 lazy val `elastiknn-root` = project
