@@ -110,13 +110,16 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           ("L2", Similarity.L2),
           ("cosine", Similarity.Cosine),
           ("Cosine", Similarity.Cosine),
-          ("COSINE", Similarity.Cosine)
+          ("COSINE", Similarity.Cosine),
+          ("dot", Similarity.Dot),
+          ("Dot", Similarity.Dot),
+          ("DOT", Similarity.Dot)
         )
       } roundtrip[Similarity](Json.fromString(str.toLowerCase), sim)
     }
     "errors" in {
       val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("\"wrong\""))
-      ex1.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [wrong]"
+      ex1.getMessage shouldBe "Expected token to be one of [cosine,dot,hamming,jaccard,l1,l2] but found [wrong]"
       val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("99"))
       ex2.getMessage shouldBe "Expected token to be one of [VALUE_STRING] but found [VALUE_NUMBER]"
     }
@@ -326,7 +329,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
             | }
             |}
             |""".stripMargin))
-        ex2.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [jacard]"
+        ex2.getMessage shouldBe "Expected token to be one of [cosine,dot, hamming,jaccard,l1,l2] but found [jacard]"
       }
     }
     "HammingLsh" - {
