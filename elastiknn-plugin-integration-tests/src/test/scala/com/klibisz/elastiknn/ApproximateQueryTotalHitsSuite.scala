@@ -12,7 +12,7 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
 
   test("same approximate query should return same total hits") {
 
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val (index, vecField, idField, dims) = ("issue-240", "vec", "id", 80)
     val corpus = Vec.DenseFloat.randoms(dims, 9999)
     val ids = corpus.indices.map(i => s"v$i")

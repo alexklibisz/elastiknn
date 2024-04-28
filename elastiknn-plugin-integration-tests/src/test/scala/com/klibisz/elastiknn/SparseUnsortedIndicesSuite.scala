@@ -13,7 +13,7 @@ class SparseUnsortedIndicesSuite extends AsyncFunSuite with Matchers with Inspec
 
   // https://gitter.im/elastiknn/community?at=5f3012df65e829425e70ee31
 
-  implicit val rng: Random = new Random(0)
+  given rng: Random = new Random(0)
   val indexPrefix = "test-sbv-unsorted"
 
   val dims = 20000

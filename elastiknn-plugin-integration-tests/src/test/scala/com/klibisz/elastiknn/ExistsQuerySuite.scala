@@ -9,7 +9,7 @@ import scala.util.Random
 
 class ExistsQuerySuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with SilentMatchers {
 
-  implicit val rng: Random = new Random(0)
+  given rng: Random = new Random(0)
   val (index, field, id) = ("issue-174", "vec", "id")
   val corpus: Vector[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, 99)
   val ids: IndexedSeq[String] = corpus.indices.map(i => s"v$i")

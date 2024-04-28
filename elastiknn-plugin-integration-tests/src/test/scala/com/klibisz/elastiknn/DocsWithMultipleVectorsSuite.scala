@@ -15,7 +15,7 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
   // https://github.com/alexklibisz/elastiknn/issues/176
   test("storing and searching docs with multiple vectors") {
 
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
 
     val index = "issue-176"
     val dims = 10

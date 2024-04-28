@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn
 
 import com.klibisz.elastiknn.api._
-import com.klibisz.elastiknn.client.Elastic4sCompatibility._
+import com.klibisz.elastiknn.client.Elastic4sCompatibility.given
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.json.{JacksonBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.common.RefreshPolicy
@@ -14,7 +14,7 @@ import scala.util.Random
 class DocsWithNestedVectorsSuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient {
 
   // https://github.com/alexklibisz/elastiknn/issues/60
-  implicit val rng: Random = new Random(0)
+  given rng: Random = new Random(0)
   val index = "issue-60"
   val vec: Vec.DenseFloat = Vec.DenseFloat.random(10)
   val mapping: Mapping.DenseFloat = Mapping.DenseFloat(vec.values.length)

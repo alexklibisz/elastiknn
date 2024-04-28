@@ -25,7 +25,7 @@ class HashingQueryPerformanceSuite extends AnyFunSuite with Matchers with Lucene
   class BenchmarkCodec extends Lucene99Codec
 
   test("indexing and searching on scale of GloVe-25") {
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val corpusVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 10000, unit = true)
     val queryVecs: Seq[Vec.DenseFloat] = Vec.DenseFloat.randoms(128, n = 1000, unit = true)
     val model = new L2LshModel(128, 100, 2, 1, new java.util.Random(0), new PanamaFloatVectorOps)

@@ -13,7 +13,7 @@ import scala.util.hashing.MurmurHash3
 class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors with ElasticAsyncClient {
 
   // https://github.com/alexklibisz/elastiknn/issues/97
-  implicit val rng: Random = new Random(0)
+  given rng: Random = new Random(0)
   val indexPrefix = "issue-97"
 
   // Generate a corpus of docs. Small number of the them have color blue, rest have color green.

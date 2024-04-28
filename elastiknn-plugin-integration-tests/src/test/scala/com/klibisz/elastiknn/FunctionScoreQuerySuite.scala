@@ -13,7 +13,7 @@ import scala.util.hashing.MurmurHash3
 
 class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspectors with ElasticAsyncClient {
 
-  private implicit val rng: Random = new Random(0)
+  private given rng: Random = new Random(0)
   private val fvo: FloatVectorOps = new PanamaFloatVectorOps
 
   "end-to-end tests with various function_score configurations" - {
