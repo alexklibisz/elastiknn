@@ -9,7 +9,6 @@ import com.klibisz.elastiknn.vectors.FloatVectorOps
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query.SearchExecutionContext
 
-
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {
 
   private val cosine = new ESF.Cosine(floatVectorOps)

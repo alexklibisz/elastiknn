@@ -31,9 +31,10 @@ object StoredVec {
   }
 
   object SparseBool {
-    given fromApiVec: Conversion[Vec.SparseBool, StoredVec.SparseBool] = (v: Vec.SparseBool) => new SparseBool {
-      override val trueIndices: Array[Int] = v.trueIndices
-    }
+    given fromApiVec: Conversion[Vec.SparseBool, StoredVec.SparseBool] = (v: Vec.SparseBool) =>
+      new SparseBool {
+        override val trueIndices: Array[Int] = v.trueIndices
+      }
   }
 
   sealed trait DenseFloat extends StoredVec {
