@@ -75,7 +75,7 @@ class DocsWithMultipleVectorsSuite extends AsyncFunSuite with Matchers with Insp
       _ <- eknn.execute(putMapping(index).rawSource(combinedMapping))
       _ <- eknn.execute(bulk(indexReqs))
       _ <- eknn.execute(refreshIndex(index))
-      counts <- Future.sequence(countExistsReqs.map(eknn.execute(_)))
+      counts <- Future.sequence(countExistsReqs.map(eknn.execute))
       neighbors <- Future.traverse(fields) { case (name, _, _, query) =>
         eknn.nearestNeighbors(index, query.withVec(Vec.Indexed(index, "v0", name)), 5, "id")
       }

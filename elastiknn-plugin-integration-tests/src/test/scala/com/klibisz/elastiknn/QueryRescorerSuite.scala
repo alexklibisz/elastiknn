@@ -91,7 +91,8 @@ class QueryRescorerSuite extends AsyncFunSuite with Matchers with Inspectors wit
       res <- eknn.execute(search(index).source(rawQuery))
     } yield {
       res.result.hits.hits.length shouldBe numBlue
-      res.result.hits.hits.map(_.id).toSet shouldBe corpus.filter(_._3 == "blue").map(_._1).toSet
+      val expectedIds = corpus.filter((_, _, color) => color == "blue").map((id, _, _) => id).toSet
+      res.result.hits.hits.map(_.id).toSet shouldBe expectedIds
     }
   }
 

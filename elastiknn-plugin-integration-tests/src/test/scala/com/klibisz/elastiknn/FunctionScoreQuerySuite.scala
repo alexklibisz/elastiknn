@@ -126,7 +126,7 @@ class FunctionScoreQuerySuite extends AsyncFreeSpec with Matchers with Inspector
         // The previous two queries are used to check the results of this query.
         fsSumWeightedRes <- eknn.execute(search(index).source(functionScoreQuerySumWeight3)).map(_.result)
       } yield {
-        val blueIds = corpus.filter(_._3 == "blue").map(_._1).toSet
+        val blueIds = corpus.filter((_, _, color) => color == "blue").map((id, _, _) => id).toSet
 
         termRes.hits.hits.length shouldBe numBlue
         termRes.hits.hits.map(_.id).toSet shouldBe blueIds

@@ -27,7 +27,7 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
       val running = shuffled.map { case (q, i) =>
         eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
       }
-      Future.sequence(running).map(_.sortBy(_._1))
+      Future.sequence(running).map(_.sortBy((id, _, _) => id))
     }
 
     for {
