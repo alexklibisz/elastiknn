@@ -411,8 +411,9 @@ object XContentCodec {
         case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
       while (p.nextToken() != END_ARRAY) {
-        assertToken(p.currentToken(), VALUE_NUMBER)
-        b.append(p.floatValue())
+        try b.append(p.floatValue())
+        catch
+          case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
@@ -425,8 +426,9 @@ object XContentCodec {
         case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
       while (p.nextToken() != END_ARRAY) {
-        assertToken(p.currentToken(), VALUE_NUMBER)
-        b.append(p.intValue())
+        try b.append(p.intValue())
+        catch
+          case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
