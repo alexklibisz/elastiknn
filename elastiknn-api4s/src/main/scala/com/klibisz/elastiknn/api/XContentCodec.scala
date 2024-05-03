@@ -81,7 +81,7 @@ object XContentCodec {
 
   object Encoder {
 
-    given similarity: Encoder[Similarity] = new Encoder[Similarity] {
+    implicit val similarity: Encoder[Similarity] = new Encoder[Similarity] {
       override def encodeUnsafe(t: Similarity, b: XContentBuilder): Unit = {
         t match {
           case Similarity.Jaccard => b.value(Names.JACCARD)
@@ -94,7 +94,7 @@ object XContentCodec {
       }
     }
 
-    given denseFloatVec: Encoder[Vec.DenseFloat] = new Encoder[Vec.DenseFloat] {
+    implicit val denseFloatVec: Encoder[Vec.DenseFloat] = new Encoder[Vec.DenseFloat] {
       override def encodeUnsafe(t: Vec.DenseFloat, b: XContentBuilder): Unit = {
         b.startObject()
         b.array(Names.VALUES, t.values)
@@ -103,7 +103,7 @@ object XContentCodec {
       }
     }
 
-    given sparseBoolVec: Encoder[Vec.SparseBool] = new Encoder[Vec.SparseBool] {
+    implicit val sparseBoolVec: Encoder[Vec.SparseBool] = new Encoder[Vec.SparseBool] {
       override def encodeUnsafe(t: Vec.SparseBool, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.TOTAL_INDICES, t.totalIndices)
@@ -113,7 +113,7 @@ object XContentCodec {
       }
     }
 
-    given emptyVec: Encoder[Vec.Empty] = new Encoder[Vec.Empty] {
+    implicit val emptyVec: Encoder[Vec.Empty] = new Encoder[Vec.Empty] {
       override def encodeUnsafe(t: Vec.Empty, b: XContentBuilder): Unit = {
         b.startObject()
         b.endObject()
@@ -121,7 +121,7 @@ object XContentCodec {
       }
     }
 
-    given indexedVec: Encoder[Vec.Indexed] = new Encoder[Vec.Indexed] {
+    implicit val indexedVec: Encoder[Vec.Indexed] = new Encoder[Vec.Indexed] {
       override def encodeUnsafe(t: Vec.Indexed, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.FIELD, t.field)
@@ -132,7 +132,7 @@ object XContentCodec {
       }
     }
 
-    given vec: Encoder[Vec] = new Encoder[Vec] {
+    implicit val vec: Encoder[Vec] = new Encoder[Vec] {
       override def encodeUnsafe(t: Vec, b: XContentBuilder): Unit =
         t match {
           case dfv: Vec.DenseFloat => denseFloatVec.encodeUnsafe(dfv, b)
@@ -142,7 +142,7 @@ object XContentCodec {
         }
     }
 
-    given sparseBoolMapping: MappingEncoder[Mapping.SparseBool] = new MappingEncoder[Mapping.SparseBool] {
+    implicit val sparseBoolMapping: MappingEncoder[Mapping.SparseBool] = new MappingEncoder[Mapping.SparseBool] {
       override protected def vectorType: String = Names.EKNN_SPARSE_BOOL_VECTOR
       override def encodeElastiknnObject(t: Mapping.SparseBool, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -153,7 +153,7 @@ object XContentCodec {
       }
     }
 
-    given jaccardLshMapping: MappingEncoder[Mapping.JaccardLsh] = new MappingEncoder[Mapping.JaccardLsh] {
+    implicit val jaccardLshMapping: MappingEncoder[Mapping.JaccardLsh] = new MappingEncoder[Mapping.JaccardLsh] {
       override protected def vectorType: String = Names.EKNN_SPARSE_BOOL_VECTOR
       override def encodeElastiknnObject(t: Mapping.JaccardLsh, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -167,7 +167,7 @@ object XContentCodec {
       }
     }
 
-    given hammingLshMapping: MappingEncoder[Mapping.HammingLsh] = new MappingEncoder[Mapping.HammingLsh] {
+    implicit val hammingLshMapping: MappingEncoder[Mapping.HammingLsh] = new MappingEncoder[Mapping.HammingLsh] {
       override protected def vectorType: String = Names.EKNN_SPARSE_BOOL_VECTOR
       override def encodeElastiknnObject(t: Mapping.HammingLsh, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -181,7 +181,7 @@ object XContentCodec {
       }
     }
 
-    given denseFloatMapping: MappingEncoder[Mapping.DenseFloat] = new MappingEncoder[Mapping.DenseFloat] {
+    implicit val denseFloatMapping: MappingEncoder[Mapping.DenseFloat] = new MappingEncoder[Mapping.DenseFloat] {
       override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
       override def encodeElastiknnObject(t: Mapping.DenseFloat, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -192,7 +192,7 @@ object XContentCodec {
       }
     }
 
-    given cosineLshMapping: MappingEncoder[Mapping.CosineLsh] = new MappingEncoder[Mapping.CosineLsh] {
+    implicit val cosineLshMapping: MappingEncoder[Mapping.CosineLsh] = new MappingEncoder[Mapping.CosineLsh] {
       override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
       override def encodeElastiknnObject(t: Mapping.CosineLsh, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -206,7 +206,7 @@ object XContentCodec {
       }
     }
 
-    given l2LshMapping: MappingEncoder[Mapping.L2Lsh] = new MappingEncoder[Mapping.L2Lsh] {
+    implicit val l2LshMapping: MappingEncoder[Mapping.L2Lsh] = new MappingEncoder[Mapping.L2Lsh] {
       override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
       override def encodeElastiknnObject(t: Mapping.L2Lsh, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -221,7 +221,7 @@ object XContentCodec {
       }
     }
 
-    given permutationLshMapping: MappingEncoder[Mapping.PermutationLsh] = new MappingEncoder[Mapping.PermutationLsh] {
+    implicit val permutationLshMapping: MappingEncoder[Mapping.PermutationLsh] = new MappingEncoder[Mapping.PermutationLsh] {
       override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
       override def encodeElastiknnObject(t: Mapping.PermutationLsh, b: XContentBuilder): Unit = {
         b.startObject(Names.ELASTIKNN)
@@ -234,7 +234,7 @@ object XContentCodec {
       }
     }
 
-    given mapping: MappingEncoder[Mapping] = new MappingEncoder[Mapping] {
+    implicit val mapping: MappingEncoder[Mapping] = new MappingEncoder[Mapping] {
       override protected def vectorType: String = None.orNull
       override def encodeElastiknnObject(t: Mapping, b: XContentBuilder): Unit = t match {
         case m: Mapping.SparseBool     => sparseBoolMapping.encodeElastiknnObject(m, b)
@@ -257,7 +257,7 @@ object XContentCodec {
         }
     }
 
-    given exactQuery: Encoder[NearestNeighborsQuery.Exact] = new Encoder[NearestNeighborsQuery.Exact] {
+    implicit val exactQuery: Encoder[NearestNeighborsQuery.Exact] = new Encoder[NearestNeighborsQuery.Exact] {
       override def encodeUnsafe(t: NearestNeighborsQuery.Exact, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.FIELD, t.field)
@@ -271,7 +271,7 @@ object XContentCodec {
       }
     }
 
-    given jaccardLshQuery: Encoder[NearestNeighborsQuery.JaccardLsh] = new Encoder[NearestNeighborsQuery.JaccardLsh] {
+    implicit val jaccardLshQuery: Encoder[NearestNeighborsQuery.JaccardLsh] = new Encoder[NearestNeighborsQuery.JaccardLsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.JaccardLsh, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.CANDIDATES, t.candidates)
@@ -286,7 +286,7 @@ object XContentCodec {
       }
     }
 
-    given hammingLshQuery: Encoder[NearestNeighborsQuery.HammingLsh] = new Encoder[NearestNeighborsQuery.HammingLsh] {
+    implicit val hammingLshQuery: Encoder[NearestNeighborsQuery.HammingLsh] = new Encoder[NearestNeighborsQuery.HammingLsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.HammingLsh, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.CANDIDATES, t.candidates)
@@ -301,7 +301,7 @@ object XContentCodec {
       }
     }
 
-    given cosineLshQuery: Encoder[NearestNeighborsQuery.CosineLsh] = new Encoder[NearestNeighborsQuery.CosineLsh] {
+    implicit val cosineLshQuery: Encoder[NearestNeighborsQuery.CosineLsh] = new Encoder[NearestNeighborsQuery.CosineLsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.CosineLsh, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.CANDIDATES, t.candidates)
@@ -316,7 +316,7 @@ object XContentCodec {
       }
     }
 
-    given l2LshQuery: Encoder[NearestNeighborsQuery.L2Lsh] = new Encoder[NearestNeighborsQuery.L2Lsh] {
+    implicit val l2LshQuery: Encoder[NearestNeighborsQuery.L2Lsh] = new Encoder[NearestNeighborsQuery.L2Lsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.L2Lsh, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.CANDIDATES, t.candidates)
@@ -332,7 +332,7 @@ object XContentCodec {
       }
     }
 
-    given permutationLshQuery: Encoder[NearestNeighborsQuery.PermutationLsh] = new Encoder[NearestNeighborsQuery.PermutationLsh] {
+    implicit val permutationLshQuery: Encoder[NearestNeighborsQuery.PermutationLsh] = new Encoder[NearestNeighborsQuery.PermutationLsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.PermutationLsh, b: XContentBuilder): Unit = {
         b.startObject()
         b.field(Names.CANDIDATES, t.candidates)
@@ -347,7 +347,7 @@ object XContentCodec {
       }
     }
 
-    given nearestNeighborsQuery: Encoder[NearestNeighborsQuery] = new Encoder[NearestNeighborsQuery] {
+    implicit val nearestNeighborsQuery: Encoder[NearestNeighborsQuery] = new Encoder[NearestNeighborsQuery] {
       override def encodeUnsafe(t: NearestNeighborsQuery, b: XContentBuilder): Unit =
         t match {
           case q: NearestNeighborsQuery.Exact          => exactQuery.encodeUnsafe(q, b)
@@ -362,7 +362,7 @@ object XContentCodec {
 
   object Decoder {
 
-    private given orderTokens: Ordering[Token] = new Ordering[Token] {
+    private implicit val orderTokens: Ordering[Token] = new Ordering[Token] {
       override def compare(x: Token, y: Token): Int = x.name().compareTo(y.name())
     }
 
@@ -431,7 +431,7 @@ object XContentCodec {
       b.toArray
     }
 
-    given similarity: Decoder[Similarity] = (p: XContentParser) => {
+    implicit val similarity: Decoder[Similarity] = (p: XContentParser) => {
       if (p.currentToken() != VALUE_STRING) assertToken(p.nextToken(), VALUE_STRING)
       val s1 = p.text()
       val s2 = s1.toLowerCase
@@ -446,7 +446,7 @@ object XContentCodec {
       }
     }
 
-    given vec: Decoder[Vec] = new Decoder[Vec] {
+    implicit val vec: Decoder[Vec] = new Decoder[Vec] {
 
       override def decodeUnsafe(p: XContentParser): Vec = {
         var field: Option[String] = None
@@ -517,32 +517,32 @@ object XContentCodec {
       }
     }
 
-    given denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
+    implicit val denseFloatVec: Decoder[Vec.DenseFloat] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.DenseFloat => v
         case _                 => throw new XContentParseException(unableToConstruct("dense float vector"))
       }
 
-    given sparseBoolVec: Decoder[Vec.SparseBool] =
+    implicit val sparseBoolVec: Decoder[Vec.SparseBool] =
       (p: XContentParser) =>
         vec.decodeUnsafe(p) match {
           case v: Vec.SparseBool => v
           case _                 => throw new XContentParseException(unableToConstruct("sparse bool vector"))
         }
 
-    given emptyVec: Decoder[Vec.Empty] = (p: XContentParser) =>
+    implicit val emptyVec: Decoder[Vec.Empty] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Empty => v
         case _            => throw new XContentParseException(unableToConstruct("empty vector"))
       }
 
-    given indexedVec: Decoder[Vec.Indexed] = (p: XContentParser) =>
+    implicit val indexedVec: Decoder[Vec.Indexed] = (p: XContentParser) =>
       vec.decodeUnsafe(p) match {
         case v: Vec.Indexed => v
         case _              => throw new XContentParseException(unableToConstruct("indexed vector"))
       }
 
-    given mapping: Decoder[Mapping] = (p: XContentParser) => {
+    implicit val mapping: Decoder[Mapping] = (p: XContentParser) => {
       var typ: Option[String] = None
       var dims: Option[Int] = None
       var model: Option[String] = None
@@ -609,7 +609,7 @@ object XContentCodec {
       }
     }
 
-    given nearestNeighborsQuery: Decoder[NearestNeighborsQuery] =
+    implicit val nearestNeighborsQuery: Decoder[NearestNeighborsQuery] =
       (p: XContentParser) => {
         var candidates: Option[Int] = None
         var field: Option[String] = None
