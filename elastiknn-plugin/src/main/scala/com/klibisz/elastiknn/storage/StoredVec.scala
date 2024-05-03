@@ -31,7 +31,7 @@ object StoredVec {
   }
 
   object SparseBool {
-    given fromApiVec: Conversion[Vec.SparseBool, StoredVec.SparseBool] = (v: Vec.SparseBool) =>
+    implicit val fromApiVec: Conversion[Vec.SparseBool, StoredVec.SparseBool] = (v: Vec.SparseBool) =>
       new SparseBool {
         override val trueIndices: Array[Int] = v.trueIndices
       }
@@ -43,7 +43,7 @@ object StoredVec {
   }
 
   object DenseFloat {
-    given fromApiVec: Conversion[Vec.DenseFloat, StoredVec.DenseFloat] = (v: Vec.DenseFloat) =>
+    implicit val fromApiVec: Conversion[Vec.DenseFloat, StoredVec.DenseFloat] = (v: Vec.DenseFloat) =>
       new DenseFloat:
         override val values: Array[Float] = v.values
   }
@@ -56,7 +56,7 @@ object StoredVec {
   }
 
   object Codec {
-    given derived[V <: Vec: Encoder, S <: StoredVec: Decoder]: Codec[V, S] =
+    implicit def derived[V <: Vec: Encoder, S <: StoredVec: Decoder]: Codec[V, S] =
       new Codec[V, S] {
         override def decode(barr: Array[Byte], offset: Int, length: Int): S = summon[Decoder[S]].apply(barr, offset, length)
         override def encode(vec: V): Array[Byte] = summon[Encoder[V]].apply(vec)
@@ -68,15 +68,15 @@ object StoredVec {
   }
 
   object Decoder {
-    given sparseBool: Decoder[SparseBool] = (barr: Array[Byte], offset: Int, length: Int) =>
+    implicit val sparseBool: Decoder[SparseBool] = (barr: Array[Byte], offset: Int, length: Int) =>
       new SparseBool {
         override val trueIndices: Array[Int] = ByteBufferSerialization.readInts(barr, offset, length)
       }
-    given denseFloat: Decoder[DenseFloat] = (barr: Array[Byte], offset: Int, length: Int) =>
+    implicit val denseFloat: Decoder[DenseFloat] = (barr: Array[Byte], offset: Int, length: Int) =>
       new DenseFloat {
         override val values: Array[Float] = ByteBufferSerialization.readFloats(barr, offset, length)
       }
-    given derived[V <: Vec, S <: StoredVec](using codec: Codec[V, S]): Decoder[S] =
+    implicit def derived[V <: Vec, S <: StoredVec](using codec: Codec[V, S]): Decoder[S] =
       (barr: Array[Byte], offset: Int, length: Int) => codec.decode(barr, offset, length)
   }
 
@@ -85,8 +85,8 @@ object StoredVec {
   }
 
   object Encoder {
-    given sparseBool: Encoder[Vec.SparseBool] = (vec: Vec.SparseBool) => ByteBufferSerialization.writeInts(vec.trueIndices)
-    given denseFloat: Encoder[Vec.DenseFloat] = (vec: Vec.DenseFloat) => ByteBufferSerialization.writeFloats(vec.values)
+    implicit val sparseBool: Encoder[Vec.SparseBool] = (vec: Vec.SparseBool) => ByteBufferSerialization.writeInts(vec.trueIndices)
+    implicit val denseFloat: Encoder[Vec.DenseFloat] = (vec: Vec.DenseFloat) => ByteBufferSerialization.writeFloats(vec.values)
   }
 
 }
