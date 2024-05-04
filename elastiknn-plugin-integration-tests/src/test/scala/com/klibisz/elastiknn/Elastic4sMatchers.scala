@@ -8,7 +8,7 @@ trait Elastic4sMatchers {
 
   this: Matchers =>
 
-  implicit class ResponseMatchers[+U](r: Response[U]) {
+  extension [U](r: Response[U]) {
     def shouldBeSuccess: Assertion = withClue(r.body.getOrElse(r.toString)) {
       r.isSuccess shouldBe true
     }

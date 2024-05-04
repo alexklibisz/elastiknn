@@ -9,23 +9,24 @@ trait SilentMatchers {
   // To use this trait you must extend matchers.
   this: Matchers =>
 
-  implicit class SilentSeq[E](list: IterableOnce[E]) {
+  private class SilentSeqInner[E](list: IterableOnce[E]) extends Seq[E] {
+    var silent: Boolean = false
 
-    class SilentSeqInner(list: IterableOnce[E]) extends Seq[E] {
-      var silent: Boolean = false
-      def length: Int = 0
-      def apply(i: Int): E = list.iterator.next()
-      def iterator: Iterator[E] = {
-        if (silent)
-          Seq.empty.iterator
-        else {
-          silent = true
-          list.iterator
-        }
+    def length: Int = 0
+
+    def apply(i: Int): E = list.iterator.next()
+
+    def iterator: Iterator[E] = {
+      if (silent)
+        Seq.empty.iterator
+      else {
+        silent = true
+        list.iterator
       }
     }
-
-    def silent: SilentSeqInner = new SilentSeqInner(list)
   }
 
+  extension [E](list: IterableOnce[E]) {
+    def silent: Seq[E] = new SilentSeqInner(list)
+  }
 }

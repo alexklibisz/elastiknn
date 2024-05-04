@@ -14,7 +14,7 @@ class MixedIndexSearchDeleteSuite extends AsyncFunSuite with Matchers with Inspe
   // https://github.com/alexklibisz/elastiknn/issues/158
   test("index, search, delete some, search, replace them, search again") {
 
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val (index, vecField, idField, dims) = ("issue-158", "vec", "id", 100)
     val corpus = Vec.DenseFloat.randoms(dims, 1000)
     val ids = corpus.indices.map(i => s"v$i")

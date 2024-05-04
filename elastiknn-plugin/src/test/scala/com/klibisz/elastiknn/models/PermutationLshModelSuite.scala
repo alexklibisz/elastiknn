@@ -45,7 +45,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
   test("deterministic lucene indexing and queries") {
     // Re-index the same set of docs several times and run the same queries on each index.
     // The results from each repetition should be identical to all other repetitions.
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val corpusVecs = Vec.DenseFloat.randoms(1024, 1000, unit = true)
     val queryVecs = Vec.DenseFloat.randoms(1024, 100, unit = true)
     val lsh = new PermutationLshModel(128, true)

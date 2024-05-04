@@ -10,7 +10,7 @@ import scala.util.Random
 
 class CloseIndexRegressionSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
 
-  implicit val rng: Random = new Random(0)
+  given rng: Random = new Random(0)
 
   test("close index without elastiknn setting") {
     val index = "issue-215-close-no-elastiknn"

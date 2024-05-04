@@ -36,10 +36,10 @@ object XContentCodec {
 
   private val xcJson = XContentType.JSON.xContent()
 
-  private def encodeUnsafe[T](t: T, b: XContentBuilder)(implicit c: Encoder[T]): Unit =
+  private def encodeUnsafe[T](t: T, b: XContentBuilder)(using c: Encoder[T]): Unit =
     c.encodeUnsafe(t, b)
 
-  def encodeUnsafeToByteArray[T](t: T)(implicit c: Encoder[T]): Array[Byte] = {
+  def encodeUnsafeToByteArray[T](t: T)(using c: Encoder[T]): Array[Byte] = {
     val bos = new ByteArrayOutputStream()
     val b = new XContentBuilder(XContentType.JSON.xContent(), bos)
     encodeUnsafe(t, b)
@@ -47,13 +47,13 @@ object XContentCodec {
     bos.toByteArray
   }
 
-  def encodeUnsafeToString[T](t: T)(implicit c: Encoder[T]): String =
+  def encodeUnsafeToString[T](t: T)(using c: Encoder[T]): String =
     new String(encodeUnsafeToByteArray(t))
 
-  def decodeUnsafe[T](p: XContentParser)(implicit c: Decoder[T]): T =
+  def decodeUnsafe[T](p: XContentParser)(using c: Decoder[T]): T =
     c.decodeUnsafe(p)
 
-  def decodeUnsafeFromMap[T](m: java.util.Map[String, Object])(implicit c: Decoder[T]): T = {
+  def decodeUnsafeFromMap[T](m: java.util.Map[String, Object])(using c: Decoder[T]): T = {
     val bos = new ByteArrayOutputStream()
     val builder = new XContentBuilder(xcJson, bos)
     builder.map(m)
@@ -62,7 +62,7 @@ object XContentCodec {
     c.decodeUnsafe(parser)
   }
 
-  def decodeUnsafeFromList[T](l: java.util.List[Object])(implicit c: Decoder[T]): T = {
+  def decodeUnsafeFromList[T](l: java.util.List[Object])(using c: Decoder[T]): T = {
     val bos = new ByteArrayOutputStream()
     val builder = new XContentBuilder(xcJson, bos)
     builder.value(l)
@@ -71,10 +71,10 @@ object XContentCodec {
     c.decodeUnsafe(parser)
   }
 
-  def decodeUnsafeFromString[T](str: String)(implicit d: Decoder[T]): T =
+  def decodeUnsafeFromString[T](str: String)(using d: Decoder[T]): T =
     decodeUnsafeFromByteArray(str.getBytes)
 
-  def decodeUnsafeFromByteArray[T](barr: Array[Byte])(implicit c: Decoder[T]): T = {
+  def decodeUnsafeFromByteArray[T](barr: Array[Byte])(using c: Decoder[T]): T = {
     val parser = xcJson.createParser(XContentParserConfiguration.EMPTY, barr)
     c.decodeUnsafe(parser)
   }
@@ -411,8 +411,8 @@ object XContentCodec {
         case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
       while (p.nextToken() != END_ARRAY) {
-        assertToken(p.currentToken(), VALUE_NUMBER)
-        b.append(p.floatValue())
+        try b.append(p.floatValue())
+        catch case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
@@ -425,8 +425,8 @@ object XContentCodec {
         case t            => throw new XContentParseException(unexpectedToken(t, SortedSet(START_ARRAY, VALUE_NUMBER)))
       }
       while (p.nextToken() != END_ARRAY) {
-        assertToken(p.currentToken(), VALUE_NUMBER)
-        b.append(p.intValue())
+        try b.append(p.intValue())
+        catch case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
