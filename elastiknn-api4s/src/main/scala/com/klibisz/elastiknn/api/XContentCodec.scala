@@ -412,8 +412,7 @@ object XContentCodec {
       }
       while (p.nextToken() != END_ARRAY) {
         try b.append(p.floatValue())
-        catch
-          case _ => assertToken(p.currentToken(), VALUE_NUMBER)
+        catch case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
@@ -427,8 +426,7 @@ object XContentCodec {
       }
       while (p.nextToken() != END_ARRAY) {
         try b.append(p.intValue())
-        catch
-          case _ => assertToken(p.currentToken(), VALUE_NUMBER)
+        catch case _ => assertToken(p.currentToken(), VALUE_NUMBER)
       }
       b.toArray
     }
