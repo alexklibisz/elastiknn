@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.client
 
 import com.klibisz.elastiknn.api.{Mapping, NearestNeighborsQuery, Vec, XContentCodec}
-import com.klibisz.elastiknn.client.Elastic4sCompatibility._
+import com.klibisz.elastiknn.client.Elastic4sCompatibility.given
 import com.sksamuel.elastic4s.json.{JacksonBuilder, XContentFactory}
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import com.sksamuel.elastic4s.requests.mappings.PutMappingRequest

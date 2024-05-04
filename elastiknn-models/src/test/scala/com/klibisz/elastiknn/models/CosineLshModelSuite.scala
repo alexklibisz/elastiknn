@@ -10,7 +10,7 @@ import scala.util.Random
 class CosineLshModelSuite extends AnyFunSuite with Matchers {
 
   test("model is invariant to vector magnitude") {
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val dims = 10
     for {
       l <- 1 to 100 by 10

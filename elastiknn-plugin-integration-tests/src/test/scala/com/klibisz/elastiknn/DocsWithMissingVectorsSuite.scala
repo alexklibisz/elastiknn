@@ -17,7 +17,7 @@ class DocsWithMissingVectorsSuite extends AsyncFunSuite with Matchers with Inspe
   // This seemed to only cause runtime issues with >= 20k documents.
   // The solution was to ensure the DocIdSetIterator in the MatchHashesAndScoreQuery begins iterating at docID = -1.
   test("search docs with a vector mapping, but only half the indexed docs have vectors") {
-    implicit val rng = new Random(0)
+    given rng: Random = new Random(0)
     val index = "issue-181"
     val (vecField, idField, dims, numDocs) = ("vec", "id", 128, 20000)
     val vecMapping: Mapping = Mapping.CosineLsh(dims, 99, 1)

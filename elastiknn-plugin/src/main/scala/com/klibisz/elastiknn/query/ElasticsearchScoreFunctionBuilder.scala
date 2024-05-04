@@ -32,7 +32,7 @@ final class ElasticsearchScoreFunctionBuilder(
   override def doHashCode(): Int = Objects.hash(query, weight.asInstanceOf[java.lang.Float])
 
   override def doToFunction(context: SearchExecutionContext): ScoreFunction =
-    elastiknnQueryBuilder.build(query, context).map(_.toScoreFunction(context.getIndexReader)).get
+    elastiknnQueryBuilder.build(query, context).toScoreFunction(context.getIndexReader)
 
   override def getMinimalSupportedVersion: TransportVersion = TransportVersions.MINIMUM_COMPATIBLE
 }

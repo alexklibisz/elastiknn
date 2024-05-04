@@ -8,7 +8,7 @@ import scala.util.Random
 
 @State(Scope.Benchmark)
 class FloatArrayBufferBenchmarksState {
-  implicit private val rng: Random = new Random(0)
+  private given rng: Random = new Random(0)
   val lst768 = (0 until 768).map(_ => rng.nextFloat()).toList
 }
 

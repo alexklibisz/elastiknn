@@ -45,7 +45,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers {
   }
 
   test("deterministic hashing") {
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val dims = 1024
     val mlsh = new PermutationLshModel(128, true)
     (0 until 100).foreach { _ =>
@@ -56,7 +56,7 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers {
   }
 
   test("model is invariant to vector magnitude") {
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val dims = 10
     for {
       isUnit <- Seq(true, false)
