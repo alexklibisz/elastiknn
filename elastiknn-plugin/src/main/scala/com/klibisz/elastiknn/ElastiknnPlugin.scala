@@ -21,6 +21,7 @@ final class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin
   private val floatVectorOps: FloatVectorOps =
     if (Settings.jdkIncubatorVectorEnabledSetting.get(settings)) new PanamaFloatVectorOps
     else new DefaultFloatVectorOps
+
   private val modelCache = new ModelCache(floatVectorOps)
   private val elastiknnQueryBuilder: ElastiknnQueryBuilder = new ElastiknnQueryBuilder(floatVectorOps, modelCache)
   private val denseFloatVectorMapper = new DenseFloatVectorMapper(modelCache)

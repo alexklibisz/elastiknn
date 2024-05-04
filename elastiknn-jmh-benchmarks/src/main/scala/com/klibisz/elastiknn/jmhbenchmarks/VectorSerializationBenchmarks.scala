@@ -7,7 +7,7 @@ import scala.util.Random
 
 @State(Scope.Benchmark)
 class VectorSerializationBenchmarksState {
-  implicit private val rng: Random = new Random(0)
+  private given rng: Random = new Random(0)
   val floatArray = (0 until 1000).map(_ => rng.nextFloat()).toArray
   val floatArraySerialized = ByteBufferSerialization.writeFloats(floatArray)
   val intArray = (0 until 1000).map(_ => rng.nextInt()).toArray

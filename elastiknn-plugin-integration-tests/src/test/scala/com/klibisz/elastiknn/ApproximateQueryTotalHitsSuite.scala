@@ -12,7 +12,7 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
 
   test("same approximate query should return same total hits") {
 
-    implicit val rng: Random = new Random(0)
+    given rng: Random = new Random(0)
     val (index, vecField, idField, dims) = ("issue-240", "vec", "id", 80)
     val corpus = Vec.DenseFloat.randoms(dims, 9999)
     val ids = corpus.indices.map(i => s"v$i")
@@ -27,7 +27,7 @@ class ApproximateQueryTotalHitsSuite extends AsyncFunSuite with Matchers with El
       val running = shuffled.map { case (q, i) =>
         eknn.nearestNeighbors(index, q, k, idField).map(r => (i, r.result.totalHits, r.result.hits.hits.toVector.map(_.id)))
       }
-      Future.sequence(running).map(_.sortBy(_._1))
+      Future.sequence(running).map(_.sortBy((id, _, _) => id))
     }
 
     for {

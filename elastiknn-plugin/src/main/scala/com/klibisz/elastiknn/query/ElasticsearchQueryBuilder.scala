@@ -98,7 +98,7 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     }
 
   override def doToQuery(context: SearchExecutionContext): Query =
-    elastiknnQueryBuilder.build(query, context).map(_.toLuceneQuery(context.getIndexReader)).get
+    elastiknnQueryBuilder.build(query, context).toLuceneQuery(context.getIndexReader)
 
   override def doEquals(other: ElasticsearchQueryBuilder): Boolean = other.query == this.query
 

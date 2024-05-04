@@ -8,7 +8,7 @@ import org.apache.lucene.index.LeafReaderContext
 final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, field: String) {
   // Important for performance that each of these is instantiated here and not in the apply method.
   private val vecDocVals = lrc.reader.getBinaryDocValues(field)
-  private val decoder = implicitly[StoredVec.Decoder[S]]
+  private val decoder = summon[StoredVec.Decoder[S]]
 
   def apply(docID: Int): S = {
     val prevDocID = vecDocVals.docID()
@@ -25,5 +25,4 @@ final class StoredVecReader[S <: StoredVec: Decoder](lrc: LeafReaderContext, fie
       )
     }
   }
-
 }
