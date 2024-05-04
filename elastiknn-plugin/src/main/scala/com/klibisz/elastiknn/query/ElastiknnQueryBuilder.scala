@@ -9,8 +9,6 @@ import com.klibisz.elastiknn.vectors.FloatVectorOps
 import org.elasticsearch.index.mapper.MappedFieldType
 import org.elasticsearch.index.query.SearchExecutionContext
 
-import scala.util.{Failure, Success, Try}
-
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {
 
   private val cosine = new ESF.Cosine(floatVectorOps)
@@ -34,12 +32,10 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
     }
   }
 
-  private implicit def toSuccess[A <: Vec](q: ElastiknnQuery): Try[ElastiknnQuery] = Success(q)
-
-  def build(query: NearestNeighborsQuery, queryShardContext: SearchExecutionContext): Try[ElastiknnQuery] =
+  def build(query: NearestNeighborsQuery, queryShardContext: SearchExecutionContext): ElastiknnQuery =
     build(query, getMapping(queryShardContext, query.field))
 
-  def build(query: NearestNeighborsQuery, mapping: Mapping): Try[ElastiknnQuery] =
+  def build(query: NearestNeighborsQuery, mapping: Mapping): ElastiknnQuery =
     (query, mapping) match {
       case (
             Exact(f, Similarity.Jaccard, v: Vec.SparseBool),
@@ -92,7 +88,6 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
       case (PermutationLsh(f, Similarity.L1, candidates, v: Vec.DenseFloat), m: Mapping.PermutationLsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), l1)
 
-      case _ => Failure(incompatible(query, mapping))
+      case _ => throw incompatible(query, mapping)
     }
-
 }

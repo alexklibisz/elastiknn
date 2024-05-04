@@ -16,7 +16,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
 
   import XContentCodec._
 
-  private implicit val rng: Random = new Random(0)
+  private given rng: Random = new Random(0)
 
   private def shuffle(original: Json): Json = original.asObject match {
     case Some(obj) =>

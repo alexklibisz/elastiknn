@@ -23,11 +23,11 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   /** Abstract method for executing a request.
     */
-  def execute[T, U](request: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]]
+  def execute[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]]
 
   /** Execute the given request.
     */
-  final def apply[T, U](request: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]] = execute(request)
+  final def apply[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]] = execute(request)
 
   /** See ElastiknnRequests.putMapping().
     */
@@ -41,8 +41,6 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
     *   How many shards, 1 by default.
     * @param replicas
     *   How many replicas, 1 by default.
-    * @param elastiknn
-    *   Value for `index.elastiknn` setting, true by default.
     * @return
     *   CreateIndexResponse
     */
@@ -79,7 +77,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
     // Handler that reads the id from the stored field and places it in the id field.
     // Otherwise it will be null since [[ElastiknnRequests.nearestNeighbors]] doesn't return stored fields.
-    implicit val handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
+    given handler: Handler[SearchRequest, SearchResponse] = new Handler[SearchRequest, SearchResponse] {
       override def build(t: SearchRequest): ElasticRequest = SearchHandler.build(t)
       override def responseHandler: ResponseHandler[SearchResponse] = (response: HttpResponse) => {
         val handled: Either[ElasticError, SearchResponse] = SearchHandler.responseHandler.handle(response)
@@ -94,7 +92,7 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
         }
       }
     }
-    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))(handler, implicitly[JavaTypeable[SearchResponse]])
+    execute(ElastiknnRequests.nearestNeighbors(index, query, k, storedIdField))
   }
 
 }
@@ -113,13 +111,13 @@ object ElastiknnClient {
     * @return
     *   [[ElastiknnFutureClient]]
     */
-  def futureClient(restClient: RestClient, strictFailure: Boolean)(implicit ec: ExecutionContext): ElastiknnFutureClient = {
+  def futureClient(restClient: RestClient, strictFailure: Boolean)(using ec: ExecutionContext): ElastiknnFutureClient = {
     val jc: JavaClient = new JavaClient(restClient)
     new ElastiknnFutureClient {
-      implicit val executor: Executor[Future] = Executor.FutureExecutor(ec)
-      implicit val functor: Functor[Future] = Functor.FutureFunctor(ec)
+      given executor: Executor[Future] = Executor.FutureExecutor(ec)
+      given functor: Functor[Future] = Functor.FutureFunctor(ec)
       val elasticClient: ElasticClient = ElasticClient(jc)
-      override def execute[T, U](req: T)(implicit handler: Handler[T, U], javaTypeable: JavaTypeable[U]): Future[Response[U]] = {
+      override def execute[T, U](req: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): Future[Response[U]] = {
         val future: Future[Response[U]] = elasticClient.execute(req)
         if (strictFailure) future.flatMap { res =>
           checkResponse(req, res) match {
@@ -149,7 +147,7 @@ object ElastiknnClient {
     * @return
     *   [[ElastiknnFutureClient]]
     */
-  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(implicit
+  def futureClient(host: String = "localhost", port: Int = 9200, strictFailure: Boolean = true, timeoutMillis: Int = 30000)(using
       ec: ExecutionContext
   ): ElastiknnFutureClient = {
     val rc: RestClient = RestClient

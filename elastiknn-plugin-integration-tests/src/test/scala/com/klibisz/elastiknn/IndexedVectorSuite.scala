@@ -12,7 +12,7 @@ class IndexedVectorSuite extends AsyncFreeSpec with Matchers with ElasticAsyncCl
 
   "Issue 310" - {
     "Informative errors when indexed vector index, doc, or field do not exist" in {
-      implicit val rng: Random = new Random(0)
+      given rng: Random = new Random(0)
       val (indexName, vecFieldName, idFieldName) = ("issue-310", "vec", "id")
       val corpus = Vec.DenseFloat.randoms(42, 99)
       val ids = corpus.indices.map(i => s"v$i")
