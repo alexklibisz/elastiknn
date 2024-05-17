@@ -6,8 +6,8 @@ Global / scalaVersion := "3.3.3"
 Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.7"
-lazy val ElasticsearchVersion = "8.13.3"
-lazy val Elastic4sVersion = "8.11.5"
+lazy val ElasticsearchVersion = "8.13.4"
+lazy val Elastic4sVersion = "8.12.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.10.0"
 
@@ -54,7 +54,7 @@ lazy val `elastiknn-client-elastic4s` = project
     name := "client-elastic4s",
     version := ElastiknnVersion,
     libraryDependencies ++= Seq(
-      "com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % Elastic4sVersion
+      "nl.gn0s1s" %% "elastic4s-client-esjava" % Elastic4sVersion
     ),
     TestSettings
   )
