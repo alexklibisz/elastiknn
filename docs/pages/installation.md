@@ -42,8 +42,8 @@ Make a Dockerfile like below.
 The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `A.B.C.x/elastiknn-A.B.C.x`).
 
 ```docker
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.14.1
-RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/8.14.1.0/elastiknn-8.14.1.0.zip
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.14.2
+RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/8.14.2.0/elastiknn-8.14.2.0.zip
 ```
 
 Build and run the Dockerfile. If you have any issues please refer to the [official docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)
