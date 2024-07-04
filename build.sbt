@@ -5,9 +5,9 @@ Global / scalaVersion := "3.3.3"
 
 Global / scalacOptions += "-explain"
 
-lazy val CirceVersion = "0.14.7"
+lazy val CirceVersion = "0.14.9"
 lazy val ElasticsearchVersion = "8.14.2"
-lazy val Elastic4sVersion = "8.13.0"
+lazy val Elastic4sVersion = "8.13.1"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.10.0"
 
@@ -15,7 +15,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test,
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
   // https://github.com/typelevel/sbt-tpolecat/tree/v0.5.1?tab=readme-ov-file#scalatest-warnings
   Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )
