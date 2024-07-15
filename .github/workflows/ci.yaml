@@ -80,7 +80,7 @@ jobs:
           distribution: 'adopt'
           java-version: 21
           cache: 'sbt'
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         timeout-minutes: 1
         with:
           python-version: '3.10.8'
@@ -128,7 +128,7 @@ jobs:
         timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         timeout-minutes: 1
         with:
           python-version: '3.10.8'
