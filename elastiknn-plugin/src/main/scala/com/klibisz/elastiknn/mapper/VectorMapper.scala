@@ -113,7 +113,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
     override def build(context: MapperBuilderContext): FieldMapper =
       new FieldMapper(
         field,
-        new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(name), mapping),
+        new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(field), mapping),
         multiFieldsBuilder.build(this, context),
         copyTo
       ) {
@@ -123,7 +123,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
           val doc = context.doc()
           val parser = context.parser()
           val vec: V = XContentCodec.decodeUnsafe[V](parser)
-          val fields = checkAndCreateFields(mapping, name, vec).get
+          val fields = checkAndCreateFields(mapping, field, vec).get
           fields.foreach(doc.add)
         }
 
@@ -139,7 +139,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
           XContentCodec.Encoder.mapping.encodeElastiknnObject(mapping, builder)
         }
 
-        override def getMergeBuilder: FieldMapper.Builder = new Builder(simpleName(), mapping)
+        override def getMergeBuilder: FieldMapper.Builder = new Builder(field, mapping)
       }
 
     override def getParameters: Array[FieldMapper.Parameter[_]] =
