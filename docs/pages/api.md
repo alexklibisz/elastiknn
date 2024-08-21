@@ -470,11 +470,11 @@ The exact transformations are described below.
 |Jaccard|N/A|0|1.0|
 |Hamming|N/A|0|1.0|
 |Cosine[^note-angular-cosine]|`cosine similarity + 1`|0|2|
-|Dot[^note-dot-product]|`Dot similarity + 1`|0|2| 
+|Dot[^note-dot-product]|`min(2,max(0,Dot similarity + 1))`|0|2| 
 |L1|`1 / (1 + l1 distance)`|0|1|
 |L2|`1 / (1 + l2 distance)`|0|1|
 
-Dot similirarity will produce negative scores if the vectors are not normalized
+Dot similirarity if the vectors are not normalized, it can produce values outside the [-1,1] range, that's why we use max,min to limit these cases
 
 If you're using the `elastiknn_nearest_neighbors` query with other queries, and the score values are inconvenient (e.g. huge values like 1e6), consider wrapping the query in a [Script Score Query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html), where you can access and transform the `_score` value.
 
