@@ -136,13 +136,14 @@ public class MatchHashesAndScoreQuery extends Query {
                                     return docID();
                                 } else {
                                     docID++;
-                                    if (counter.get(docID) > kgr.kthGreatest) {
+                                    int count = counter.get(docID);
+                                    if (count > kgr.kthGreatest) {
                                         numEmitted++;
-                                        return docID();
-                                    } else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                        return docID;
+                                    } else if (count > 0 && count == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                         numEq++;
                                         numEmitted++;
-                                        return docID();
+                                        return docID;
                                     }
                                 }
                             }
