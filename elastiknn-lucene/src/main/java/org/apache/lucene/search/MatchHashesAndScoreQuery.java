@@ -8,7 +8,6 @@ import org.apache.lucene.util.BytesRef;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 
 import static java.lang.Math.min;
@@ -63,7 +62,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new HashMapHitCounter(expectedNumberOfMatches, hashAndFrequencies.length);
+                    HitCounter counter = new ArrayHitCounter(expectedNumberOfMatches, hashAndFrequencies.length);
                     for (HashAndFreq hf : hashAndFrequencies) {
                         // We take two different paths here, depending on the frequency of the current hash.
                         // If the frequency is one, we avoid checking the frequency of matching docs when

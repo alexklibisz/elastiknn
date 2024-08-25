@@ -15,15 +15,11 @@ public interface HitCounter {
 
     short get(int key);
 
-    int numHits();
-
     int capacity();
 
     int minKey();
 
     int maxKey();
-
-    KthGreatestResult kthGreatest(int k);
 
     DocIdSetIterator docIdSetIterator(int k);
 

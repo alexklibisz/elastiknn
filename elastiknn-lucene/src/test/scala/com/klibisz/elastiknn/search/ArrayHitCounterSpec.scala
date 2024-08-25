@@ -21,8 +21,6 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
     override def get(key: Int): Short = counts(key)
 
-    override def numHits(): Int = counts.values.count(_ > 0)
-
     override def capacity(): Int = this.referenceCapacity
 
     override def minKey(): Int = counts.filter(_._2 > 0).keys.min
@@ -48,14 +46,12 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       c.get(0) shouldBe 0
       c.increment(0)
       c.get(0) shouldBe 1
-      c.numHits() shouldBe 1
       c.minKey() shouldBe 0
       c.maxKey() shouldBe 0
 
       c.get(5) shouldBe 0
       c.increment(5, 5)
       c.get(5) shouldBe 5
-      c.numHits() shouldBe 2
       c.minKey() shouldBe 0
       c.maxKey() shouldBe 5
 
@@ -64,7 +60,6 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       c.get(9) shouldBe 1
       c.increment(9)
       c.get(9) shouldBe 2
-      c.numHits() shouldBe 3
       c.minKey() shouldBe 0
       c.maxKey() shouldBe 9
 
@@ -84,7 +79,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
       val ref = new Reference(numDocs)
-      val ahc = new ArrayHitCounter(numDocs)
+      val ahc = new ArrayHitCounter(numDocs, ???)
       matches.foreach { doc =>
         ref.increment(doc)
         ahc.increment(doc)
