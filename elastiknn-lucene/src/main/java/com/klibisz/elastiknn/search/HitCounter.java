@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.search;
 
+import org.apache.lucene.search.DocIdSetIterator;
+
 /**
  * Abstraction for counting hits for a particular query.
  */
@@ -22,5 +24,7 @@ public interface HitCounter {
     int maxKey();
 
     KthGreatestResult kthGreatest(int k);
+
+    DocIdSetIterator docIdSetIterator(int k);
 
 }

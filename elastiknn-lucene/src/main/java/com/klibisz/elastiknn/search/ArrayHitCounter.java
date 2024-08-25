@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.search;
 
+import org.apache.lucene.search.DocIdSetIterator;
+
 /**
  * Use an array of counts to count hits. The index of the array is the doc id.
  * Hopefully there's a way to do this that doesn't require O(num docs in segment) time and memory,
@@ -104,5 +106,10 @@ public class ArrayHitCounter implements HitCounter {
         int numGreater = numGreaterEqual - hist[kthGreatest];
         if (kthGreatest == 0) numGreater = numHits;
         return new KthGreatestResult(kthGreatest, numGreater, numHits);
+    }
+
+    @Override
+    public DocIdSetIterator docIdSetIterator(int k) {
+        return DocIdSetIterator.empty();
     }
 }

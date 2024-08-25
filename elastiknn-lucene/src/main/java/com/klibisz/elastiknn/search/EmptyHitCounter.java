@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.search;
 
+import org.apache.lucene.search.DocIdSetIterator;
+
 public final class EmptyHitCounter implements HitCounter {
 
     @Override
@@ -41,5 +43,10 @@ public final class EmptyHitCounter implements HitCounter {
     @Override
     public KthGreatestResult kthGreatest(int k) {
         return new KthGreatestResult((short) 0, 0, 0);
+    }
+    
+    @Override
+    public DocIdSetIterator docIdSetIterator(int k) {
+        return DocIdSetIterator.empty();
     }
 }

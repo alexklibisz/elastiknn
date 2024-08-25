@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.search
 
+import org.apache.lucene.search.DocIdSetIterator
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -34,6 +35,8 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       val numNonZero = values.count(_ != 0)
       new KthGreatestResult(values(k), numGreaterThan, numNonZero)
     }
+
+    override def docIdSetIterator(k: Int): DocIdSetIterator = DocIdSetIterator.empty()
   }
 
   "reference examples" - {
