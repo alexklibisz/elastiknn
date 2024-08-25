@@ -2,43 +2,30 @@ package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.DocIdSetIterator;
 
-import java.util.Arrays;
-
 
 public final class ArrayHitCounter implements HitCounter {
 
     private final short[] docIdToCount;
     private final short[] countToFrequency;
-    private final int[] countToMinDocId;
-    private final int[] countToMaxDocId;
+    private int minDocId = Integer.MAX_VALUE;
+    private int maxDocId = Integer.MIN_VALUE;
     private int maxCount;
 
 
-    public ArrayHitCounter(int capacity, int maxExpectedCount) {
+    public ArrayHitCounter(int capacity, int maxPossibleCount) {
         this.docIdToCount = new short[capacity];
-        this.countToFrequency = new short[maxExpectedCount + 1];
-        this.countToMinDocId = new int[maxExpectedCount + 1];
-        Arrays.fill(countToMinDocId, Integer.MAX_VALUE);
-        this.countToMaxDocId = new int[maxExpectedCount + 1];
+        this.countToFrequency = new short[maxPossibleCount + 1];
         this.maxCount = 0;
     }
 
     private void incrementKeyByCount(int docId, short count) {
         int newCount = (docIdToCount[docId] += count);
         if (newCount > maxCount) maxCount = newCount;
-
-        // Updates for the old count.
-        int oldCount = newCount - count;
-        if (oldCount > 0) {
-            countToFrequency[oldCount] -= 1;
-            if (docId < countToMinDocId[oldCount]) countToMinDocId[oldCount] = docId;
-            if (docId > countToMaxDocId[oldCount]) countToMaxDocId[oldCount] = docId;
-        }
-
-        // Updates for the new count.
         countToFrequency[newCount] += 1;
-        if (docId < countToMinDocId[newCount]) countToMinDocId[newCount] = docId;
-        if (docId > countToMaxDocId[newCount]) countToMaxDocId[newCount] = docId;
+        int oldCount = newCount - count;
+        if (oldCount > 0) countToFrequency[oldCount] -= 1;
+        if (docId > maxDocId) maxDocId = docId;
+        if (docId < minDocId) minDocId = docId;
     }
 
     @Override
@@ -54,6 +41,9 @@ public final class ArrayHitCounter implements HitCounter {
 
     @Override
     public short get(int key) {
+        if (key == DocIdSetIterator.NO_MORE_DOCS - 1) {
+            return -1;
+        }
         return docIdToCount[key];
     }
 
@@ -72,18 +62,9 @@ public final class ArrayHitCounter implements HitCounter {
             // 2. the minimum doc ID that we should start iterating at
             // 3. and the maximum doc ID that we should iterate to
             int minCount = maxCount;
-            int minDocId = Integer.MAX_VALUE;
-            int maxDocId = Integer.MIN_VALUE;
             int accumulated = 0;
             while (accumulated < candidates && minCount > 0) {
-                int count = countToFrequency[minCount];
-                if (count > 0) {
-                    accumulated += count;
-                    int maybeNewMinDocId = countToMinDocId[minCount];
-                    if (maybeNewMinDocId < minDocId) minDocId = maybeNewMinDocId;
-                    int maybeNewMaxDocId = countToMaxDocId[minCount];
-                    if (maybeNewMaxDocId > maxDocId) maxDocId = maybeNewMaxDocId;
-                }
+                accumulated += countToFrequency[minCount];
                 minCount -= 1;
             }
 //            minCount = Math.max(1, minCount);

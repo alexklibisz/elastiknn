@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
 
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 /**
@@ -60,7 +61,11 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc(), hashAndFrequencies.length);
+
+                    int maxFreq = 1;
+                    for (HashAndFreq hf : hashAndFrequencies) if (hf.freq > maxFreq) maxFreq = hf.freq;
+
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc(), hashAndFrequencies.length * maxFreq);
                     for (HashAndFreq hf : hashAndFrequencies) {
                         // We take two different paths here, depending on the frequency of the current hash.
                         // If the frequency is one, we avoid checking the frequency of matching docs when
