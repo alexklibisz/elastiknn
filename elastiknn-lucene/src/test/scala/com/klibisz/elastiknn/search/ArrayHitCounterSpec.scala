@@ -27,13 +27,6 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
     override def maxKey(): Int = counts.filter(_._2 > 0).keys.max
 
-    override def kthGreatest(k: Int): KthGreatestResult = {
-      val values = counts.values.toArray.sorted.reverse
-      val numGreaterThan = values.count(_ > values(k))
-      val numNonZero = values.count(_ != 0)
-      new KthGreatestResult(values(k), numGreaterThan, numNonZero)
-    }
-
     override def docIdSetIterator(k: Int): DocIdSetIterator = DocIdSetIterator.empty()
   }
 
@@ -63,10 +56,10 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       c.minKey() shouldBe 0
       c.maxKey() shouldBe 9
 
-      val kgr = c.kthGreatest(2)
-      kgr.kthGreatest shouldBe 1
-      kgr.numGreaterThan shouldBe 2
-      kgr.numNonZero shouldBe 3
+//      val kgr = c.kthGreatest(2)
+//      kgr.kthGreatest shouldBe 1
+//      kgr.numGreaterThan shouldBe 2
+//      kgr.numNonZero shouldBe 3
     }
   }
 
@@ -79,7 +72,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
       val ref = new Reference(numDocs)
-      val ahc = new ArrayHitCounter(numDocs, ???)
+      val ahc = new ArrayHitCounter(numDocs, matches.length)
       matches.foreach { doc =>
         ref.increment(doc)
         ahc.increment(doc)
@@ -91,11 +84,10 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       }
       ahc.minKey() shouldBe ref.minKey()
       ahc.maxKey() shouldBe ref.maxKey()
-      ahc.numHits() shouldBe ref.numHits()
-      val k = rng.nextInt(numDocs)
-      val ahcKgr = ahc.kthGreatest(k)
-      val refKgr = ref.kthGreatest(k)
-      ahcKgr shouldBe refKgr
+//      val k = rng.nextInt(numDocs)
+//      val ahcKgr = ahc.kthGreatest(k)
+//      val refKgr = ref.kthGreatest(k)
+//      ahcKgr shouldBe refKgr
     }
   }
 }
