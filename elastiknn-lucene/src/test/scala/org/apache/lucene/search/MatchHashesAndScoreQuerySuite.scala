@@ -113,7 +113,7 @@ class MatchHashesAndScoreQuerySuite extends AnyFunSuite with Matchers with Lucen
     succeed
   }
 
-  ignore("returns no more than `candidates` doc IDs") {
+  test("returns no more than `candidates` doc IDs") {
     val query = Array(6, 7).map(i => HashAndFreq.once(writeInt(i)))
     val candidates = 5
 

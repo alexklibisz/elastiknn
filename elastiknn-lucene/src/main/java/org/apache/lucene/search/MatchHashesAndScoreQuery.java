@@ -44,8 +44,6 @@ public class MatchHashesAndScoreQuery extends Query {
         this.scoreFunctionBuilder = scoreFunctionBuilder;
     }
 
-    private static int expectedNumberOfMatches = 1024;
-
     @Override
     public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
 
@@ -62,7 +60,7 @@ public class MatchHashesAndScoreQuery extends Query {
                 } else {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
-                    HitCounter counter = new ArrayHitCounter(expectedNumberOfMatches, hashAndFrequencies.length);
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc(), hashAndFrequencies.length);
                     for (HashAndFreq hf : hashAndFrequencies) {
                         // We take two different paths here, depending on the frequency of the current hash.
                         // If the frequency is one, we avoid checking the frequency of matching docs when

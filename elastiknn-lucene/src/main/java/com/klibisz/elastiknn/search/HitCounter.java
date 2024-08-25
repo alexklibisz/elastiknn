@@ -11,15 +11,10 @@ public interface HitCounter {
 
     void increment(int key, short count);
 
-    boolean isEmpty();
 
     short get(int key);
 
     int capacity();
-
-    int minKey();
-
-    int maxKey();
 
     DocIdSetIterator docIdSetIterator(int k);
 

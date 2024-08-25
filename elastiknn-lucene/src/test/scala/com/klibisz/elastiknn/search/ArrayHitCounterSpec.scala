@@ -17,15 +17,9 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
     override def increment(key: Int, count: Short): Unit = counts.update(key, (counts(key) + count).toShort)
 
-    override def isEmpty: Boolean = !counts.values.exists(_ > 0)
-
     override def get(key: Int): Short = counts(key)
 
     override def capacity(): Int = this.referenceCapacity
-
-    override def minKey(): Int = counts.filter(_._2 > 0).keys.min
-
-    override def maxKey(): Int = counts.filter(_._2 > 0).keys.max
 
     override def docIdSetIterator(k: Int): DocIdSetIterator = DocIdSetIterator.empty()
   }
@@ -33,28 +27,21 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
   "reference examples" - {
     "example 1" in {
       val c = new Reference(10)
-      c.isEmpty shouldBe true
       c.capacity() shouldBe 10
 
       c.get(0) shouldBe 0
       c.increment(0)
       c.get(0) shouldBe 1
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 0
 
       c.get(5) shouldBe 0
       c.increment(5, 5)
       c.get(5) shouldBe 5
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 5
 
       c.get(9) shouldBe 0
       c.increment(9)
       c.get(9) shouldBe 1
       c.increment(9)
       c.get(9) shouldBe 2
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 9
 
 //      val kgr = c.kthGreatest(2)
 //      kgr.kthGreatest shouldBe 1
@@ -82,8 +69,8 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         ahc.increment(doc, count)
         ahc.get(doc) shouldBe ref.get(doc)
       }
-      ahc.minKey() shouldBe ref.minKey()
-      ahc.maxKey() shouldBe ref.maxKey()
+//      ahc.minKey() shouldBe ref.minKey()
+//      ahc.maxKey() shouldBe ref.maxKey()
 //      val k = rng.nextInt(numDocs)
 //      val ahcKgr = ahc.kthGreatest(k)
 //      val refKgr = ref.kthGreatest(k)

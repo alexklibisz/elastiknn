@@ -11,27 +11,12 @@ public final class EmptyHitCounter implements HitCounter {
     public void increment(int key, short count) {}
 
     @Override
-    public boolean isEmpty() {
-        return true;
-    }
-
-    @Override
     public short get(int key) {
         return 0;
     }
 
     @Override
     public int capacity() {
-        return 0;
-    }
-
-    @Override
-    public int minKey() {
-        return 0;
-    }
-
-    @Override
-    public int maxKey() {
         return 0;
     }
 
