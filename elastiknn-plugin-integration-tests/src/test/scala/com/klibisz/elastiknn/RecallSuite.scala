@@ -40,21 +40,21 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
 
   private val tests = Seq(
     // Exact
-//    Test(
-//      Mapping.SparseBool(dims),
-//      Seq(
-//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
-//      )
-//    ),
-//    Test(
-//      Mapping.DenseFloat(dims),
-//      Seq(
-//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-//        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
-//      )
-//    ),
+    Test(
+      Mapping.SparseBool(dims),
+      Seq(
+        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
+      )
+    ),
+    Test(
+      Mapping.DenseFloat(dims),
+      Seq(
+        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
+      )
+    ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),

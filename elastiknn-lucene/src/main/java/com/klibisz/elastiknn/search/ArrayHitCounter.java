@@ -119,16 +119,16 @@ public final class ArrayHitCounter implements HitCounter {
                     while (true) {
                         if (numEmitted == candidates || docID + 1 > maxKey) {
                             docID = DocIdSetIterator.NO_MORE_DOCS;
-                            return docID();
+                            return docID;
                         } else {
                             docID++;
                             if (counts[docID] > kgr.kthGreatest) {
                                 numEmitted++;
-                                return docID();
+                                return docID;
                             } else if (counts[docID] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
                                 numEq++;
                                 numEmitted++;
-                                return docID();
+                                return docID;
                             }
                         }
                     }
