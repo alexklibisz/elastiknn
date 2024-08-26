@@ -59,7 +59,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
       val ref = new Reference(numDocs)
-      val ahc = new ArrayHitCounter(numDocs, matches.length)
+      val ahc = new ArrayHitCounter(numDocs)
       matches.foreach { doc =>
         ref.increment(doc)
         ahc.increment(doc)

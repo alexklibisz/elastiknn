@@ -2,136 +2,150 @@ package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.DocIdSetIterator;
 
-
 public final class ArrayHitCounter implements HitCounter {
 
-    private final short[] docIdToCount;
-    private final short[] countToFrequency;
-    private int minDocId = Integer.MAX_VALUE;
-    private int maxDocId = Integer.MIN_VALUE;
-    private int maxCount;
+    private final short[] counts;
+    private int numHits;
+    private int minKey;
+    private int maxKey;
 
+    private short maxValue;
 
-    public ArrayHitCounter(int capacity, int maxPossibleCount) {
-        this.docIdToCount = new short[capacity];
-        this.countToFrequency = new short[maxPossibleCount + 1];
-        this.maxCount = 0;
-    }
-
-    private void incrementKeyByCount(int docId, short count) {
-        int newCount = (docIdToCount[docId] += count);
-        if (newCount > maxCount) maxCount = newCount;
-        countToFrequency[newCount] += 1;
-        int oldCount = newCount - count;
-        if (oldCount > 0) countToFrequency[oldCount] -= 1;
-        if (docId > maxDocId) maxDocId = docId;
-        if (docId < minDocId) minDocId = docId;
+    public ArrayHitCounter(int capacity) {
+        counts = new short[capacity];
+        numHits = 0;
+        minKey = capacity;
+        maxKey = 0;
+        maxValue = 0;
     }
 
     @Override
     public void increment(int key) {
-        incrementKeyByCount(key, (short) 1);
+        short after = ++counts[key];
+        if (after == 1) {
+            numHits++;
+            minKey = Math.min(key, minKey);
+            maxKey = Math.max(key, maxKey);
+        }
+        if (after > maxValue) maxValue = after;
     }
 
     @Override
     public void increment(int key, short count) {
-        incrementKeyByCount(key, count);
+        short after = (counts[key] += count);
+        if (after == count) {
+            numHits++;
+            minKey = Math.min(key, minKey);
+            maxKey = Math.max(key, maxKey);
+        }
+        if (after > maxValue) maxValue = after;
     }
-
 
     @Override
     public short get(int key) {
-        if (key == DocIdSetIterator.NO_MORE_DOCS - 1) {
-            return -1;
-        }
-        return docIdToCount[key];
+        return counts[key];
     }
 
     @Override
     public int capacity() {
-        return docIdToCount.length;
+        return counts.length;
     }
 
+
+    private KthGreatestResult kthGreatest(int k) {
+        // Find the kth greatest document hit count in O(n) time and O(n) space.
+        // Though the space is typically negligibly small in practice.
+        // This implementation exploits the fact that we're specifically counting document hit counts.
+        // Counts are integers, and they're likely to be pretty small, since we're unlikely to match
+        // the same document many times.
+
+        // Start by building a histogram of all counts.
+        // e.g., if the counts are [0, 4, 1, 1, 2],
+        // then the histogram is [1, 2, 1, 0, 1],
+        // because 0 occurs once, 1 occurs twice, 2 occurs once, 3 occurs zero times, and 4 occurs once.
+        short[] hist = new short[maxValue + 1];
+        for (short c: counts) hist[c]++;
+
+        // Now we start at the max value and iterate backwards through the histogram,
+        // accumulating counts of counts until we've exceeded k.
+        int numGreaterEqual = 0;
+        short kthGreatest = maxValue;
+        while (kthGreatest > 0) {
+            numGreaterEqual += hist[kthGreatest];
+            if (numGreaterEqual > k) break;
+            else kthGreatest--;
+        }
+
+        // Finally we find the number that were greater than the kth greatest count.
+        // There's a special case if kthGreatest is zero, then the number that were greater is the number of hits.
+        int numGreater = numGreaterEqual - hist[kthGreatest];
+        if (kthGreatest == 0) numGreater = numHits;
+        return new KthGreatestResult(kthGreatest, numGreater, numHits);
+    }
 
     @Override
     public DocIdSetIterator docIdSetIterator(int candidates) {
-        if (maxCount == 0) return DocIdSetIterator.empty();
+        if (numHits == 0) return DocIdSetIterator.empty();
         else {
-            // Loop backwards through the countToFrequency array to figure out a few things needed for the iterator:
-            // 1. the minimum count that's required for a document to be a candidate
-            // 2. the minimum doc ID that we should start iterating at
-            // 3. and the maximum doc ID that we should iterate to
-            int minCount = maxCount;
-            int accumulated = 0;
-            while (accumulated < candidates && minCount > 0) {
-                accumulated += countToFrequency[minCount];
-                minCount -= 1;
-            }
-//            minCount = Math.max(1, minCount);
-            int numGreaterThanMinCount = accumulated - countToFrequency[minCount];
-            return new _DocIdSetIterator(candidates, minDocId, maxDocId, minCount, numGreaterThanMinCount, docIdToCount);
-        }
-    }
 
-    private static final class _DocIdSetIterator extends DocIdSetIterator {
+            KthGreatestResult kgr = kthGreatest(candidates);
 
-        private final int candidates;
-        private final int minDocId;
-        private final int maxDocId;
-        private final int minCount;
-        private final int numGreaterThanMinCount;
-        private final short[] docIdToCount;
-        private int currentDocId;
-        private int numEmitted;
-        private int numEmittedEqualToMinCount;
+            // Return an iterator over the doc ids >= the min candidate count.
+            return new DocIdSetIterator() {
 
-        public _DocIdSetIterator(int candidates, int minDocId, int maxDocId, int minCount, int numGreaterThanMinCount, short[] docIdToCount) {
-            this.candidates = candidates;
-            this.minDocId = minDocId;
-            this.maxDocId = maxDocId;
-            this.minCount = minCount;
-            this.numGreaterThanMinCount = numGreaterThanMinCount;
-            this.docIdToCount = docIdToCount;
-            this.currentDocId = minDocId - 1;
-            this.numEmitted = 0;
-            this.numEmittedEqualToMinCount = 0;
-        }
+                // Important that this starts at -1. Need a boolean to denote that it has started iterating.
+                private int docID = -1;
+                private boolean started = false;
 
-        @Override
-        public int docID() {
-            return currentDocId;
-        }
+                // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
+                private int numEmitted = 0;
+                private int numEq = 0;
 
-        @Override
-        public int nextDoc() {
-            while (true) {
-                if (numEmitted == candidates || currentDocId + 1 > maxDocId) {
-                    currentDocId = DocIdSetIterator.NO_MORE_DOCS;
-                    return currentDocId;
-                } else {
-                    currentDocId++;
-                    int count = docIdToCount[currentDocId];
-                    if (count > minCount) {
-                        numEmitted++;
-                        return currentDocId;
-                    } else if (count == minCount && numEmittedEqualToMinCount < candidates - numGreaterThanMinCount) {
-                        numEmitted++;
-                        numEmittedEqualToMinCount++;
-                        return currentDocId;
+                @Override
+                public int docID() {
+                    return docID;
+                }
+
+                @Override
+                public int nextDoc() {
+
+                    if (!started) {
+                        started = true;
+                        docID = minKey - 1;
+                    }
+
+                    // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
+                    // than `candidates` docs with count > kgr.kthGreatest.
+                    while (true) {
+                        if (numEmitted == candidates || docID + 1 > maxKey) {
+                            docID = DocIdSetIterator.NO_MORE_DOCS;
+                            return docID();
+                        } else {
+                            docID++;
+                            if (counts[docID] > kgr.kthGreatest) {
+                                numEmitted++;
+                                return docID();
+                            } else if (counts[docID] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                numEq++;
+                                numEmitted++;
+                                return docID();
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        @Override
-        public int advance(int target) {
-            while (currentDocId < target) nextDoc();
-            return currentDocId;
-        }
+                @Override
+                public int advance(int target) {
+                    while (docID < target) nextDoc();
+                    return docID();
+                }
 
-        @Override
-        public long cost() {
-            return maxDocId - minDocId;
+                @Override
+                public long cost() {
+                    return maxKey - minKey;
+                }
+            };
         }
     }
+
 }

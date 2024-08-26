@@ -62,10 +62,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
 
-                    int maxFreq = 1;
-                    for (HashAndFreq hf : hashAndFrequencies) if (hf.freq > maxFreq) maxFreq = hf.freq;
-
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc(), hashAndFrequencies.length * maxFreq);
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
                     for (HashAndFreq hf : hashAndFrequencies) {
                         // We take two different paths here, depending on the frequency of the current hash.
                         // If the frequency is one, we avoid checking the frequency of matching docs when
@@ -90,76 +87,6 @@ public class MatchHashesAndScoreQuery extends Query {
                     return counter;
                 }
             }
-
-//            private DocIdSetIterator buildDocIdSetIterator(HitCounter counter) {
-//                // TODO: Add back this logging once log4j mess has settled.
-////                if (counter.numHits() < candidates) {
-////                logger.warn(String.format(
-////                        "Found fewer approximate matches [%d] than the requested number of candidates [%d]",
-////                        counter.numHits(), candidates));
-////                }
-//                if (counter.isEmpty()) return DocIdSetIterator.empty();
-//                else {
-//
-//                    KthGreatestResult kgr = counter.kthGreatest(candidates);
-//
-//                    // Return an iterator over the doc ids >= the min candidate count.
-//                    return new DocIdSetIterator() {
-//
-//                        // Important that this starts at -1. Need a boolean to denote that it has started iterating.
-//                        private int docID = -1;
-//                        private boolean started = false;
-//
-//                        // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
-//                        private int numEmitted = 0;
-//                        private int numEq = 0;
-//
-//                        @Override
-//                        public int docID() {
-//                            return docID;
-//                        }
-//
-//                        @Override
-//                        public int nextDoc() {
-//
-//                            if (!started) {
-//                                started = true;
-//                                docID = counter.minKey() - 1;
-//                            }
-//
-//                            // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
-//                            // than `candidates` docs with count > kgr.kthGreatest.
-//                            while (true) {
-//                                if (numEmitted == candidates || docID + 1 > counter.maxKey()) {
-//                                    docID = DocIdSetIterator.NO_MORE_DOCS;
-//                                    return docID();
-//                                } else {
-//                                    docID++;
-//                                    if (counter.get(docID) > kgr.kthGreatest) {
-//                                        numEmitted++;
-//                                        return docID();
-//                                    } else if (counter.get(docID) == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
-//                                        numEq++;
-//                                        numEmitted++;
-//                                        return docID();
-//                                    }
-//                                }
-//                            }
-//                        }
-//
-//                        @Override
-//                        public int advance(int target) {
-//                            while (docID < target) nextDoc();
-//                            return docID();
-//                        }
-//
-//                        @Override
-//                        public long cost() {
-//                            return counter.numHits();
-//                        }
-//                    };
-//                }
-//            }
 
             @Override
             public Explanation explain(LeafReaderContext context, int doc) throws IOException {

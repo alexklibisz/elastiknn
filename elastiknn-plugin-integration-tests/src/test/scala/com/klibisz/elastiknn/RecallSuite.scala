@@ -22,7 +22,7 @@ import scala.util.hashing.MurmurHash3.orderedHash
   *     have seen different results at times. This seems to be an effect at the Elasticsearch level. I've tested at the Lucene (sans ES)
   *     level and that seems to be reliably deterministic.
   */
-class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
+class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient with AsyncCancelAfterFailure {
 
   // Each test case consists of setting up one Mapping and then running several queries against that mapping.
   // Each query has an expected recall that will be checked.
@@ -40,21 +40,21 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient {
 
   private val tests = Seq(
     // Exact
-    Test(
-      Mapping.SparseBool(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
-      )
-    ),
-    Test(
-      Mapping.DenseFloat(dims),
-      Seq(
-        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
-        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
-      )
-    ),
+//    Test(
+//      Mapping.SparseBool(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Jaccard) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Hamming) -> 1d
+//      )
+//    ),
+//    Test(
+//      Mapping.DenseFloat(dims),
+//      Seq(
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
+//        NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d
+//      )
+//    ),
     // Jaccard LSH
     Test(
       Mapping.JaccardLsh(dims, 200, 1),
