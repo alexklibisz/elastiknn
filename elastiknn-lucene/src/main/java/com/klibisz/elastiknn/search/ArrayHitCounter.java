@@ -70,7 +70,7 @@ public final class ArrayHitCounter implements HitCounter {
         // accumulating counts of counts until we've exceeded k.
         int numGreaterEqual = 0;
         short kthGreatest = maxValue;
-        while (kthGreatest > 0) {
+        while (kthGreatest > 1) {
             numGreaterEqual += hist[kthGreatest];
             if (numGreaterEqual > k) break;
             else kthGreatest--;
@@ -125,7 +125,7 @@ public final class ArrayHitCounter implements HitCounter {
                             if (counts[docID] > kgr.kthGreatest) {
                                 numEmitted++;
                                 return docID;
-                            } else if (counts[docID] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                            } else if (counts[docID] == kgr.kthGreatest && numEq < kgr.numNonZero - kgr.numGreaterThan) {
                                 numEq++;
                                 numEmitted++;
                                 return docID;
