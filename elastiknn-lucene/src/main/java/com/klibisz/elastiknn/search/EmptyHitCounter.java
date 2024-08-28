@@ -1,5 +1,7 @@
 package com.klibisz.elastiknn.search;
 
+import org.apache.lucene.search.DocIdSetIterator;
+
 public final class EmptyHitCounter implements HitCounter {
 
     @Override
@@ -9,17 +11,7 @@ public final class EmptyHitCounter implements HitCounter {
     public void increment(int key, short count) {}
 
     @Override
-    public boolean isEmpty() {
-        return true;
-    }
-
-    @Override
     public short get(int key) {
-        return 0;
-    }
-
-    @Override
-    public int numHits() {
         return 0;
     }
 
@@ -29,17 +21,7 @@ public final class EmptyHitCounter implements HitCounter {
     }
 
     @Override
-    public int minKey() {
-        return 0;
-    }
-
-    @Override
-    public int maxKey() {
-        return 0;
-    }
-
-    @Override
-    public KthGreatestResult kthGreatest(int k) {
-        return new KthGreatestResult((short) 0, 0, 0);
+    public DocIdSetIterator docIdSetIterator(int k) {
+        return DocIdSetIterator.empty();
     }
 }

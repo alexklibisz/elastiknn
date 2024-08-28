@@ -1,11 +1,8 @@
 package com.klibisz.elastiknn.search;
 
-/**
- * Use an array of counts to count hits. The index of the array is the doc id.
- * Hopefully there's a way to do this that doesn't require O(num docs in segment) time and memory,
- * but so far I haven't found anything on the JVM that's faster than simple arrays of primitives.
- */
-public class ArrayHitCounter implements HitCounter {
+import org.apache.lucene.search.DocIdSetIterator;
+
+public final class ArrayHitCounter implements HitCounter {
 
     private final short[] counts;
     private int numHits;
@@ -45,18 +42,8 @@ public class ArrayHitCounter implements HitCounter {
     }
 
     @Override
-    public boolean isEmpty() {
-        return numHits == 0;
-    }
-
-    @Override
     public short get(int key) {
         return counts[key];
-    }
-
-    @Override
-    public int numHits() {
-        return numHits;
     }
 
     @Override
@@ -64,18 +51,8 @@ public class ArrayHitCounter implements HitCounter {
         return counts.length;
     }
 
-    @Override
-    public int minKey() {
-        return minKey;
-    }
 
-    @Override
-    public int maxKey() {
-        return maxKey;
-    }
-
-    @Override
-    public KthGreatestResult kthGreatest(int k) {
+    private KthGreatestResult kthGreatest(int k) {
         // Find the kth greatest document hit count in O(n) time and O(n) space.
         // Though the space is typically negligibly small in practice.
         // This implementation exploits the fact that we're specifically counting document hit counts.
@@ -105,4 +82,70 @@ public class ArrayHitCounter implements HitCounter {
         if (kthGreatest == 0) numGreater = numHits;
         return new KthGreatestResult(kthGreatest, numGreater, numHits);
     }
+
+    @Override
+    public DocIdSetIterator docIdSetIterator(int candidates) {
+        if (numHits == 0) return DocIdSetIterator.empty();
+        else {
+
+            KthGreatestResult kgr = kthGreatest(candidates);
+
+            // Return an iterator over the doc ids >= the min candidate count.
+            return new DocIdSetIterator() {
+
+                // Important that this starts at -1. Need a boolean to denote that it has started iterating.
+                private int docID = -1;
+                private boolean started = false;
+
+                // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
+                private int numEmitted = 0;
+                private int numEq = 0;
+
+                @Override
+                public int docID() {
+                    return docID;
+                }
+
+                @Override
+                public int nextDoc() {
+
+                    if (!started) {
+                        started = true;
+                        docID = minKey - 1;
+                    }
+
+                    // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
+                    // than `candidates` docs with count > kgr.kthGreatest.
+                    while (true) {
+                        if (numEmitted == candidates || docID + 1 > maxKey) {
+                            docID = DocIdSetIterator.NO_MORE_DOCS;
+                            return docID;
+                        } else {
+                            docID++;
+                            if (counts[docID] > kgr.kthGreatest) {
+                                numEmitted++;
+                                return docID;
+                            } else if (counts[docID] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
+                                numEq++;
+                                numEmitted++;
+                                return docID;
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public int advance(int target) {
+                    while (docID < target) nextDoc();
+                    return docID();
+                }
+
+                @Override
+                public long cost() {
+                    return maxKey - minKey;
+                }
+            };
+        }
+    }
+
 }

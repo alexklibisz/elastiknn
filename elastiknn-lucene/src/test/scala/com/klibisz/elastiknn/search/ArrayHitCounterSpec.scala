@@ -1,74 +1,98 @@
 package com.klibisz.elastiknn.search
 
+import org.apache.lucene.search.DocIdSetIterator
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
-  final class Reference(referenceCapacity: Int) extends HitCounter {
-    private val counts = scala.collection.mutable.Map[Int, Short](
-      (0 until referenceCapacity).map(_ -> 0.toShort): _*
-    )
+  private final class ReferenceHitCounter(referenceCapacity: Int) extends HitCounter {
+
+    private final class ArrayDocIdSetIterator(docIds: Array[Int]) extends DocIdSetIterator {
+
+      private var currentDocIdIndex = -1;
+
+      override def docID(): Int = if (currentDocIdIndex < docIds.length) docIds(currentDocIdIndex) else DocIdSetIterator.NO_MORE_DOCS
+
+      override def nextDoc(): Int = {
+        currentDocIdIndex += 1
+        docID()
+      }
+
+      override def advance(target: Int): Int = {
+        while (docID() < target) {
+          val _ = nextDoc()
+        }
+        docID()
+      }
+
+      override def cost(): Long = docIds.length
+    }
+
+    private val counts = scala.collection.mutable.Map[Int, Short]().withDefaultValue(0)
 
     override def increment(key: Int): Unit = counts.update(key, (counts(key) + 1).toShort)
 
     override def increment(key: Int, count: Short): Unit = counts.update(key, (counts(key) + count).toShort)
 
-    override def isEmpty: Boolean = !counts.values.exists(_ > 0)
-
     override def get(key: Int): Short = counts(key)
-
-    override def numHits(): Int = counts.values.count(_ > 0)
 
     override def capacity(): Int = this.referenceCapacity
 
-    override def minKey(): Int = counts.filter(_._2 > 0).keys.min
+    override def docIdSetIterator(k: Int): DocIdSetIterator = {
+      // A very naive/inefficient way to implement the DocIdSetIterator.
+      if (k == 0 || counts.isEmpty) DocIdSetIterator.empty()
+      else {
+        // This is a hack to replicate a bug in how we emit doc IDs.
+        // Basically if the kth greatest value is zero, we end up emitting docs that were never matched,
+        // so we need to fill the map with zeros to replicate the behavior here.
+        val minKey = counts.keys.min
+        val maxKey = counts.keys.max
+        (minKey to maxKey).foreach(k => counts.update(k, counts(k)))
 
-    override def maxKey(): Int = counts.filter(_._2 > 0).keys.max
-
-    override def kthGreatest(k: Int): KthGreatestResult = {
-      val values = counts.values.toArray.sorted.reverse
-      val numGreaterThan = values.count(_ > values(k))
-      val numNonZero = values.count(_ != 0)
-      new KthGreatestResult(values(k), numGreaterThan, numNonZero)
+        val valuesSorted = counts.values.toArray.sorted.reverse
+        val kthGreatest = valuesSorted.take(k).last
+        val greaterDocIds = counts.filter(_._2 > kthGreatest).keys.toArray
+        val equalDocIds = counts.filter(_._2 == kthGreatest).keys.toArray.sorted.take(k - greaterDocIds.length)
+        val selectedDocIds = (equalDocIds ++ greaterDocIds).sorted
+        new ArrayDocIdSetIterator(selectedDocIds)
+      }
     }
+  }
+
+  private def consumeDocIdSetIterator(disi: DocIdSetIterator): List[Int] = {
+    val docIds = new ArrayBuffer[Int]
+    while (disi.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+      docIds.append(disi.docID())
+    }
+    docIds.toList
   }
 
   "reference examples" - {
     "example 1" in {
-      val c = new Reference(10)
-      c.isEmpty shouldBe true
+      val c = new ReferenceHitCounter(10)
       c.capacity() shouldBe 10
 
       c.get(0) shouldBe 0
       c.increment(0)
       c.get(0) shouldBe 1
-      c.numHits() shouldBe 1
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 0
 
-      c.get(5) shouldBe 0
-      c.increment(5, 5)
-      c.get(5) shouldBe 5
-      c.numHits() shouldBe 2
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 5
+      c.get(1) shouldBe 0
+      c.increment(1, 5)
+      c.get(1) shouldBe 5
 
-      c.get(9) shouldBe 0
-      c.increment(9)
-      c.get(9) shouldBe 1
-      c.increment(9)
-      c.get(9) shouldBe 2
-      c.numHits() shouldBe 3
-      c.minKey() shouldBe 0
-      c.maxKey() shouldBe 9
+      c.get(2) shouldBe 0
+      c.increment(2)
+      c.get(2) shouldBe 1
+      c.increment(2)
+      c.get(2) shouldBe 2
 
-      val kgr = c.kthGreatest(2)
-      kgr.kthGreatest shouldBe 1
-      kgr.numGreaterThan shouldBe 2
-      kgr.numNonZero shouldBe 3
+      // The k=2 most frequent doc IDs are 1 and 2.
+      val docIds = consumeDocIdSetIterator(c.docIdSetIterator(2))
+      docIds shouldBe List(1, 2)
     }
   }
 
@@ -80,7 +104,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     info(s"Using seed $seed")
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
-      val ref = new Reference(numDocs)
+      val ref = new ReferenceHitCounter(numDocs)
       val ahc = new ArrayHitCounter(numDocs)
       matches.foreach { doc =>
         ref.increment(doc)
@@ -91,13 +115,24 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         ahc.increment(doc, count)
         ahc.get(doc) shouldBe ref.get(doc)
       }
-      ahc.minKey() shouldBe ref.minKey()
-      ahc.maxKey() shouldBe ref.maxKey()
-      ahc.numHits() shouldBe ref.numHits()
       val k = rng.nextInt(numDocs)
-      val ahcKgr = ahc.kthGreatest(k)
-      val refKgr = ref.kthGreatest(k)
-      ahcKgr shouldBe refKgr
+      val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
+      val referenceDocIds = consumeDocIdSetIterator(ref.docIdSetIterator(k))
+
+      referenceDocIds shouldBe actualDocIds
     }
+  }
+
+  "the counter emits docs that had zero matches (bug, https://github.com/alexklibisz/elastiknn/issues/715)" in {
+    // Only documents 0 and 9 had a hit, so we should expect to only emit those two.
+    // But the k=10th greatest value is 0, so we end up emitting all of the doc IDs,
+    // including 8 of which had zero hits.
+    val ahc = new ArrayHitCounter(10)
+    ahc.increment(0)
+    ahc.increment(9)
+    val docIds = consumeDocIdSetIterator(ahc.docIdSetIterator(10))
+    docIds shouldBe List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+    // Once the bug is fixed, this should be the correct result:
+    // docIds shouldBe List(0, 9)
   }
 }

@@ -1,7 +1,7 @@
 package com.klibisz.elastiknn.jmhbenchmarks
 
 import org.openjdk.jmh.annotations._
-import org.apache.lucene.util.hppc.IntIntHashMap
+import org.apache.lucene.internal.hppc.IntIntHashMap
 import org.eclipse.collections.impl.map.mutable.primitive.IntShortHashMap
 
 import scala.util.Random
