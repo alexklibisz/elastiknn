@@ -70,17 +70,17 @@ public final class ArrayHitCounter implements HitCounter {
         // accumulating counts of counts until we've exceeded k.
         int numGreaterEqual = 0;
         short kthGreatest = maxValue;
-        while (kthGreatest > 0) {
+
+        while (true) {
             numGreaterEqual += hist[kthGreatest];
-            if (numGreaterEqual > k) break;
-            else kthGreatest--;
+            if (kthGreatest > 1 && numGreaterEqual < k) kthGreatest--;
+            else break;
         }
 
         // Finally we find the number that were greater than the kth greatest count.
         // There's a special case if kthGreatest is zero, then the number that were greater is the number of hits.
         int numGreater = numGreaterEqual - hist[kthGreatest];
-        if (kthGreatest == 0) numGreater = numHits;
-        return new KthGreatestResult(kthGreatest, numGreater, numHits);
+        return new KthGreatestResult(kthGreatest, numGreater);
     }
 
     @Override

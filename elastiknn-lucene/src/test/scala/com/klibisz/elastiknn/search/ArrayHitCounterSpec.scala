@@ -46,13 +46,6 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       // A very naive/inefficient way to implement the DocIdSetIterator.
       if (k == 0 || counts.isEmpty) DocIdSetIterator.empty()
       else {
-        // This is a hack to replicate a bug in how we emit doc IDs.
-        // Basically if the kth greatest value is zero, we end up emitting docs that were never matched,
-        // so we need to fill the map with zeros to replicate the behavior here.
-        val minKey = counts.keys.min
-        val maxKey = counts.keys.max
-        (minKey to maxKey).foreach(k => counts.update(k, counts(k)))
-
         val valuesSorted = counts.values.toArray.sorted.reverse
         val kthGreatest = valuesSorted.take(k).last
         val greaterDocIds = counts.filter(_._2 > kthGreatest).keys.toArray
@@ -116,23 +109,19 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         ahc.get(doc) shouldBe ref.get(doc)
       }
       val k = rng.nextInt(numDocs)
-      val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
       val referenceDocIds = consumeDocIdSetIterator(ref.docIdSetIterator(k))
+      val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
 
       referenceDocIds shouldBe actualDocIds
     }
   }
 
-  "the counter emits docs that had zero matches (bug, https://github.com/alexklibisz/elastiknn/issues/715)" in {
+  "the DocIdSetIterator omits docs that had zero matches" in {
     // Only documents 0 and 9 had a hit, so we should expect to only emit those two.
-    // But the k=10th greatest value is 0, so we end up emitting all of the doc IDs,
-    // including 8 of which had zero hits.
     val ahc = new ArrayHitCounter(10)
     ahc.increment(0)
     ahc.increment(9)
     val docIds = consumeDocIdSetIterator(ahc.docIdSetIterator(10))
-    docIds shouldBe List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
-    // Once the bug is fixed, this should be the correct result:
-    // docIds shouldBe List(0, 9)
+    docIds shouldBe List(0, 9)
   }
 }
