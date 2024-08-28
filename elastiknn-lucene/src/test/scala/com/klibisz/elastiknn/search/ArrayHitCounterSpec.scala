@@ -9,8 +9,6 @@ import scala.util.Random
 
 final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
-
-
   private final class ReferenceHitCounter(referenceCapacity: Int) extends HitCounter {
 
     private final class ArrayDocIdSetIterator(docIds: Array[Int]) extends DocIdSetIterator {
