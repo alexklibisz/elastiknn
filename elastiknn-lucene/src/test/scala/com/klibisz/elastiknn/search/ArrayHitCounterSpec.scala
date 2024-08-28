@@ -122,4 +122,17 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       referenceDocIds shouldBe actualDocIds
     }
   }
+
+  "the counter emits docs that had zero matches (bug, https://github.com/alexklibisz/elastiknn/issues/715)" in {
+    // Only documents 0 and 9 had a hit, so we should expect to only emit those two.
+    // But the k=10th greatest value is 0, so we end up emitting all of the doc IDs,
+    // including 8 of which had zero hits.
+    val ahc = new ArrayHitCounter(10)
+    ahc.increment(0)
+    ahc.increment(9)
+    val docIds = consumeDocIdSetIterator(ahc.docIdSetIterator(10))
+    docIds shouldBe List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+    // Once the bug is fixed, this should be the correct result:
+    // docIds shouldBe List(0, 9)
+  }
 }
