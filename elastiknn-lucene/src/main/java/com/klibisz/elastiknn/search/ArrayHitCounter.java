@@ -90,6 +90,8 @@ public final class ArrayHitCounter implements HitCounter {
 
             KthGreatestResult kgr = kthGreatest(candidates);
 
+            System.out.printf("kth greatest = %d\n", kgr.kthGreatest);
+
             // Return an iterator over the doc ids >= the min candidate count.
             return new DocIdSetIterator() {
 
@@ -122,6 +124,7 @@ public final class ArrayHitCounter implements HitCounter {
                             return docID;
                         } else {
                             docID++;
+                            System.out.printf("docID=%d, counts[%d]=%d\n", docID, docID, counts[docID]);
                             if (counts[docID] > kgr.kthGreatest) {
                                 numEmitted++;
                                 return docID;
