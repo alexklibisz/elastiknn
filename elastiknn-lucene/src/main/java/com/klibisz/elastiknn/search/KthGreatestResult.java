@@ -3,11 +3,9 @@ package com.klibisz.elastiknn.search;
 public class KthGreatestResult {
     public final short kthGreatest;
     public final int numGreaterThan;
-    public final int numNonZero;
-    public KthGreatestResult(short kthGreatest, int numGreaterThan, int numNonZero) {
+    public KthGreatestResult(short kthGreatest, int numGreaterThan) {
         this.kthGreatest = kthGreatest;
         this.numGreaterThan = numGreaterThan;
-        this.numNonZero = numNonZero;
     }
 
     @Override
@@ -17,12 +15,12 @@ public class KthGreatestResult {
         } else if (!(o instanceof KthGreatestResult other)) {
             return false;
         } else {
-            return kthGreatest == other.kthGreatest && numGreaterThan == other.numGreaterThan && numNonZero == other.numNonZero;
+            return kthGreatest == other.kthGreatest && numGreaterThan == other.numGreaterThan;
         }
     }
 
     @Override
     public String toString() {
-        return String.format("KthGreatestResult(kthGreatest=%d, numGreaterThan=%d, numNonZero=%d)", kthGreatest, numGreaterThan, numNonZero);
+        return String.format("KthGreatestResult(kthGreatest=%d, numGreaterThan=%d)", kthGreatest, numGreaterThan);
     }
 }

@@ -49,12 +49,16 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         // This is a hack to replicate a bug in how we emit doc IDs.
         // Basically if the kth greatest value is zero, we end up emitting docs that were never matched,
         // so we need to fill the map with zeros to replicate the behavior here.
-        val minKey = counts.keys.min
-        val maxKey = counts.keys.max
-        (minKey to maxKey).foreach(k => counts.update(k, counts(k)))
+//        val minKey = counts.keys.min
+//        val maxKey = counts.keys.max
+//        (minKey to maxKey).foreach(k => counts.update(k, counts(k)))
+
+//        println(s"Reference counts: ${counts.toList.sorted}")
 
         val valuesSorted = counts.values.toArray.sorted.reverse
         val kthGreatest = valuesSorted.take(k).last
+//        println(s"Reference k=$k")
+//        println(s"Reference kthGreatest=$kthGreatest")
         val greaterDocIds = counts.filter(_._2 > kthGreatest).keys.toArray
         val equalDocIds = counts.filter(_._2 == kthGreatest).keys.toArray.sorted.take(k - greaterDocIds.length)
         val selectedDocIds = (equalDocIds ++ greaterDocIds).sorted
@@ -116,8 +120,8 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         ahc.get(doc) shouldBe ref.get(doc)
       }
       val k = rng.nextInt(numDocs)
-      val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
       val referenceDocIds = consumeDocIdSetIterator(ref.docIdSetIterator(k))
+      val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
 
       referenceDocIds shouldBe actualDocIds
     }
@@ -131,8 +135,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     ahc.increment(0)
     ahc.increment(9)
     val docIds = consumeDocIdSetIterator(ahc.docIdSetIterator(10))
-    docIds shouldBe List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
     // Once the bug is fixed, this should be the correct result:
-    // docIds shouldBe List(0, 9)
+    docIds shouldBe List(0, 9)
   }
 }
