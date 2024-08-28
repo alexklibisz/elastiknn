@@ -27,7 +27,6 @@ public final class ArrayHitCounter implements HitCounter {
         docIdToCount = new short[numDocs];
         countToCount = new short[expectedMaxCount + 1];
         countToMinDocId = new int[expectedMaxCount + 1];
-        Arrays.fill(countToMinDocId, Integer.MAX_VALUE);
         countToMaxDocId = new int[expectedMaxCount + 1];
     }
 
@@ -43,7 +42,6 @@ public final class ArrayHitCounter implements HitCounter {
         if (newCount >= countToCount.length) {
             countToCount = Arrays.copyOf(countToCount, newCount + 1);
             countToMinDocId = Arrays.copyOf(countToMinDocId, newCount + 1);
-            countToMinDocId[newCount] = Integer.MAX_VALUE;
             countToMaxDocId = Arrays.copyOf(countToMaxDocId, newCount + 1);
         }
 
@@ -52,9 +50,18 @@ public final class ArrayHitCounter implements HitCounter {
         if (oldCount > 0) countToCount[oldCount] -= 1;
 
         // Update the new count.
-        countToCount[newCount] += 1;
-        if (docId < countToMinDocId[newCount]) countToMinDocId[newCount] = docId;
-        if (docId > countToMaxDocId[newCount]) countToMaxDocId[newCount] = docId;
+        // We use a small trick to determine if the min and max doc IDs have been initialized
+        // for this count. If the old count's count was zero, that means it hasn't been initialized,
+        // and the new min and max are this doc ID. Otherwise, we have to fill the countToMinDocId
+        // array with a value larger than zero, which is a more expensive operation.
+        int oldCountCount = countToCount[newCount]++;
+        if (oldCountCount == 0) {
+            countToMinDocId[newCount] = docId;
+            countToMaxDocId[newCount] = docId;
+        } else {
+            if (docId < countToMinDocId[newCount]) countToMinDocId[newCount] = docId;
+            if (docId > countToMaxDocId[newCount]) countToMaxDocId[newCount] = docId;
+        }
     }
 
     @Override
