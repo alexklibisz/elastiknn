@@ -9,22 +9,31 @@ import scala.util.Random
 
 final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
-  final class ReferenceDocIdSetIterator(docIds: Array[Int]) extends DocIdSetIterator {
 
-    private var currentDocIdIndex = -1;
-    override def docID(): Int = if (currentDocIdIndex < docIds.length) docIds(currentDocIdIndex) else DocIdSetIterator.NO_MORE_DOCS
-    override def nextDoc(): Int = {
-      currentDocIdIndex += 1
-      docID()
-    }
-    override def advance(target: Int): Int = {
-      while (docID() < target) nextDoc()
-      docID()
-    }
-    override def cost(): Long = docIds.length
-  }
 
-  final class Reference(referenceCapacity: Int) extends HitCounter {
+  private final class ReferenceHitCounter(referenceCapacity: Int) extends HitCounter {
+
+    private final class ArrayDocIdSetIterator(docIds: Array[Int]) extends DocIdSetIterator {
+
+      private var currentDocIdIndex = -1;
+
+      override def docID(): Int = if (currentDocIdIndex < docIds.length) docIds(currentDocIdIndex) else DocIdSetIterator.NO_MORE_DOCS
+
+      override def nextDoc(): Int = {
+        currentDocIdIndex += 1
+        docID()
+      }
+
+      override def advance(target: Int): Int = {
+        while (docID() < target) {
+          val _ = nextDoc()
+        }
+        docID()
+      }
+
+      override def cost(): Long = docIds.length
+    }
+
     private val counts = scala.collection.mutable.Map[Int, Short]().withDefaultValue(0)
 
     override def increment(key: Int): Unit = counts.update(key, (counts(key) + 1).toShort)
@@ -37,14 +46,22 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
     override def docIdSetIterator(k: Int): DocIdSetIterator = {
       // A very naive/inefficient way to implement the DocIdSetIterator.
-      val valuesSorted = counts.values.toArray.sorted.reverse
-      val kthGreatest = valuesSorted.take(k).last
-      val greaterDocIds = counts.filter(_._2 > kthGreatest).keys.toArray
-      val equalDocIds = counts.filter(_._2 == kthGreatest).keys.toArray.sorted.take(k - greaterDocIds.length)
-      val selectedDocIds = (equalDocIds ++ greaterDocIds).sorted
-      println(counts.toList.sorted)
+      if (k == 0 || counts.isEmpty) DocIdSetIterator.empty()
+      else {
+        // This is a hack to replicate a bug in how we emit doc IDs.
+        // Basically if the kth greatest value is zero, we end up emitting docs that were never matched,
+        // so we need to fill the map with zeros to replicate the behavior here.
+        val minKey = counts.keys.min
+        val maxKey = counts.keys.max
+        (minKey to maxKey).foreach(k => counts.update(k, counts(k)))
 
-      new ReferenceDocIdSetIterator(selectedDocIds)
+        val valuesSorted = counts.values.toArray.sorted.reverse
+        val kthGreatest = valuesSorted.take(k).last
+        val greaterDocIds = counts.filter(_._2 > kthGreatest).keys.toArray
+        val equalDocIds = counts.filter(_._2 == kthGreatest).keys.toArray.sorted.take(k - greaterDocIds.length)
+        val selectedDocIds = (equalDocIds ++ greaterDocIds).sorted
+        new ArrayDocIdSetIterator(selectedDocIds)
+      }
     }
   }
 
@@ -58,7 +75,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
 
   "reference examples" - {
     "example 1" in {
-      val c = new Reference(10)
+      val c = new ReferenceHitCounter(10)
       c.capacity() shouldBe 10
 
       c.get(0) shouldBe 0
@@ -82,14 +99,14 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
   }
 
   "randomized comparison to reference" in {
-    val seed =  0L // System.currentTimeMillis()
+    val seed = System.currentTimeMillis()
     val rng = new Random(seed)
-    val numDocs = 10
+    val numDocs = 60000
     val numMatches = numDocs / 2
     info(s"Using seed $seed")
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
-      val ref = new Reference(numDocs)
+      val ref = new ReferenceHitCounter(numDocs)
       val ahc = new ArrayHitCounter(numDocs)
       matches.foreach { doc =>
         ref.increment(doc)
@@ -103,11 +120,6 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
       val k = rng.nextInt(numDocs)
       val actualDocIds = consumeDocIdSetIterator(ahc.docIdSetIterator(k))
       val referenceDocIds = consumeDocIdSetIterator(ref.docIdSetIterator(k))
-
-      println(k)
-      println((actualDocIds.length, actualDocIds))
-      println((referenceDocIds.length, referenceDocIds))
-      println("---")
 
       referenceDocIds shouldBe actualDocIds
     }
