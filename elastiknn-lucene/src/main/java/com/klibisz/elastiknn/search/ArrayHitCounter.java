@@ -25,8 +25,8 @@ public final class ArrayHitCounter implements HitCounter {
         short after = ++counts[key];
         if (after == 1) {
             numHits++;
-            minKey = Math.min(key, minKey);
-            maxKey = Math.max(key, maxKey);
+            if (key < minKey) minKey = key;
+            if (key > maxKey) maxKey = key;
         }
         if (after > maxValue) maxValue = after;
     }
@@ -36,8 +36,8 @@ public final class ArrayHitCounter implements HitCounter {
         short after = (counts[key] += count);
         if (after == count) {
             numHits++;
-            minKey = Math.min(key, minKey);
-            maxKey = Math.max(key, maxKey);
+            if (key < minKey) minKey = key;
+            if (key > maxKey) maxKey = key;
         }
         if (after > maxValue) maxValue = after;
     }

@@ -3,6 +3,7 @@ package com.klibisz.elastiknn.vectors;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
+import jdk.internal.vm.annotation.ForceInline;
 
 import java.util.Arrays;
 
@@ -24,6 +25,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         speciesLengthTimes4 = speciesLength * 4;
     }
 
+    @ForceInline
     public double cosineSimilarity(float[] v1, float[] v2) {
         double dotProd = 0.0;
         double v1SqrSum = 0.0;
@@ -49,6 +51,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         else return -1;
     }
 
+    @ForceInline
     public double dotProduct(float[] v1, float[] v2) {
         int i = 0;
         double dotProd = 0d;
@@ -94,6 +97,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
     }
 
     // A simpler dot product implementation, kept around for benchmarking purposes.
+    @ForceInline
     public double dotProductSimple(float[] v1, float[] v2) {
         double dotProd = 0f;
         int i = 0;
@@ -110,6 +114,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         return dotProd;
     }
 
+    @ForceInline
     public double l1Distance(float[] v1, float[] v2) {
         double sumAbsDiff = 0.0;
         int i = 0;
@@ -126,6 +131,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         return sumAbsDiff;
     }
 
+    @ForceInline
     public double l2Distance(float[] v1, float[] v2) {
         int i = 0;
         float sumSqrDiff = 0.0F;
@@ -177,6 +183,7 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
     }
 
     // A simpler dot product implementation, kept around for benchmarking purposes.
+    @ForceInline
     public double l2DistanceSimple(float[] v1, float[] v2) {
         double sumSqrDiff = 0f;
         int i = 0;
