@@ -34,10 +34,6 @@ public class MatchHashesAndScoreQuery extends Query {
                                     final int candidates,
                                     final IndexReader indexReader,
                                     final Function<LeafReaderContext, ScoreFunction> scoreFunctionBuilder) {
-        // `countMatches` expects hashes to be in sorted order.
-        // java's sort seems to be faster than lucene's ArrayUtil.
-        java.util.Arrays.sort(hashAndFrequencies, HashAndFreq::compareTo);
-
         this.field = field;
         this.hashAndFrequencies = hashAndFrequencies;
         this.candidates = candidates;
