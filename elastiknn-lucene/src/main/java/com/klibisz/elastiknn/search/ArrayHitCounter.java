@@ -1,7 +1,6 @@
 package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.DocIdSetIterator;
-import scala.Int;
 
 import java.util.Arrays;
 
@@ -15,19 +14,16 @@ public final class ArrayHitCounter implements HitCounter {
     // E.g., if there are 10 docs which have each been matched 11 times, countToCount[11] = 10.
     private short[] countToCount;
 
-
-    // Mapping an integer count to the min and max documents observed to have this count.
-    // E.g., if documents 3, 4, and 5 each have count 10, then countToMinDocId[10] = 3 and countToMaxDocId[10] = 5.
-    private int[] countToMinDocId;
-    private int[] countToMaxDocId;
+    private int minDocId;
+    private int maxDocId;
 
     private int maxCount = 0;
 
     public ArrayHitCounter(int numDocs, int expectedMaxCount) {
         docIdToCount = new short[numDocs];
         countToCount = new short[expectedMaxCount + 1];
-        countToMinDocId = new int[expectedMaxCount + 1];
-        countToMaxDocId = new int[expectedMaxCount + 1];
+        minDocId = Integer.MAX_VALUE;
+        maxDocId = 0;
     }
 
     public ArrayHitCounter(int numDocs) {
@@ -41,8 +37,6 @@ public final class ArrayHitCounter implements HitCounter {
         // Potentially grow the count arrays.
         if (newCount >= countToCount.length) {
             countToCount = Arrays.copyOf(countToCount, newCount + 1);
-            countToMinDocId = Arrays.copyOf(countToMinDocId, newCount + 1);
-            countToMaxDocId = Arrays.copyOf(countToMaxDocId, newCount + 1);
         }
 
         // Update the old count.
@@ -50,18 +44,11 @@ public final class ArrayHitCounter implements HitCounter {
         if (oldCount > 0) countToCount[oldCount] -= 1;
 
         // Update the new count.
-        // We use a small trick to determine if the min and max doc IDs have been initialized
-        // for this count. If the old count's count was zero, that means it hasn't been initialized,
-        // and the new min and max are this doc ID. Otherwise, we have to fill the countToMinDocId
-        // array with a value larger than zero, which is a more expensive operation.
-        int oldCountCount = countToCount[newCount]++;
-        if (oldCountCount == 0) {
-            countToMinDocId[newCount] = docId;
-            countToMaxDocId[newCount] = docId;
-        } else {
-            if (docId < countToMinDocId[newCount]) countToMinDocId[newCount] = docId;
-            if (docId > countToMaxDocId[newCount]) countToMaxDocId[newCount] = docId;
-        }
+        countToCount[newCount]++;
+
+        // Update min/max doc IDs.
+        if (docId < minDocId) minDocId = docId;
+        if (docId > maxDocId) maxDocId = docId;
     }
 
     @Override
@@ -94,18 +81,9 @@ public final class ArrayHitCounter implements HitCounter {
             // * the minimum doc ID that we should start iterating at.
             // * the maximum doc ID that we should start iterating at.
             int kthGreatest = maxCount;
-            int minDocId = Integer.MAX_VALUE;
-            int maxDocId = Integer.MIN_VALUE;
             int numGreaterEqual = 0;
             while (true) {
-                int count = countToCount[kthGreatest];
-                if (count > 0) {
-                    numGreaterEqual += count;
-                    int maybeNewMinDocId = countToMinDocId[kthGreatest];
-                    if (maybeNewMinDocId < minDocId) minDocId = maybeNewMinDocId;
-                    int maybeNewMaxDocId = countToMaxDocId[kthGreatest];
-                    if (maybeNewMaxDocId > maxDocId) maxDocId = maybeNewMaxDocId;
-                }
+                numGreaterEqual += countToCount[kthGreatest];
                 if (kthGreatest > 1 && numGreaterEqual < candidates) kthGreatest--;
                 else break;
             }
@@ -178,5 +156,4 @@ public final class ArrayHitCounter implements HitCounter {
             };
         }
     }
-
 }
