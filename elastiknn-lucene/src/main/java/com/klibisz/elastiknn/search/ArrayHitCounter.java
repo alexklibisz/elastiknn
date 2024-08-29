@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.search;
 
+import jdk.internal.vm.annotation.ForceInline;
 import org.apache.lucene.search.DocIdSetIterator;
 
 public final class ArrayHitCounter implements HitCounter {
@@ -52,6 +53,8 @@ public final class ArrayHitCounter implements HitCounter {
     }
 
 
+
+    @ForceInline
     private KthGreatestResult kthGreatest(int k) {
         // Find the kth greatest document hit count in O(n) time and O(n) space.
         // Though the space is typically negligibly small in practice.
