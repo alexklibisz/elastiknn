@@ -1,6 +1,7 @@
 package com.klibisz.elastiknn.search;
 
 import org.apache.lucene.search.DocIdSetIterator;
+import scala.Int;
 
 import java.util.Arrays;
 
@@ -100,12 +101,10 @@ public final class ArrayHitCounter implements HitCounter {
                 int count = countToCount[kthGreatest];
                 if (count > 0) {
                     numGreaterEqual += count;
-                    if (numGreaterEqual < candidates) {
-                        int maybeNewMinDocId = countToMinDocId[kthGreatest];
-                        if (maybeNewMinDocId < minDocId) minDocId = maybeNewMinDocId;
-                        int maybeNewMaxDocId = countToMaxDocId[kthGreatest];
-                        if (maybeNewMaxDocId > maxDocId) maxDocId = maybeNewMaxDocId;
-                    }
+                    int maybeNewMinDocId = countToMinDocId[kthGreatest];
+                    if (maybeNewMinDocId < minDocId) minDocId = maybeNewMinDocId;
+                    int maybeNewMaxDocId = countToMaxDocId[kthGreatest];
+                    if (maybeNewMaxDocId > maxDocId) maxDocId = maybeNewMaxDocId;
                 }
                 if (kthGreatest > 1 && numGreaterEqual < candidates) kthGreatest--;
                 else break;
