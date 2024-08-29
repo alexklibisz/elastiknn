@@ -132,11 +132,10 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
     val log = sLog.value
     val elasticsearchVersionSuffix = {
       val osName = System.getProperty("os.name").toLowerCase()
-      val osArch = System.getProperty("os.arch")
-      val arch = if (osArch == "amd64") "x86_64" else osArch
-      if (osName.contains("mac")) s"darwin-$osArch"
-      else if (osName.contains("nix") || osName.contains("nux")) s"linux-$osArch"
-      else throw new RuntimeException(s"Unsupported operating system $osName, $osArch")
+      val arch = if (System.getProperty("os.arch") == "amd64") "x86_64" else System.getProperty("os.arch")
+      if (osName.contains("mac")) s"darwin-$arch"
+      else if (osName.contains("nix") || osName.contains("nux")) s"linux-$arch"
+      else throw new RuntimeException(s"Unsupported operating system $osName, $arch")
     }
     val distributionFilename = s"elasticsearch-${elasticsearchVersion.value}-$elasticsearchVersionSuffix.tar.gz"
     val distributionUrl = new URI(s"https://artifacts.elastic.co/downloads/elasticsearch/$distributionFilename").toURL
