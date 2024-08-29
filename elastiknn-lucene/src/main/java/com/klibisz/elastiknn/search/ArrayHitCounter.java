@@ -1,5 +1,6 @@
 package com.klibisz.elastiknn.search;
 
+import jdk.internal.vm.annotation.ForceInline;
 import org.apache.lucene.search.DocIdSetIterator;
 
 import java.util.Arrays;
@@ -30,6 +31,7 @@ public final class ArrayHitCounter implements HitCounter {
         this(numDocs, 10);
     }
 
+    @ForceInline
     private void incrementKeyByCount(int docId, short count) {
         int newCount = (docIdToCount[docId] += count);
         if (newCount > maxCount) maxCount = newCount;
