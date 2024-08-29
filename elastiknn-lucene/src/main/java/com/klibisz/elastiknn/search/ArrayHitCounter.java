@@ -78,10 +78,8 @@ public final class ArrayHitCounter implements HitCounter {
         if (maxCount == 0) return DocIdSetIterator.empty();
         else {
 
-            // Loop backwards through countToCount to figure out a few things needed for the DocIdSetIterator:
-            // * the minimum count that's required for a document to be a candidate.
-            // * the minimum doc ID that we should start iterating at.
-            // * the maximum doc ID that we should start iterating at.
+            // Loop backwards through countToCount to figure out the minimum count that's required for a
+            // document to be a candidate.
             int kthGreatest = maxCount;
             int numGreaterEqual = 0;
             while (true) {
