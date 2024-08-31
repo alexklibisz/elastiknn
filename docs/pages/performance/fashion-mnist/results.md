@@ -1,6 +1,7 @@
 |Model|Parameters|Recall|Queries per Second|
 |---|---|---|---|
 |eknn-l2lsh|L=125 k=9 w=3900 candidates=500 probes=0|0.837|323.650|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=500 probes=0|0.845|319.979|
 |eknn-l2lsh|L=125 k=9 w=4100 candidates=500 probes=0|0.851|311.906|
 |eknn-l2lsh|L=125 k=8 w=3900 candidates=500 probes=0|0.862|309.353|
 |eknn-l2lsh|L=150 k=9 w=3900 candidates=500 probes=0|0.863|302.352|
@@ -10,6 +11,7 @@
 |eknn-l2lsh|L=125 k=9 w=3900 candidates=750 probes=0|0.877|292.179|
 |eknn-l2lsh|L=175 k=9 w=3900 candidates=500 probes=0|0.882|282.479|
 |eknn-l2lsh|L=125 k=7 w=3900 candidates=500 probes=0|0.884|289.416|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=750 probes=0|0.885|294.792|
 |eknn-l2lsh|L=150 k=8 w=3900 candidates=500 probes=0|0.886|289.585|
 |eknn-l2lsh|L=125 k=7 w=4000 candidates=500 probes=0|0.889|282.787|
 |eknn-l2lsh|L=175 k=9 w=4000 candidates=500 probes=0|0.889|286.607|
@@ -23,11 +25,13 @@
 |eknn-l2lsh|L=125 k=9 w=3900 candidates=1000 probes=0|0.900|276.969|
 |eknn-l2lsh|L=150 k=9 w=3900 candidates=750 probes=0|0.900|277.357|
 |eknn-l2lsh|L=125 k=8 w=3900 candidates=750 probes=0|0.901|278.315|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=500 probes=1|0.902|255.236|
 |eknn-l2lsh|L=200 k=9 w=4000 candidates=500 probes=0|0.903|269.983|
 |eknn-l2lsh|L=175 k=8 w=3900 candidates=500 probes=0|0.904|272.791|
 |eknn-l2lsh|L=150 k=7 w=3900 candidates=500 probes=0|0.906|264.575|
 |eknn-l2lsh|L=150 k=9 w=4000 candidates=750 probes=0|0.906|275.675|
 |eknn-l2lsh|L=125 k=9 w=4100 candidates=500 probes=1|0.907|248.027|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=1000 probes=0|0.907|274.705|
 |eknn-l2lsh|L=200 k=9 w=4100 candidates=500 probes=0|0.909|260.129|
 |eknn-l2lsh|L=175 k=8 w=4000 candidates=500 probes=0|0.909|272.299|
 |eknn-l2lsh|L=150 k=9 w=4100 candidates=750 probes=0|0.912|266.915|
@@ -57,12 +61,14 @@
 |eknn-l2lsh|L=125 k=9 w=3900 candidates=750 probes=1|0.927|239.317|
 |eknn-l2lsh|L=175 k=9 w=4100 candidates=750 probes=0|0.927|256.851|
 |eknn-l2lsh|L=200 k=9 w=3900 candidates=750 probes=0|0.927|258.428|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=500 probes=2|0.928|220.280|
 |eknn-l2lsh|L=125 k=7 w=4100 candidates=750 probes=0|0.928|258.768|
 |eknn-l2lsh|L=175 k=9 w=3900 candidates=500 probes=1|0.929|215.929|
 |eknn-l2lsh|L=150 k=8 w=4100 candidates=750 probes=0|0.929|260.596|
 |eknn-l2lsh|L=150 k=9 w=4100 candidates=1000 probes=0|0.930|256.525|
 |eknn-l2lsh|L=150 k=9 w=3900 candidates=1250 probes=0|0.931|244.528|
 |eknn-l2lsh|L=125 k=9 w=4100 candidates=500 probes=2|0.932|213.809|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=750 probes=1|0.932|238.150|
 |eknn-l2lsh|L=200 k=9 w=4000 candidates=750 probes=0|0.932|245.158|
 |eknn-l2lsh|L=125 k=8 w=4100 candidates=1000 probes=0|0.932|251.971|
 |eknn-l2lsh|L=150 k=8 w=3900 candidates=500 probes=1|0.933|224.721|
@@ -110,6 +116,7 @@
 |eknn-l2lsh|L=150 k=9 w=4100 candidates=500 probes=2|0.947|188.774|
 |eknn-l2lsh|L=200 k=9 w=4100 candidates=500 probes=1|0.947|197.100|
 |eknn-l2lsh|L=150 k=9 w=4000 candidates=750 probes=1|0.947|219.975|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=1000 probes=1|0.947|225.280|
 |eknn-l2lsh|L=200 k=9 w=4000 candidates=1000 probes=0|0.947|238.454|
 |eknn-l2lsh|L=175 k=8 w=4000 candidates=500 probes=1|0.948|202.060|
 |eknn-l2lsh|L=150 k=7 w=3900 candidates=500 probes=1|0.948|206.707|
@@ -127,6 +134,7 @@
 |eknn-l2lsh|L=200 k=8 w=4100 candidates=750 probes=0|0.951|237.657|
 |eknn-l2lsh|L=150 k=8 w=3900 candidates=500 probes=2|0.952|189.909|
 |eknn-l2lsh|L=175 k=9 w=3900 candidates=750 probes=1|0.952|206.997|
+|eknn-l2lsh|L=125 k=9 w=4000 candidates=750 probes=2|0.952|208.470|
 |eknn-l2lsh|L=125 k=9 w=3900 candidates=1250 probes=1|0.952|213.370|
 |eknn-l2lsh|L=200 k=9 w=3900 candidates=1250 probes=0|0.952|216.606|
 |eknn-l2lsh|L=150 k=8 w=4000 candidates=1250 probes=0|0.952|232.135|
@@ -341,6 +349,7 @@
 |eknn-l2lsh|L=150 k=7 w=4100 candidates=1250 probes=2|0.991|149.119|
 |eknn-l2lsh|L=200 k=7 w=4100 candidates=1250 probes=1|0.991|149.197|
 |eknn-l2lsh|L=200 k=7 w=4000 candidates=1000 probes=2|0.992|133.459|
+|eknn-l2lsh|L=200 k=8 w=4100 candidates=1250 probes=2|0.992|137.316|
 |eknn-l2lsh|L=175 k=7 w=3900 candidates=1250 probes=2|0.992|142.170|
 |eknn-l2lsh|L=200 k=7 w=4100 candidates=1000 probes=2|0.993|130.024|
 |eknn-l2lsh|L=175 k=7 w=4000 candidates=1250 probes=2|0.993|140.242|
