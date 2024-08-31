@@ -1,4 +1,5 @@
 |Model|Parameters|Recall|Queries per Second|
 |---|---|---|---|
-|eknn-l2lsh|L=128 k=8 w=4096 candidates=256 probes=8|0.940|126.091|
-|eknn-l2lsh|L=100 k=4 w=2048 candidates=1000 probes=3|0.960|195.211|
+|eknn-l2lsh|L=175 k=7 w=3900 candidates=100 probes=0|0.607|304.462|
+|eknn-l2lsh|L=175 k=7 w=3900 candidates=500 probes=0|0.921|269.909|
+|eknn-l2lsh|L=175 k=7 w=3900 candidates=1000 probes=0|0.962|239.598|
