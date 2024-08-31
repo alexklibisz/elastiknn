@@ -1,0 +1,694 @@
+Found cached result
+  0:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1250_probes=0        0.956      221.315
+Found cached result
+  1:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1250_probes=1        0.970      183.826
+Found cached result
+  2:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=750_probes=2        0.984      147.995
+Found cached result
+  3:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1000_probes=0        0.965      222.720
+Found cached result
+  4:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1000_probes=2        0.972      180.912
+Found cached result
+  5:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=500_probes=1        0.938      208.918
+Found cached result
+  6:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1250_probes=1        0.988      163.292
+Found cached result
+  7:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=750_probes=1        0.981      168.508
+Found cached result
+  8:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=750_probes=0        0.938      255.499
+Found cached result
+  9:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=500_probes=1        0.939      218.346
+Found cached result
+ 10:                             eknn-l2lsh-L=200-k=8-w=4100_candidates=1000_probes=1        0.982      168.609
+Found cached result
+ 11:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=750_probes=2        0.979      167.659
+Found cached result
+ 12:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1000_probes=1        0.968      195.836
+Found cached result
+ 13:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=500_probes=1        0.940      214.884
+Found cached result
+ 14:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1000_probes=2        0.972      184.815
+Found cached result
+ 15:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1000_probes=1        0.972      197.987
+Found cached result
+ 16:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=500_probes=1        0.896      253.335
+Found cached result
+ 17:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1000_probes=2        0.980      176.214
+Found cached result
+ 18:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1000_probes=1        0.976      176.214
+Found cached result
+ 19:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=750_probes=2        0.962      190.600
+Found cached result
+ 20:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=750_probes=0        0.944      247.966
+Found cached result
+ 21:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=750_probes=2        0.979      163.503
+Found cached result
+ 22:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=500_probes=1        0.907      248.027
+Found cached result
+ 23:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=750_probes=1        0.965      193.101
+Found cached result
+ 24:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1250_probes=2        0.988      159.935
+Found cached result
+ 25:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1000_probes=0        0.938      235.525
+Found cached result
+ 26:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=750_probes=2        0.955      201.907
+Found cached result
+ 27:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=500_probes=0        0.914      264.401
+Found cached result
+ 28:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=750_probes=2        0.961      195.683
+Found cached result
+ 29:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1000_probes=0        0.919      262.989
+Found cached result
+ 30:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1250_probes=1        0.960      206.423
+Found cached result
+ 31:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1250_probes=0        0.978      201.735
+Found cached result
+ 32:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=500_probes=1        0.969      169.462
+Found cached result
+ 33:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1250_probes=1        0.967      195.426
+Found cached result
+ 34:                             eknn-l2lsh-L=200-k=8-w=4100_candidates=1000_probes=2        0.989      144.059
+Found cached result
+ 35:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1250_probes=1        0.990      154.886
+Found cached result
+ 36:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1250_probes=2        0.988      149.259
+Found cached result
+ 37:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1250_probes=2        0.987      152.202
+Found cached result
+ 38:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=500_probes=2        0.953      181.086
+Found cached result
+ 39:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1000_probes=1        0.970      197.122
+Found cached result
+ 40:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=500_probes=2        0.953      196.345
+Found cached result
+ 41:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1250_probes=2        0.980      171.101
+Found cached result
+ 42:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1000_probes=0        0.973      206.000
+Found cached result
+ 43:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=750_probes=2        0.975      177.351
+Found cached result
+ 44:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=750_probes=1        0.944      217.569
+Found cached result
+ 45:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1000_probes=1        0.986      155.294
+Found cached result
+ 46:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=500_probes=0        0.897      273.516
+Found cached result
+ 47:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=500_probes=0        0.909      272.299
+Found cached result
+ 48:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1000_probes=1        0.987      158.015
+Found cached result
+ 49:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1250_probes=2        0.987      142.536
+Found cached result
+ 50:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1250_probes=1        0.978      184.691
+Found cached result
+ 51:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=500_probes=2        0.963      165.919
+Found cached result
+ 52:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=750_probes=1        0.959      195.500
+Found cached result
+ 53:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=750_probes=0        0.934      256.273
+Found cached result
+ 54:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=750_probes=2        0.948      209.180
+Found cached result
+ 55:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=500_probes=0        0.909      260.129
+Found cached result
+ 56:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=500_probes=2        0.947      188.774
+Found cached result
+ 57:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1250_probes=2        0.991      149.119
+Found cached result
+ 58:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=500_probes=0        0.870      298.232
+Found cached result
+ 59:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=500_probes=1        0.933      224.721
+Found cached result
+ 60:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=750_probes=2        0.985      150.557
+Found cached result
+ 61:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=500_probes=1        0.960      189.476
+Found cached result
+ 62:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=500_probes=1        0.925      236.820
+Found cached result
+ 63:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=750_probes=0        0.912      266.915
+Found cached result
+ 64:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1250_probes=0        0.944      239.834
+Found cached result
+ 65:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=500_probes=2        0.939      199.486
+Found cached result
+ 66:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1250_probes=2        0.982      157.920
+Found cached result
+ 67:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1250_probes=0        0.957      224.911
+Found cached result
+ 68:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1000_probes=2        0.982      161.581
+Found cached result
+ 69:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1000_probes=0        0.953      239.020
+Found cached result
+ 70:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1250_probes=1        0.991      149.197
+Found cached result
+ 71:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=750_probes=0        0.925      266.401
+Found cached result
+ 72:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1250_probes=2        0.983      165.732
+Found cached result
+ 73:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=750_probes=1        0.952      206.997
+Found cached result
+ 74:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1250_probes=2        0.980      159.601
+Found cached result
+ 75:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1000_probes=1        0.972      180.587
+Found cached result
+ 76:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=500_probes=1        0.936      222.739
+Found cached result
+ 77:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1000_probes=2        0.990      144.779
+Found cached result
+ 78:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1250_probes=0        0.960      221.266
+Found cached result
+ 79:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=750_probes=0        0.928      258.768
+Found cached result
+ 80:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=500_probes=1        0.967      172.951
+Found cached result
+ 81:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=750_probes=2        0.989      130.462
+Found cached result
+ 82:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1250_probes=1        0.976      178.650
+Found cached result
+ 83:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1250_probes=2        0.989      145.575
+Found cached result
+ 84:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=750_probes=0        0.891      288.164
+Found cached result
+ 85:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1000_probes=0        0.959      226.857
+Found cached result
+ 86:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1000_probes=2        0.966      192.040
+Found cached result
+ 87:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1250_probes=1        0.982      174.306
+Found cached result
+ 88:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1000_probes=2        0.986      152.082
+Found cached result
+ 89:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1250_probes=2        0.986      165.114
+Found cached result
+ 90:                             eknn-l2lsh-L=200-k=8-w=4100_candidates=1000_probes=0        0.964      220.637
+Found cached result
+ 91:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1250_probes=0        0.963      211.024
+Found cached result
+ 92:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1250_probes=2        0.994      130.837
+Found cached result
+ 93:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=500_probes=2        0.940      209.130
+Found cached result
+ 94:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=500_probes=0        0.921      257.151
+Found cached result
+ 95:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=500_probes=0        0.925      254.374
+Found cached result
+ 96:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1250_probes=1        0.983      167.695
+Found cached result
+ 97:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1000_probes=2        0.969      177.270
+Found cached result
+ 98:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=500_probes=2        0.924      217.381
+Found cached result
+ 99:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=750_probes=2        0.974      181.437
+Found cached result
+100:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1250_probes=0        0.953      227.474
+Found cached result
+101:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=750_probes=1        0.960      191.764
+Found cached result
+102:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=500_probes=0        0.863      302.352
+Found cached result
+103:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=750_probes=0        0.927      256.851
+Found cached result
+104:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=750_probes=1        0.956      200.126
+Found cached result
+105:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=750_probes=2        0.959      192.285
+Found cached result
+106:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1000_probes=1        0.970      187.352
+Found cached result
+107:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1250_probes=0        0.954      231.635
+Found cached result
+108:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=750_probes=0        0.912      275.778
+Found cached result
+109:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=750_probes=1        0.947      219.975
+Found cached result
+110:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1000_probes=2        0.982      169.063
+Found cached result
+111:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=500_probes=0        0.889      282.787
+Found cached result
+112:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=500_probes=0        0.837      323.650
+Found cached result
+113:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=750_probes=1        0.936      232.567
+Found cached result
+114:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=500_probes=1        0.959      187.307
+Found cached result
+115:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=750_probes=1        0.972      188.104
+Found cached result
+116:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=500_probes=0        0.862      309.353
+Found cached result
+117:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1000_probes=1        0.973      194.179
+Found cached result
+118:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1250_probes=2        0.978      179.267
+Found cached result
+119:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1000_probes=0        0.949      240.218
+Found cached result
+120:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1000_probes=1        0.975      178.742
+Found cached result
+121:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=500_probes=2        0.972      156.062
+Found cached result
+122:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=750_probes=0        0.958      224.903
+Found cached result
+123:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=750_probes=1        0.975      179.769
+Found cached result
+124:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1250_probes=1        0.975      164.301
+Found cached result
+125:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1000_probes=1        0.959      205.758
+Found cached result
+126:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=750_probes=2        0.970      181.551
+Found cached result
+127:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=750_probes=2        0.972      167.739
+Found cached result
+128:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=750_probes=2        0.988      138.887
+Found cached result
+129:                             eknn-l2lsh-L=200-k=8-w=4100_candidates=1250_probes=0        0.971      209.429
+Found cached result
+130:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=500_probes=1        0.965      170.608
+Found cached result
+131:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1000_probes=1        0.982      173.397
+Found cached result
+132:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=500_probes=2        0.979      139.828
+Found cached result
+133:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=750_probes=2        0.967      175.534
+Found cached result
+134:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1250_probes=2        0.981      173.280
+Found cached result
+135:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=500_probes=0        0.891      280.175
+Found cached result
+136:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1250_probes=0        0.952      232.135
+Found cached result
+137:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=500_probes=1        0.917      242.059
+Found cached result
+138:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1250_probes=0        0.970      212.504
+Found cached result
+139:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=750_probes=0        0.906      275.675
+Found cached result
+140:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=500_probes=0        0.895      277.871
+Found cached result
+141:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1000_probes=1        0.964      190.995
+Found cached result
+142:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=500_probes=2        0.943      198.876
+Found cached result
+143:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1000_probes=1        0.964      203.809
+Found cached result
+144:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=500_probes=1        0.945      203.812
+Found cached result
+145:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1250_probes=1        0.978      172.968
+Found cached result
+146:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1000_probes=2        0.978      159.401
+Found cached result
+147:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1000_probes=2        0.992      133.459
+Found cached result
+148:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1000_probes=1        0.974      182.369
+Found cached result
+149:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1000_probes=0        0.942      245.700
+Found cached result
+150:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1000_probes=0        0.946      244.874
+Found cached result
+151:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=750_probes=2        0.984      148.909
+Computing knn metrics
+152:                             eknn-l2lsh-L=200-k=8-w=4100_candidates=1250_probes=1        0.987      164.391
+Found cached result
+153:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=750_probes=0        0.952      235.437
+Found cached result
+154:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1250_probes=2        0.984      152.925
+Found cached result
+155:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=500_probes=2        0.952      189.909
+Found cached result
+156:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1000_probes=0        0.937      246.914
+Found cached result
+157:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=500_probes=0        0.851      311.906
+Found cached result
+158:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1250_probes=1        0.976      188.064
+Found cached result
+159:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1000_probes=2        0.982      153.807
+Found cached result
+160:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1250_probes=0        0.959      224.310
+Found cached result
+161:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1250_probes=2        0.992      142.170
+Found cached result
+162:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1000_probes=2        0.980      168.212
+Found cached result
+163:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1250_probes=2        0.986      160.360
+Found cached result
+164:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=500_probes=2        0.977      139.436
+Found cached result
+165:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1250_probes=1        0.980      169.150
+Found cached result
+166:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=750_probes=2        0.973      180.931
+Found cached result
+167:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1250_probes=1        0.980      177.663
+Found cached result
+168:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=500_probes=0        0.937      237.096
+Found cached result
+169:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1000_probes=0        0.930      256.525
+Found cached result
+170:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=750_probes=0        0.927      258.428
+Found cached result
+171:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=500_probes=0        0.877      285.484
+Found cached result
+172:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1000_probes=2        0.983      168.819
+Found cached result
+173:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1000_probes=1        0.962      202.603
+Found cached result
+174:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1000_probes=1        0.981      182.734
+Found cached result
+175:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1000_probes=1        0.973      196.158
+Found cached result
+176:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1000_probes=2        0.979      173.302
+Found cached result
+177:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=500_probes=1        0.934      214.027
+Found cached result
+178:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=500_probes=2        0.957      170.595
+Found cached result
+179:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=750_probes=1        0.976      176.770
+Found cached result
+180:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=500_probes=2        0.946      201.687
+Found cached result
+181:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1000_probes=0        0.925      257.201
+Found cached result
+182:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=750_probes=1        0.966      187.450
+Found cached result
+183:                             eknn-l2lsh-L=150-k=8-w=4000_candidates=1250_probes=2        0.985      163.613
+Found cached result
+184:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=750_probes=1        0.968      197.120
+Found cached result
+185:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1000_probes=1        0.958      208.477
+Found cached result
+186:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1250_probes=0        0.968      217.790
+Found cached result
+187:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=500_probes=0        0.904      272.791
+Found cached result
+188:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=500_probes=1        0.948      202.060
+Found cached result
+189:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=500_probes=2        0.971      158.635
+Found cached result
+190:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=750_probes=1        0.980      169.016
+Found cached result
+191:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=500_probes=1        0.929      215.929
+Found cached result
+192:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=500_probes=1        0.933      225.817
+Found cached result
+193:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=750_probes=1        0.982      160.596
+Found cached result
+194:                              eknn-l2lsh-L=175-k=7-w=4000_candidates=500_probes=2        0.973      158.915
+Found cached result
+195:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1250_probes=1        0.976      192.985
+Found cached result
+196:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=500_probes=0        0.939      232.796
+Found cached result
+197:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=500_probes=2        0.955      180.825
+Found cached result
+198:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=750_probes=1        0.942      220.811
+Found cached result
+199:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1000_probes=1        0.984      172.790
+Found cached result
+200:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1000_probes=2        0.989      148.949
+Found cached result
+201:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1250_probes=2        0.986      147.703
+Found cached result
+202:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1000_probes=0        0.943      242.498
+Found cached result
+203:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1250_probes=2        0.984      142.014
+Found cached result
+204:                              eknn-l2lsh-L=200-k=7-w=4100_candidates=750_probes=0        0.963      214.423
+Found cached result
+205:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=500_probes=0        0.886      289.585
+Found cached result
+206:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=500_probes=0        0.906      264.575
+Found cached result
+207:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=750_probes=2        0.987      141.367
+Found cached result
+208:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=750_probes=1        0.956      213.143
+Found cached result
+209:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=750_probes=0        0.937      250.330
+Found cached result
+210:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=500_probes=2        0.958      183.474
+Found cached result
+211:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=750_probes=0        0.877      292.179
+Found cached result
+212:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=750_probes=1        0.962      205.715
+Found cached result
+213:                              eknn-l2lsh-L=125-k=9-w=3900_candidates=750_probes=1        0.927      239.317
+Found cached result
+214:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=500_probes=1        0.916      233.020
+Found cached result
+215:                              eknn-l2lsh-L=150-k=9-w=3900_candidates=750_probes=0        0.900      277.357
+Found cached result
+216:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=750_probes=1        0.963      189.180
+Found cached result
+217:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1000_probes=2        0.991      132.193
+Found cached result
+218:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=500_probes=0        0.889      286.607
+Found cached result
+219:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=500_probes=1        0.944      199.125
+Found cached result
+220:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1000_probes=0        0.939      250.426
+Found cached result
+221:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=500_probes=0        0.874      298.451
+Found cached result
+222:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1000_probes=2        0.975      178.600
+Found cached result
+223:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1250_probes=1        0.966      203.273
+Found cached result
+224:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1000_probes=0        0.953      234.020
+Found cached result
+225:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=750_probes=0        0.960      221.518
+Found cached result
+226:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=500_probes=2        0.968      169.566
+Found cached result
+227:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=750_probes=0        0.929      260.596
+Found cached result
+228:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=750_probes=2        0.972      184.359
+Found cached result
+229:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=750_probes=2        0.967      190.711
+Found cached result
+230:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1250_probes=1        0.973      183.447
+Found cached result
+231:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=750_probes=1        0.975      177.736
+Found cached result
+232:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=500_probes=0        0.903      269.983
+Found cached result
+233:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1250_probes=0        0.943      232.425
+Found cached result
+234:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=750_probes=2        0.970      172.460
+Found cached result
+235:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=500_probes=1        0.940      203.171
+Found cached result
+236:                              eknn-l2lsh-L=125-k=8-w=4100_candidates=750_probes=1        0.951      219.195
+Found cached result
+237:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1250_probes=0        0.972      211.460
+Found cached result
+238:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1250_probes=2        0.975      173.881
+Found cached result
+239:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=500_probes=1        0.948      206.707
+Found cached result
+240:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=500_probes=0        0.884      289.416
+Found cached result
+241:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1250_probes=2        0.995      126.016
+Found cached result
+242:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1250_probes=0        0.942      240.364
+Found cached result
+243:                             eknn-l2lsh-L=150-k=9-w=4100_candidates=1250_probes=1        0.970      195.084
+Found cached result
+244:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1250_probes=0        0.935      244.842
+Found cached result
+245:                              eknn-l2lsh-L=150-k=7-w=3900_candidates=500_probes=2        0.964      176.316
+Found cached result
+246:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=750_probes=1        0.967      193.286
+Found cached result
+247:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1000_probes=0        0.942      238.436
+Found cached result
+248:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1250_probes=1        0.990      154.557
+Found cached result
+249:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1000_probes=2        0.993      130.024
+Found cached result
+250:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1250_probes=1        0.974      190.636
+Found cached result
+251:                             eknn-l2lsh-L=175-k=7-w=4000_candidates=1250_probes=2        0.993      140.242
+Found cached result
+252:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1000_probes=0        0.969      209.121
+Found cached result
+253:                              eknn-l2lsh-L=150-k=8-w=3900_candidates=750_probes=0        0.920      269.915
+Found cached result
+254:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=500_probes=2        0.962      174.431
+Found cached result
+255:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1250_probes=1        0.952      213.370
+Found cached result
+256:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=750_probes=1        0.958      213.409
+Found cached result
+257:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=750_probes=0        0.925      269.618
+Found cached result
+258:                              eknn-l2lsh-L=200-k=7-w=3900_candidates=500_probes=0        0.934      243.251
+Found cached result
+259:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1250_probes=0        0.979      197.590
+Found cached result
+260:                              eknn-l2lsh-L=150-k=9-w=4000_candidates=500_probes=1        0.921      232.303
+Found cached result
+261:                             eknn-l2lsh-L=150-k=7-w=3900_candidates=1000_probes=1        0.977      175.861
+Found cached result
+262:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=500_probes=1        0.958      194.054
+Found cached result
+263:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1000_probes=0        0.951      234.136
+Found cached result
+264:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=750_probes=0        0.938      253.939
+Found cached result
+265:                             eknn-l2lsh-L=200-k=7-w=3900_candidates=1250_probes=0        0.976      195.296
+Found cached result
+266:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=500_probes=0        0.896      284.495
+Found cached result
+267:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=750_probes=2        0.966      184.985
+Found cached result
+268:                             eknn-l2lsh-L=175-k=9-w=4100_candidates=1000_probes=2        0.980      159.869
+Found cached result
+269:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1250_probes=0        0.937      242.487
+Found cached result
+270:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1250_probes=0        0.914      259.536
+Found cached result
+271:                              eknn-l2lsh-L=175-k=8-w=4000_candidates=500_probes=2        0.964      170.576
+Found cached result
+272:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=500_probes=2        0.957      186.862
+Found cached result
+273:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1250_probes=2        0.994      129.749
+Found cached result
+274:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1000_probes=1        0.943      227.127
+Found cached result
+275:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=500_probes=0        0.926      248.573
+Found cached result
+276:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=500_probes=2        0.961      165.952
+Found cached result
+277:                              eknn-l2lsh-L=125-k=9-w=4100_candidates=500_probes=2        0.932      213.809
+Found cached result
+278:                              eknn-l2lsh-L=125-k=7-w=3900_candidates=750_probes=0        0.920      269.825
+Found cached result
+279:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=500_probes=2        0.955      191.810
+Found cached result
+280:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=750_probes=1        0.962      204.999
+Found cached result
+281:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=750_probes=1        0.950      213.884
+Found cached result
+282:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1000_probes=0        0.900      276.969
+Found cached result
+283:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1250_probes=0        0.956      231.391
+Found cached result
+284:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=500_probes=1        0.937      209.724
+Found cached result
+285:                              eknn-l2lsh-L=125-k=7-w=4100_candidates=500_probes=0        0.892      277.219
+Found cached result
+286:                              eknn-l2lsh-L=200-k=7-w=4000_candidates=500_probes=2        0.978      141.893
+Found cached result
+287:                             eknn-l2lsh-L=175-k=8-w=3900_candidates=1000_probes=2        0.983      157.473
+Found cached result
+288:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1000_probes=0        0.962      222.959
+Found cached result
+289:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1000_probes=2        0.976      179.341
+Found cached result
+290:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1250_probes=1        0.971      195.239
+Found cached result
+291:                             eknn-l2lsh-L=200-k=7-w=4000_candidates=1000_probes=0        0.971      209.860
+Found cached result
+292:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1000_probes=2        0.975      167.418
+Found cached result
+293:                             eknn-l2lsh-L=125-k=8-w=4100_candidates=1000_probes=0        0.932      251.971
+Found cached result
+294:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1250_probes=0        0.951      235.937
+Found cached result
+295:                              eknn-l2lsh-L=200-k=9-w=3900_candidates=750_probes=2        0.973      163.680
+Found cached result
+296:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1250_probes=0        0.948      225.770
+Found cached result
+297:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1000_probes=1        0.969      184.638
+Found cached result
+298:                             eknn-l2lsh-L=200-k=9-w=4100_candidates=1000_probes=2        0.984      152.098
+Found cached result
+299:                             eknn-l2lsh-L=125-k=7-w=4100_candidates=1250_probes=1        0.980      182.451
+Found cached result
+300:                             eknn-l2lsh-L=175-k=9-w=3900_candidates=1000_probes=0        0.933      248.932
+Found cached result
+301:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1250_probes=1        0.985      173.447
+Found cached result
+302:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=500_probes=0        0.882      282.479
+Found cached result
+303:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1250_probes=0        0.952      216.606
+Found cached result
+304:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1250_probes=2        0.973      183.616
+Found cached result
+305:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1250_probes=0        0.962      222.790
+Found cached result
+306:                              eknn-l2lsh-L=175-k=8-w=3900_candidates=750_probes=2        0.976      166.383
+Found cached result
+307:                             eknn-l2lsh-L=175-k=9-w=4000_candidates=1000_probes=1        0.967      187.608
+Found cached result
+308:                              eknn-l2lsh-L=200-k=8-w=4100_candidates=750_probes=0        0.951      237.657
+Found cached result
+309:                             eknn-l2lsh-L=175-k=7-w=3900_candidates=1250_probes=1        0.987      165.410
+Found cached result
+310:                              eknn-l2lsh-L=125-k=7-w=4000_candidates=750_probes=1        0.960      209.464
+Found cached result
+311:                              eknn-l2lsh-L=175-k=9-w=4100_candidates=500_probes=2        0.956      177.716
+Found cached result
+312:                             eknn-l2lsh-L=150-k=9-w=4000_candidates=1250_probes=2        0.978      172.674
+Found cached result
+313:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=500_probes=1        0.947      197.100
+Found cached result
+314:                             eknn-l2lsh-L=175-k=8-w=4000_candidates=1000_probes=2        0.985      156.827
+Found cached result
+315:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=750_probes=2        0.982      161.400
+Found cached result
+316:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1250_probes=2        0.968      189.159
+Found cached result
+317:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=500_probes=2        0.949      183.198
+Found cached result
+318:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1250_probes=1        0.978      189.013
+Found cached result
+319:                              eknn-l2lsh-L=150-k=8-w=4100_candidates=750_probes=2        0.975      175.020
+Found cached result
+320:                             eknn-l2lsh-L=200-k=9-w=4000_candidates=1000_probes=0        0.947      238.454
+Found cached result
+321:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1250_probes=0        0.926      250.285
+Found cached result
+322:                             eknn-l2lsh-L=125-k=8-w=3900_candidates=1000_probes=0        0.922      261.355
+Found cached result
+323:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=750_probes=0        0.932      245.158
+Found cached result
+324:                              eknn-l2lsh-L=175-k=9-w=4000_candidates=750_probes=0        0.921      263.695
+Found cached result
+325:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1000_probes=1        0.970      200.830
+Found cached result
+326:                              eknn-l2lsh-L=200-k=9-w=4000_candidates=750_probes=2        0.975      159.587
+Found cached result
+327:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1000_probes=1        0.951      219.441
+Found cached result
+328:                             eknn-l2lsh-L=150-k=7-w=4100_candidates=1000_probes=2        0.988      154.745
+Found cached result
+329:                              eknn-l2lsh-L=175-k=9-w=3900_candidates=750_probes=0        0.915      267.361
+Found cached result
+330:                             eknn-l2lsh-L=150-k=8-w=4100_candidates=1000_probes=0        0.945      245.532
+Found cached result
+331:                              eknn-l2lsh-L=125-k=8-w=3900_candidates=750_probes=0        0.901      278.315
+Found cached result
+332:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1250_probes=1        0.963      198.103
+Found cached result
+333:                             eknn-l2lsh-L=150-k=8-w=3900_candidates=1250_probes=0        0.948      237.059
+Found cached result
+334:                             eknn-l2lsh-L=125-k=9-w=3900_candidates=1000_probes=2        0.960      201.594
+Found cached result
+335:                              eknn-l2lsh-L=150-k=9-w=4100_candidates=500_probes=1        0.926      222.971
+Found cached result
+336:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1250_probes=0        0.931      244.528
+Found cached result
+337:                              eknn-l2lsh-L=175-k=7-w=3900_candidates=750_probes=0        0.949      234.738
+Found cached result
+338:                              eknn-l2lsh-L=150-k=7-w=4100_candidates=500_probes=1        0.953      203.767
+Found cached result
+339:                             eknn-l2lsh-L=125-k=7-w=3900_candidates=1250_probes=2        0.985      166.714
+Found cached result
+340:                             eknn-l2lsh-L=200-k=9-w=3900_candidates=1000_probes=2        0.980      149.577
+Found cached result
+341:                             eknn-l2lsh-L=200-k=7-w=4100_candidates=1000_probes=1        0.988      154.212
+Found cached result
+342:                             eknn-l2lsh-L=150-k=9-w=3900_candidates=1000_probes=1        0.955      209.590
+Found cached result
+343:                              eknn-l2lsh-L=200-k=9-w=4100_candidates=750_probes=2        0.977      158.559
+Found cached result
+344:                              eknn-l2lsh-L=150-k=8-w=4000_candidates=750_probes=1        0.959      210.001
+Found cached result
+345:                             eknn-l2lsh-L=125-k=9-w=4100_candidates=1000_probes=0        0.912      270.403
+Found cached result
+346:                             eknn-l2lsh-L=125-k=7-w=4000_candidates=1000_probes=0        0.943      246.386
