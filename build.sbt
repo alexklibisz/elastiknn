@@ -6,9 +6,9 @@ Global / scalaVersion := "3.3.3"
 
 Global / scalacOptions += "-explain"
 
-lazy val CirceVersion = "0.14.9"
+lazy val CirceVersion = "0.14.10"
 lazy val ElasticsearchVersion = "8.15.2"
-lazy val Elastic4sVersion = "8.15.0"
+lazy val Elastic4sVersion = "8.15.2"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.11.1"
 
@@ -131,7 +131,7 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.2",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.7" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.8" % Test
     ),
     TestSettings
   )
