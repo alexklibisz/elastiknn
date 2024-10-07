@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.models
 
-import breeze.linalg.{DenseVector, euclideanDistance}
 import com.klibisz.elastiknn.api.Vec
 import breeze.linalg._
 
