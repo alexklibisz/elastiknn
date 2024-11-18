@@ -19,6 +19,10 @@ public final class DefaultFloatVectorOps implements FloatVectorOps {
         else return -1;
     }
 
+    public double dotSimilarity(float[] v1, float[] v2) {
+        return dotProduct(v1, v2);
+    }
+
     public double dotProduct(float[] v1, float[] v2) {
         float dotProd = 0f;
         for (int i = 0; i < v1.length; i++) dotProd += v1[i] * v2[i];
