@@ -8,7 +8,7 @@ Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.10"
 lazy val ElasticsearchVersion = "8.15.5"
-lazy val Elastic4sVersion = "8.15.4"
+lazy val Elastic4sVersion = "8.16.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.11.1"
 
