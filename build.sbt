@@ -76,6 +76,10 @@ lazy val `elastiknn-lucene` = project
       "org.apache.lucene" % "lucene-core" % LuceneVersion,
       "org.apache.lucene" % "lucene-analysis-common" % LuceneVersion % Test
     ),
+    javacOptions ++= Seq(
+      "--add-exports",
+      "java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
+    ),
     TestSettings
   )
 
