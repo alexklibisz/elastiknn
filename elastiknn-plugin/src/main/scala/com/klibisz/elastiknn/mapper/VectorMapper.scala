@@ -116,8 +116,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
       new FieldMapper(
         field,
         new VectorMapper.FieldType(CONTENT_TYPE, context.buildFullName(thisBuilder.leafName), mapping),
-        multiFieldsBuilder.build(this, context),
-        copyTo
+        builderParams(this, context)
       ) {
         private val thisMapper: FieldMapper = this
 
