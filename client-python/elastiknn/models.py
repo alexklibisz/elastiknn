@@ -91,6 +91,8 @@ class ElastiknnModel(object):
                 return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.L2)
             elif self._metric == 'cosine':
                 return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Cosine)
+            elif self._metric == 'dot':
+                return Mapping.DenseFloat(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Dot)
             elif self._metric == 'jaccard':
                 return Mapping.SparseBool(self._dims), NearestNeighborsQuery.Exact(field, dummy, Similarity.Jaccard)
             elif self._metric == 'hamming':
@@ -103,6 +105,9 @@ class ElastiknnModel(object):
             elif self._metric == 'cosine':
                 return Mapping.CosineLsh(self._dims, **self._mapping_params), \
                        NearestNeighborsQuery.CosineLsh(field, dummy, **query_params)
+            elif self._metric == 'dot':
+                return Mapping.DotLsh(self._dims, **self._mapping_params), \
+                       NearestNeighborsQuery.DotLsh(field, dummy, **query_params)
             elif self._metric == 'hamming':
                 return Mapping.CosineLsh(self._dims, **self._mapping_params), \
                        NearestNeighborsQuery.HammingLsh(field, dummy, **query_params)
