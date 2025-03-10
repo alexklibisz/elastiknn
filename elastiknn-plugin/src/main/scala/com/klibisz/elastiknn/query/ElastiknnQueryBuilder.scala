@@ -12,6 +12,7 @@ import org.elasticsearch.index.query.SearchExecutionContext
 final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: ModelCache) {
 
   private val cosine = new ESF.Cosine(floatVectorOps)
+  private val dot = new ESF.Dot(floatVectorOps)
   private val l1 = new ESF.L1(floatVectorOps)
   private val l2 = new ESF.L2(floatVectorOps)
 
@@ -51,21 +52,27 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
 
       case (
             Exact(f, Similarity.L1, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh |  _: Mapping.DotLsh |_: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, l1)
 
       case (
             Exact(f, Similarity.L2, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh |  _: Mapping.DotLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, l2)
 
       case (
             Exact(f, Similarity.Cosine, v: Vec.DenseFloat),
-            _: Mapping.DenseFloat | _: Mapping.CosineLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh |  _: Mapping.DotLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
           ) =>
         new ExactQuery(f, v, cosine)
+
+      case (
+            Exact(f, Similarity.Dot, v: Vec.DenseFloat),
+            _: Mapping.DenseFloat | _: Mapping.CosineLsh |  _: Mapping.DotLsh | _: Mapping.L2Lsh | _: Mapping.PermutationLsh
+          ) =>
+        new ExactQuery(f, v, dot)
 
       case (JaccardLsh(f, candidates, v: Vec.SparseBool), m: Mapping.JaccardLsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.trueIndices, v.totalIndices), ESF.Jaccard)
@@ -75,7 +82,10 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
 
       case (CosineLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.CosineLsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), cosine)
-
+      
+      case (DotLsh(f, candidates, v: Vec.DenseFloat), m: Mapping.DotLsh) =>
+        new HashingQuery(f, v, candidates, modelCache(m).hash(v.values), dot)
+      
       case (L2Lsh(f, candidates, probes, v: Vec.DenseFloat), m: Mapping.L2Lsh) =>
         new HashingQuery(f, v, candidates, modelCache(m).hash(v.values, probes), l2)
 
