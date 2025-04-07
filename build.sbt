@@ -128,7 +128,7 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginEsJavaOpts += "--add-modules jdk.incubator.vector",
     libraryDependencies ++= Seq(
       "com.google.guava" % "guava" % "33.4.6-jre",
-      "com.google.guava" % "failureaccess" % "1.0.2",
+      "com.google.guava" % "failureaccess" % "1.0.3",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
       "ch.qos.logback" % "logback-classic" % "1.5.18" % Test
