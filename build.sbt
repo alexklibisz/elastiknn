@@ -6,9 +6,9 @@ Global / scalaVersion := "3.3.5"
 
 Global / scalacOptions += "-explain"
 
-lazy val CirceVersion = "0.14.10"
+lazy val CirceVersion = "0.14.12"
 lazy val ElasticsearchVersion = "8.17.4"
-lazy val Elastic4sVersion = "8.16.0"
+lazy val Elastic4sVersion = "8.17.1"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.12.0"
 
@@ -127,11 +127,11 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginRunSettings += "elastiknn.jdk-incubator-vector.enabled=true",
     elasticsearchPluginEsJavaOpts += "--add-modules jdk.incubator.vector",
     libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % "33.4.0-jre",
+      "com.google.guava" % "guava" % "33.4.6-jre",
       "com.google.guava" % "failureaccess" % "1.0.2",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.17" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.18" % Test
     ),
     TestSettings
   )
