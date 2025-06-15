@@ -48,7 +48,7 @@ object Vec {
       case _                 => false
     }
 
-    override def toString: String = s"DenseFloat(${values.take(3).map(n => f"$n%.2f").mkString(",")},...,${values.length})"
+    override def toString: String = s"DenseFloat(${values.take(3).iterator.map(n => f"$n%.2f").mkString(",")},...,${values.length})"
 
     def dot(other: DenseFloat): Float = {
       var (i, dp) = (0, 0f)
