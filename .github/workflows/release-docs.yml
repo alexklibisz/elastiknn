@@ -11,7 +11,7 @@ jobs:
   release-docs:
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on:
-      - ubuntu-22.04
+      - ubuntu-24.04
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -26,10 +26,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Jekyll Site
-        run: |
-          sudo chown -R runneradmin:runneradmin docs
-          task docsCompile
-          sudo chown -R runner:docker docs
+        run: task docsCompile
       - name: Generate Python Docs
         run: |
           task pyDocs

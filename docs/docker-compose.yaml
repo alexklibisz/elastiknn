@@ -1,13 +1,13 @@
-version: "3.8"
-
 services:
 
   # Local development server with automatic recompilation.
   dev:
     container_name: elastiknn-docs-dev
-    image: jekyll/jekyll:4.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ".:/srv/jekyll"
+      - ".:/site"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
@@ -21,9 +21,11 @@ services:
   # Build site for publication. Output is in site/_site.
   compile:
     container_name: elastiknn-docs-build
-    image: jekyll/jekyll:4.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ".:/srv/jekyll:z"
+      - ".:/site"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
