@@ -19,17 +19,17 @@ services:
   # Build site for publication. Output is in site/_site.
   compile:
     container_name: elastiknn-docs-build
-    image: jekyll/jekyll:4.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ".:/tmp/jekyll"
+      - ".:/site"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
       - "-ec"
       - |
-        cp -r /tmp/jekyll /srv/jekyll
         bundle install
         bundle exec jekyll build
-        cp -r /srv/jekyll /tmp/jekyll
     environment:
       - JEKYLL_ENV=production

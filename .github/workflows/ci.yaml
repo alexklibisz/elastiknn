@@ -169,10 +169,7 @@ jobs:
         timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: getent passwd
       - name: Compile Jekyll Site
         run: |
-          sudo chown -R root:root docs
           task docsCompile
-          sudo chown -R runner:docker docs 
           ls -la docs/*
