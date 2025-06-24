@@ -169,6 +169,7 @@ jobs:
         timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: whoami
       - name: Compile Jekyll Site
         run: |
           task docsCompile
