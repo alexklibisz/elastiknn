@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
 
   # Local development server with automatic recompilation.
@@ -23,7 +21,7 @@ services:
     container_name: elastiknn-docs-build
     image: jekyll/jekyll:4.0
     volumes:
-      - ".:/srv/jekyll:z"
+      - ".:/srv/jekyll"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"

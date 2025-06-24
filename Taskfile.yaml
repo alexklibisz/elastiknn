@@ -149,7 +149,7 @@ tasks:
     dir: docs
     cmds:
       - rm -rf _site
-      - docker compose run --rm compile
+      - docker compose run --quiet-pull --rm compile
 
   jvmClean:
     desc: Clean all JVM artifacts
