@@ -169,8 +169,10 @@ jobs:
         timeout-minutes: 1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: whoami
+      - run: docker run --rm --rm alpine:latest whoami
       - name: Compile Jekyll Site
         run: |
+          sudo chown -R runneradmin:runneradmin docs
           task docsCompile
+          sudo chown -R runner:docker docs 
           ls -la docs/*
