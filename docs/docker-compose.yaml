@@ -3,9 +3,11 @@ services:
   # Local development server with automatic recompilation.
   dev:
     container_name: elastiknn-docs-dev
-    image: jekyll/jekyll:4.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ".:/srv/jekyll"
+      - ".:/site"
       - "./.gemcache:/usr/gem/cache"
     command:
       - "/bin/bash"
