@@ -160,7 +160,7 @@ jobs:
   test-jekyll-site:
     name: Test Jekyll Site
     runs-on:
-      - ubuntu-22.04
+      - ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -171,7 +171,5 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Compile Jekyll Site
         run: |
-          sudo chown -R runneradmin:runneradmin docs
           task docsCompile
-          sudo chown -R runner:docker docs 
           ls -la docs/*
