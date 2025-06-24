@@ -20,3 +20,7 @@ footer:
 
 plugins:
   - jekyll-feed
+
+exclude:
+  - docker-compose.yaml
+  - Dockerfile
