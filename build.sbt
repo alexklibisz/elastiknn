@@ -2,13 +2,18 @@ import ElasticsearchPluginPlugin.autoImport.*
 import org.typelevel.sbt.tpolecat.{CiMode, DevMode}
 import org.typelevel.scalacoptions.*
 
-Global / scalaVersion := "3.3.5"
+Global / scalaVersion := "3.3.6"
 
 Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.13"
+<<<<<<< update/elastic4s-client-esjava-8.18.1
 lazy val ElasticsearchVersion = "8.17.5"
 lazy val Elastic4sVersion = "8.18.1"
+=======
+lazy val ElasticsearchVersion = "8.17.6"
+lazy val Elastic4sVersion = "8.18.0"
+>>>>>>> main
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "9.12.0"
 
