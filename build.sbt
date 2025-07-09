@@ -103,8 +103,8 @@ lazy val `elastiknn-jmh-benchmarks` = project
   .settings(
     Jmh / javaOptions ++= Seq("--add-modules", "jdk.incubator.vector"),
     libraryDependencies ++= Seq(
-      "org.eclipse.collections" % "eclipse-collections" % "11.1.0",
-      "org.eclipse.collections" % "eclipse-collections-api" % "11.1.0"
+      "org.eclipse.collections" % "eclipse-collections" % "13.0.0",
+      "org.eclipse.collections" % "eclipse-collections-api" % "13.0.0"
     )
   )
 
