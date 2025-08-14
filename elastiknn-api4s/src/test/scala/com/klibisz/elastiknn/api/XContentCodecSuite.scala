@@ -110,13 +110,16 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
           ("L2", Similarity.L2),
           ("cosine", Similarity.Cosine),
           ("Cosine", Similarity.Cosine),
-          ("COSINE", Similarity.Cosine)
+          ("COSINE", Similarity.Cosine),
+          ("dot", Similarity.Dot),
+          ("Dot", Similarity.Dot),
+          ("DOT", Similarity.Dot)
         )
       } roundtrip[Similarity](Json.fromString(str.toLowerCase), sim)
     }
     "errors" in {
       val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("\"wrong\""))
-      ex1.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [wrong]"
+      ex1.getMessage shouldBe "Expected token to be one of [cosine,dot,hamming,jaccard,l1,l2] but found [wrong]"
       val ex2 = intercept[XContentParseException](decodeUnsafeFromString[Similarity]("99"))
       ex2.getMessage shouldBe "Expected token to be one of [VALUE_STRING] but found [VALUE_NUMBER]"
     }
@@ -326,7 +329,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
             | }
             |}
             |""".stripMargin))
-        ex2.getMessage shouldBe "Expected token to be one of [cosine,hamming,jaccard,l1,l2] but found [jacard]"
+        ex2.getMessage shouldBe "Expected token to be one of [cosine,dot, hamming,jaccard,l1,l2] but found [jacard]"
       }
     }
     "HammingLsh" - {
@@ -393,6 +396,42 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
             |   "model": "lsh",
             |   "dims": 33,
             |   "similarity": "cosine",
+            |   "L": "33",
+            |   "k": 3
+            | }
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Expected [L] to be one of [VALUE_NUMBER] but found [VALUE_STRING]"
+      }
+    }
+    "DotLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          (dims, l, k) = (rng.nextInt(), rng.nextInt(), rng.nextInt())
+          mapping = Mapping.DotLsh(dims, l, k)
+          expected = Json.obj(
+            "type" -> "elastiknn_dense_float_vector".asJson,
+            "elastiknn" -> Json.obj(
+              "model" -> "lsh".asJson,
+              "dims" -> dims.asJson,
+              "similarity" -> "dot".asJson,
+              "L" -> l.asJson,
+              "k" -> k.asJson
+            )
+          )
+        } {
+          roundtrip[Mapping](expected, mapping)
+        }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[Mapping]("""
+            |{ 
+            | "type": "elastiknn_dense_float_vector",
+            | "elastiknn": {
+            |   "model": "lsh",
+            |   "dims": 33,
+            |   "similarity": "dot",
             |   "L": "33",
             |   "k": 3
             | }
@@ -481,6 +520,24 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
     )
 
     def randomVec(): Vec = vecChoices(rng.nextInt(vecChoices.length))()
+    
+    val vecNormChoices = Array(
+      () => {
+        val vec = Vec.DenseFloat.random(rng.nextInt(100))
+        val norm = math.sqrt(vec.data.map(x => x * x).sum).toFloat
+        if (norm == 0) vec else Vec.DenseFloat(vec.data.map(_ / norm))
+      },
+      () => Vec.Indexed(s"index${rng.nextInt()}", s"id${rng.nextInt()}", s"field${rng.nextInt()}"),
+      () => {
+        // Generate a sparse boolean vector with exactly one true value
+        val length = rng.nextInt(1000)
+        val index = rng.nextInt(length) // Random index to be set to true
+        Vec.SparseBool(Array(true), Array(index), length)
+      },
+      () => Vec.Empty()
+    )
+
+    def randomNormVec(): Vec = vecChoices(rng.nextInt(vecChoices.length))()
 
     def randomSimilarity(): Similarity = Similarity.values(rng.nextInt(Similarity.values.length))
 
@@ -537,6 +594,35 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
             | "model": "lsh",
             | "similarity": "cosine",
             | "vec": [0, 1, 2]
+            |}
+            |""".stripMargin))
+        ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
+      }
+    }
+    "DotLsh" - {
+      "roundtrip" in {
+        for {
+          _ <- 1 to 100
+          vec = randomNormVec()
+          query = NearestNeighborsQuery.DotLsh(s"field${rng.nextInt()}", rng.nextInt(), vec)
+          expected = Json.obj(
+            "field" -> query.field.asJson,
+            "candidates" -> query.candidates.asJson,
+            "model" -> "lsh".asJson,
+            "similarity" -> "dot".asJson,
+            "vec" -> parse(XContentCodec.encodeUnsafeToString(vec)).fold(fail(_), identity)
+          )
+        } {
+          roundtrip[NearestNeighborsQuery](expected, query)
+        }
+      }
+      "errors" in {
+        val ex1 = intercept[XContentParseException](decodeUnsafeFromString[NearestNeighborsQuery]("""
+            |{ 
+            | "field": "vec",
+            | "model": "lsh",
+            | "similarity": "dot",
+            | "vec": [0, 1, 0]
             |}
             |""".stripMargin))
         ex1.getMessage shouldBe "Unable to construct [nearest neighbors query] from parsed JSON"
