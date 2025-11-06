@@ -131,7 +131,7 @@ lazy val `elastiknn-plugin` = project
       "com.google.guava" % "failureaccess" % "1.0.3",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.18" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.20" % Test
     ),
     TestSettings
   )
