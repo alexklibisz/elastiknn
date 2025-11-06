@@ -74,7 +74,7 @@ object VectorMapper {
     override def termQuery(value: Any, context: SearchExecutionContext): Query = {
       value match {
         case b: BytesRef => new TermQuery(new Term(name(), b))
-        case _ =>
+        case _           =>
           val msg = s"Field [${name()}] of type [${typeName()}] doesn't support term queries with value of type [${value.getClass}]"
           throw new ElastiknnUnsupportedOperationException(msg)
       }

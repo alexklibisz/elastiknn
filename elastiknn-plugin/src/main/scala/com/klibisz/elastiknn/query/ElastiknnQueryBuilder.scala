@@ -23,7 +23,7 @@ final class ElastiknnQueryBuilder(floatVectorOps: FloatVectorOps, modelCache: Mo
     val mft: MappedFieldType = context.getFieldType(field)
     mft match {
       case ft: FieldType => ft.mapping
-      case null =>
+      case null          =>
         throw new ElastiknnRuntimeException(s"Could not find mapped field type for field [${field}]")
       case _ =>
         throw new ElastiknnRuntimeException(
