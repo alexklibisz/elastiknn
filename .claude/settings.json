@@ -3,7 +3,8 @@
     "allow": [
       "Bash(task:*)",
       "Bash(sbt -client:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(gh release list:*)"
     ]
   }
 }
