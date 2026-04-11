@@ -55,22 +55,6 @@ class PermutationLshModelSuite extends AnyFunSuite with Matchers with LuceneSupp
     def round(f: Float): Float =
       BigDecimal(f).setScale(6, BigDecimal.RoundingMode.HALF_UP).floatValue
 
-    // Warm-up pass: run the same indexing and queries once before measuring.
-    // PanamaFloatVectorOps uses SIMD reduceLanes which can produce slightly different floating-point
-    // results before vs. after JIT compilation, causing the first measured run to differ.
-    indexAndSearch() { w =>
-      corpusVecs.foreach { v =>
-        val d = new Document()
-        HashingQuery.index("vec", HashFieldType.HASH_FIELD_TYPE, v, lsh.hash(v.values)).foreach(d.add)
-        w.addDocument(d)
-      }
-    } { case (r, s) =>
-      queryVecs.foreach { v =>
-        val q = new HashingQuery("vec", v, 200, lsh.hash(v.values), cosine)
-        s.search(q.toLuceneQuery(r), 100)
-      }
-    }
-
     // Several repetitions[several queries[several results per query[each result is a (docId, score)]]].
     val repeatedResults: Seq[Vector[Vector[(Int, Float)]]] = (0 until 3).map { _ =>
       val (_, queryResults) = indexAndSearch() { w =>
