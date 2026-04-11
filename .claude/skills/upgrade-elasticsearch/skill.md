@@ -1,3 +1,9 @@
+---
+name: upgrade-elasticsearch
+description: Upgrade Elasticsearch end-to-end: bump versions, check Lucene, compile, unit test, integration test, open PR.
+argument-hint: "[target version, e.g. 8.18.5]"
+---
+
 Upgrade Elasticsearch to the version specified by the user (or infer it from context). Follow these steps in order, fixing any issues before moving to the next step:
 
 1. **Bump versions** in all four places:
