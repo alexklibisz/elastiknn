@@ -4,7 +4,7 @@ description: Upgrade Elasticsearch end-to-end: bump versions, check Lucene, comp
 argument-hint: "[target version, e.g. 8.18.5]"
 ---
 
-Upgrade Elasticsearch to the version specified by the user (or infer it from context). Follow these steps in order, fixing any issues before moving to the next step:
+Upgrade Elasticsearch to the version specified by the user. If no version is specified, run `gh release list --repo elastic/elasticsearch --limit 60` and pick the closest available version to the current one (i.e., the next patch or minor release — minimize the version jump). Follow these steps in order, fixing any issues before moving to the next step:
 
 1. **Bump versions** in all four places:
    - `ElasticsearchVersion` in `build.sbt`
