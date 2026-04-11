@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(task:*)",
-      "Bash(sbt -client:*)"
+      "Bash(sbt -client:*)",
+      "Bash(git:*)"
     ]
   }
 }
