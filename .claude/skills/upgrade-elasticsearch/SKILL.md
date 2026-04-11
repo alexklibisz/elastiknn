@@ -1,6 +1,6 @@
 ---
 name: upgrade-elasticsearch
-description: Upgrade Elasticsearch end-to-end: bump versions, check Lucene, compile, unit test, integration test, open PR.
+description: Upgrade Elasticsearch end-to-end: bump versions, check Lucene, compile, unit test, open PR, monitor CI and fix failures.
 argument-hint: "[target version, e.g. 8.18.5]"
 ---
 
@@ -20,10 +20,29 @@ Upgrade Elasticsearch to the version specified by the user. If no version is spe
    ```
    If evicted, bump `LuceneVersion` in `build.sbt` to match.
 
-3. **Verify compilation:** `task jvmCompile`. Fix any issues before proceeding.
+3. **Verify compilation:** `task jvmCompile`. This compiles all modules including integration test sources (`compile; Test/compile`). Fix any issues before proceeding.
 
 4. **Verify unit tests:** `task jvmUnitTest`. Fix any failures before proceeding.
 
-5. **Verify integration tests:** `task dockerRunTestingCluster` then `task jvmIntegrationTest`. Fix any failures.
-
 Once all steps pass, open a PR with the title `Dependencies: upgrade Elasticsearch to <new version>` (e.g. `Dependencies: upgrade Elasticsearch to 8.18.5`).
+
+5. **Monitor CI and fix failures.** After the PR is open, poll GitHub Actions until CI completes or a job fails:
+
+   ```bash
+   # Get the latest run ID for the PR branch
+   gh run list --branch <branch-name> --limit 5
+
+   # Watch a specific run (blocks until done, then prints summary)
+   gh run watch <run-id>
+
+   # If a job failed, get the logs
+   gh run view <run-id> --log-failed
+   ```
+
+   For each failed job:
+   - Read the failure output carefully to identify the root cause.
+   - Fix the issue locally (edit code, push a new commit).
+   - Wait for a new CI run to start on that push, then repeat the watch/log loop.
+   - Continue until all jobs pass (green).
+
+   Do not close or abandon the PR — iterate until CI is green.
