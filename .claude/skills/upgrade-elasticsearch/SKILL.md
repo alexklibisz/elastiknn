@@ -11,7 +11,7 @@ Upgrade Elasticsearch to the version specified by the user. If no version is spe
    - Image tag in `docker/Dockerfile`
    - Image tag and release download URL in `docs/pages/installation.md`
    - `version` file (format: `X.Y.Z.0`)
-   - `elasticsearch` pin in `client-python/requirements.txt` — must match the new ES version exactly (e.g. `elasticsearch==8.18.6`)
+   - `elasticsearch` pin in `client-python/requirements.txt` — upgrade to the latest available version whose minor version does not exceed the new ES minor version. The Python client does **not** publish patch releases (e.g. there is no `8.18.6`), so check available versions first: `pip index versions elasticsearch` or check PyPI.
    - `Elastic4sVersion` in `build.sbt` — upgrade to the latest available `nl.gn0s1s:elastic4s-client-esjava` version whose minor version does not exceed the new ES minor version. Check available versions on Maven Central: `curl -s "https://repo1.maven.org/maven2/nl/gn0s1s/elastic4s-client-esjava_3/maven-metadata.xml" | grep '<version>'`
 
 2. **Check if LuceneVersion needs updating.** ES ships with a bundled Lucene. If it changed, the old pinned version will show as "evicted" in the dependency tree:
