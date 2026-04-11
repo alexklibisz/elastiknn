@@ -11,7 +11,7 @@ import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.index.query.*
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion}
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion, TransportVersions}
 
 import java.util.Objects
 import java.util.concurrent.atomic.AtomicReference
@@ -159,6 +159,6 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     queryBuilder
   }
 
-  override def getMinimalSupportedVersion: TransportVersion = TransportVersion.minimumCompatible()
+  override def getMinimalSupportedVersion: TransportVersion = TransportVersions.MINIMUM_COMPATIBLE
 
 }
