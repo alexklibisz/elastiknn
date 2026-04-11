@@ -97,34 +97,44 @@ public class MatchHashesAndScoreQuery extends Query {
             }
 
             @Override
-            public Scorer scorer(LeafReaderContext context) throws IOException {
-                ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
-                LeafReader reader = context.reader();
-                HitCounter counter = countHits(reader);
-                DocIdSetIterator disi = counter.docIdSetIterator(candidates);
-
-                return new Scorer(this) {
+            public ScorerSupplier scorerSupplier(LeafReaderContext context) throws IOException {
+                return new ScorerSupplier() {
                     @Override
-                    public DocIdSetIterator iterator() {
-                        return disi;
+                    public Scorer get(long leadCost) throws IOException {
+                        ScoreFunction scoreFunction = scoreFunctionBuilder.apply(context);
+                        LeafReader reader = context.reader();
+                        HitCounter counter = countHits(reader);
+                        DocIdSetIterator disi = counter.docIdSetIterator(candidates);
+
+                        return new Scorer() {
+                            @Override
+                            public DocIdSetIterator iterator() {
+                                return disi;
+                            }
+
+                            @Override
+                            public float getMaxScore(int upTo) {
+                                return Float.MAX_VALUE;
+                            }
+
+                            @Override
+                            public float score() {
+                                int docID = docID();
+                                // TODO: how does it get to this state? This error did come up once in some local testing.
+                                if (docID == DocIdSetIterator.NO_MORE_DOCS) return 0f;
+                                else return (float) scoreFunction.score(docID, counter.get(docID));
+                            }
+
+                            @Override
+                            public int docID() {
+                                return disi.docID();
+                            }
+                        };
                     }
 
                     @Override
-                    public float getMaxScore(int upTo) {
-                        return Float.MAX_VALUE;
-                    }
-
-                    @Override
-                    public float score() {
-                        int docID = docID();
-                        // TODO: how does it get to this state? This error did come up once in some local testing.
-                        if (docID == DocIdSetIterator.NO_MORE_DOCS) return 0f;
-                        else return (float) scoreFunction.score(docID, counter.get(docID));
-                    }
-
-                    @Override
-                    public int docID() {
-                        return disi.docID();
+                    public long cost() {
+                        return candidates;
                     }
                 };
             }
