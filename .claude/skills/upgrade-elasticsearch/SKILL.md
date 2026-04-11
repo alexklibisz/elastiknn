@@ -24,4 +24,4 @@ Upgrade Elasticsearch to the version specified by the user. If no version is spe
 
 5. **Verify integration tests:** `task dockerRunTestingCluster` then `task jvmIntegrationTest`. Fix any failures.
 
-Once all steps pass, open a PR.
+Once all steps pass, open a PR with the title `Dependencies: upgrade Elasticsearch to <new version>` (e.g. `Dependencies: upgrade Elasticsearch to 8.18.5`).
