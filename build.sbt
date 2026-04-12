@@ -22,7 +22,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
   // https://github.com/typelevel/sbt-tpolecat/tree/v0.5.1?tab=readme-ov-file#scalatest-warnings
   Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )
