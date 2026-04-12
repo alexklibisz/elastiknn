@@ -11,7 +11,7 @@ import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.index.query.*
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
-import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion, TransportVersions}
+import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion}
 
 import java.util.Objects
 import java.util.concurrent.atomic.AtomicReference
