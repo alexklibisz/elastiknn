@@ -68,7 +68,7 @@ object VectorMapper {
 
   // TODO: 7.9.x. Unsure if the constructor params passed to the superclass are correct.
   class FieldType(contentTypeName: String, fieldName: String, val mapping: Mapping)
-      extends MappedFieldType(fieldName, true, true, true, TextSearchInfo.NONE, Collections.emptyMap()) {
+      extends MappedFieldType(fieldName, IndexType.terms(true, true), false, Collections.emptyMap()) {
     override def typeName(): String = contentTypeName
     override def clone(): FieldType = new FieldType(contentTypeName, fieldName, mapping)
     override def termQuery(value: Any, context: SearchExecutionContext): Query = {

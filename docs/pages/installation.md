@@ -21,10 +21,10 @@ Elasticsearch requires a new version of Elastiknn for every version of Elasticse
 Because of this, Elastiknn's versioning scheme includes the Elasticsearch version, followed by an incrementing version denoting changes to Elastiknn.
 For example, Elastiknn versions `8.4.2.0` and `8.4.2.1` were the first and second releases of Elastiknn corresponding to Elasticsearch version 8.4.2.  
 
-Elastiknn's main branch and the documentation site stay up-to-date with the latest Elasticsearch version, currently 8.x.
+Elastiknn's main branch and the documentation site stay up-to-date with the latest Elasticsearch version, currently 9.x.
 We maintain a second branch, [elasticsearch-7x](https://github.com/alexklibisz/elastiknn/tree/elasticsearch-7x), for Elasticsearch 7.x releases.
 
-### Elasticsearch 8.x
+### Elasticsearch 9.x
 
 |:--|:--|
 |Plugin Release| [![Plugin Release Status][Badge-Plugin-Release]][Link-Plugin-Release]|
@@ -42,8 +42,8 @@ Make a Dockerfile like below.
 The image version (`elasticsearch:A.B.C`) must match the plugin's version (e.g. `A.B.C.x/elastiknn-A.B.C.x`).
 
 ```docker
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.18.3
-RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/8.18.3.0/elastiknn-8.18.3.0.zip
+FROM docker.elastic.co/elasticsearch/elasticsearch:9.3.3
+RUN elasticsearch-plugin install --batch https://github.com/alexklibisz/elastiknn/releases/download/9.3.3.0/elastiknn-9.3.3.0.zip
 ```
 
 Build and run the Dockerfile. If you have any issues please refer to the [official docs.](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html)

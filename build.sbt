@@ -2,15 +2,15 @@ import ElasticsearchPluginPlugin.autoImport.*
 import org.typelevel.sbt.tpolecat.{CiMode, DevMode}
 import org.typelevel.scalacoptions.*
 
-Global / scalaVersion := "3.3.6"
+Global / scalaVersion := "3.3.7"
 
 Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.14"
-lazy val ElasticsearchVersion = "8.18.3"
-lazy val Elastic4sVersion = "8.19.0"
+lazy val ElasticsearchVersion = "9.3.3"
+lazy val Elastic4sVersion = "9.3.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "9.12.0"
+lazy val LuceneVersion = "10.3.2"
 
 // Setting this to simplify local development.
 // https://github.com/typelevel/sbt-tpolecat/tree/v0.5.1?tab=readme-ov-file#modes
@@ -22,7 +22,7 @@ lazy val TestSettings = Seq(
   Test / parallelExecution := false,
   Test / logBuffered := false,
   Test / testOptions += Tests.Argument("-oD"),
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.20" % Test,
   // https://github.com/typelevel/sbt-tpolecat/tree/v0.5.1?tab=readme-ov-file#scalatest-warnings
   Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 )
@@ -127,11 +127,11 @@ lazy val `elastiknn-plugin` = project
     elasticsearchPluginRunSettings += "elastiknn.jdk-incubator-vector.enabled=true",
     elasticsearchPluginEsJavaOpts += "--add-modules jdk.incubator.vector",
     libraryDependencies ++= Seq(
-      "com.google.guava" % "guava" % "33.4.8-jre",
+      "com.google.guava" % "guava" % "33.5.0-jre",
       "com.google.guava" % "failureaccess" % "1.0.3",
       "org.scalanlp" %% "breeze" % "2.1.0" % Test,
       "io.circe" %% "circe-parser" % CirceVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.18" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.32" % Test
     ),
     TestSettings
   )

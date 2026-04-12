@@ -1,6 +1,5 @@
 package com.klibisz.elastiknn.client
 
-import com.fasterxml.jackson.module.scala.JavaTypeable
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
@@ -8,26 +7,28 @@ import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.indexes.{CreateIndexResponse, PutMappingResponse}
 import com.sksamuel.elastic4s.requests.searches.{SearchRequest, SearchResponse}
+import cats.instances.future.catsStdInstancesForFuture
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 
 import scala.annotation.tailrec
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import scala.concurrent.{ExecutionContext, Future}
 
 trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   /** Underlying client from the elastic4s library.
     */
-  val elasticClient: ElasticClient
+  val elasticClient: ElasticClient[F]
 
   /** Abstract method for executing a request.
     */
-  def execute[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]]
+  def execute[T, U](request: T)(using handler: Handler[T, U]): F[Response[U]]
 
   /** Execute the given request.
     */
-  final def apply[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]] = execute(request)
+  final def apply[T, U](request: T)(using handler: Handler[T, U]): F[Response[U]] = execute(request)
 
   /** See ElastiknnRequests.putMapping().
     */
@@ -112,13 +113,12 @@ object ElastiknnClient {
     *   [[ElastiknnFutureClient]]
     */
   def futureClient(restClient: RestClient, strictFailure: Boolean)(using ec: ExecutionContext): ElastiknnFutureClient = {
-    val jc: JavaClient = new JavaClient(restClient)
+    val jc: JavaClient = JavaClient.fromRestClient(restClient)
     new ElastiknnFutureClient {
-      given executor: Executor[Future] = Executor.FutureExecutor(ec)
-      given functor: Functor[Future] = Functor.FutureFunctor(ec)
-      val elasticClient: ElasticClient = ElasticClient(jc)
-      override def execute[T, U](req: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): Future[Response[U]] = {
-        val future: Future[Response[U]] = elasticClient.execute(req)
+      given cats.Functor[Future] = catsStdInstancesForFuture
+      val elasticClient: ElasticClient[Future] = ElasticClient(jc)
+      override def execute[T, U](req: T)(using handler: Handler[T, U]): Future[Response[U]] = {
+        val future: Future[Response[U]] = elasticClient.execute(req)(using handler, CommonRequestOptions.defaults)
         if (strictFailure) future.flatMap { res =>
           checkResponse(req, res) match {
             case Left(ex) => Future.failed(ex)
@@ -129,7 +129,7 @@ object ElastiknnClient {
       }
       override def toString: String =
         s"${ElastiknnClient.getClass.getSimpleName} connected to ${restClient.getNodes.asScala.toList.mkString(",")}"
-      override def close(): Unit = elasticClient.close()
+      override def close(): Unit = Await.result(elasticClient.close(), 30.seconds)
     }
   }
 

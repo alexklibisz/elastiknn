@@ -63,7 +63,13 @@ final class HashingQuery[V <: Vec, S <: StoredVec: Decoder](
         }
 
         override def score(docId: Int, subQueryScore: Float): Double = {
-          val intersection = postings.count { p => p.docID() != DocIdSetIterator.NO_MORE_DOCS && p.advance(docId) == docId }
+          val intersection = postings.count { p =>
+            val curr = p.docID()
+            if (curr == DocIdSetIterator.NO_MORE_DOCS) false
+            else if (curr == docId) true
+            else if (curr > docId) false
+            else p.advance(docId) == docId
+          }
           simFunc.maxScore * (intersection * 1d / hashes.length)
         }
 
