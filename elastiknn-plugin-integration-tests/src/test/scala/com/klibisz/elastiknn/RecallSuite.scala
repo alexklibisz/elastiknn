@@ -124,8 +124,8 @@ class RecallSuite extends AsyncFunSuite with Matchers with ElasticAsyncClient wi
         NearestNeighborsQuery.Exact(vecField, Similarity.L1) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.L2) -> 1d,
         NearestNeighborsQuery.Exact(vecField, Similarity.Cosine) -> 1d,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.14,
-        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.12
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.Cosine, 200) -> 0.31,
+        NearestNeighborsQuery.PermutationLsh(vecField, Similarity.L2, 200) -> 0.30
       ),
       // TODO: This one seems to be more sensitive for some unknown reason.
       recallTolerance = 5e-2
