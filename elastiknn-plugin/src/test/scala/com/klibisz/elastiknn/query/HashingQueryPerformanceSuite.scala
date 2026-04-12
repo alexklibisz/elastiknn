@@ -4,7 +4,7 @@ import com.klibisz.elastiknn.api.Vec
 import com.klibisz.elastiknn.models.{ExactSimilarityFunction, L2LshModel}
 import com.klibisz.elastiknn.lucene.{HashFieldType, LuceneSupport}
 import com.klibisz.elastiknn.vectors.PanamaFloatVectorOps
-import org.apache.lucene.codecs.lucene101.Lucene101Codec
+import org.apache.lucene.codecs.lucene103.Lucene103Codec
 import org.apache.lucene.document.Document
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -22,7 +22,7 @@ class HashingQueryPerformanceSuite extends AnyFunSuite with Matchers with Lucene
 //    Thread.sleep(1000)
 //  }
 
-  class BenchmarkCodec extends Lucene101Codec
+  class BenchmarkCodec extends Lucene103Codec
 
   test("indexing and searching on scale of GloVe-25") {
     given rng: Random = new Random(0)
