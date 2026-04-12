@@ -1,9 +1,9 @@
 package com.klibisz.elastiknn.client
 
-import com.fasterxml.jackson.module.scala.JavaTypeable
 import com.klibisz.elastiknn.api._
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s._
+import com.sksamuel.elastic4s.CommonRequestOptions
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.requests.bulk.{BulkResponse, BulkResponseItem}
 import com.sksamuel.elastic4s.requests.indexes.{CreateIndexResponse, PutMappingResponse}
@@ -25,11 +25,11 @@ trait ElastiknnClient[F[_]] extends AutoCloseable {
 
   /** Abstract method for executing a request.
     */
-  def execute[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]]
+  def execute[T, U](request: T)(using handler: Handler[T, U]): F[Response[U]]
 
   /** Execute the given request.
     */
-  final def apply[T, U](request: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): F[Response[U]] = execute(request)
+  final def apply[T, U](request: T)(using handler: Handler[T, U]): F[Response[U]] = execute(request)
 
   /** See ElastiknnRequests.putMapping().
     */
@@ -118,8 +118,8 @@ object ElastiknnClient {
     new ElastiknnFutureClient {
       given cats.Functor[Future] = catsStdInstancesForFuture
       val elasticClient: ElasticClient[Future] = ElasticClient(jc)
-      override def execute[T, U](req: T)(using handler: Handler[T, U], javaTypeable: JavaTypeable[U]): Future[Response[U]] = {
-        val future: Future[Response[U]] = elasticClient.execute(req)
+      override def execute[T, U](req: T)(using handler: Handler[T, U]): Future[Response[U]] = {
+        val future: Future[Response[U]] = elasticClient.execute(req)(using handler, CommonRequestOptions.defaults)
         if (strictFailure) future.flatMap { res =>
           checkResponse(req, res) match {
             case Left(ex) => Future.failed(ex)
