@@ -7,10 +7,10 @@ Global / scalaVersion := "3.3.7"
 Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.15"
-lazy val ElasticsearchVersion = "9.3.4"
+lazy val ElasticsearchVersion = "9.4.0"
 lazy val Elastic4sVersion = "9.3.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
-lazy val LuceneVersion = "10.3.2"
+lazy val LuceneVersion = "10.4.0"
 
 // Setting this to simplify local development.
 // https://github.com/typelevel/sbt-tpolecat/tree/v0.5.1?tab=readme-ov-file#modes

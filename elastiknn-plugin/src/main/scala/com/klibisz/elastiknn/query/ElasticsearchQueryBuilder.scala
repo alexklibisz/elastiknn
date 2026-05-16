@@ -10,6 +10,7 @@ import org.elasticsearch.action.get.{GetRequest, GetResponse}
 import org.elasticsearch.client.internal.Client
 import org.elasticsearch.common.io.stream.{StreamInput, StreamOutput, Writeable}
 import org.elasticsearch.index.query.*
+import org.elasticsearch.search.internal.MaxClauseCountQueryVisitor
 import org.elasticsearch.xcontent.{ToXContent, XContentBuilder, XContentParser}
 import org.elasticsearch.{ElasticsearchException, ResourceNotFoundException, TransportVersion}
 
@@ -66,7 +67,7 @@ object ElasticsearchQueryBuilder {
 
     def doXContent(b: XContentBuilder, p: ToXContent.Params): Unit = ()
 
-    def doToQuery(context: SearchExecutionContext): Query =
+    def doToQuery(context: SearchExecutionContext, visitor: MaxClauseCountQueryVisitor): Query =
       throw new UnsupportedOperationException("Only supports doRewrite")
 
     def doEquals(other: IndexedVectorQueryBuilder): Boolean =
@@ -97,7 +98,7 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
       case _                => this
     }
 
-  override def doToQuery(context: SearchExecutionContext): Query =
+  override def doToQuery(context: SearchExecutionContext, visitor: MaxClauseCountQueryVisitor): Query =
     elastiknnQueryBuilder.build(query, context).toLuceneQuery(context.getIndexReader)
 
   override def doEquals(other: ElasticsearchQueryBuilder): Boolean = other.query == this.query
