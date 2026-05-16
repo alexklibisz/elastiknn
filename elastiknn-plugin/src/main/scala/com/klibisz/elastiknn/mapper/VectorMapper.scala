@@ -112,6 +112,8 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
 
     private val thisBuilder: Builder = this
 
+    override def contentType(): String = CONTENT_TYPE
+
     override def build(context: MapperBuilderContext): FieldMapper =
       new FieldMapper(
         field,
