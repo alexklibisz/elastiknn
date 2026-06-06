@@ -7,7 +7,7 @@ Global / scalaVersion := "3.3.7"
 Global / scalacOptions += "-explain"
 
 lazy val CirceVersion = "0.14.15"
-lazy val ElasticsearchVersion = "9.4.1"
+lazy val ElasticsearchVersion = "9.4.2"
 lazy val Elastic4sVersion = "9.3.0"
 lazy val ElastiknnVersion = IO.read(file("version")).strip()
 lazy val LuceneVersion = "10.4.0"
