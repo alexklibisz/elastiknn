@@ -34,4 +34,9 @@ object ExactSimilarityFunction {
     override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double =
       ExactModel.cosineSimilarity(floatVectorOps, v1.values, v2.values)
   }
+  final class Dot(floatVectorOps: FloatVectorOps) extends ExactSimilarityFunction[Vec.DenseFloat, StoredVec.DenseFloat] {
+    override def maxScore: Float = 2f
+    override def apply(v1: Vec.DenseFloat, v2: StoredVec.DenseFloat): Double =
+      ExactModel.dotSimilarity(floatVectorOps, v1.values, v2.values)
+  }
 }

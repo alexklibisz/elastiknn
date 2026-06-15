@@ -29,6 +29,14 @@ object NearestNeighborsQuery {
     override def similarity: Similarity = Similarity.Cosine
   }
 
+  final case class DotLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
+    override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
+
+    override def withCandidates(candidates: Int): ApproximateQuery = copy(candidates = candidates)
+
+    override def similarity: Similarity = Similarity.Dot
+  }
+
   final case class HammingLsh(field: String, candidates: Int, vec: Vec = Vec.Empty()) extends ApproximateQuery {
     override def withVec(v: Vec): NearestNeighborsQuery = copy(vec = v)
 

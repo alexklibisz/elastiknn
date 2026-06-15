@@ -49,6 +49,10 @@ public final class PanamaFloatVectorOps implements FloatVectorOps {
         else return -1;
     }
 
+    public double dotSimilarity(float[] v1, float[] v2) {
+        return dotProduct(v1, v2);
+        }
+
     public double dotProduct(float[] v1, float[] v2) {
         int i = 0;
         double dotProd = 0d;
