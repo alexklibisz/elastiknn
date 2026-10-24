@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Repository Guidance
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance for working with code in this repository.
 
 ## Build and Test Commands
 
@@ -54,7 +54,7 @@ When upgrading ES, update all four: `build.sbt`, `docker/Dockerfile`, `docs/page
 
 ## Dependency Upgrades
 
-Use `/upgrade-elasticsearch` to perform an Elasticsearch upgrade end-to-end.
+Use the `upgrade-elasticsearch` skill to perform an Elasticsearch upgrade end-to-end. Read `skills/upgrade-elasticsearch/SKILL.md` when this task is requested and follow its instructions.
 
 Other JVM dependencies are mostly handled by Scala Steward via automated PRs (see git log for the pattern).
 
