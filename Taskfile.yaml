@@ -212,13 +212,15 @@ tasks:
       - sbt -client elastiknn-plugin/elasticsearchPluginDebug
 
   jvmPublishRelease:
-    desc: Publish an official release to Github
+    desc: Publish an official release to Github. Set LATEST=false for backport releases.
+    vars:
+      LATEST: '{{ .LATEST | default "true" }}'
     deps:
       - jvmAssemble
     status:
       - curl -f -s -o /dev/null {{ .GITHUB_URL }}/releases/tag/{{ .VERSION }}
     cmds:
-      - gh release create --generate-notes {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
+      - gh release create --generate-notes --latest={{ .LATEST }} {{ .VERSION }} --target {{ .COMMIT }} elastiknn-plugin/target/elastiknn-*.zip
 
   jvmPublishSnapshot:
     desc: Publish a snapshot of the plugin to Github
