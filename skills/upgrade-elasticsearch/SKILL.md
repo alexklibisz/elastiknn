@@ -1,7 +1,6 @@
 ---
 name: upgrade-elasticsearch
-description: Upgrade Elasticsearch end-to-end: bump versions, check Lucene, compile, unit test, open PR, monitor CI and fix failures.
-argument-hint: "[target version, e.g. 8.18.5]"
+description: "Upgrade Elasticsearch end-to-end: bump versions, check Lucene, compile, unit test, open PR, monitor CI and fix failures."
 ---
 
 Upgrade Elasticsearch to the version specified by the user. If no version is specified, run `gh release list --repo elastic/elasticsearch --limit 60` and pick the closest available version to the current one (i.e., the next patch or minor release — minimize the version jump). Follow these steps in order, fixing any issues before moving to the next step:
