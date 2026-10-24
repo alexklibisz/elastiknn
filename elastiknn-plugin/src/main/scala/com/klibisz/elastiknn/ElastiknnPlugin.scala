@@ -70,8 +70,14 @@ object ElastiknnPlugin {
     // Previously used to determine whether elastiknn can control the codec used for the index to improve performance.
     // Now it's a no-op. Deprecated as part of https://github.com/alexklibisz/elastiknn/issues/254 and
     // https://github.com/alexklibisz/elastiknn/issues/348.
+    // Elasticsearch 9.5.0 forbids Property.Deprecated on index-scoped settings, so we use the index-scoped equivalent.
     val elastiknn: Setting[java.lang.Boolean] =
-      Setting.boolSetting("index.elastiknn", false, Setting.Property.IndexScope, Setting.Property.Deprecated)
+      Setting.boolSetting(
+        "index.elastiknn",
+        false,
+        Setting.Property.IndexScope,
+        Setting.Property.IndexSettingDeprecatedInV9AndRemovedInV10
+      )
 
     val jdkIncubatorVectorEnabledSetting: Setting[java.lang.Boolean] =
       Setting.boolSetting("elastiknn.jdk-incubator-vector.enabled", false, Setting.Property.NodeScope)
