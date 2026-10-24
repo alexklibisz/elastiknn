@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance for working with code in this repository.
 
 ## Build and Test Commands
 
@@ -54,9 +54,19 @@ When upgrading ES, update all four: `build.sbt`, `docker/Dockerfile`, `docs/page
 
 ## Dependency Upgrades
 
-Use `/upgrade-elasticsearch` to perform an Elasticsearch upgrade end-to-end.
+Use the `upgrade-elasticsearch` skill to perform an Elasticsearch upgrade end-to-end. Read `skills/upgrade-elasticsearch/SKILL.md` when this task is requested and follow its instructions.
 
 Other JVM dependencies are mostly handled by Scala Steward via automated PRs (see git log for the pattern).
+
+## Backport Releases
+
+To release a plugin for an older Elasticsearch version (e.g., 9.3.8 while main is on 9.4.x):
+
+1. Create a `backport/<major>.<minor>.x` branch from the latest tag for that minor version (e.g., `backport/9.3.x` from `9.3.4.0`), and push it.
+2. Open a PR into the backport branch that upgrades Elasticsearch (same steps as the `upgrade-elasticsearch` skill). CI runs on PRs into `backport/**`.
+3. After merging, run the Release workflow on the backport branch with both `full-release` and `backport` checked. The GitHub release is not marked as latest.
+
+The workflow file is read from the branch it runs on, so changes to `.github/workflows/` must be cherry-picked onto backport branches.
 
 ## SIMD / Panama Vector API
 

@@ -6,7 +6,18 @@ on:
         type: boolean
         description: |
           Full release, i.e., non-snapshot.
-          This is only respected when the workflow runs on the main branch.
+          This is only respected when the workflow runs on the main branch,
+          or on a backport/* branch with the backport option enabled.
+      backport:
+        type: boolean
+        description: |
+          Backport release, i.e., a full release for an older Elasticsearch version.
+          This is only respected when the workflow runs on a backport/* branch.
+          The GitHub release is not marked as latest.
+
+env:
+  FULL_RELEASE: ${{ github.event.inputs.full-release == 'true' && (github.ref == 'refs/heads/main' || (github.event.inputs.backport == 'true' && startsWith(github.ref, 'refs/heads/backport/'))) }}
+  BACKPORT: ${{ github.event.inputs.backport == 'true' && startsWith(github.ref, 'refs/heads/backport/') }}
 
 permissions:
   contents: write
@@ -35,10 +46,10 @@ jobs:
       - name: Assemble
         run: task jvmAssemble
       - name: Publish Release
-        if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.full-release == 'true' }}
-        run: task jvmPublishRelease
+        if: ${{ env.FULL_RELEASE == 'true' }}
+        run: task jvmPublishRelease LATEST=${{ env.BACKPORT != 'true' }}
       - name: Publish Snapshot
-        if: ${{ github.event.inputs.full-release != 'true' }}
+        if: ${{ env.FULL_RELEASE != 'true' }}
         run: task jvmPublishSnapshot VERSION=$(cat version)-SNAPSHOT-${{ github.run_number }}${{ github.run_attempt }}
   release-python-client:
     needs: release-plugin
@@ -62,8 +73,8 @@ jobs:
       - name: Setup Setuptools
         run: python3 -m pip install setuptools
       - name: Publish Release
-        if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.full-release == 'true' }}
+        if: ${{ env.FULL_RELEASE == 'true' }}
         run: task pyPublishRelease
       - name: Publish Snapshot
-        if: ${{ github.event.inputs.full-release != 'true' }}
+        if: ${{ env.FULL_RELEASE != 'true' }}
         run: task pyPublishSnapshot VERSION=$(cat version)-dev${{ github.run_number }}${{ github.run_attempt }}
