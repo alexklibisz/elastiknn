@@ -5,6 +5,15 @@ on:
     branches:
       - main
       - backport/**
+    # Skip CI when a PR only changes files that don't affect the build or tests,
+    # e.g., a version bump for a release.
+    paths-ignore:
+      - version
+      - docs/pages/installation.md
+      - AGENTS.md
+      - README.md
+      - skills/**
+      - .claude/**
 
 concurrency:
   group: ${{ github.ref }}
