@@ -315,7 +315,7 @@ tasks:
     desc: Publish python library to pypi
     dir: client-python
     status:
-      - curl -f -s -o /dev/null https://pypi.org/project/elastiknn-client/{{ .VERSION }}/
+      - curl -f -s -o /dev/null https://pypi.org/pypi/elastiknn-client/{{ .VERSION }}/json
     cmds:
       - task: pyPublishLocal
         force: True
