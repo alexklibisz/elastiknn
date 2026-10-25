@@ -5,9 +5,13 @@ on:
     - cron: '0 0 6 * *'
 jobs:
   scala-steward:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Launch Scala Steward
     steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Scala Steward
         uses: scala-steward-org/scala-steward-action@v2
         with:
