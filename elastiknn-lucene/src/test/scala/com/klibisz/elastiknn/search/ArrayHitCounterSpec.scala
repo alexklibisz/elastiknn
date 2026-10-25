@@ -94,6 +94,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
     val rng = new Random(seed)
     val numDocs = 60000
     val numMatches = numDocs / 2
+    val maxCount = 10
     info(s"Using seed $seed")
     for (_ <- 0 until 99) {
       val matches = (0 until numMatches).map(_ => rng.nextInt(numDocs))
@@ -103,7 +104,7 @@ final class ArrayHitCounterSpec extends AnyFreeSpec with Matchers {
         ref.increment(doc)
         ahc.increment(doc)
         ahc.get(doc) shouldBe ref.get(doc)
-        val count = rng.nextInt(10).toShort
+        val count = rng.nextInt(maxCount).toShort
         ref.increment(doc, count)
         ahc.increment(doc, count)
         ahc.get(doc) shouldBe ref.get(doc)
