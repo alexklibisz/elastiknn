@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0 # Needed for git-based changelog.
       - uses: actions/setup-java@v6
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: 21
           cache: 'sbt'
       - uses: arduino/setup-task@v3

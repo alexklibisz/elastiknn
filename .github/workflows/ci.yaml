@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-java@v6
         timeout-minutes: 1
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: 21
           cache: 'sbt'
       - uses: arduino/setup-task@v3
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/setup-java@v6
         timeout-minutes: 1
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: 21
           cache: 'sbt'
       - uses: actions/setup-python@v7
@@ -131,7 +131,7 @@ jobs:
       - uses: actions/setup-java@v6
         timeout-minutes: 1
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: 21
           cache: 'sbt'
       - uses: arduino/setup-task@v3
