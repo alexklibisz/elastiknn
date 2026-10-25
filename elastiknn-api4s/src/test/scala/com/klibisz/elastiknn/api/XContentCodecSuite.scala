@@ -23,7 +23,7 @@ class XContentCodecSuite extends AnyFreeSpec with Matchers {
       val entries = obj.toIterable
       val shuffledChildren = entries.map { case (k, v) => (k, shuffle(v)) }
       val shuffledThisLevel = rng.shuffle(shuffledChildren).toList
-      val shuffled = Json.obj(shuffledThisLevel: _*)
+      val shuffled = Json.obj(shuffledThisLevel*)
       shuffled
     case None => original
   }
