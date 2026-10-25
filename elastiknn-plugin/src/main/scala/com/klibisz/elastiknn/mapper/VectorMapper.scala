@@ -147,7 +147,7 @@ abstract class VectorMapper[V <: Vec: XContentCodec.Decoder] { self =>
         override def getMergeBuilder: FieldMapper.Builder = new Builder(thisMapper.leafName(), mapping)
       }
 
-    override def getParameters: Array[FieldMapper.Parameter[_]] =
+    override def getParameters: Array[FieldMapper.Parameter[?]] =
       // This has to be defined in Java because scala's Array wrapper uses ClassTag,
       // which requires the extra permission: java.lang.RuntimePermission "getClassLoader".
       VectorMapperUtil.EMPTY_ARRAY_FIELD_MAPPER_PARAMETER

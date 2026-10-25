@@ -27,7 +27,7 @@ final class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin
   private val denseFloatVectorMapper = new DenseFloatVectorMapper(modelCache)
   private val sparseBoolVectorMapper = new SparseBoolVectorMapper(modelCache)
 
-  override def getQueries: util.List[SearchPlugin.QuerySpec[_]] = {
+  override def getQueries: util.List[SearchPlugin.QuerySpec[?]] = {
     Collections.singletonList(
       new QuerySpec(
         ElasticsearchQueryBuilder.NAME,
@@ -44,12 +44,12 @@ final class ElastiknnPlugin(settings: Settings) extends Plugin with SearchPlugin
     }
   }
 
-  override def getSettings: util.List[Setting[_]] = util.List.of(
+  override def getSettings: util.List[Setting[?]] = util.List.of(
     Settings.elastiknn,
     Settings.jdkIncubatorVectorEnabledSetting
   )
 
-  override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[_]] =
+  override def getScoreFunctions: util.List[SearchPlugin.ScoreFunctionSpec[?]] =
     Collections.singletonList(
       new ScoreFunctionSpec(
         ElasticsearchScoreFunctionBuilder.NAME,

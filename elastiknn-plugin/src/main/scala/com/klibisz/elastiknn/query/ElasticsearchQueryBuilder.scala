@@ -124,7 +124,7 @@ final class ElasticsearchQueryBuilder(val query: NearestNeighborsQuery, elastikn
     val queryBuilder = new ElasticsearchQueryBuilder.IndexedVectorQueryBuilder(ixv)
 
     // Request the actual document in order to construct the query
-    c.registerAsyncAction((client: Client, listener: ActionListener[_]) => {
+    c.registerAsyncAction((client: Client, listener: ActionListener[?]) => {
       client.get(
         new GetRequest(ixv.index, ixv.id),
         new ActionListener[GetResponse] {

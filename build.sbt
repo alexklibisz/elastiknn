@@ -2,7 +2,7 @@ import ElasticsearchPluginPlugin.autoImport.*
 import org.typelevel.sbt.tpolecat.{CiMode, DevMode}
 import org.typelevel.scalacoptions.*
 
-Global / scalaVersion := "3.3.8"
+Global / scalaVersion := "3.9.0"
 
 Global / scalacOptions += "-explain"
 
