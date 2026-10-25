@@ -18,7 +18,9 @@ object ExactSimilarityReference {
   val Cosine: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
     1 + (1 - cosineDistance(new DenseVector(v1.values.map(_.toDouble)), new DenseVector(v2.values.map(_.toDouble))))
   }
-
+  val Dot: (Vec.DenseFloat, Vec.DenseFloat) => Double = (v1: Vec.DenseFloat, v2: Vec.DenseFloat) => {
+    1 + ( new DenseVector(v1.values.map(_.toDouble)) dot new DenseVector(v2.values.map(_.toDouble)))
+  }
   val Hamming: (Vec.SparseBool, Vec.SparseBool) => Double = (v1: Vec.SparseBool, v2: Vec.SparseBool) => {
     val d1 = new Array[Boolean](v1.totalIndices)
     val d2 = new Array[Boolean](v2.totalIndices)

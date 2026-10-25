@@ -17,6 +17,7 @@ class Similarity(Enum):
     L1 = 3
     L2 = 4
     Cosine = 5
+    Dot = 6
 
 
 class Vec:
@@ -144,7 +145,24 @@ class Mapping:
                     "k": self.k
                 }
             }
+    
+    @dataclass(frozen=True)
+    class DotLsh(Base):
+        dims: int
+        L: int
+        k: int
 
+        def to_dict(self):
+            return {
+                "type": "elastiknn_dense_float_vector",
+                "elastiknn": {
+                    "model": "lsh",
+                    "similarity": "dot",
+                    "dims": self.dims,
+                    "L": self.L,
+                    "k": self.k
+                }
+            }
     @dataclass(frozen=True)
     class L2Lsh(Base):
         dims: int
@@ -270,6 +288,27 @@ class NearestNeighborsQuery:
         def with_vec(self, vec: Vec.Base):
             return NearestNeighborsQuery.CosineLsh(field=self.field, vec=vec, similarity=self.similarity,
                                                    candidates=self.candidates)
+
+    @dataclass(frozen=True)
+    class DotLsh(Base):
+        field: str
+        vec: Vec.Base
+        similarity: Similarity = Similarity.Dot
+        candidates: int = 1000
+
+        def to_dict(self):
+            return {
+                "field": self.field,
+                "model": "lsh",
+                "similarity": self.similarity.name.lower(),
+                "candidates": self.candidates,
+                "vec": self.vec.to_dict()
+            }
+
+        def with_vec(self, vec: Vec.Base):
+            return NearestNeighborsQuery.DotLsh(field=self.field, vec=vec, similarity=self.similarity,
+                                                   candidates=self.candidates)
+
 
     @dataclass(frozen=True)
     class L2Lsh(Base):

@@ -89,6 +89,7 @@ object XContentCodec {
           case Similarity.L1      => b.value(Names.L1)
           case Similarity.L2      => b.value(Names.L2)
           case Similarity.Cosine  => b.value(Names.COSINE)
+          case Similarity.Dot  => b.value(Names.DOT)
         }
         ()
       }
@@ -206,6 +207,20 @@ object XContentCodec {
       }
     }
 
+    implicit val dotLshMapping: MappingEncoder[Mapping.DotLsh] = new MappingEncoder[Mapping.DotLsh] {
+      override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
+      override def encodeElastiknnObject(t: Mapping.DotLsh, b: XContentBuilder): Unit = {
+        b.startObject(Names.ELASTIKNN)
+        b.field(Names.LSH_L, t.L)
+        b.field(Names.DIMS, t.dims)
+        b.field(Names.LSH_K, t.k)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY, Names.DOT)
+        b.endObject()
+        ()
+      }
+    }
+
     implicit val l2LshMapping: MappingEncoder[Mapping.L2Lsh] = new MappingEncoder[Mapping.L2Lsh] {
       override protected def vectorType: String = Names.EKNN_DENSE_FLOAT_VECTOR
       override def encodeElastiknnObject(t: Mapping.L2Lsh, b: XContentBuilder): Unit = {
@@ -242,6 +257,7 @@ object XContentCodec {
         case m: Mapping.HammingLsh     => hammingLshMapping.encodeElastiknnObject(m, b)
         case m: Mapping.DenseFloat     => denseFloatMapping.encodeElastiknnObject(m, b)
         case m: Mapping.CosineLsh      => cosineLshMapping.encodeElastiknnObject(m, b)
+        case m: Mapping.DotLsh         => dotLshMapping.encodeElastiknnObject(m, b)
         case m: Mapping.L2Lsh          => l2LshMapping.encodeElastiknnObject(m, b)
         case m: Mapping.PermutationLsh => permutationLshMapping.encodeElastiknnObject(m, b)
       }
@@ -252,6 +268,7 @@ object XContentCodec {
           case m: Mapping.HammingLsh     => hammingLshMapping.encodeUnsafe(m, b)
           case m: Mapping.DenseFloat     => denseFloatMapping.encodeUnsafe(m, b)
           case m: Mapping.CosineLsh      => cosineLshMapping.encodeUnsafe(m, b)
+          case m: Mapping.DotLsh         => dotLshMapping.encodeUnsafe(m, b)
           case m: Mapping.L2Lsh          => l2LshMapping.encodeUnsafe(m, b)
           case m: Mapping.PermutationLsh => permutationLshMapping.encodeUnsafe(m, b)
         }
@@ -316,6 +333,21 @@ object XContentCodec {
       }
     }
 
+    implicit val dotLshQuery: Encoder[NearestNeighborsQuery.DotLsh] = new Encoder[NearestNeighborsQuery.DotLsh] {
+      override def encodeUnsafe(t: NearestNeighborsQuery.DotLsh, b: XContentBuilder): Unit = {
+        b.startObject()
+        b.field(Names.CANDIDATES, t.candidates)
+        b.field(Names.FIELD, t.field)
+        b.field(Names.MODEL, Names.LSH)
+        b.field(Names.SIMILARITY)
+        similarity.encodeUnsafe(t.similarity, b)
+        b.field(Names.VEC)
+        vec.encodeUnsafe(t.vec, b)
+        b.endObject()
+        ()
+      }
+    }
+
     implicit val l2LshQuery: Encoder[NearestNeighborsQuery.L2Lsh] = new Encoder[NearestNeighborsQuery.L2Lsh] {
       override def encodeUnsafe(t: NearestNeighborsQuery.L2Lsh, b: XContentBuilder): Unit = {
         b.startObject()
@@ -354,6 +386,7 @@ object XContentCodec {
           case q: NearestNeighborsQuery.JaccardLsh     => jaccardLshQuery.encodeUnsafe(q, b)
           case q: NearestNeighborsQuery.HammingLsh     => hammingLshQuery.encodeUnsafe(q, b)
           case q: NearestNeighborsQuery.CosineLsh      => cosineLshQuery.encodeUnsafe(q, b)
+          case q: NearestNeighborsQuery.DotLsh         => dotLshQuery.encodeUnsafe(q, b) 
           case q: NearestNeighborsQuery.L2Lsh          => l2LshQuery.encodeUnsafe(q, b)
           case q: NearestNeighborsQuery.PermutationLsh => permutationLshQuery.encodeUnsafe(q, b)
         }
@@ -441,6 +474,7 @@ object XContentCodec {
         case Names.L1      => Similarity.L1
         case Names.L2      => Similarity.L2
         case Names.COSINE  => Similarity.Cosine
+        case Names.DOT     => Similarity.Dot
         case Names.ANGULAR => Similarity.Cosine
         case _             => throw new XContentParseException(unexpectedValue(s1, Names.SIMILARITIES))
       }
@@ -603,6 +637,8 @@ object XContentCodec {
           Mapping.L2Lsh(dims, l, k, w)
         case (Some(Names.EKNN_DENSE_FLOAT_VECTOR), Some(Names.LSH), Some(dims), Some(Similarity.Cosine), Some(l), Some(k), _, _) =>
           Mapping.CosineLsh(dims, l, k)
+        case (Some(Names.EKNN_DENSE_FLOAT_VECTOR), Some(Names.LSH), Some(dims), Some(Similarity.Dot), Some(l), Some(k), _, _) =>
+          Mapping.DotLsh(dims, l, k)
         case (Some(Names.EKNN_DENSE_FLOAT_VECTOR), Some(Names.PERMUTATION_LSH), Some(dims), _, _, Some(k), _, Some(repeating)) =>
           Mapping.PermutationLsh(dims, k, repeating)
         case _ => throw new XContentParseException(unableToConstruct("mapping"))
@@ -645,6 +681,8 @@ object XContentCodec {
             NearestNeighborsQuery.Exact(field, similarity, v)
           case (Some(candidates), Some(field), Some(Names.LSH), _, Some(Similarity.Cosine), Some(v)) =>
             NearestNeighborsQuery.CosineLsh(field, candidates, v)
+          case (Some(candidates), Some(field), Some(Names.LSH), _, Some(Similarity.Dot), Some(v)) =>
+            NearestNeighborsQuery.DotLsh(field, candidates, v)
           case (Some(candidates), Some(field), Some(Names.LSH), _, Some(Similarity.Hamming), Some(v)) =>
             NearestNeighborsQuery.HammingLsh(field, candidates, v)
           case (Some(candidates), Some(field), Some(Names.LSH), _, Some(Similarity.Jaccard), Some(v)) =>
@@ -662,6 +700,7 @@ object XContentCodec {
     val ANGULAR = "angular"
     val CANDIDATES = "candidates"
     val COSINE = "cosine"
+    val DOT = "dot"
     val DIMS = "dims"
     val ELASTIKNN = "elastiknn"
     val EKNN_DENSE_FLOAT_VECTOR = s"${ELASTIKNN_NAME}_dense_float_vector"
