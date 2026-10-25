@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.10.8'
           cache: 'pip'
-      - uses: arduino/setup-task@v2
+      - uses: arduino/setup-task@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate Jekyll Site
