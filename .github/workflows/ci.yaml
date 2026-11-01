@@ -36,7 +36,7 @@ jobs:
     runs-on:
       - ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         timeout-minutes: 1
       - uses: actions/setup-java@v6
         timeout-minutes: 1
@@ -83,7 +83,7 @@ jobs:
     runs-on:
       - ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         timeout-minutes: 1
       - uses: actions/setup-java@v6
         timeout-minutes: 1
@@ -127,7 +127,7 @@ jobs:
       - ubuntu-22.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         timeout-minutes: 1
       - uses: actions/setup-java@v6
         timeout-minutes: 1
@@ -174,7 +174,7 @@ jobs:
       - ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         timeout-minutes: 1
       - uses: arduino/setup-task@v3
         timeout-minutes: 1
