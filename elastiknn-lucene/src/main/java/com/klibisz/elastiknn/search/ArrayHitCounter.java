@@ -1,94 +1,97 @@
 package com.klibisz.elastiknn.search;
 
+import jdk.internal.vm.annotation.ForceInline;
 import org.apache.lucene.search.DocIdSetIterator;
+
+import java.util.Arrays;
 
 public final class ArrayHitCounter implements HitCounter {
 
-    private final short[] counts;
-    private int numHits;
-    private int minKey;
-    private int maxKey;
+    // Mapping an integer doc ID to the number of times it has occurred.
+    // E.g., if document 10 has been matched 11 times, then docIdToCount[10] = 11.
+    private final short[] docIdToCount;
 
-    private short maxValue;
+    // Mapping an integer count to the number of times it has occurred.
+    // E.g., if there are 10 docs which have each been matched 11 times, countToCount[11] = 10.
+    private short[] countToCount;
 
-    public ArrayHitCounter(int capacity) {
-        counts = new short[capacity];
-        numHits = 0;
-        minKey = capacity;
-        maxKey = 0;
-        maxValue = 0;
+    private int minDocId;
+    private int maxDocId;
+
+    private int maxCount = 0;
+
+    public ArrayHitCounter(int numDocs, int expectedMaxCount) {
+        docIdToCount = new short[numDocs];
+        countToCount = new short[expectedMaxCount + 1];
+        minDocId = Integer.MAX_VALUE;
+        maxDocId = 0;
+    }
+
+    public ArrayHitCounter(int numDocs) {
+        this(numDocs, 10);
+    }
+
+    @ForceInline
+    private void incrementKeyByCount(int docId, short count) {
+        int newCount = (docIdToCount[docId] += count);
+        if (newCount > maxCount) maxCount = newCount;
+
+        // Potentially grow the count arrays.
+        if (newCount >= countToCount.length) {
+            countToCount = Arrays.copyOf(countToCount, newCount + 1);
+        }
+
+        // Update the old count.
+        int oldCount = newCount - count;
+        if (oldCount > 0) countToCount[oldCount] -= 1;
+
+        // Update the new count.
+        countToCount[newCount]++;
+
+        // Update min/max doc IDs.
+        if (docId < minDocId) minDocId = docId;
+        if (docId > maxDocId) maxDocId = docId;
     }
 
     @Override
     public void increment(int key) {
-        short after = ++counts[key];
-        if (after == 1) {
-            numHits++;
-            minKey = Math.min(key, minKey);
-            maxKey = Math.max(key, maxKey);
-        }
-        if (after > maxValue) maxValue = after;
+        incrementKeyByCount(key, (short) 1);
     }
 
     @Override
     public void increment(int key, short count) {
-        short after = (counts[key] += count);
-        if (after == count) {
-            numHits++;
-            minKey = Math.min(key, minKey);
-            maxKey = Math.max(key, maxKey);
-        }
-        if (after > maxValue) maxValue = after;
+        incrementKeyByCount(key, count);
     }
 
     @Override
     public short get(int key) {
-        return counts[key];
+        return docIdToCount[key];
     }
 
     @Override
     public int capacity() {
-        return counts.length;
-    }
-
-
-    private KthGreatestResult kthGreatest(int k) {
-        // Find the kth greatest document hit count in O(n) time and O(n) space.
-        // Though the space is typically negligibly small in practice.
-        // This implementation exploits the fact that we're specifically counting document hit counts.
-        // Counts are integers, and they're likely to be pretty small, since we're unlikely to match
-        // the same document many times.
-
-        // Start by building a histogram of all counts.
-        // e.g., if the counts are [0, 4, 1, 1, 2],
-        // then the histogram is [1, 2, 1, 0, 1],
-        // because 0 occurs once, 1 occurs twice, 2 occurs once, 3 occurs zero times, and 4 occurs once.
-        short[] hist = new short[maxValue + 1];
-        for (short c: counts) hist[c]++;
-
-        // Now we start at the max value and iterate backwards through the histogram,
-        // accumulating counts of counts until we've exceeded k.
-        int numGreaterEqual = 0;
-        short kthGreatest = maxValue;
-
-        while (true) {
-            numGreaterEqual += hist[kthGreatest];
-            if (kthGreatest > 1 && numGreaterEqual < k) kthGreatest--;
-            else break;
-        }
-
-        // Finally we find the number that were greater than the kth greatest count.
-        // There's a special case if kthGreatest is zero, then the number that were greater is the number of hits.
-        int numGreater = numGreaterEqual - hist[kthGreatest];
-        return new KthGreatestResult(kthGreatest, numGreater);
+        return docIdToCount.length;
     }
 
     @Override
     public DocIdSetIterator docIdSetIterator(int candidates) {
-        if (numHits == 0) return DocIdSetIterator.empty();
+        if (maxCount == 0) return DocIdSetIterator.empty();
         else {
 
-            KthGreatestResult kgr = kthGreatest(candidates);
+            // Loop backwards through countToCount to figure out the minimum count that's required for a
+            // document to be a candidate.
+            int kthGreatest = maxCount;
+            int numGreaterEqual = 0;
+            while (true) {
+                numGreaterEqual += countToCount[kthGreatest];
+                if (kthGreatest > 1 && numGreaterEqual < candidates) kthGreatest--;
+                else break;
+            }
+            // Java seems to want me to do this in order to reuse the values in the class below.
+            final int finalKthGreatest = kthGreatest;
+            final int finalMinDocId = minDocId;
+            final int finalMaxDocId = maxDocId;
+            final int numGreaterThan = numGreaterEqual - countToCount[kthGreatest];
 
             // Return an iterator over the doc ids >= the min candidate count.
             return new DocIdSetIterator() {
@@ -97,9 +100,15 @@ public final class ArrayHitCounter implements HitCounter {
                 private int docID = -1;
                 private boolean started = false;
 
-                // Track the number of ids emitted, and the number of ids with count = kgr.kthGreatest emitted.
-                private int numEmitted = 0;
-                private int numEq = 0;
+                // Track the number of total IDs emitted.
+                private int numTotalEmitted = 0;
+
+                // The threshold of IDs w/ count = kthGreatest that can be emitted.
+                private final int numEqThreshold = candidates - numGreaterThan;
+
+                // Track the number of IDs w/ count = kthGreatest that have been emitted
+                private int numEqEmitted = 0;
+
 
                 @Override
                 public int docID() {
@@ -111,23 +120,23 @@ public final class ArrayHitCounter implements HitCounter {
 
                     if (!started) {
                         started = true;
-                        docID = minKey - 1;
+                        docID = finalMinDocId - 1;
                     }
 
                     // Ensure that docs with count = kgr.kthGreatest are only emitted when there are fewer
                     // than `candidates` docs with count > kgr.kthGreatest.
                     while (true) {
-                        if (numEmitted == candidates || docID + 1 > maxKey) {
+                        if (numTotalEmitted == candidates || docID + 1 > finalMaxDocId) {
                             docID = DocIdSetIterator.NO_MORE_DOCS;
                             return docID;
                         } else {
                             docID++;
-                            if (counts[docID] > kgr.kthGreatest) {
-                                numEmitted++;
+                            if (docIdToCount[docID] > finalKthGreatest) {
+                                numTotalEmitted++;
                                 return docID;
-                            } else if (counts[docID] == kgr.kthGreatest && numEq < candidates - kgr.numGreaterThan) {
-                                numEq++;
-                                numEmitted++;
+                            } else if (docIdToCount[docID] == finalKthGreatest && numEqEmitted < numEqThreshold) {
+                                numEqEmitted++;
+                                numTotalEmitted++;
                                 return docID;
                             }
                         }
@@ -142,10 +151,9 @@ public final class ArrayHitCounter implements HitCounter {
 
                 @Override
                 public long cost() {
-                    return maxKey - minKey;
+                    return finalMaxDocId - finalMinDocId;
                 }
             };
         }
     }
-
 }
