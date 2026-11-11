@@ -93,7 +93,31 @@ class ExactSimilarityFunctionSuite extends AnyFunSpec with Matchers {
       cosine(v2, v2) shouldBe 2d
     }
   }
+  
+  describe("Dot Similarity") {
 
+    val dot = new ExactSimilarityFunction.Dot(new PanamaFloatVectorOps)
+
+    it("matches reference") {
+      for (_ <- 0 until reps) {
+        val len = rng.nextInt(4096) + 10
+        val v1 = Vec.DenseFloat.random(len)
+        val v2 = Vec.DenseFloat.random(len)
+        dot(v1, v2) shouldBe (ExactSimilarityReference.Dot(v1, v2) +- tol)
+      }
+    }
+
+    it("handles identity") {
+      val v1 = Vec.DenseFloat.random(199)
+      dot(v1, v1) shouldBe (2d +- tol)
+    }
+
+    it("handles all zeros") {
+      val v1 = Vec.DenseFloat.random(199)
+      val v2 = Vec.DenseFloat(v1.values.map(_ * 0))
+      dot(v2, v2) shouldBe 2d
+    }
+  }
   describe("Jaccard Similarity") {
 
     it("matches reference") {
