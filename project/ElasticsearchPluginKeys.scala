@@ -19,13 +19,17 @@ trait ElasticsearchPluginKeys {
   lazy val elasticsearchPluginRunSettings =
     settingKey[Seq[String]]("Settings used when running an Elasticsearch node via `sbt elasticsearchPluginRun`.")
   lazy val elasticsearchVersion = settingKey[String]("The Elasticsearch version for this plugin.")
-  // Tasks.
+  // Tasks. These are @transient because they have side effects and should not be cached by sbt 2.
+  @transient
   lazy val elasticsearchPluginBundle =
     taskKey[File]("Bundle the plugin into a zip file that can be installed via `elasticsearch-plugin install`.")
+  @transient
   lazy val elasticsearchPluginDebug =
     taskKey[Unit]("Run a local Elasticsearch node with the plugin installed in debug mode to set and inspect breakpoints.")
+  @transient
   lazy val elasticsearchPluginDownloadDistribution =
     taskKey[File]("Download the Elasticsearch distribution from https://www.elastic.co/downloads/elasticsearch.")
+  @transient
   lazy val elasticsearchPluginRun =
     taskKey[Unit]("Run a local Elasticsearch node with the plugin installed.")
 }
