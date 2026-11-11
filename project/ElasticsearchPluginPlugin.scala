@@ -3,6 +3,8 @@ import sbt.Keys._
 import sbt.internal.graph.backend.SbtUpdateReport
 import sbt.{Def, _}
 
+import xsbti.HashedVirtualFileRef
+
 import java.nio.file.Files
 import java.util.zip.GZIPInputStream
 import scala.sys.process.Process
@@ -21,18 +23,18 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
   import autoImport._
 
-  override lazy val projectSettings: Seq[Def.Setting[_]] = List(
+  override lazy val projectSettings: Seq[Def.Setting[?]] = List(
     libraryDependencies ++= Seq(
-      "org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value
-        exclude ("org.elasticsearch", "elasticsearch-preallocate") // https://github.com/elastic/elasticsearch/issues/96360
+      ("org.elasticsearch" % "elasticsearch" % elasticsearchVersion.value)
+        .exclude("org.elasticsearch", "elasticsearch-preallocate") // https://github.com/elastic/elasticsearch/issues/96360
     ),
     cleanFiles ++= Seq(
       elasticsearchPluginDistributionDirectory.value,
       elasticsearchPluginBundleFile.value
     ),
-    elasticsearchPluginDistributionDirectory := (Compile / target).value / s"elasticsearch-${elasticsearchVersion.value}",
+    elasticsearchPluginDistributionDirectory := baseDirectory.value / "target" / s"elasticsearch-${elasticsearchVersion.value}",
     elasticsearchPluginBundle := elasticsearchPluginBundleImpl.value,
-    elasticsearchPluginBundleFile := (Compile / target).value / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip",
+    elasticsearchPluginBundleFile := baseDirectory.value / "target" / s"${elasticsearchPluginName.value}-${elasticsearchPluginVersion.value}.zip",
     elasticsearchPluginRunSettings := Seq(
       "xpack.security.enabled=false",
       s"cluster.name=${elasticsearchPluginName.value}-sbt-cluster"
@@ -47,7 +49,7 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
 
   private def elasticsearchPluginBundleImpl: Def.Initialize[Task[File]] = Def.task {
     val log = sLog.value
-    val pluginDescriptorFile: File = (Compile / target).value / "plugin-descriptor.properties"
+    val pluginDescriptorFile: File = baseDirectory.value / "target" / "plugin-descriptor.properties"
     pluginDescriptorFile.deleteOnExit()
     IO.write(
       pluginDescriptorFile,
@@ -63,7 +65,8 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
          |""".stripMargin.stripLeading
     )
     val pluginMetadataFiles = ((Compile / sourceDirectory).value / "plugin-metadata").listFiles()
-    val pluginJar: File = (Compile / packageBin).value
+    val converter = fileConverter.value
+    val pluginJar: File = converter.toPath((Compile / packageBin).value).toFile
 
     // Build up the list of JARs that need to go in the zip file.
     // We need to remove Elasticsearch and all of its dependencies, which requires some gymnastics.
@@ -93,10 +96,12 @@ object ElasticsearchPluginPlugin extends AutoPlugin {
         mod <- dependencyMap.keys.toList.filter(transitiveDependencyExists(dependencyMap)(esMod, _))
       } yield mod)
       (Compile / dependencyClasspathAsJars).value
-        .flatMap { af: Attributed[File] =>
-          af.metadata.entries.map(_.value).collectFirst {
-            case m: ModuleID if !ignoredModules.contains(m.organization % m.name % m.revision) => af.data
-          }
+        .flatMap { (af: Attributed[HashedVirtualFileRef]) =>
+          af.get(moduleIDStr)
+            .map(Classpaths.moduleIdJsonKeyFormat.read)
+            .collect {
+              case m if !ignoredModules.contains(m.organization % m.name % m.revision) => converter.toPath(af.data).toFile
+            }
         }
     }
 
