@@ -58,7 +58,7 @@ public class MatchHashesAndScoreQuery extends Query {
                     TermsEnum termsEnum = terms.iterator();
                     PostingsEnum docs = null;
 
-                    HitCounter counter = new ArrayHitCounter(reader.maxDoc());
+                    HitCounter counter = new ArrayHitCounter(reader.maxDoc(), hashAndFrequencies.length);
                     for (HashAndFreq hf : hashAndFrequencies) {
                         // We take two different paths here, depending on the frequency of the current hash.
                         // If the frequency is one, we avoid checking the frequency of matching docs when
