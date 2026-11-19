@@ -1,0 +1,70 @@
+name: Weekly Maintenance
+
+# Runs Claude Code to merge dependency PRs, upgrade Elasticsearch patch versions, and cut releases.
+# The procedure is in skills/weekly-maintenance/SKILL.md.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1" # Mondays at 14:00 UTC.
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-maintenance
+  cancel-in-progress: false
+
+# Writes go through the GitHub App token below. PRs and pushes made with GITHUB_TOKEN don't trigger CI.
+permissions:
+  contents: read
+
+jobs:
+  maintain:
+    if: github.repository == 'alexklibisz/elastiknn'
+    runs-on:
+      - ubuntu-22.04
+    # Most of this time is spent waiting on CI for the PRs it opens.
+    timeout-minutes: 180
+    env:
+      # CI takes ~25 minutes, so let a single Bash call wait for a whole CI run.
+      BASH_DEFAULT_TIMEOUT_MS: 2700000
+      BASH_MAX_TIMEOUT_MS: 2700000
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.MAINTENANCE_APP_PRIVATE_KEY }}
+      - id: app-user
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: echo "id=$(gh api "/users/${SLUG}%5Bbot%5D" -q .id)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: 21
+          cache: 'sbt'
+      - uses: arduino/setup-task@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Increase MMAP Limits
+        run: sudo sysctl -w vm.max_map_count=262144
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          bot_name: ${{ steps.app-token.outputs.app-slug }}[bot]
+          bot_id: ${{ steps.app-user.outputs.id }}
+          prompt: |
+            Run the weekly maintenance procedure in skills/weekly-maintenance/SKILL.md.
+            Nobody is available to answer questions. When the procedure says to stop, open an issue as it describes.
+          claude_args: |
+            --model claude-opus-5-5
+            --max-turns 150
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(development/maintenance/bump-elasticsearch.sh:*),Bash(development/maintenance/verify.sh:*),Bash(development/maintenance/watch-ci.sh:*),Bash(development/maintenance/release.sh:*),Bash(git:*),Bash(gh pr:*),Bash(gh run:*),Bash(gh workflow run:*),Bash(gh release list:*),Bash(gh release view:*),Bash(gh issue list:*),Bash(gh issue create:*),Bash(gh issue comment:*),Bash(gh api:*),Bash(sbt:*),Bash(task:*),Bash(curl:*),Bash(cat:*),Bash(grep:*),Bash(sed:*),Bash(ls:*)"
+            --disallowedTools "Bash(git push --force:*),Bash(git push -f:*),Bash(git push origin --force:*),Bash(git push origin -f:*),Bash(gh release delete:*)"

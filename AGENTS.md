@@ -58,6 +58,8 @@ Use the `upgrade-elasticsearch` skill to perform an Elasticsearch upgrade end-to
 
 Other JVM dependencies are mostly handled by Scala Steward via automated PRs (see git log for the pattern).
 
+The Weekly Maintenance workflow (`.github/workflows/weekly-maintenance.yml`) runs Claude Code on a schedule to merge dependency PRs, upgrade Elasticsearch patch versions, and cut releases. It follows `skills/weekly-maintenance/SKILL.md` and uses the scripts in `development/maintenance/`.
+
 ## Backport Releases
 
 To release a plugin for an older Elasticsearch version (e.g., 9.3.8 while main is on 9.4.x):
